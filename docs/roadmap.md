@@ -1225,6 +1225,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Parte feita (11/11/2026, kern1): o ambiente de kernel (plugins `*KERNEL` com o código original, exportações de
   kernel do firmware em HLE, separação kernel/usuário no linker); o taiHEN real carrega e falha sozinho (hooks de DRM),
   então os plugins que dependem dele (kubridge, fd_fix) não iniciam. Detalhes, limites e o plano do resto no item "O emulador é genérico" abaixo e em `docs/notes/plugins.md`.
+  Censo das exportações de kernel do FW 3.74 (12/11/2026, k2, `feat/kernel-complete`): 115 bibliotecas, 3.918
+  funções dos `os0:kd` (bootimage embutido incluído); 154 em HLE, 1.957 das que faltam são importadas por algum módulo de
+  kernel do firmware. Tabela por biblioteca em `docs/hle/kernel-exports.md`, por função em
+  `docs/hle/data/kernel-exports.tsv`. Ordem do resto: o que os módulos de kernel e os plugins importam primeiro.
 - [ ] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das
