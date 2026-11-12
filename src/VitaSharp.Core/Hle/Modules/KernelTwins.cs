@@ -371,293 +371,293 @@ public sealed partial class KernelTwins : HleModule
 
     // ------------------------------------------------------------------ SceCpuForDriver
 
-    /// <summary>ksceKernelAtomicAddAndGet16 (SceCpuForDriver 0x59F74E94): sceKernelAtomicAddAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicAddAndGet16 (SceCpuForDriver 0x59F74E94): sceKernelAtomicAddAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicAddAndGet16(HleContext context) => Forward(context, 0x495C52EC);
+    void ksceKernelCpuAtomicAddAndGet16(HleContext context) => Forward(context, 0x495C52EC);
 
-    /// <summary>ksceKernelAtomicAddAndGet32 (SceCpuForDriver 0x5F6A8743): sceKernelAtomicAddAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicAddAndGet32 (SceCpuForDriver 0x5F6A8743): sceKernelAtomicAddAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicAddAndGet32(HleContext context) => Forward(context, 0x2E84A93B);
+    void ksceKernelCpuAtomicAddAndGet32(HleContext context) => Forward(context, 0x2E84A93B);
 
-    /// <summary>ksceKernelAtomicAddAndGet64 (SceCpuForDriver 0x4E459A03): sceKernelAtomicAddAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicAddAndGet64 (SceCpuForDriver 0x4E459A03): sceKernelAtomicAddAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicAddAndGet64(HleContext context) => Forward(context, 0xB6CE9B9A);
+    void ksceKernelCpuAtomicAddAndGet64(HleContext context) => Forward(context, 0xB6CE9B9A);
 
-    /// <summary>ksceKernelAtomicAddAndGet8 (SceCpuForDriver 0x1E850481): sceKernelAtomicAddAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicAddAndGet8 (SceCpuForDriver 0x1E850481): sceKernelAtomicAddAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicAddAndGet8(HleContext context) => Forward(context, 0x8F7BD940);
+    void ksceKernelCpuAtomicAddAndGet8(HleContext context) => Forward(context, 0x8F7BD940);
 
-    /// <summary>ksceKernelAtomicAddUnless16 (SceCpuForDriver 0x0F84AFE9): sceKernelAtomicAddUnless16.</summary>
+    /// <summary>ksceKernelCpuAtomicAddUnless16 (SceCpuForDriver 0x0F84AFE9): sceKernelAtomicAddUnless16.</summary>
     [Hle]
-    void ksceKernelAtomicAddUnless16(HleContext context) => Forward(context, 0x1CF4AA4B);
+    void ksceKernelCpuAtomicAddUnless16(HleContext context) => Forward(context, 0x1CF4AA4B);
 
-    /// <summary>ksceKernelAtomicAddUnless32 (SceCpuForDriver 0x1F157DC3): sceKernelAtomicAddUnless32.</summary>
+    /// <summary>ksceKernelCpuAtomicAddUnless32 (SceCpuForDriver 0x1F157DC3): sceKernelAtomicAddUnless32.</summary>
     [Hle]
-    void ksceKernelAtomicAddUnless32(HleContext context) => Forward(context, 0x4B33FD3C);
+    void ksceKernelCpuAtomicAddUnless32(HleContext context) => Forward(context, 0x4B33FD3C);
 
-    /// <summary>ksceKernelAtomicAddUnless64 (SceCpuForDriver 0x06CCFA4B): sceKernelAtomicAddUnless64.</summary>
+    /// <summary>ksceKernelCpuAtomicAddUnless64 (SceCpuForDriver 0x06CCFA4B): sceKernelAtomicAddUnless64.</summary>
     [Hle]
-    void ksceKernelAtomicAddUnless64(HleContext context) => Forward(context, 0xFFCE7438);
+    void ksceKernelCpuAtomicAddUnless64(HleContext context) => Forward(context, 0xFFCE7438);
 
-    /// <summary>ksceKernelAtomicAddUnless8 (SceCpuForDriver 0x5CC62CEC): sceKernelAtomicAddUnless8.</summary>
+    /// <summary>ksceKernelCpuAtomicAddUnless8 (SceCpuForDriver 0x5CC62CEC): sceKernelAtomicAddUnless8.</summary>
     [Hle]
-    void ksceKernelAtomicAddUnless8(HleContext context) => Forward(context, 0x7FD94393);
+    void ksceKernelCpuAtomicAddUnless8(HleContext context) => Forward(context, 0x7FD94393);
 
-    /// <summary>ksceKernelAtomicAndAndGet16 (SceCpuForDriver 0xB281D52A): sceKernelAtomicAndAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicAndAndGet16 (SceCpuForDriver 0xB281D52A): sceKernelAtomicAndAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicAndAndGet16(HleContext context) => Forward(context, 0xF9890F7E);
+    void ksceKernelCpuAtomicAndAndGet16(HleContext context) => Forward(context, 0xF9890F7E);
 
-    /// <summary>ksceKernelAtomicAndAndGet32 (SceCpuForDriver 0xDF899E4B): sceKernelAtomicAndAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicAndAndGet32 (SceCpuForDriver 0xDF899E4B): sceKernelAtomicAndAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicAndAndGet32(HleContext context) => Forward(context, 0x6709D30C);
+    void ksceKernelCpuAtomicAndAndGet32(HleContext context) => Forward(context, 0x6709D30C);
 
-    /// <summary>ksceKernelAtomicAndAndGet64 (SceCpuForDriver 0xD18E7B54): sceKernelAtomicAndAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicAndAndGet64 (SceCpuForDriver 0xD18E7B54): sceKernelAtomicAndAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicAndAndGet64(HleContext context) => Forward(context, 0xAED2B370);
+    void ksceKernelCpuAtomicAndAndGet64(HleContext context) => Forward(context, 0xAED2B370);
 
-    /// <summary>ksceKernelAtomicAndAndGet8 (SceCpuForDriver 0x32B62B1A): sceKernelAtomicAndAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicAndAndGet8 (SceCpuForDriver 0x32B62B1A): sceKernelAtomicAndAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicAndAndGet8(HleContext context) => Forward(context, 0x86B9170F);
+    void ksceKernelCpuAtomicAndAndGet8(HleContext context) => Forward(context, 0x86B9170F);
 
-    /// <summary>ksceKernelAtomicClearAndGet16 (SceCpuForDriver 0x6B050D7C): sceKernelAtomicClearAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicClearAndGet16 (SceCpuForDriver 0x6B050D7C): sceKernelAtomicClearAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicClearAndGet16(HleContext context) => Forward(context, 0xCC36B775);
+    void ksceKernelCpuAtomicClearAndGet16(HleContext context) => Forward(context, 0xCC36B775);
 
-    /// <summary>ksceKernelAtomicClearAndGet32 (SceCpuForDriver 0x78C1F148): sceKernelAtomicClearAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicClearAndGet32 (SceCpuForDriver 0x78C1F148): sceKernelAtomicClearAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicClearAndGet32(HleContext context) => Forward(context, 0x9DAA0DE8);
+    void ksceKernelCpuAtomicClearAndGet32(HleContext context) => Forward(context, 0x9DAA0DE8);
 
-    /// <summary>ksceKernelAtomicClearAndGet64 (SceCpuForDriver 0x2149CD4C): sceKernelAtomicClearAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicClearAndGet64 (SceCpuForDriver 0x2149CD4C): sceKernelAtomicClearAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicClearAndGet64(HleContext context) => Forward(context, 0x264209F3);
+    void ksceKernelCpuAtomicClearAndGet64(HleContext context) => Forward(context, 0x264209F3);
 
-    /// <summary>ksceKernelAtomicClearAndGet8 (SceCpuForDriver 0x8E538AB5): sceKernelAtomicClearAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicClearAndGet8 (SceCpuForDriver 0x8E538AB5): sceKernelAtomicClearAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicClearAndGet8(HleContext context) => Forward(context, 0x17B40010);
+    void ksceKernelCpuAtomicClearAndGet8(HleContext context) => Forward(context, 0x17B40010);
 
-    /// <summary>ksceKernelAtomicClearMask16 (SceCpuForDriver 0x1BE58599): sceKernelAtomicClearMask16.</summary>
+    /// <summary>ksceKernelCpuAtomicClearMask16 (SceCpuForDriver 0x1BE58599): sceKernelAtomicClearMask16.</summary>
     [Hle]
-    void ksceKernelAtomicClearMask16(HleContext context) => Forward(context, 0x5FE7DFF8);
+    void ksceKernelCpuAtomicClearMask16(HleContext context) => Forward(context, 0x5FE7DFF8);
 
-    /// <summary>ksceKernelAtomicClearMask32 (SceCpuForDriver 0x4AE1BCC0): sceKernelAtomicClearMask32.</summary>
+    /// <summary>ksceKernelCpuAtomicClearMask32 (SceCpuForDriver 0x4AE1BCC0): sceKernelAtomicClearMask32.</summary>
     [Hle]
-    void ksceKernelAtomicClearMask32(HleContext context) => Forward(context, 0xE3DF0CB3);
+    void ksceKernelCpuAtomicClearMask32(HleContext context) => Forward(context, 0xE3DF0CB3);
 
-    /// <summary>ksceKernelAtomicClearMask64 (SceCpuForDriver 0x55760309): sceKernelAtomicClearMask64.</summary>
+    /// <summary>ksceKernelCpuAtomicClearMask64 (SceCpuForDriver 0x55760309): sceKernelAtomicClearMask64.</summary>
     [Hle]
-    void ksceKernelAtomicClearMask64(HleContext context) => Forward(context, 0x953D118A);
+    void ksceKernelCpuAtomicClearMask64(HleContext context) => Forward(context, 0x953D118A);
 
-    /// <summary>ksceKernelAtomicClearMask8 (SceCpuForDriver 0x1B3336B0): sceKernelAtomicClearMask8.</summary>
+    /// <summary>ksceKernelCpuAtomicClearMask8 (SceCpuForDriver 0x1B3336B0): sceKernelAtomicClearMask8.</summary>
     [Hle]
-    void ksceKernelAtomicClearMask8(HleContext context) => Forward(context, 0xD7D49E36);
+    void ksceKernelCpuAtomicClearMask8(HleContext context) => Forward(context, 0xD7D49E36);
 
-    /// <summary>ksceKernelAtomicCompareAndSet16 (SceCpuForDriver 0x6F63F56D): sceKernelAtomicCompareAndSet16.</summary>
+    /// <summary>ksceKernelCpuAtomicCompareAndSet16 (SceCpuForDriver 0x6F63F56D): sceKernelAtomicCompareAndSet16.</summary>
     [Hle]
-    void ksceKernelAtomicCompareAndSet16(HleContext context) => Forward(context, 0xE8C01236);
+    void ksceKernelCpuAtomicCompareAndSet16(HleContext context) => Forward(context, 0xE8C01236);
 
-    /// <summary>ksceKernelAtomicCompareAndSet32 (SceCpuForDriver 0xCDA96E81): sceKernelAtomicCompareAndSet32.</summary>
+    /// <summary>ksceKernelCpuAtomicCompareAndSet32 (SceCpuForDriver 0xCDA96E81): sceKernelAtomicCompareAndSet32.</summary>
     [Hle]
-    void ksceKernelAtomicCompareAndSet32(HleContext context) => Forward(context, 0x1124A1D4);
+    void ksceKernelCpuAtomicCompareAndSet32(HleContext context) => Forward(context, 0x1124A1D4);
 
-    /// <summary>ksceKernelAtomicCompareAndSet64 (SceCpuForDriver 0x4B527009): sceKernelAtomicCompareAndSet64.</summary>
+    /// <summary>ksceKernelCpuAtomicCompareAndSet64 (SceCpuForDriver 0x4B527009): sceKernelAtomicCompareAndSet64.</summary>
     [Hle]
-    void ksceKernelAtomicCompareAndSet64(HleContext context) => Forward(context, 0x1EBDFCCD);
+    void ksceKernelCpuAtomicCompareAndSet64(HleContext context) => Forward(context, 0x1EBDFCCD);
 
-    /// <summary>ksceKernelAtomicCompareAndSet8 (SceCpuForDriver 0x3627F4E0): sceKernelAtomicCompareAndSet8.</summary>
+    /// <summary>ksceKernelCpuAtomicCompareAndSet8 (SceCpuForDriver 0x3627F4E0): sceKernelAtomicCompareAndSet8.</summary>
     [Hle]
-    void ksceKernelAtomicCompareAndSet8(HleContext context) => Forward(context, 0x327DB4C0);
+    void ksceKernelCpuAtomicCompareAndSet8(HleContext context) => Forward(context, 0x327DB4C0);
 
-    /// <summary>ksceKernelAtomicDecIfPositive16 (SceCpuForDriver 0x9A693F5B): sceKernelAtomicDecIfPositive16.</summary>
+    /// <summary>ksceKernelCpuAtomicDecIfPositive16 (SceCpuForDriver 0x9A693F5B): sceKernelAtomicDecIfPositive16.</summary>
     [Hle]
-    void ksceKernelAtomicDecIfPositive16(HleContext context) => Forward(context, 0x323718FB);
+    void ksceKernelCpuAtomicDecIfPositive16(HleContext context) => Forward(context, 0x323718FB);
 
-    /// <summary>ksceKernelAtomicDecIfPositive32 (SceCpuForDriver 0x2A71B03C): sceKernelAtomicDecIfPositive32.</summary>
+    /// <summary>ksceKernelCpuAtomicDecIfPositive32 (SceCpuForDriver 0x2A71B03C): sceKernelAtomicDecIfPositive32.</summary>
     [Hle]
-    void ksceKernelAtomicDecIfPositive32(HleContext context) => Forward(context, 0xCA3294F1);
+    void ksceKernelCpuAtomicDecIfPositive32(HleContext context) => Forward(context, 0xCA3294F1);
 
-    /// <summary>ksceKernelAtomicDecIfPositive64 (SceCpuForDriver 0x267D0B33): sceKernelAtomicDecIfPositive64.</summary>
+    /// <summary>ksceKernelCpuAtomicDecIfPositive64 (SceCpuForDriver 0x267D0B33): sceKernelAtomicDecIfPositive64.</summary>
     [Hle]
-    void ksceKernelAtomicDecIfPositive64(HleContext context) => Forward(context, 0x8BE2A007);
+    void ksceKernelCpuAtomicDecIfPositive64(HleContext context) => Forward(context, 0x8BE2A007);
 
-    /// <summary>ksceKernelAtomicDecIfPositive8 (SceCpuForDriver 0x45153D4E): sceKernelAtomicDecIfPositive8.</summary>
+    /// <summary>ksceKernelCpuAtomicDecIfPositive8 (SceCpuForDriver 0x45153D4E): sceKernelAtomicDecIfPositive8.</summary>
     [Hle]
-    void ksceKernelAtomicDecIfPositive8(HleContext context) => Forward(context, 0x9DABE6C3);
+    void ksceKernelCpuAtomicDecIfPositive8(HleContext context) => Forward(context, 0x9DABE6C3);
 
-    /// <summary>ksceKernelAtomicGetAndAdd16 (SceCpuForDriver 0x225DF91A): sceKernelAtomicGetAndAdd16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAdd16 (SceCpuForDriver 0x225DF91A): sceKernelAtomicGetAndAdd16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAdd16(HleContext context) => Forward(context, 0x5674DB0C);
+    void ksceKernelCpuAtomicGetAndAdd16(HleContext context) => Forward(context, 0x5674DB0C);
 
-    /// <summary>ksceKernelAtomicGetAndAdd32 (SceCpuForDriver 0x341B6E81): sceKernelAtomicGetAndAdd32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAdd32 (SceCpuForDriver 0x341B6E81): sceKernelAtomicGetAndAdd32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAdd32(HleContext context) => Forward(context, 0x2611CB0B);
+    void ksceKernelCpuAtomicGetAndAdd32(HleContext context) => Forward(context, 0x2611CB0B);
 
-    /// <summary>ksceKernelAtomicGetAndAdd64 (SceCpuForDriver 0x043FD446): sceKernelAtomicGetAndAdd64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAdd64 (SceCpuForDriver 0x043FD446): sceKernelAtomicGetAndAdd64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAdd64(HleContext context) => Forward(context, 0x63DAF37D);
+    void ksceKernelCpuAtomicGetAndAdd64(HleContext context) => Forward(context, 0x63DAF37D);
 
-    /// <summary>ksceKernelAtomicGetAndAdd8 (SceCpuForDriver 0xFCDCD4DE): sceKernelAtomicGetAndAdd8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAdd8 (SceCpuForDriver 0xFCDCD4DE): sceKernelAtomicGetAndAdd8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAdd8(HleContext context) => Forward(context, 0x27A2AAFA);
+    void ksceKernelCpuAtomicGetAndAdd8(HleContext context) => Forward(context, 0x27A2AAFA);
 
-    /// <summary>ksceKernelAtomicGetAndAnd16 (SceCpuForDriver 0x4A820BC5): sceKernelAtomicGetAndAnd16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAnd16 (SceCpuForDriver 0x4A820BC5): sceKernelAtomicGetAndAnd16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAnd16(HleContext context) => Forward(context, 0x7A0CB056);
+    void ksceKernelCpuAtomicGetAndAnd16(HleContext context) => Forward(context, 0x7A0CB056);
 
-    /// <summary>ksceKernelAtomicGetAndAnd32 (SceCpuForDriver 0x10EB35EB): sceKernelAtomicGetAndAnd32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAnd32 (SceCpuForDriver 0x10EB35EB): sceKernelAtomicGetAndAnd32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAnd32(HleContext context) => Forward(context, 0x08266595);
+    void ksceKernelCpuAtomicGetAndAnd32(HleContext context) => Forward(context, 0x08266595);
 
-    /// <summary>ksceKernelAtomicGetAndAnd64 (SceCpuForDriver 0x18A17E07): sceKernelAtomicGetAndAnd64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAnd64 (SceCpuForDriver 0x18A17E07): sceKernelAtomicGetAndAnd64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAnd64(HleContext context) => Forward(context, 0x4828BC43);
+    void ksceKernelCpuAtomicGetAndAnd64(HleContext context) => Forward(context, 0x4828BC43);
 
-    /// <summary>ksceKernelAtomicGetAndAnd8 (SceCpuForDriver 0xD8E675C0): sceKernelAtomicGetAndAnd8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndAnd8 (SceCpuForDriver 0xD8E675C0): sceKernelAtomicGetAndAnd8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndAnd8(HleContext context) => Forward(context, 0x53DCA02B);
+    void ksceKernelCpuAtomicGetAndAnd8(HleContext context) => Forward(context, 0x53DCA02B);
 
-    /// <summary>ksceKernelAtomicGetAndClear16 (SceCpuForDriver 0x8E9C086D): sceKernelAtomicGetAndClear16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndClear16 (SceCpuForDriver 0x8E9C086D): sceKernelAtomicGetAndClear16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndClear16(HleContext context) => Forward(context, 0x57CD7E7D);
+    void ksceKernelCpuAtomicGetAndClear16(HleContext context) => Forward(context, 0x57CD7E7D);
 
-    /// <summary>ksceKernelAtomicGetAndClear32 (SceCpuForDriver 0xE36F3A46): sceKernelAtomicGetAndClear32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndClear32 (SceCpuForDriver 0xE36F3A46): sceKernelAtomicGetAndClear32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndClear32(HleContext context) => Forward(context, 0x0226A017);
+    void ksceKernelCpuAtomicGetAndClear32(HleContext context) => Forward(context, 0x0226A017);
 
-    /// <summary>ksceKernelAtomicGetAndClear64 (SceCpuForDriver 0x88BA6002): sceKernelAtomicGetAndClear64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndClear64 (SceCpuForDriver 0x88BA6002): sceKernelAtomicGetAndClear64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndClear64(HleContext context) => Forward(context, 0x436AA0B5);
+    void ksceKernelCpuAtomicGetAndClear64(HleContext context) => Forward(context, 0x436AA0B5);
 
-    /// <summary>ksceKernelAtomicGetAndClear8 (SceCpuForDriver 0x382D1466): sceKernelAtomicGetAndClear8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndClear8 (SceCpuForDriver 0x382D1466): sceKernelAtomicGetAndClear8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndClear8(HleContext context) => Forward(context, 0xA10873A4);
+    void ksceKernelCpuAtomicGetAndClear8(HleContext context) => Forward(context, 0xA10873A4);
 
-    /// <summary>ksceKernelAtomicGetAndOr16 (SceCpuForDriver 0x004F09D1): sceKernelAtomicGetAndOr16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndOr16 (SceCpuForDriver 0x004F09D1): sceKernelAtomicGetAndOr16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndOr16(HleContext context) => Forward(context, 0x31E49E73);
+    void ksceKernelCpuAtomicGetAndOr16(HleContext context) => Forward(context, 0x31E49E73);
 
-    /// <summary>ksceKernelAtomicGetAndOr32 (SceCpuForDriver 0x2A40BB93): sceKernelAtomicGetAndOr32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndOr32 (SceCpuForDriver 0x2A40BB93): sceKernelAtomicGetAndOr32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndOr32(HleContext context) => Forward(context, 0x984AD276);
+    void ksceKernelCpuAtomicGetAndOr32(HleContext context) => Forward(context, 0x984AD276);
 
-    /// <summary>ksceKernelAtomicGetAndOr64 (SceCpuForDriver 0xCB73D6D5): sceKernelAtomicGetAndOr64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndOr64 (SceCpuForDriver 0xCB73D6D5): sceKernelAtomicGetAndOr64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndOr64(HleContext context) => Forward(context, 0xC39186CD);
+    void ksceKernelCpuAtomicGetAndOr64(HleContext context) => Forward(context, 0xC39186CD);
 
-    /// <summary>ksceKernelAtomicGetAndOr8 (SceCpuForDriver 0xBDF6F8E4): sceKernelAtomicGetAndOr8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndOr8 (SceCpuForDriver 0xBDF6F8E4): sceKernelAtomicGetAndOr8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndOr8(HleContext context) => Forward(context, 0x107A68DF);
+    void ksceKernelCpuAtomicGetAndOr8(HleContext context) => Forward(context, 0x107A68DF);
 
-    /// <summary>ksceKernelAtomicGetAndSet16 (SceCpuForDriver 0x085532C8): sceKernelAtomicGetAndSet16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSet16 (SceCpuForDriver 0x085532C8): sceKernelAtomicGetAndSet16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSet16(HleContext context) => Forward(context, 0xF7B9ADFC);
+    void ksceKernelCpuAtomicGetAndSet16(HleContext context) => Forward(context, 0xF7B9ADFC);
 
-    /// <summary>ksceKernelAtomicGetAndSet32 (SceCpuForDriver 0x0EE04C03): sceKernelAtomicGetAndSet32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSet32 (SceCpuForDriver 0x0EE04C03): sceKernelAtomicGetAndSet32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSet32(HleContext context) => Forward(context, 0x9B43E667);
+    void ksceKernelCpuAtomicGetAndSet32(HleContext context) => Forward(context, 0x9B43E667);
 
-    /// <summary>ksceKernelAtomicGetAndSet64 (SceCpuForDriver 0xD2DEE625): sceKernelAtomicGetAndSet64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSet64 (SceCpuForDriver 0xD2DEE625): sceKernelAtomicGetAndSet64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSet64(HleContext context) => Forward(context, 0xD82B3A7A);
+    void ksceKernelCpuAtomicGetAndSet64(HleContext context) => Forward(context, 0xD82B3A7A);
 
-    /// <summary>ksceKernelAtomicGetAndSet8 (SceCpuForDriver 0x29599FC8): sceKernelAtomicGetAndSet8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSet8 (SceCpuForDriver 0x29599FC8): sceKernelAtomicGetAndSet8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSet8(HleContext context) => Forward(context, 0x2672EA0B);
+    void ksceKernelCpuAtomicGetAndSet8(HleContext context) => Forward(context, 0x2672EA0B);
 
-    /// <summary>ksceKernelAtomicGetAndSub16 (SceCpuForDriver 0x3EE9B5B8): sceKernelAtomicGetAndSub16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSub16 (SceCpuForDriver 0x3EE9B5B8): sceKernelAtomicGetAndSub16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSub16(HleContext context) => Forward(context, 0xAC51979C);
+    void ksceKernelCpuAtomicGetAndSub16(HleContext context) => Forward(context, 0xAC51979C);
 
-    /// <summary>ksceKernelAtomicGetAndSub32 (SceCpuForDriver 0xF891CF2A): sceKernelAtomicGetAndSub32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSub32 (SceCpuForDriver 0xF891CF2A): sceKernelAtomicGetAndSub32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSub32(HleContext context) => Forward(context, 0x115C516F);
+    void ksceKernelCpuAtomicGetAndSub32(HleContext context) => Forward(context, 0x115C516F);
 
-    /// <summary>ksceKernelAtomicGetAndSub64 (SceCpuForDriver 0xA7585370): sceKernelAtomicGetAndSub64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSub64 (SceCpuForDriver 0xA7585370): sceKernelAtomicGetAndSub64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSub64(HleContext context) => Forward(context, 0x4AE9C8E6);
+    void ksceKernelCpuAtomicGetAndSub64(HleContext context) => Forward(context, 0x4AE9C8E6);
 
-    /// <summary>ksceKernelAtomicGetAndSub8 (SceCpuForDriver 0x7B43D0D7): sceKernelAtomicGetAndSub8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndSub8 (SceCpuForDriver 0x7B43D0D7): sceKernelAtomicGetAndSub8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndSub8(HleContext context) => Forward(context, 0xCDF5DF67);
+    void ksceKernelCpuAtomicGetAndSub8(HleContext context) => Forward(context, 0xCDF5DF67);
 
-    /// <summary>ksceKernelAtomicGetAndXor16 (SceCpuForDriver 0x711801E6): sceKernelAtomicGetAndXor16.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndXor16 (SceCpuForDriver 0x711801E6): sceKernelAtomicGetAndXor16.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndXor16(HleContext context) => Forward(context, 0x6E2D0B9E);
+    void ksceKernelCpuAtomicGetAndXor16(HleContext context) => Forward(context, 0x6E2D0B9E);
 
-    /// <summary>ksceKernelAtomicGetAndXor32 (SceCpuForDriver 0x77E34309): sceKernelAtomicGetAndXor32.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndXor32 (SceCpuForDriver 0x77E34309): sceKernelAtomicGetAndXor32.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndXor32(HleContext context) => Forward(context, 0x38739E2F);
+    void ksceKernelCpuAtomicGetAndXor32(HleContext context) => Forward(context, 0x38739E2F);
 
-    /// <summary>ksceKernelAtomicGetAndXor64 (SceCpuForDriver 0xE212ECAD): sceKernelAtomicGetAndXor64.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndXor64 (SceCpuForDriver 0xE212ECAD): sceKernelAtomicGetAndXor64.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndXor64(HleContext context) => Forward(context, 0x6A19BBE9);
+    void ksceKernelCpuAtomicGetAndXor64(HleContext context) => Forward(context, 0x6A19BBE9);
 
-    /// <summary>ksceKernelAtomicGetAndXor8 (SceCpuForDriver 0xBAF47F7B): sceKernelAtomicGetAndXor8.</summary>
+    /// <summary>ksceKernelCpuAtomicGetAndXor8 (SceCpuForDriver 0xBAF47F7B): sceKernelAtomicGetAndXor8.</summary>
     [Hle]
-    void ksceKernelAtomicGetAndXor8(HleContext context) => Forward(context, 0x7350B2DF);
+    void ksceKernelCpuAtomicGetAndXor8(HleContext context) => Forward(context, 0x7350B2DF);
 
-    /// <summary>ksceKernelAtomicOrAndGet16 (SceCpuForDriver 0xADD39B84): sceKernelAtomicOrAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicOrAndGet16 (SceCpuForDriver 0xADD39B84): sceKernelAtomicOrAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicOrAndGet16(HleContext context) => Forward(context, 0x8E248EBD);
+    void ksceKernelCpuAtomicOrAndGet16(HleContext context) => Forward(context, 0x8E248EBD);
 
-    /// <summary>ksceKernelAtomicOrAndGet32 (SceCpuForDriver 0xBC248C30): sceKernelAtomicOrAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicOrAndGet32 (SceCpuForDriver 0xBC248C30): sceKernelAtomicOrAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicOrAndGet32(HleContext context) => Forward(context, 0xC3B2F7F8);
+    void ksceKernelCpuAtomicOrAndGet32(HleContext context) => Forward(context, 0xC3B2F7F8);
 
-    /// <summary>ksceKernelAtomicOrAndGet64 (SceCpuForDriver 0x3E218AF7): sceKernelAtomicOrAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicOrAndGet64 (SceCpuForDriver 0x3E218AF7): sceKernelAtomicOrAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicOrAndGet64(HleContext context) => Forward(context, 0x809BBC7D);
+    void ksceKernelCpuAtomicOrAndGet64(HleContext context) => Forward(context, 0x809BBC7D);
 
-    /// <summary>ksceKernelAtomicOrAndGet8 (SceCpuForDriver 0x5D515F1B): sceKernelAtomicOrAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicOrAndGet8 (SceCpuForDriver 0x5D515F1B): sceKernelAtomicOrAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicOrAndGet8(HleContext context) => Forward(context, 0x51693931);
+    void ksceKernelCpuAtomicOrAndGet8(HleContext context) => Forward(context, 0x51693931);
 
-    /// <summary>ksceKernelAtomicSet16 (SceCpuForDriver 0x532CA3E8): sceKernelAtomicSet16.</summary>
+    /// <summary>ksceKernelCpuAtomicSet16 (SceCpuForDriver 0x532CA3E8): sceKernelAtomicSet16.</summary>
     [Hle]
-    void ksceKernelAtomicSet16(HleContext context) => Forward(context, 0x450BFECF);
+    void ksceKernelCpuAtomicSet16(HleContext context) => Forward(context, 0x450BFECF);
 
-    /// <summary>ksceKernelAtomicSet32 (SceCpuForDriver 0x3168BC57): sceKernelAtomicSet32.</summary>
+    /// <summary>ksceKernelCpuAtomicSet32 (SceCpuForDriver 0x3168BC57): sceKernelAtomicSet32.</summary>
     [Hle]
-    void ksceKernelAtomicSet32(HleContext context) => Forward(context, 0xB69DA09B);
+    void ksceKernelCpuAtomicSet32(HleContext context) => Forward(context, 0xB69DA09B);
 
-    /// <summary>ksceKernelAtomicSet64 (SceCpuForDriver 0xC381CE8C): sceKernelAtomicSet64.</summary>
+    /// <summary>ksceKernelCpuAtomicSet64 (SceCpuForDriver 0xC381CE8C): sceKernelAtomicSet64.</summary>
     [Hle]
-    void ksceKernelAtomicSet64(HleContext context) => Forward(context, 0xC8A4339C);
+    void ksceKernelCpuAtomicSet64(HleContext context) => Forward(context, 0xC8A4339C);
 
-    /// <summary>ksceKernelAtomicSet8 (SceCpuForDriver 0x0836537E): sceKernelAtomicSet8.</summary>
+    /// <summary>ksceKernelCpuAtomicSet8 (SceCpuForDriver 0x0836537E): sceKernelAtomicSet8.</summary>
     [Hle]
-    void ksceKernelAtomicSet8(HleContext context) => Forward(context, 0xE960FDA2);
+    void ksceKernelCpuAtomicSet8(HleContext context) => Forward(context, 0xE960FDA2);
 
-    /// <summary>ksceKernelAtomicSubAndGet16 (SceCpuForDriver 0x515682C9): sceKernelAtomicSubAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicSubAndGet16 (SceCpuForDriver 0x515682C9): sceKernelAtomicSubAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicSubAndGet16(HleContext context) => Forward(context, 0xC26BBBB1);
+    void ksceKernelCpuAtomicSubAndGet16(HleContext context) => Forward(context, 0xC26BBBB1);
 
-    /// <summary>ksceKernelAtomicSubAndGet32 (SceCpuForDriver 0xA4884C4E): sceKernelAtomicSubAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicSubAndGet32 (SceCpuForDriver 0xA4884C4E): sceKernelAtomicSubAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicSubAndGet32(HleContext context) => Forward(context, 0x01C9CD92);
+    void ksceKernelCpuAtomicSubAndGet32(HleContext context) => Forward(context, 0x01C9CD92);
 
-    /// <summary>ksceKernelAtomicSubAndGet64 (SceCpuForDriver 0xB5F8919C): sceKernelAtomicSubAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicSubAndGet64 (SceCpuForDriver 0xB5F8919C): sceKernelAtomicSubAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicSubAndGet64(HleContext context) => Forward(context, 0x9BB4A94B);
+    void ksceKernelCpuAtomicSubAndGet64(HleContext context) => Forward(context, 0x9BB4A94B);
 
-    /// <summary>ksceKernelAtomicSubAndGet8 (SceCpuForDriver 0xEB085370): sceKernelAtomicSubAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicSubAndGet8 (SceCpuForDriver 0xEB085370): sceKernelAtomicSubAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicSubAndGet8(HleContext context) => Forward(context, 0x99E1796E);
+    void ksceKernelCpuAtomicSubAndGet8(HleContext context) => Forward(context, 0x99E1796E);
 
-    /// <summary>ksceKernelAtomicXorAndGet16 (SceCpuForDriver 0x646003D6): sceKernelAtomicXorAndGet16.</summary>
+    /// <summary>ksceKernelCpuAtomicXorAndGet16 (SceCpuForDriver 0x646003D6): sceKernelAtomicXorAndGet16.</summary>
     [Hle]
-    void ksceKernelAtomicXorAndGet16(HleContext context) => Forward(context, 0x6F524195);
+    void ksceKernelCpuAtomicXorAndGet16(HleContext context) => Forward(context, 0x6F524195);
 
-    /// <summary>ksceKernelAtomicXorAndGet32 (SceCpuForDriver 0x4244BE65): sceKernelAtomicXorAndGet32.</summary>
+    /// <summary>ksceKernelCpuAtomicXorAndGet32 (SceCpuForDriver 0x4244BE65): sceKernelAtomicXorAndGet32.</summary>
     [Hle]
-    void ksceKernelAtomicXorAndGet32(HleContext context) => Forward(context, 0x46940704);
+    void ksceKernelCpuAtomicXorAndGet32(HleContext context) => Forward(context, 0x46940704);
 
-    /// <summary>ksceKernelAtomicXorAndGet64 (SceCpuForDriver 0x692C51B3): sceKernelAtomicXorAndGet64.</summary>
+    /// <summary>ksceKernelCpuAtomicXorAndGet64 (SceCpuForDriver 0x692C51B3): sceKernelAtomicXorAndGet64.</summary>
     [Hle]
-    void ksceKernelAtomicXorAndGet64(HleContext context) => Forward(context, 0xDDC6866E);
+    void ksceKernelCpuAtomicXorAndGet64(HleContext context) => Forward(context, 0xDDC6866E);
 
-    /// <summary>ksceKernelAtomicXorAndGet8 (SceCpuForDriver 0x03887992): sceKernelAtomicXorAndGet8.</summary>
+    /// <summary>ksceKernelCpuAtomicXorAndGet8 (SceCpuForDriver 0x03887992): sceKernelAtomicXorAndGet8.</summary>
     [Hle]
-    void ksceKernelAtomicXorAndGet8(HleContext context) => Forward(context, 0x634AF062);
+    void ksceKernelCpuAtomicXorAndGet8(HleContext context) => Forward(context, 0x634AF062);
 
     // ------------------------------------------------------------------ SceCtrlForDriver
 
