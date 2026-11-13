@@ -658,6 +658,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   renderings por quadro, carga de cor 33 -> 31 e de depth 24 -> 22, 6/6 quadros idênticos; replay no NVIDIA (perfil
   mali) dos 288 quadros do dump idêntico, 1.149 draws mantidos, 10.398 -> 9.824 renderings; os 9 dumps idênticos (lá
   não dispara). Medir no celular (UC título e gameplay) antes de ligar por padrão nos tilers
+  As 7 quebras RenderTargetRegion do atlas 256x512 são dependências reais: cada draw escreve um bloco 128x64 e o
+  seguinte amostra o bloco recém-escrito (cadeia de redução); com o RENDER_AREA_TRIM cada renderização já cobre só o
+  bloco desenhado. Sem ganho exato à vista ali
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
