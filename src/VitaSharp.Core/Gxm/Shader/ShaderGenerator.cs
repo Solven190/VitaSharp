@@ -23,10 +23,16 @@ namespace VitaSharp.Core.Gxm.Shader;
 /// gl_PointSize is multiplied by the internal resolution (rinfo.res_multiplier), so point sprites keep their size on
 /// screen above native. Its own key bit: only these programs get new cache entries (the shader caches of every other
 /// program stay valid)</param>
+/// <param name="FloatBitsOutput">fragment programs with a float colour on a surface of 32-bit float channels (F32,
+/// F32F32): the colour goes out as its bits through the surface's integer view (<c>floatBitsToUint</c>,
+/// <see cref="GeneratedShader.RawColorBits"/> 32), so a draw joins a rendering that raw-bit programs keep open on that
+/// view instead of ending it (ShaderGenerator.FloatBitsOutputPossible)</param>
 public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int ComponentCount, byte Format)[] Attributes, uint ColorFormat,
     bool FetchInputAttachment = false, uint OutputRegisterFormat = 0, bool TileWord1 = false, bool FetchInputSingleSample = false,
-    uint VaryingMask = 0, bool ScaledPointSize = false)
+    uint VaryingMask = 0, bool ScaledPointSize = false, bool FloatBitsOutput = false)
 {
+    /// <summary>Mixed into the key of <see cref="FloatBitsOutput"/> variants (other keys are unchanged).</summary>
+    public const uint FloatBitsKey = 0x46425431;
     /// <summary>Mixed into the key of <see cref="ScaledPointSize"/> variants (other keys are unchanged).</summary>
     public const uint ScaledPointSizeKey = 0x50535A31;
     /// <summary>Mixed into the key, then <see cref="VaryingMask"/>, when the mask is set (other keys are unchanged).</summary>
@@ -84,6 +90,11 @@ public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int Comp
         if (ScaledPointSize)
         {
             h = Fnv.Mix(h, ScaledPointSizeKey);
+        }
+
+        if (FloatBitsOutput)
+        {
+            h = Fnv.Mix(h, FloatBitsKey);
         }
 
         return VaryingMask != 0 ? Fnv.Mix(Fnv.Mix(h, VaryingMaskKey), VaryingMask) : h;
@@ -1519,6 +1530,8 @@ float packC10(vec3 c) {
         }
 
         int rawBits = RawOutputBits(program, hints.ColorFormat);
+        // a float colour stored as its bits through the integer view of a 32-bit float surface (ShaderHints.FloatBitsOutput)
+        bool floatBits = rawBits == 0 && hints.FloatBitsOutput && !result.UsesFragColor && FloatBitsOutputPossible(hints.ColorFormat);
         if (rawBits != 0)
         {
             // raw register bits: written through an integer view of the surface (exact bits, no float conversion)
@@ -1548,7 +1561,17 @@ float packC10(vec3 c) {
                 v = usseTranslator.ToFloat(v, color.Type, true);
             }
 
-            decl.AppendLine("layout(location = 0) out vec4 out_color;");
+            if (floatBits)
+            {
+                result.RawColorBits = 32;
+                decl.AppendLine("layout(location = 0) out uvec4 out_raw;");
+                decl.AppendLine("vec4 out_color;"); // stored as its bits at the end (after the debug overrides)
+            }
+            else
+            {
+                decl.AppendLine("layout(location = 0) out vec4 out_color;");
+            }
+
             usseTranslator.Line($"out_color = {v.E};");
             // a one-word colour with the second output register word written: scratch the tile keeps (TileWord1Use)
             if (program.IsNativeColor && hints.OutputRegisterFormat != 0 && color.Type is DataType.UInt8 or DataType.Int8 && usseTranslator.WordType(Bank.Output, 1) != null)
@@ -1610,6 +1633,11 @@ float packC10(vec3 c) {
             EmitNanDrawCheck(decl, usseTranslator, hints.ColorFormat);
         }
 
+        if (floatBits)
+        {
+            usseTranslator.Line("out_raw = floatBitsToUint(out_color);");
+        }
+
         if (rawBits != 0 && overridden)
         {
             usseTranslator.Line(rawBits switch
@@ -1631,6 +1659,14 @@ float packC10(vec3 c) {
     /// such outputs through an integer view with components of this size (the surface's own component layout).
     /// Surfaces with a component swizzle or a host layout that differs from the guest are left to the float path.
     /// </summary>
+    /// <summary>
+    /// The colour surface has 32-bit float channels (F32, F32F32): a float colour written to its float view is stored
+    /// as the shader's 32-bit values, the same words its integer view receives from <c>floatBitsToUint</c>. On the Vita
+    /// the output register words go to the surface unconverted, so the integer view is the exact form of the store
+    /// (a float attachment may flush denormals; Vulkan leaves that to the implementation).
+    /// </summary>
+    public static bool FloatBitsOutputPossible(uint colorFormat) => (colorFormat & 0xF1800000) is 0x11000000 or 0x10800000;
+
     public static int RawOutputBits(GxpProgram program, uint colorFormat)
     {
         DataType type = GxpProgram.StoreType(program.OutputParamType);

@@ -228,5 +228,6 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>"renderings: N in M scenes (R per scene), hoisted H (...), breaks (...)" for the PERF gpu line.</summary>
     private string SceneBreakReport() =>
         $"renderings {_statRenderings - _statMerged} in {_statScenes} scenes ({(double)(_statRenderings - _statMerged) / Math.Max(1, _statScenes):F2} per scene{(s_strictSceneBreaks ? ", strict" : "")}; " +
-        $"{_statMerged} more merged into the previous one), hoisted {_statHoisted} ({TopReasons(_hoistReasons)}), mid-scene breaks: {TopReasons(_breakReasons)}";
+        $"{_statMerged} more merged into the previous one), hoisted {_statHoisted} ({TopReasons(_hoistReasons)}), mid-scene breaks: {TopReasons(_breakReasons)}" +
+        (FloatBitsJoin ? $"; float draws kept in a raw rendering {_statFloatBitsDraws}" : "");
 }

@@ -196,7 +196,7 @@ public sealed unsafe partial class VulkanRenderer
     }
 
     private static ulong HintKey(GxmTextureDesc[] tex, uint used, GxmVertexAttribute[]? attrs, GxmVertexStream[]? streams, uint colorFormat, bool fetchInput = false, uint outputFormat = 0, bool tileWord1 = false,
-        bool fetchSingle = false, uint varyingMask = 0, bool scaledPointSize = false, uint[]? rtBits = null)
+        bool fetchSingle = false, uint varyingMask = 0, bool scaledPointSize = false, uint[]? rtBits = null, bool floatBits = false)
     {
         ulong h = ShaderHints.Fnv.Offset;
         for (int i = 0; i < 16; i++)
@@ -238,6 +238,11 @@ public sealed unsafe partial class VulkanRenderer
         if (scaledPointSize)
         {
             h = ShaderHints.Fnv.Mix(h, ShaderHints.ScaledPointSizeKey);
+        }
+
+        if (floatBits)
+        {
+            h = ShaderHints.Fnv.Mix(h, ShaderHints.FloatBitsKey);
         }
 
         return varyingMask != 0 ? ShaderHints.Fnv.Mix(ShaderHints.Fnv.Mix(h, ShaderHints.VaryingMaskKey), varyingMask) : h;
@@ -370,6 +375,11 @@ public sealed unsafe partial class VulkanRenderer
 
     private static ShaderHints FragmentHints(DrawCommand d, uint colorFormat) =>
         new(TextureFormats(d.FragmentTextures, d.FragmentProgram.Info.TexturesUsed), [], colorFormat, OutputRegisterFormat: NativeOutputFormat(d.FragmentProgram));
+
+    // a float colour stored as its bits through the surface's integer view (FloatBitsJoin)
+    private static ShaderHints FragmentHintsFloatBits(DrawCommand d, uint colorFormat) =>
+        new(TextureFormats(d.FragmentTextures, d.FragmentProgram.Info.TexturesUsed), [], colorFormat, OutputRegisterFormat: NativeOutputFormat(d.FragmentProgram),
+            FloatBitsOutput: true);
 
     private static ShaderHints FragmentHintsInputFetch(DrawCommand d, uint colorFormat) =>
         new(TextureFormats(d.FragmentTextures, d.FragmentProgram.Info.TexturesUsed), [], colorFormat, FetchInputAttachment: true,
@@ -556,15 +566,15 @@ public sealed unsafe partial class VulkanRenderer
     /// <param name="fetchInput">the variant whose programmable blending reads the input attachment</param>
     /// <param name="tileWord1">the variant that keeps the second output register word in the tile-word attachment</param>
     /// <param name="fetchSingle">with <paramref name="fetchInput"/>: the single-sampled input attachment variant</param>
-    private FsEntry GetFragmentShader(DrawCommand d, bool fetchInput = false, bool tileWord1 = false, bool fetchSingle = false)
+    private FsEntry GetFragmentShader(DrawCommand d, bool fetchInput = false, bool tileWord1 = false, bool fetchSingle = false, bool floatBits = false)
     {
         GxmFragmentProgram gxmFragmentProgram = d.FragmentProgram;
         uint colorFormat = _renderTarget?.ColorFormat ?? 0;
         // the plain variant only (the fetch and tile-word variants are rarer); render-target reinterpretation hints depend
         // on the textures' memory, not only their formats: no memo above native resolution
-        if (!s_shaderMemoOn || _resScale > 1f || fetchInput || tileWord1 || fetchSingle)
+        if (!s_shaderMemoOn || _resScale > 1f || fetchInput || tileWord1 || fetchSingle || floatBits)
         {
-            return GetFragmentShaderKeyed(d, gxmFragmentProgram, colorFormat, fetchInput, tileWord1, fetchSingle);
+            return GetFragmentShaderKeyed(d, gxmFragmentProgram, colorFormat, fetchInput, tileWord1, fetchSingle, floatBits);
         }
 
         ShaderMemo memo = MemoSlot(_fsMemo, gxmFragmentProgram);
@@ -578,11 +588,13 @@ public sealed unsafe partial class VulkanRenderer
         return found;
     }
 
-    private FsEntry GetFragmentShaderKeyed(DrawCommand d, GxmFragmentProgram gxmFragmentProgram, uint colorFormat, bool fetchInput, bool tileWord1, bool fetchSingle)
+    private FsEntry GetFragmentShaderKeyed(DrawCommand d, GxmFragmentProgram gxmFragmentProgram, uint colorFormat, bool fetchInput, bool tileWord1, bool fetchSingle,
+        bool floatBits = false)
     {
         // above native: textures that reinterpret a render target are sampled at the native texel mapping
         uint[]? rtBits = RtReinterpretHints(d.FragmentTextures, gxmFragmentProgram.Info.TexturesUsed);
-        ulong hk = HintKey(d.FragmentTextures, gxmFragmentProgram.Info.TexturesUsed, null, null, colorFormat, fetchInput, NativeOutputFormat(gxmFragmentProgram), tileWord1, fetchSingle, rtBits: rtBits);
+        ulong hk = HintKey(d.FragmentTextures, gxmFragmentProgram.Info.TexturesUsed, null, null, colorFormat, fetchInput, NativeOutputFormat(gxmFragmentProgram), tileWord1, fetchSingle, rtBits: rtBits,
+            floatBits: floatBits);
         if (_fsCache.TryGetValue((gxmFragmentProgram, hk), out FsEntry? fsEntry))
         {
             return fsEntry;
@@ -594,6 +606,7 @@ public sealed unsafe partial class VulkanRenderer
             (true, true) => FragmentHintsInputFetchTileWord1,
             (false, true) => FragmentHintsTileWord1,
             (true, false) => FragmentHintsInputFetch,
+            _ when floatBits => FragmentHintsFloatBits,
             _ => FragmentHints,
         };
         if (rtBits != null)
@@ -1252,6 +1265,17 @@ public sealed unsafe partial class VulkanRenderer
         // a fragment program that reads the current framebuffer colour carries its blend in the shader itself (the
         // shader patcher compiles the blend info into USSE code): the fixed-function blend must not be applied on top
         bool blendOn = blend is { } bi && !fs.Gen!.UsesFragColor && !(bi.ColorFunc == 0 && bi.AlphaFunc == 0) && !(bi.ColorSrc == 1 && bi.ColorDst == 0 && bi.AlphaSrc == 1 && bi.AlphaDst == 0);
+        // a float colour joins a rendering that raw-bit programs keep open on the surface's integer view (FloatBitsJoin)
+        if (FloatBitsJoinPossible(fs, blendOn, hasColor, passDraw || tw1 || inputFetch))
+        {
+            FsEntry bitsFs = GetFragmentShader(d, floatBits: true);
+            if (!bitsFs.Failed && bitsFs.Gen!.RawColorBits == 32)
+            {
+                fs = bitsFs;
+                _statFloatBitsDraws++;
+            }
+        }
+
         // raw register bits go through an integer view of the surface (exact bits; integer attachments do not blend)
         Format attachFormat = _rtAttachFormat;
         bool raw = hasColor && fs.Gen!.RawColorBits != 0;

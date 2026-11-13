@@ -653,7 +653,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   draws 1-373 escrevem bits crus (vista R32G32Uint) e os 374-377 saem em float (vista R32G32Sfloat), e a troca de
   vista fecha a renderização (~7 MB de load/store por troca, ~14 MB por quadro). Próximo: draws float sem blend nem
   framebuffer fetch numa superfície de canais F32 escrevem pela vista inteira (`floatBitsToUint`, os mesmos bits que
-  o Vita grava) quando a renderização aberta é crua, sem fechar; teste por replay no SwiftShader
+  o Vita grava) quando a renderização aberta é crua, sem fechar; teste por replay no SwiftShader Feito atrás de chave:
+  `VITASHARP_FLOAT_BITS_JOIN=1` (variante `ShaderHints.FloatBitsOutput`): Uncharted Prologue no SwiftShader 34 -> 32
+  renderings por quadro, carga de cor 33 -> 31 e de depth 24 -> 22, 6/6 quadros idênticos; replay no NVIDIA (perfil
+  mali) dos 288 quadros do dump idêntico, 1.149 draws mantidos, 10.398 -> 9.824 renderings; os 9 dumps idênticos (lá
+  não dispara). Medir no celular (UC título e gameplay) antes de ligar por padrão nos tilers
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por

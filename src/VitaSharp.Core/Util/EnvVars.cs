@@ -453,6 +453,9 @@ public static class EnvVars
     /// <summary>1 (A/B, default off): memory loads of four words read them with one 128-bit load where the address is
     /// 16-byte aligned (ShaderGenerator.VectorLoads; same values). Part of the shader cache key.</summary>
     public const string ShaderVec4Loads = "VITASHARP_SHADER_VEC4_LOADS";
+    /// <summary>1 (A/B, default off): a float-colour draw without blending on an F32/F32F32 surface writes its bits
+    /// through the integer view a raw-bit rendering keeps open instead of ending it (VulkanRenderer.SingleFetch.cs).</summary>
+    public const string FloatBitsJoin = "VITASHARP_FLOAT_BITS_JOIN";
     /// <summary>Emulator updates: the releases feed to check instead of the GitHub API of the build's repository (a URL
     /// with the API's JSON, or a folder with releases.json whose assets are file:// URLs; tests).</summary>
     public const string UpdateFeed = "VITASHARP_UPDATE_FEED";
