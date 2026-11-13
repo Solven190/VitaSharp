@@ -74,7 +74,8 @@ public sealed partial class GamePerformance : IDisposable
             return;
         }
         var topology = CpuTopology.FromSysfs();
-        _planner = new ThreadPlacementPlanner(topology);
+        bool spare = System.Environment.GetEnvironmentVariable(EnvVars.AndroidHelpers)?.Trim().ToLowerInvariant() == "spare";
+        _planner = new ThreadPlacementPlanner(topology, spare);
         if (!_planner.CanPlace)
             LogcatSink.Notice($"CPU clusters: {topology.Describe()}: one kind of core, threads are not pinned");
     }
@@ -179,7 +180,7 @@ public sealed partial class GamePerformance : IDisposable
         int extra = plan.HotTids.Length - 1 - (plan.GpuTid != 0 ? 1 : 0);
         return $"CPU clusters: {topo.Describe()}; pinned guest main '{main}' to {Where(plan.MainTid)}{gpu}"
             + (extra > 0 ? $" + {extra} more busy guest thread(s) to {CpuTopology.Ranges(topo.Big!.Mask)}" : "")
-            + $"; other guest threads and JIT workers to {CpuTopology.Ranges(topo.NotBigMask)}; shader workers to "
+            + $"; other guest threads{(planner.SpareFastCoresForGuests ? $" to {CpuTopology.Ranges(topo.NotBigMask)} (all cores while the fast ones are idle, {EnvVars.AndroidHelpers}=spare)" : "")} and JIT workers to {CpuTopology.Ranges(topo.NotBigMask)}; shader workers to "
             + $"{CpuTopology.Ranges(topo.NotBigMask)} (all cores while the fast ones are idle); "
             + (_hints != null ? $"ADPF session on (target {_rate.TargetNanos / 1e6:F2} ms)" : $"ADPF session off ({HintSession.Unavailable})");
     }

@@ -358,6 +358,10 @@ public static class EnvVars
     /// <summary>Android: =off turns off both the pinning of the hot threads (guest main thread, GPU worker) to the
     /// fast cores and the Performance Hint (ADPF) session, to compare with them on (docs/android/README.md).</summary>
     public const string AndroidAffinity = "VITASHARP_ANDROID_AFFINITY";
+    /// <summary>Android, A/B: =spare lets the guest threads that are not hot (job, audio, file threads) run on every core
+    /// while the hot threads leave at least half a fast core idle, as the shader workers do; default: the slow cores
+    /// (Mobile.Core Performance/ThreadPlacement.cs).</summary>
+    public const string AndroidHelpers = "VITASHARP_ANDROID_HELPERS";
     /// <summary>Android: =info, =debug or =all keeps forwarding info/debug lines to logcat while a game runs (by
     /// default only warnings and errors reach logcat once the first frame is shown; the log file keeps everything).</summary>
     public const string AndroidLogcat = "VITASHARP_ANDROID_LOGCAT";
