@@ -380,7 +380,7 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
         {
             foreach (HleBinding b in HleBindings.For(m.Type)!)
             {
-                List<HleAttribute> attrs = m.Type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                var attrs = m.Type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
                     .Where(x => x.Name == b.Method).SelectMany(x => x.GetCustomAttributes<HleAttribute>())
                     .Where(a => a.Name == b.Name && a.Nid == b.Nid && a.Library == b.Library).ToList();
                 Assert.NotEmpty(attrs);
