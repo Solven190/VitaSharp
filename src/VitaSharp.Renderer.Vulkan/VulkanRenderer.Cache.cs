@@ -434,6 +434,8 @@ public sealed unsafe partial class VulkanRenderer
         var key = new PipelineKey(vs.Module.Handle, fsM.Module.Handle, vs.LayoutHash, (Format)r.AttachFormat, r.HasColor, r.Blend,
             r.ColorFunc, r.AlphaFunc, r.ColorSrc, r.ColorDst, r.AlphaSrc, r.AlphaDst, r.Mask, TopologyClass(topology), (PolygonMode)r.Polygon,
             r.Samples == 0 ? SampleCountFlags.Count1Bit : (SampleCountFlags)r.Samples);
+        // whole pipelines also with pipeline libraries: with a cold driver cache, linking the 447 recorded Killzone
+        // pipelines from libraries took 51 s on two workers against 20 s whole (docs/notes/pipeline-skip.md)
         return BuildSharedPipeline(key, vs, fsM.Module, topology);
     }
 
@@ -1088,7 +1090,7 @@ public sealed unsafe partial class VulkanRenderer
                 + $" {_statGpuPipelines} compiled on the GPU thread ({Ms(_statGpuPipelineTicks):F0} ms, worst {Ms(_statGpuPipelineMaxTicks):F1} ms);"
                 + $" frames stalled >= {HitchMs} ms by shader/pipeline work: {_statHitchFrames}, >= {LongHitchMs} ms: {_statLongHitchFrames} (worst {Ms(_statWorstFrameStallTicks):F1} ms);"
                 + $" shaderc ({_compiler.OptLevel}): {ShaderCompiler.Compiled} compiled in {Ms(ShaderCompiler.CompileTicks):F0} ms, {ShaderCompiler.DiskHits} .spv disk hits; prefetch: {_statAsyncQueued} shaders queued to {(_shaderWorkers?.Length ?? 0)} workers, {_statAsyncWaited} waited for by the GPU thread; {_statPipelinesPrefetched} pipelines prefetched, {_statPipelineWaits} waited for ({Ms(_statPipelineWaitTicks):F0} ms)"
-                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}");
+                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}" + PipelineLibraryReport());
         }
 
         if (_titleId != null)

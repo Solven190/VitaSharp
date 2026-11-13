@@ -65,6 +65,10 @@ public enum GpuFeature : long
     /// discards beyond the far plane (<see cref="GpuQuirk.FarPlaneDiscard"/>), or, without depth clamp, the hardware
     /// clips there itself.</summary>
     ShaderClipDistance = 1L << 24,
+    /// <summary>VK_EXT_graphics_pipeline_library with graphicsPipelineLibraryFastLinking: a first-use pipeline is linked
+    /// from shader libraries compiled once per module instead of compiled whole, and the optimised pipeline replaces it
+    /// from a background thread (VulkanRenderer.PipelineLibrary.cs; DXVK requires the same property).</summary>
+    GraphicsPipelineLibrary = 1L << 25,
 }
 
 /// <summary>Driver workarounds and tile-based-GPU behaviour. Each one is selected by <see cref="GpuQuirkTable"/>.</summary>
@@ -114,6 +118,9 @@ public enum GpuQuirk : long
     /// plane, as GXM does): the discard repeated that clip and, on Mali, cost the early depth/stencil tests and forward
     /// pixel kill of every draw.</summary>
     FarPlaneDiscard = 1L << 13,
+    /// <summary>VK_EXT_graphics_pipeline_library is not used even when the driver reports fast linking: every pipeline
+    /// is compiled whole, as without the extension.</summary>
+    AvoidPipelineLibrary = 1L << 14,
 }
 
 /// <summary>Driver limits the renderer checks (a subset of VkPhysicalDeviceLimits).</summary>
@@ -392,6 +399,9 @@ public static class GpuQuirkTable
         new(GpuQuirk.TurnipDriver, "Qualcomm on Mesa Turnip (driverID MESA_TURNIP, or major version < 100)",
             "Vita3K renderer.cpp: 'say it is a turnip driver if the major driver version is less than 100'",
             (v, d, _) => v == GpuVendor.Qualcomm && d == GpuDriver.Turnip),
+        new(GpuQuirk.AvoidPipelineLibrary, "Qualcomm, ARM and Imagination proprietary, all versions",
+            "precautionary: the libraries and the fast link are not measured on these drivers (the phone path keeps whole pipelines); DXVK also needs graphicsPipelineLibraryFastLinking",
+            (v, d, _) => MobileProprietary(d)),
         new(GpuQuirk.CustomDriverCapable, "Qualcomm (stock or Turnip), Android",
             "Vita3K support_custom_drivers(): 'vendor ID 0x5143 is Qualcomm, being stock or turnip'",
             (v, d, _) => v == GpuVendor.Qualcomm),
@@ -404,12 +414,13 @@ public static class GpuQuirkTable
         // shaderStorageImageWriteWithoutFormat, no memory budget, sample-rate shading treated as unusable
         GpuProfile.Adreno => GpuFeature.TextureCompressionBC | GpuFeature.ShaderStorageImageWriteWithoutFormat | GpuFeature.SampleRateShading
                              | GpuFeature.MemoryBudget | GpuFeature.FillModeNonSolid | GpuFeature.LogicOp | GpuFeature.Storage16Bit | GpuFeature.WideLines
-                             | GpuFeature.PushDescriptor | GpuFeature.CustomBorderColor,
+                             | GpuFeature.PushDescriptor | GpuFeature.CustomBorderColor | GpuFeature.GraphicsPipelineLibrary,
         GpuProfile.AdrenoVulkan11 => ProfileMask(GpuProfile.Adreno) | GpuFeature.DynamicRendering | GpuFeature.ExtendedDynamicState,
         // Mali-G57 MC2 (Valhall) on the r54 proprietary driver, as measured on a Redmi Note 14 (Android 16): no BCn, no
         // non-solid fill, no memory budget and no shaderClipDistance (the far plane is clipped by a fragment discard,
         // GpuQuirk.FarPlaneDiscard); it has depth clamp, sample-rate shading, geometry shaders, logic op and wide lines
-        GpuProfile.Mali => GpuFeature.TextureCompressionBC | GpuFeature.FillModeNonSolid | GpuFeature.MemoryBudget | GpuFeature.ShaderClipDistance,
+        GpuProfile.Mali => GpuFeature.TextureCompressionBC | GpuFeature.FillModeNonSolid | GpuFeature.MemoryBudget | GpuFeature.ShaderClipDistance
+                           | GpuFeature.GraphicsPipelineLibrary,
         _ => GpuFeature.None,
     };
 

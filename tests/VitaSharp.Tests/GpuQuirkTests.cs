@@ -51,6 +51,33 @@ public sealed class GpuQuirkTests
             FramebufferSampleCounts = 1 | 2 | 4
         }, unified: true);
 
+    /// <summary>Graphics pipeline libraries: kept on desktop drivers that report fast linking, off on the phone
+    /// blobs (precautionary quirk) and removed by the mobile profiles, so those paths compile whole pipelines.</summary>
+    [Fact]
+    public void PipelineLibraryIsDesktopOnly()
+    {
+        GpuFeature withLibrary = Desktop | GpuFeature.GraphicsPipelineLibrary;
+        GpuCapabilities nvidia = GpuQuirkTable.Select(Device(GpuQuirkTable.VendorNvidia, GpuQuirkTable.DriverNvidiaProprietary, (566u << 22) | (36u << 14), withLibrary));
+        Assert.True(nvidia.Has(GpuFeature.GraphicsPipelineLibrary));
+        Assert.False(nvidia.Has(GpuQuirk.AvoidPipelineLibrary));
+        foreach (uint vendorAndDriver in new[] { GpuQuirkTable.DriverQualcommProprietary, GpuQuirkTable.DriverArmProprietary, GpuQuirkTable.DriverImaginationProprietary })
+        {
+            uint vendor = vendorAndDriver == GpuQuirkTable.DriverQualcommProprietary ? GpuQuirkTable.VendorQualcomm
+                : vendorAndDriver == GpuQuirkTable.DriverArmProprietary ? GpuQuirkTable.VendorArm : GpuQuirkTable.VendorImagination;
+            GpuCapabilities mobile = GpuQuirkTable.Select(Device(vendor, vendorAndDriver, GpuQuirkTable.MakeVersion(512, 744), withLibrary));
+            Assert.True(mobile.Has(GpuQuirk.AvoidPipelineLibrary), vendorAndDriver.ToString());
+        }
+
+        // Turnip (Mesa) is not a proprietary blob: the device decides
+        Assert.False(GpuQuirkTable.Select(Device(GpuQuirkTable.VendorQualcomm, GpuQuirkTable.DriverTurnip, GpuQuirkTable.MakeVersion(24, 1), withLibrary))
+            .Has(GpuQuirk.AvoidPipelineLibrary));
+        foreach (GpuProfile profile in new[] { GpuProfile.Adreno, GpuProfile.AdrenoVulkan11, GpuProfile.Mali })
+        {
+            GpuCapabilities emulated = GpuQuirkTable.Select(Device(GpuQuirkTable.VendorNvidia, GpuQuirkTable.DriverNvidiaProprietary, (566u << 22) | (36u << 14), withLibrary), profile);
+            Assert.False(emulated.Has(GpuFeature.GraphicsPipelineLibrary), profile.ToString());
+        }
+    }
+
     [Fact]
     public void DesktopNvidiaHasNoQuirks()
     {

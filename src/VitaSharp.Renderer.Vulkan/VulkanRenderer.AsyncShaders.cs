@@ -377,6 +377,12 @@ public sealed unsafe partial class VulkanRenderer
             blendOn, j.Blend?.ColorFunc ?? 0, j.Blend?.AlphaFunc ?? 0, j.Blend?.ColorSrc ?? 1, j.Blend?.ColorDst ?? 0, j.Blend?.AlphaSrc ?? 1, j.Blend?.AlphaDst ?? 0,
             mask, TopologyClass(topology), Formats.Polygon(j.PolygonMode), predictedScene.Samples, j.Static);
         // (recorded in pipelines.list when the GPU thread first uses it, not here: a misprediction is never recorded)
+        if (_pipelineLibrary && key.Static == 0)
+        {
+            LinkSharedPipeline(key, vs, fs.Module, topology);
+            return;
+        }
+
         if (BuildSharedPipeline(key, vs, fs.Module, topology) == SharedBuild.Built)
         {
             Interlocked.Increment(ref _statPipelinesPrefetched);
@@ -430,6 +436,40 @@ public sealed unsafe partial class VulkanRenderer
         finally
         {
             // published before the claim is released: a lookup sees the claim or the pipeline
+            _pipelineInflight.TryRemove(key, out _);
+            done.Set();
+        }
+    }
+
+    /// <summary>Prefetch worker with pipeline libraries: links the pipeline unless it
+    /// exists or someone is building it (the key is claimed as in <see cref="BuildSharedPipeline"/>).</summary>
+    private SharedBuild LinkSharedPipeline(in PipelineKey key, VsEntry vs, ShaderModule fsModule, PrimitiveTopology topology)
+    {
+        if (_sharedPipelines.ContainsKey(key))
+        {
+            return SharedBuild.Exists;
+        }
+
+        var done = new ManualResetEventSlim();
+        if (!_pipelineInflight.TryAdd(key, done))
+        {
+            return SharedBuild.Exists;
+        }
+
+        try
+        {
+            if (_sharedPipelines.ContainsKey(key))
+            {
+                return SharedBuild.Exists;
+            }
+
+            long t0 = FrameLedger.Now();
+            Pipeline linked = LinkPipeline(key, vs, fsModule, topology, gpuThread: false);
+            FrameLedger.AddSince(FrameLedger.Cat.BgPipeline, t0);
+            return linked.Handle != 0 ? SharedBuild.Built : SharedBuild.Failed;
+        }
+        finally
+        {
             _pipelineInflight.TryRemove(key, out _);
             done.Set();
         }
@@ -557,6 +597,19 @@ public sealed unsafe partial class VulkanRenderer
             // then the recorded pipelines of the prewarm (VulkanRenderer.Cache.cs, Prewarm)
             if (RunPrewarmItem())
             {
+                continue;
+            }
+            // last, the optimised pipelines that replace linked ones (VulkanRenderer.PipelineLibrary.cs)
+            try
+            {
+                if (RunOptimizeJob())
+                {
+                    continue;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WarnOnce("pipeline-optimize", $"[shader worker] optimised pipeline failed: {e.Message}");
                 continue;
             }
 

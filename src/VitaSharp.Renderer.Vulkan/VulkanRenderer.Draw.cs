@@ -738,6 +738,11 @@ public sealed unsafe partial class VulkanRenderer
 
     private Pipeline GetPipeline(in PipelineKey key, VsEntry vs, FsEntry fs, PrimitiveTopology topology)
     {
+        if (_optimizedSeen != Volatile.Read(ref _optimizedReady))
+        {
+            SwapOptimizedPipelines(); // (VulkanRenderer.PipelineLibrary.cs)
+        }
+
         if (_pipelines.TryGetValue(key, out Pipeline p))
         {
             return p;
@@ -790,6 +795,42 @@ public sealed unsafe partial class VulkanRenderer
             }
         }
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (_pipelineLibrary && key.Static == 0)
+        {
+            // linked from shader libraries instead of compiled whole; optimised in the background
+            // (VulkanRenderer.PipelineLibrary.cs)
+            Pipeline linked;
+            try
+            {
+                linked = LinkPipeline(key, vs, fs.Module, topology, gpuThread: true);
+            }
+            catch
+            {
+                if (claim != null)
+                {
+                    _pipelineInflight.TryRemove(key, out _);
+                    claim.Set();
+                }
+
+                throw;
+            }
+
+            if (claim != null && linked.Handle != 0)
+            {
+                _pipelineInflight.TryRemove(key, out _);
+                claim.Set(); // after publishing (LinkPipeline published it)
+            }
+
+            if (linked.Handle != 0)
+            {
+                long linkTicks = System.Diagnostics.Stopwatch.GetTimestamp() - t0;
+                FrameLedger.Add(FrameLedger.Cat.PipelineCreate, linkTicks);
+                _frameStallTicks += linkTicks;
+                _pipelines[key] = linked;
+                return linked;
+            }
+        }
+
         try
         {
             p = CreatePipeline(key, vs.Module, fs.Module, vs.Bindings, vs.Attributes, topology);
@@ -966,6 +1007,7 @@ public sealed unsafe partial class VulkanRenderer
 
     private void DestroyPipelines()
     {
+        DestroyPipelineLibraries();
         foreach (Pipeline p in _sharedPipelines.Values)
         {
             if (p.Handle != 0)

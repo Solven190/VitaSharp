@@ -178,3 +178,58 @@ Injustice `inj_fight` (Training fight) and Killzone `kz_skin`, cold caches, GTX 
   gain, more workers do not help on the 4 pinned CPUs, scalar banks and `--shaderc-opt=perf` did not pay off, and
   `VK_EXT_shader_object` would hit the same per-shader driver compile that dominates here. The remaining lever is
   shipping prewarm data (`pipelines.list`), which is per game and out of scope for a generic fix.
+
+## Graphics pipeline libraries, second attempt (perf/desktop-26, 13 November 2026): kept behind a switch, off
+Design, after DXVK (`dxvk_graphics.cpp`: shader libraries plus a fast-linked pipeline, optimised pipelines compiled
+in the background at a lower priority) and vkd3d-proton. The 7 November patch compiled the optimised pipeline on the
+prefetch workers as well as the libraries, which doubled the workers' driver work. What is different now:
+- The prefetch worker and the GPU thread build the four libraries (vertex input, pre-rasterisation with
+  the vertex module, fragment shader with the fragment module and sample count, fragment output) and link them. The
+  shader libraries are keyed by module and render pass, so MSAA and programmable-blending pipelines (render passes)
+  link too. The 7 November patch prebuilt only the single-sample variant, and Killzone renders its scenes with 4x MSAA.
+- The whole, optimised pipeline is queued last on the shader workers (after the draw-driven jobs, the boot rebuild
+  and the prewarm). The GPU thread swaps it in at its next lookup, and the linked one is destroyed after the GPU has
+  finished with it.
+- Enabled only where the driver reports `graphicsPipelineLibraryFastLinking` (the DXVK condition), with dynamic
+  rendering and the extended dynamic state. Off on the Qualcomm, ARM and Imagination blobs
+  (`GpuQuirk.AvoidPipelineLibrary`, precautionary because it has not been measured there) and in the mobile
+  `--gpu-profile`s. MoltenVK and Dozen do not have the extension. Off by default: `VITASHARP_PIPELINE_LIBRARY=1`
+  (or `VulkanRendererOptions.PipelineLibrary`) turns it on. The prewarm of recorded pipelines stays whole.
+- Counters: `VulkanRenderer.PipelineStats` (`CriticalPath` = whole pipelines compiled on the GPU thread + pipelines
+  it waited for + shader libraries it compiled), plus a "pipeline library:" part on the `[shadercache] session` line.
+
+Killzone F8 dump replay (`captures/PCSC00045_..._tudo/gpu.vsgd`), cold emulator and driver caches, all work on the
+GPU thread (replay default), GTX 1650 546.17, pinned to 4 logical CPUs:
+
+| | GPU thread | worst frame |
+|---|---|---|
+| off | 244 pipelines compiled whole, 20.0 s | 31.3 s |
+| on | 244 linked (123 ms in total) from 346 shader libraries (120 vertex, 226 fragment) | 28.8 s |
+
+All 10 compared frames are pixel-identical. The libraries replace 488 stage compiles with 346 (-29%), but on this
+driver a shader library costs about half of a whole pipeline, so the cold-cache stall only shrinks by that share.
+
+Killzone gameplay (`kz_skin` with its taps moved for the current boot timing, 7300 frames, through the mission
+briefing to the first level), same machine, pinned to 4 logical CPUs at BelowNormal, 2 shader workers:
+
+| run | caches | GPU thread (critical path) | frames >= 16.7 ms stalled by shader/pipeline work | stall total |
+|---|---|---|---|---|
+| off | emulator and driver cold | 100 compiled whole + 188 waited for (+42 shader waits) | 62 (worst 5.2 s) | 14.4 s |
+| on | emulator and driver cold | 0 whole, 166 waited for, 221 shader libraries, 173 linked (+137 shader waits) | 80 (worst 7.7 s) | 25.6 s |
+| off | emulator warm, driver cold (no `vk_*.cache`) | 26 compiled whole, 1 waited for | 16 (worst 116 ms) | 0.9 s |
+| on | emulator warm, driver cold (no `vk_*.cache`) | 0 | 0, but the game sat on a black screen for the whole run | - |
+
+- Cold caches: worse. The libraries and the background optimised pipelines take the two workers' time from the
+  prefetch, so more shaders and pipelines are waited for. On this driver a shader library costs about half a whole
+  pipeline (replay above), and Killzone reuses a module in few pipelines (499 pipelines, 219 vertex and 400
+  fragment libraries).
+- Prewarm from the recorded pipelines with a cold driver cache: linking the 447 pipelines from libraries took 51.5 s
+  on two workers against 19.7 s for whole pipelines, and the session that used the libraries stayed black (GPU
+  thread stalls of 6-20 s at every frame dump). The prewarm therefore always builds whole pipelines.
+- The existing levers already do what GPL was meant to do here. The prewarm of `pipelines.list` (second session: 16
+  stalled frames, worst 116 ms, against 62 / 5.2 s in the first) and the background prefetch (`--async-shaders`, on
+  by default in `run`/`test`, off only in `replay-gpu`) never skip a draw, so they cost nothing in the image.
+- What is left on the first session is the driver's compile time (about 80 ms per pipeline) and the 2 workers on 4
+  pinned CPUs. More workers on the unpinned 8-CPU machine, or shipping the recorded `pipelines.list` as prewarm data,
+  are the remaining levers. GPL helps only on drivers where a library is much cheaper than a pipeline (not measured:
+  AMD, Intel, Mesa).
