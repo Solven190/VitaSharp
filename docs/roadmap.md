@@ -640,7 +640,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   constante ficam como estão, vetorizá-las tirava a promoção: 57 -> 78 LS). Caminho alinhado: posição 41 -> 14 ciclos
   LS, varying 57 -> 30 (dd6a/4923); o modelo do mali-cost usa o caminho mais longo (o de reserva) e não mostra o
   ganho. replay-gpu --compare: pixel-idêntico. Medida A/B no KZ pedida ao laboratório; ligar por padrão nos tilers se
-  ganhar. Também notado: o programa secundário (setup por draw no Vita) roda por vértice nos shaders traduzidos
+  ganhar. Programa secundário (setup por draw no Vita) por vértice nos shaders traduzidos: sem custo na Mali. Trocar
+  o bloco inteiro por constantes pré-calculadas (o teto de um pré-passo por draw) não muda nenhum ciclo no malioc
+  (5 vertex e 5 fragment shaders do topo do KZ, posição/varying/fragment idênticos): o driver já avalia a computação
+  uniforme uma vez por draw ("has uniform computation"). Não fazer o pré-passo por desempenho na Mali
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
