@@ -142,6 +142,9 @@ public static class EnvVars
     /// <summary>Index or part of the name of the Vulkan physical device to render with (default: the discrete GPU).</summary>
     public const string GpuDevice = "VITASHARP_GPU_DEVICE";
     public const string GpuQuirks = "VITASHARP_GPU_QUIRKS";
+    /// <summary>Megabytes: lowers the storage-buffer range the CDRAM mirror is bound with (default: the device's
+    /// maxStorageBufferRange), to test the windowed binding of drivers below 288 MB (MappedWindow.cs).</summary>
+    public const string GpuMaxStorageRange = "VITASHARP_GPU_MAX_STORAGE_RANGE";
     public const string HleModules = "VITASHARP_HLE_MODULES";
     /// <summary>0/off: guest threads and the GPU worker keep normal host priority (HostThreads; overrides --host-prio).</summary>
     public const string HostPrio = "VITASHARP_HOST_PRIO";

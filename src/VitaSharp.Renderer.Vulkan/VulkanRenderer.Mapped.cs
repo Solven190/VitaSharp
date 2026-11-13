@@ -35,6 +35,7 @@ public sealed unsafe partial class VulkanRenderer
             return;
         }
 
+        InitMappedRangeLimit();
         (_mirror, _mirrorMem) = _core.CreateDeviceBuffer((ulong)CdramBytes + ScratchBytes,
             BufferUsageFlags.StorageBufferBit | BufferUsageFlags.TransferDstBit | BufferUsageFlags.TransferSrcBit | BufferUsageFlags.VertexBufferBit, MemCat.PipelineBuffer);
         // the last 256 bytes stay zero: slots bound to a null address read from there
@@ -81,8 +82,66 @@ public sealed unsafe partial class VulkanRenderer
             AwaitMirrorWrites(PipelineStageFlags.VertexShaderBit | PipelineStageFlags.FragmentShaderBit, AccessFlags.ShaderReadBit);
         }
 
-        foreach (UniformBufferSlot s in slots)
+        if (MirrorBytes <= _mappedRangeLimit)
         {
+            foreach (UniformBufferSlot s in slots)
+            {
+                if (!s.Mapped)
+                {
+                    continue;
+                }
+
+                uint addr = addrs[Math.Min(s.GuestIndex, 14)];
+                if (addr == 0)
+                {
+                    WriteHeader(data, s, CdramBytes + ScratchBytes - 256);
+                    continue;
+                }
+                WriteHeader(data, s, PrepareMapped(addr, s.DeclaredBytes, writes));
+            }
+            return new DescriptorBufferInfo(_mirror, 0, MirrorBytes);
+        }
+
+        return ResolveMappedWindow(slots, data, addrs, writes);
+    }
+
+    private const ulong MirrorBytes = (ulong)CdramBytes + ScratchBytes;
+    private const uint NullSlot = uint.MaxValue;
+    private ulong _mappedRangeLimit = ulong.MaxValue;
+    private ulong _mappedRangeAlignment = 1;
+
+    /// <summary>Reads the device's storage-buffer limits for the mirror binding; <see cref="EnvVars.GpuMaxStorageRange"/>
+    /// lowers the range (MB) to exercise the windowed binding on drivers that allow the whole mirror.</summary>
+    private void InitMappedRangeLimit()
+    {
+        _mappedRangeLimit = _core.Properties.Limits.MaxStorageBufferRange;
+        _mappedRangeAlignment = Math.Max(1, _core.Properties.Limits.MinStorageBufferOffsetAlignment);
+        if (ulong.TryParse(Environment.GetEnvironmentVariable(EnvVars.GpuMaxStorageRange), out ulong megabytes) && megabytes > 0)
+        {
+            _mappedRangeLimit = Math.Min(_mappedRangeLimit, megabytes << 20);
+        }
+
+        if (MirrorBytes > _mappedRangeLimit)
+        {
+            Log.Info($"[gpu] maxStorageBufferRange {_mappedRangeLimit >> 20} MB is below the {MirrorBytes >> 20} MB CDRAM mirror: mapped uniform slots are bound through windows");
+        }
+    }
+
+    /// <summary>
+    /// The mapped binding where the mirror is larger than maxStorageBufferRange (<see cref="MappedWindow"/>): one
+    /// window holding every range the stage reads, the headers as offsets inside it. Slots bound to a null address
+    /// point just past the window's end, where every read returns 0 (the shader's bounds check). Ranges too far apart
+    /// for one window are copied into the scratch area and read from there (stores through them are not kept).
+    /// </summary>
+    private DescriptorBufferInfo ResolveMappedWindow(List<UniformBufferSlot> slots, Span<byte> data, uint[] addrs, bool writes)
+    {
+        Span<uint> offsets = stackalloc uint[slots.Count];
+        Span<MappedWindow.Span> spans = stackalloc MappedWindow.Span[slots.Count];
+        int spanCount = 0;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            UniformBufferSlot s = slots[i];
+            offsets[i] = NullSlot;
             if (!s.Mapped)
             {
                 continue;
@@ -91,12 +150,67 @@ public sealed unsafe partial class VulkanRenderer
             uint addr = addrs[Math.Min(s.GuestIndex, 14)];
             if (addr == 0)
             {
-                WriteHeader(data, s, CdramBytes + ScratchBytes - 256);
                 continue;
             }
-            WriteHeader(data, s, PrepareMapped(addr, s.DeclaredBytes, writes));
+
+            offsets[i] = PrepareMapped(addr, s.DeclaredBytes, writes);
+            spans[spanCount++] = new MappedWindow.Span(offsets[i], offsets[i] + (ulong)Math.Max(4, s.DeclaredBytes));
         }
-        return new DescriptorBufferInfo(_mirror, 0, (ulong)CdramBytes + ScratchBytes);
+
+        if (!MappedWindow.TryPlace(spans[..spanCount], MirrorBytes, _mappedRangeLimit, _mappedRangeAlignment, out ulong windowBase, out ulong windowRange))
+        {
+            if (writes)
+            {
+                Log.WarnOnce("mapped-window-store", "[gpu] a program stores through mapped slots too far apart for one storage-buffer window: later draws do not see what it wrote");
+            }
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                if (offsets[i] != NullSlot && offsets[i] < CdramBytes)
+                {
+                    offsets[i] = CopyMirrorToScratch(offsets[i], (uint)Math.Min(slots[i].DeclaredBytes, MappedWindowBytes));
+                }
+            }
+            windowBase = CdramBytes / _mappedRangeAlignment * _mappedRangeAlignment;
+            windowRange = Math.Min(_mappedRangeLimit, MirrorBytes - windowBase);
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i].Mapped)
+            {
+                WriteHeader(data, slots[i], offsets[i] == NullSlot ? (uint)windowRange : (uint)(offsets[i] - windowBase));
+            }
+        }
+        return new DescriptorBufferInfo(_mirror, windowBase, windowRange);
+    }
+
+    /// <summary>Copies [offset, offset + size) of the mirror into this frame's scratch area; returns the copy's offset.</summary>
+    private uint CopyMirrorToScratch(uint offset, uint size)
+    {
+        size = Math.Max(4, Math.Min(size, (uint)(MirrorBytes - offset)));
+        uint target = ReserveScratch(size);
+        EndRendering();
+        BufferBarrier(_mirror, PipelineStageFlags.VertexShaderBit | PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.TransferBit, PipelineStageFlags.TransferBit,
+            AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferWriteBit, AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit);
+        var region = new BufferCopy(offset, target, size);
+        _vk.CmdCopyBuffer(Cmd, _mirror, _mirror, 1, in region);
+        BufferBarrier(_mirror, PipelineStageFlags.TransferBit, PipelineStageFlags.VertexShaderBit | PipelineStageFlags.FragmentShaderBit,
+            AccessFlags.TransferWriteBit, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit);
+        return target;
+    }
+
+    /// <summary>Reserves <paramref name="size"/> bytes of this frame's scratch area (wrapping when full); returns their mirror offset.</summary>
+    private uint ReserveScratch(uint size)
+    {
+        if (_scratchUsed + size > ScratchBytes - 256)
+        {
+            _scratchUsed = 0; // wrap: draws recorded earlier read their windows before these copies (ordered by barriers)
+        }
+
+        uint offset = CdramBytes + _scratchUsed;
+        _scratchUsed += (size + 255) & ~255u;
+        return offset;
     }
 
     // ------------------------------------------------------------------ memory written by shaders
@@ -356,14 +470,8 @@ public sealed unsafe partial class VulkanRenderer
         }
 
         uint size = (uint)Math.Min(declaredBytes, MappedWindowBytes);
-        if (_scratchUsed + size > ScratchBytes - 256)
-        {
-            _scratchUsed = 0; // wrap: draws recorded earlier read their windows before these copies (ordered by barriers)
-        }
-
-        uint off = CdramBytes + _scratchUsed;
+        uint off = ReserveScratch(size);
         CopyGuestToMirror(addr, size, off);
-        _scratchUsed += (size + 255) & ~255u;
         return off;
     }
 

@@ -11,7 +11,7 @@ namespace VitaSharp.Renderer.Vulkan;
 /// </summary>
 public sealed unsafe partial class VulkanRenderer
 {
-    private readonly record struct UniformSetKey(ulong B0, ulong R0, ulong B1, ulong R1, ulong B2, ulong B3, ulong S0, ulong S1, ulong S2, ulong S3);
+    private readonly record struct UniformSetKey(ulong B0, ulong R0, ulong B1, ulong R1, ulong B2, ulong O2, ulong B3, ulong O3, ulong S0, ulong S1, ulong S2, ulong S3);
 
     /// <summary>Dynamic storage buffers of set 0: the uniform data of both stages, and the four split slots when on.</summary>
     private static int DynamicUniformBindings => ShaderGenerator.SplitUniformSlots ? 6 : 2;
@@ -29,7 +29,7 @@ public sealed unsafe partial class VulkanRenderer
     private DescriptorSet UniformSet(DescriptorBufferInfo* infos)
     {
         bool split = ShaderGenerator.SplitUniformSlots;
-        var key = new UniformSetKey(infos[0].Buffer.Handle, infos[0].Range, infos[1].Buffer.Handle, infos[1].Range, infos[2].Buffer.Handle, infos[3].Buffer.Handle,
+        var key = new UniformSetKey(infos[0].Buffer.Handle, infos[0].Range, infos[1].Buffer.Handle, infos[1].Range, infos[2].Buffer.Handle, infos[2].Offset, infos[3].Buffer.Handle, infos[3].Offset,
             split ? SplitKey(infos[4]) : 0, split ? SplitKey(infos[5]) : 0, split ? SplitKey(infos[6]) : 0, split ? SplitKey(infos[7]) : 0);
         if (_uniformSetsSerial != _frameSerial)
         {
