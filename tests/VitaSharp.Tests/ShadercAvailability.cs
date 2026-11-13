@@ -73,3 +73,15 @@ public sealed class ShadercFactAttribute : FactAttribute
         }
     }
 }
+
+/// <summary>[Theory] that is skipped when shaderc cannot be loaded.</summary>
+public sealed class ShadercTheoryAttribute : TheoryAttribute
+{
+    public ShadercTheoryAttribute()
+    {
+        if (ShadercAvailability.SkipReason is { } r)
+        {
+            Skip = r;
+        }
+    }
+}

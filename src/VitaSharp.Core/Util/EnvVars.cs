@@ -450,6 +450,9 @@ public static class EnvVars
     /// Default: skipped on tile-based GPUs (Mali -6 ms per Killzone frame), kept on desktop (bit-exact there: the
     /// different code shape moved a few pixels by 1-2/255 in one dump).</summary>
     public const string UniformUnchecked = "VITASHARP_UNIFORM_UNCHECKED";
+    /// <summary>1 (A/B, default off): memory loads of four words read them with one 128-bit load where the address is
+    /// 16-byte aligned (ShaderGenerator.VectorLoads; same values). Part of the shader cache key.</summary>
+    public const string ShaderVec4Loads = "VITASHARP_SHADER_VEC4_LOADS";
     /// <summary>Emulator updates: the releases feed to check instead of the GitHub API of the build's repository (a URL
     /// with the API's JSON, or a folder with releases.json whose assets are file:// URLs; tests).</summary>
     public const string UpdateFeed = "VITASHARP_UPDATE_FEED";

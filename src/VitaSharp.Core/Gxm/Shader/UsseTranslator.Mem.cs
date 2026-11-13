@@ -303,7 +303,28 @@ public sealed partial class UsseTranslator
                 Line($"storeMemory({baseAddr}, {Load(toStore, 1, storeOff)});");
                 continue;
             }
-            for (int k = 0; k < totalBytes / 4; k++)
+            int words = totalBytes / 4;
+            int k = 0;
+            bool constantAddress = src0.Bank == Bank.SecAttr && ConstantPointerWords.Contains(src0.Num + s0off)
+                                   && src1.Bank == Bank.Immediate && src2.Bank == Bank.Immediate;
+            if (ShaderGenerator.VectorLoads && !constantAddress)
+            {
+                // four words with one 128-bit load where the address is 16-byte aligned (fetch4 falls back to four
+                // word loads otherwise): the Mali load/store unit takes one cycle per load, whatever its width.
+                // Compile-time addresses stay word loads: the driver promotes those to uniform registers
+                for (; k + 4 <= words; k += 4)
+                {
+                    string quad = Bind(new Val($"fetch4({baseAddr} + {4 * k})", 'f', 4)).E;
+                    UsesVectorLoads = true;
+                    for (int c = 0; c < 4; c++)
+                    {
+                        Store(toStore, new Val($"{quad}.{"xyzw"[c]}", 'f', 1), 1);
+                        toStore.Num += 1;
+                    }
+                }
+            }
+
+            for (; k < words; k++)
             {
                 Store(toStore, new Val($"fetchMemory({baseAddr} + {4 * k})", 'f', 1), 1);
                 toStore.Num += 1;
