@@ -161,6 +161,9 @@ public sealed unsafe class CpuCore : IDisposable
     public void ResetNativeReturns()
     {
         Array.Clear(NativeReturns);
+        Array.Clear(_returnsAtReport);
+        _framesAtReport = _framesAtSitesReport = _entriesAtReport = 0;
+        NativeEntries = 0;
         if (_returnSites is { } sites)
         {
             lock (sites)
@@ -170,9 +173,13 @@ public sealed unsafe class CpuCore : IDisposable
         }
     }
 
-    /// <summary>The <paramref name="count"/> busiest return sites, "reason target[:T] n/frame", or "" when not counted.</summary>
+    /// <summary>The <paramref name="count"/> busiest return sites since the previous call, "reason target[:T] n/frame"
+    /// (<paramref name="frames"/>: the frames presented so far), or "" when not counted. Windowed like
+    /// <see cref="NativeReturnReport"/>.</summary>
     public string NativeReturnSitesReport(long frames, int count = 6)
     {
+        long window = Math.Max(1, frames - _framesAtSitesReport);
+        _framesAtSitesReport = frames;
         if (_returnSites is not { Count: > 0 } sites)
         {
             return "";
@@ -182,20 +189,34 @@ public sealed unsafe class CpuCore : IDisposable
         lock (sites)
         {
             busiest = sites.OrderByDescending(kv => kv.Value).Take(count).ToArray();
+            sites.Clear();
         }
         return string.Join(", ", busiest.Select(kv =>
-            $"{(NativeReturn)(kv.Key >> 33)} {(uint)(kv.Key >> 1):X8}{((kv.Key & 1) != 0 ? ":T" : "")} {kv.Value / (double)frames:F1}"));
+            $"{(NativeReturn)(kv.Key >> 33)} {(uint)(kv.Key >> 1):X8}{((kv.Key & 1) != 0 ? ":T" : "")} {kv.Value / (double)window:F1}"));
     }
 
-    /// <summary>One line per reason with a count: "window 120, svc 30, ..." per frame.</summary>
+    private readonly long[] _returnsAtReport = new long[(int)NativeReturn.Count];
+    private long _framesAtReport, _framesAtSitesReport, _entriesAtReport;
+
+    /// <summary>
+    /// Native entries and returns by reason per frame since the previous call (<paramref name="frames"/>: the frames
+    /// presented so far): "entries 240, Window 19, StaticNoCode 132, ...". Windowed on purpose: averages since boot are
+    /// dominated by the JIT warm-up after a load (Killzone's "1,521 entries per frame" were 240 in steady state).
+    /// </summary>
     public string NativeReturnReport(long frames)
     {
-        var parts = new List<string>();
+        double window = Math.Max(1, frames - _framesAtReport);
+        _framesAtReport = frames;
+        long entries = NativeEntries;
+        var parts = new List<string> { $"entries {(entries - _entriesAtReport) / window:F1}" };
+        _entriesAtReport = entries;
         for (int i = 0; i < (int)NativeReturn.Count; i++)
         {
-            if (NativeReturns[i] != 0)
+            long now = NativeReturns[i];
+            if (now != _returnsAtReport[i])
             {
-                parts.Add($"{(NativeReturn)i} {NativeReturns[i] / (double)frames:F0}");
+                parts.Add($"{(NativeReturn)i} {(now - _returnsAtReport[i]) / window:F1}");
+                _returnsAtReport[i] = now;
             }
         }
         return string.Join(", ", parts);

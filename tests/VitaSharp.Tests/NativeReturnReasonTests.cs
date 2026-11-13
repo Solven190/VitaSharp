@@ -76,6 +76,17 @@ public sealed unsafe class NativeReturnReasonTests(GuestMemoryFixture fixture)
             Assert.True(returns[(int)CpuCore.NativeReturn.IndirectTableMiss] <= 2, report);
             // the busiest return sites name the reason and the guest target: here the cold SVC block
             Assert.Contains($"StaticNoCode {code + 0x14:X8} 1.0", core.NativeReturnSitesReport(1).Replace(',', '.'));
+
+            // the reports are per window: the next one, with no native run in between, shows nothing but the entries
+            Assert.Equal("entries 0.0", core.NativeReturnReport(2).Replace(',', '.'));
+            Assert.Equal("", core.NativeReturnSitesReport(2));
+            // a second run over the next ten frames reports its own returns, per frame of that window
+            s->R[15] = code;
+            Assert.Equal(ExitReason.Svc, core.Run());
+            string second = core.NativeReturnReport(12).Replace(',', '.');
+            Assert.Contains("StaticNoCode 0.1", second);
+            Assert.StartsWith("entries ", second);
+            Assert.Contains($"StaticNoCode {code + 0x14:X8} 0.1", core.NativeReturnSitesReport(12).Replace(',', '.'));
         }
         finally
         {
