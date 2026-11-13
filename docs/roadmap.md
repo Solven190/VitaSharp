@@ -73,6 +73,11 @@ Divisão do trabalho: os jogos são testados pelo usuário; um erro que ele enco
 teria pegado; todo o resto do comportamento é garantido pela suíte do repositório, que qualquer pessoa roda sem nenhum
 jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança é validada rodando jogos.
 
+- [ ] **Checagens do TestGame que dependem do relógio do host:** `system/display_vblank_30` (30 vblanks contra o tempo
+  de parede) e `perf/heavy_scene_avg_fps`, `heavy_scene_worst_frame`, `heavy_scene_slow_frames` dão FAIL ou OK conforme
+  a carga do PC (13/11, 3 rodadas headless alternadas da base 5d2597ec e de fix/kz-avplayer-end na mesma vaga: falharam
+  em 1-2 de 3 nas duas, nenhuma diferença entre elas). Medir no relógio emulado (vcount, tempo de guest) ou reportar
+  como medida sem decidir aprovação, para que um FAIL do TestGame no emulador seja sempre um erro de verdade
 - [ ] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
