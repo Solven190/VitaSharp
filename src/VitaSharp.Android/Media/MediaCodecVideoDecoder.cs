@@ -53,6 +53,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     readonly Queue<DecodedPicture> _ready = new();
     readonly Stack<DecodedPicture> _free = new();
     readonly DecoderReplay _replay = new();
+    readonly InputStallRecovery _stall = new();
     int _skip;
     // SceAvcdec hands a picture out in the call that decoded it; MediaCodec decodes on its own threads, so each Send
     // waits for the picture of its unit (SynchronousOutput); IVideoDecoder.Asynchronous: a missed deadline can still
@@ -301,6 +302,13 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
             }
             bool queued = Queue(unitToQueue, pts, 0);
             _queueTicks += System.Diagnostics.Stopwatch.GetTimestamp() - queueStart;
+            if (!queued)
+            {
+                // the decoder stalled: replaced, and this unit goes in again with the replay from the last IDR
+                RecoverInputStall();
+                return;
+            }
+
             _sync.UnitQueued(queued && H264AnnexB.ContainsSlice(accessUnit));
             // the Vita answers this call with this unit's picture: wait for it (a software decode of a Vita-sized
             // picture takes ~13 ms), except for the pictures the decoder holds back on purpose
@@ -334,6 +342,22 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
         {
             FallBack(e.Message ?? e.GetType().Name);
         }
+    }
+
+    /// <summary>The decoder took no input buffer back for a whole unit's wait (InputStallRecovery): the same decoder is
+    /// opened again, or the next one when that one stalled too before giving out a picture, and the units since the last
+    /// IDR picture (this one included) are decoded again.</summary>
+    void RecoverInputStall()
+    {
+        InputStallRecovery.Action action = _stall.OnInputStall();
+        Log.Warn($"MediaCodec: {_codecName} gave no input buffer back for {InputAttempts * InputTimeoutUs / 1000} ms (stalled, recovery {_stall.Recoveries}): "
+            + (action == InputStallRecovery.Action.ReopenSameDecoder ? "opening it again" : "trying the next decoder"));
+        if (action == InputStallRecovery.Action.ReopenSameDecoder)
+        {
+            _next = Math.Max(0, _next - 1); // OpenNext starts from the current decoder
+        }
+
+        FallBack("no input buffer");
     }
 
     /// <summary>
@@ -447,8 +471,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
             c.QueueInputBuffer(idx, 0, n, Math.Max(0, pts), flags);
             return true;
         }
-        Log.WarnOnce("mediacodec-in", "MediaCodec: no input buffer available, access unit dropped");
-        return false;
+        return false; // the caller decides: a stall recovery, or nothing for a drain's end-of-stream buffer
     }
 
     /// <summary>Takes every finished picture out; true once the end-of-stream buffer came out.</summary>
@@ -494,6 +517,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
                         _skipThroughPts = long.MinValue;
                         _lastOutputPts = p.Pts;
                         _ready.Enqueue(p);
+                        _stall.OnPicture();
                     }
                 }
             }
