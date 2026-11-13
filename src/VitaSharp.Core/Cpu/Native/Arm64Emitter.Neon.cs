@@ -198,8 +198,8 @@ public sealed unsafe partial class Arm64Emitter
         IrOp.FpOp => (x.Imm & (uint)FpFlags.Checked) != 0,
         // A64Opt.SingleCache: state words of the register file go through the cache (VMOV S, VLDR/VSTR S), the
         // others do not touch it
-        IrOp.LoadState or IrOp.StoreState => _scache,
-        IrOp.LoadD or IrOp.StoreD or IrOp.VecLdSt or IrOp.Label or IrOp.CondBranch
+        IrOp.LoadState or IrOp.StoreState or IrOp.LoadD or IrOp.StoreD => _scache,
+        IrOp.VecLdSt or IrOp.Label or IrOp.CondBranch
             or IrOp.BranchIf or IrOp.Callout or IrOp.ExitStatic or IrOp.ExitDynamic => false,
         _ => true, // guest state words, integer ALU, guest memory, barriers, exclusives
     };

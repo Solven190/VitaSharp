@@ -609,6 +609,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   guest; (2) ~800-900 voltas por quadro ao despachante na thread do jogo continuam com a tabela de 2 vias: ver se são
   saídas indiretas para blocos ainda não compilados ou destinos ausentes (contador por motivo); (3) cache de escrita
   para S ímpares (hoje só D e S pares vêm do cache); (4) VecLdSt pelo cache SIMD (hoje esvazia o cache)
+  13/11/2026 (perf/android-jit-13): (1) o "host time in native code" dos workers era quase todo espera (chamadas HLE
+  feitas de dentro do código nativo): pela CPU por thread, Havok usa ~5 ms por quadro (~3,3 no JIT) e JobSched ~23 (~12
+  no JIT). A linha PERF agora separa o tempo HLE do tempo do código gerado. (2) A linha PERF mostra as voltas ao
+  despachante por motivo (Window, Svc, StaticNoCode, IndirectTableMiss...); falta ler no celular. (3) Feito o `scache`:
+  VFP de precisão simples (S pares e ímpares), VMOV S/R e VLDR/VSTR S e D pelo cache SIMD (`VITASHARP_NATIVE_A64_NOOPT=scache`
+  desliga). Falta a série A/B no celular e o (4), VecLdSt.
   09/11/2026 (perf/android-gpu): **regressão desde 06/11 corrigida (23811d9)**: a 240a8de (Jak 1) fazia um `Finish` de
   todos os quadros a cada transferência de CPU sobre um writeback "em voo" e casava quadros que não estavam mais em
   voo; na main eram ~2.400 esperas por sessão (26-29 s) no Killzone. Agora só o quadro do writeback (gravando ou

@@ -45,6 +45,8 @@ were never cached, and VMOV Sn/Rt and VLDR/VSTR S flushed every dirty cache entr
   with one `mov s, v.s[k]` (DUP). Single results are cached like double ones (write-back with `vlazy`).
 - StoreState into the register file (VMOV Sn, Rt; VLDR Sn) becomes `fmov s, w` into a cached entry. LoadState from it
   (VMOV Rt, Sn; VSTR Sn) reads the cache register (`fmov w, s` / `umov w, v.s[k]`). Neither flushes the cache any more.
+- VLDR Dd loads straight from guest memory into a cache register (`ldr d, [x20, w, uxtw]`), and VSTR Dd stores from
+  the cache register when Dd is cached. Before, both went through x0 and the register file, and flushed the cache.
 
 This is the reference approach: Dynarmic's A32 register allocator keeps ExtReg (S/D) values in host vector registers
 and writes them back at block end, and ARMeilleure maps A32 S/D registers onto V registers with lane insert/extract.

@@ -1069,6 +1069,18 @@ public sealed unsafe partial class Arm64Emitter
                 return;
             case IrOp.LoadD:
             {
+                if (_scache)
+                {
+                    // VLDR Dd: straight into a cache register (A64Opt.SingleCache); the register is taken first, an
+                    // eviction's store may use x16
+                    _vcBusy = 0;
+                    int r = Dst(0);
+                    int address = UseZ(x.A, X16);
+                    assembler.LdStReg(LsKind.LdrD, r, MemBase, address);
+                    Put((int)x.Imm - s_offD, r, 8);
+                    return;
+                }
+
                 int ad = UseZ(x.A, X16);
                 assembler.LdStReg(LsKind.LdrX, X0, MemBase, ad);
                 assembler.StrX(X0, State, (int)x.Imm);
@@ -1077,7 +1089,22 @@ public sealed unsafe partial class Arm64Emitter
             }
             case IrOp.StoreD:
             {
+                int cached = _scache ? VcFind((int)x.Imm - s_offD, 8) : -1;
+                if (_scache && cached < 0)
+                {
+                    VcFlushOverlap((int)x.Imm - s_offD, 8); // before the address: a flush may use x16
+                }
+
                 int ad = UseZ(x.A, X16);
+                if (cached >= 0)
+                {
+                    // VSTR Dd from its cache register (A64Opt.SingleCache)
+                    _vcUse[cached] = ++_vcClock;
+                    assembler.LdStReg(LsKind.StrD, VcFirst + cached, MemBase, ad);
+                    MarkPlanned(x.A);
+                    return;
+                }
+
                 assembler.LdrX(X0, State, (int)x.Imm);
                 assembler.LdStReg(LsKind.StrX, X0, MemBase, ad);
                 MarkPlanned(x.A);
