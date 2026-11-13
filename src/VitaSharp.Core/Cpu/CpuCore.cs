@@ -87,6 +87,66 @@ public sealed unsafe class CpuCore : IDisposable
     public void FlushFastCache() => Array.Clear(_fast);
 
     /// <summary>A native static exit returned through an empty link slot: point the slot at the next block if it is native.</summary>
+    /// <summary>Classifies the native run that just returned (<see cref="NativeReturns"/>); an indirect miss is
+    /// classified on the next loop turn, when its target block is looked up.</summary>
+    private void CountNativeReturn(CpuState* s)
+    {
+        NativeReturn reason;
+        if (s->Exit == ExitReason.Svc)
+        {
+            reason = NativeReturn.Svc;
+        }
+        else if (s->Exit != ExitReason.None)
+        {
+            reason = NativeReturn.OtherExit;
+        }
+        else if (s->TierUpRequest != 0)
+        {
+            reason = NativeReturn.TierUp;
+        }
+        else if (s->CycleAcc >= s->CheckWindow)
+        {
+            reason = NativeReturn.Window;
+        }
+        else if (s->LinkBreak != 0)
+        {
+            reason = NativeReturn.LinkBreak;
+        }
+        else if (s->LastExitSlot != 0)
+        {
+            if (*(nint*)s->LastExitSlot != 0)
+            {
+                // linked meanwhile by another thread of the process (the slot is shared): it went on unlinked
+                reason = NativeReturn.StaticLinked;
+            }
+            else
+            {
+                reason = Lookup(s->R[15], s->Thumb != 0).NativeEntry != 0 ? NativeReturn.StaticLinked : NativeReturn.StaticNoCode;
+            }
+        }
+        else
+        {
+            _pendingIndirect = true;
+            return;
+        }
+
+        NativeReturns[(int)reason]++;
+    }
+
+    /// <summary>One line per reason with a count: "window 120, svc 30, ..." per frame.</summary>
+    public string NativeReturnReport(long frames)
+    {
+        var parts = new List<string>();
+        for (int i = 0; i < (int)NativeReturn.Count; i++)
+        {
+            if (NativeReturns[i] != 0)
+            {
+                parts.Add($"{(NativeReturn)i} {NativeReturns[i] / (double)frames:F0}");
+            }
+        }
+        return string.Join(", ", parts);
+    }
+
     private void LinkExit(CpuState* s)
     {
         nint slot = s->LastExitSlot;
@@ -336,6 +396,37 @@ public sealed unsafe class CpuCore : IDisposable
     /// <summary>Profiling: entries into native code, and returns with no exit slot and no exit reason (an indirect exit
     /// whose target was not in the dispatch table, or the pacing window / a link break at an indirect exit).</summary>
     public long NativeEntries, NativeReturnsUnlinked;
+
+    /// <summary>Why native code returned to the dispatcher (profiling: the PERF cycles line), indexed by
+    /// <see cref="NativeReturn"/>. A few compares per native entry, against hundreds of guest instructions run per entry.</summary>
+    public readonly long[] NativeReturns = new long[(int)NativeReturn.Count];
+
+    /// <summary>Reasons a native run ends (<see cref="NativeReturns"/>), in the order the dispatcher tells them apart.</summary>
+    public enum NativeReturn
+    {
+        /// <summary>The guest raised an exit: an SVC the native callout left to the dispatcher (callback, return trap).</summary>
+        Svc,
+        /// <summary>Any other exit (undefined instruction, breakpoint, VFP vector mode, yield).</summary>
+        OtherExit,
+        /// <summary>The block asked for its IL tier-up or another FPSCR mode (the block is interpreted once).</summary>
+        TierUp,
+        /// <summary>The pacing window was full (guest cycles since the last pacing check).</summary>
+        Window,
+        /// <summary>An interrupt or stop was flagged (LinkBreak).</summary>
+        LinkBreak,
+        /// <summary>A static exit with an empty link slot whose target had native code: linked now.</summary>
+        StaticLinked,
+        /// <summary>A static exit with an empty link slot whose target has no native code yet (cold or compiling).</summary>
+        StaticNoCode,
+        /// <summary>An indirect exit missed the dispatch table and its target has native code (collision or eviction).</summary>
+        IndirectTableMiss,
+        /// <summary>An indirect exit whose target has no native code yet.</summary>
+        IndirectNoCode,
+        Count,
+    }
+
+    /// <summary>The reason of a native return whose target is looked up on the next loop turn (indirect exits).</summary>
+    private bool _pendingIndirect;
     /// <summary>Profiling (VITASHARP_NATIVE_COUNTERS=1): VFP/NEON ops and conditional branches run in native code.</summary>
     public long SimdOps, CondBranches;
     /// <summary>Guest instructions this thread ran per execution tier: native code (its interpreter callouts
@@ -471,6 +562,12 @@ public sealed unsafe class CpuCore : IDisposable
                 }
 
                 interpretNext = false;
+                if (_pendingIndirect)
+                {
+                    _pendingIndirect = false;
+                    NativeReturns[(int)(b.NativeEntry != 0 ? NativeReturn.IndirectTableMiss : NativeReturn.IndirectNoCode)]++;
+                }
+
                 if (republish)
                 {
                     republish = false;
@@ -519,6 +616,7 @@ public sealed unsafe class CpuCore : IDisposable
                 }
 
                 NativeEntries++;
+                CountNativeReturn(s);
                 if (s->LastExitSlot == 0 && s->Exit == ExitReason.None)
                 {
                     NativeReturnsUnlinked++;
