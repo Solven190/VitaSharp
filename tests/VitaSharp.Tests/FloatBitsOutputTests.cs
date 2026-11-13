@@ -99,7 +99,7 @@ public sealed class FloatBitsOutputTests
             FloatBitsOutput = true
         };
 
-        ShaderRecipe? back = ShaderRecipe.Decode(new ShaderRecipe(7, bits.Key(), false, bits).Encode());
+        var back = ShaderRecipe.Decode(new ShaderRecipe(7, bits.Key(), false, bits).Encode());
 
         Assert.NotNull(back);
         Assert.True(back!.Hints.FloatBitsOutput);
