@@ -59,7 +59,7 @@ public static class SessionReport
                 yield return l;
             }
         }
-        foreach (string l in CycleLines(emu))
+        foreach (string l in CycleLines(emu, window: false))
         {
             yield return l;
         }
@@ -150,7 +150,7 @@ public static class SessionReport
             }
         }
         Add(CpuBackendLines);
-        Add(() => CycleLines(emu));
+        Add(() => CycleLines(emu, window: true));
         Add(() => [HleCallsLine(emu)]);
         Add(() => GpuLines(emu));
         Add(AudioDiagnostics.SummaryLines);
@@ -184,16 +184,53 @@ public static class SessionReport
         yield return $"CPU backend report: {VitaSharp.Core.Cpu.CpuCore.TierReport()}";
     }
 
-    /// <summary>Guest cycles per frame of the six busiest threads.</summary>
-    private static IEnumerable<string> CycleLines(Emulator emu)
+    /// <summary>
+    /// Guest cycles and native-code statistics per frame of the six busiest threads. <paramref name="window"/>: since the
+    /// previous periodic report (what the periodic lines show; averages since boot are dominated by the JIT warm-up after
+    /// a load), else over the whole run (the end-of-run summary).
+    /// </summary>
+    private static IEnumerable<string> CycleLines(Emulator emu, bool window)
     {
-        long fr = Math.Max(1, VitaSharp.Core.Hle.Modules.Display.FramesPresented);
-        foreach (GuestThread? t in emu.Kernel.Threads.ToArray().Where(t => t.Core.BlockCycles + t.Core.ChargedCycles > 0).OrderByDescending(t => t.Core.BlockCycles + t.Core.ChargedCycles).Take(6))
+        long frames = VitaSharp.Core.Hle.Modules.Display.FramesPresented;
+        var samples = new List<(GuestThread Thread, VitaSharp.Core.Cpu.CpuCore.PerfSample Sample)>();
+        foreach (GuestThread t in emu.Kernel.Threads.ToArray())
         {
-            yield return $"PERF cycles {t.Name}: guest code {t.Core.BlockCycles / 1e6 / fr:F2} M/frame ({t.Core.BlocksExecuted / 1e3 / fr:F0} K blocks), charged HLE {t.Core.ChargedCycles / 1e6 / fr:F2} M/frame" +
-                (t.Core.NativeTicks > 0 ? $"; host time in native code {t.Core.NativeTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2} ms/frame (generated code {(t.Core.NativeTicks - t.Core.NativeHleTicks) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2}, HLE calls from it {t.Core.NativeHleTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2}, waits included),{t.Core.NativeEntries / (double)fr:F0} entries/frame ({t.Core.NativeReturnsUnlinked / (double)fr:F0} returned through an exit with no link or table entry; since the last report per frame: {t.Core.NativeReturnReport(fr)}{(t.Core.NativeReturnSitesReport(fr) is { Length: > 0 } sites ? "; busiest: " + sites : "")})" : "") +
-                (t.Core.SimdOps + t.Core.CondBranches > 0 ? $", {t.Core.SimdOps / 1e3 / fr:F0} K VFP/NEON ops/frame, {t.Core.CondBranches / 1e3 / fr:F0} K conditional branches/frame" : "");
+            samples.Add((t, window ? t.Core.TakePerfWindow(frames) : t.Core.PerfTotals(frames)));
         }
+
+        string span = window ? "since the last report" : "over the run";
+        foreach ((GuestThread t, VitaSharp.Core.Cpu.CpuCore.PerfSample d) in samples.Where(x => x.Sample.BlockCycles + x.Sample.ChargedCycles > 0)
+            .OrderByDescending(x => x.Sample.BlockCycles + x.Sample.ChargedCycles).Take(6))
+        {
+            yield return CycleLine(t.Name, t.Core, d, span, window ? frames : -1);
+        }
+    }
+
+    /// <summary>One PERF cycles line: the counters of <paramref name="d"/> per frame of its span. <paramref name="framesNow"/>:
+    /// the frames presented so far for a windowed line (the return reasons and busiest targets are then windowed too), -1
+    /// for totals.</summary>
+    internal static string CycleLine(string name, VitaSharp.Core.Cpu.CpuCore core, VitaSharp.Core.Cpu.CpuCore.PerfSample d, string span, long framesNow)
+    {
+        double fr = Math.Max(1, d.Frames);
+        double msPerTick = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        var line = new System.Text.StringBuilder($"PERF cycles {name}: {span} ({d.Frames} frames), guest code {d.BlockCycles / 1e6 / fr:F2} M/frame ({d.BlocksExecuted / 1e3 / fr:F0} K blocks), charged HLE {d.ChargedCycles / 1e6 / fr:F2} M/frame");
+        if (d.NativeTicks > 0)
+        {
+            string returns = framesNow >= 0 ? core.NativeReturnReport(framesNow) : core.NativeReturnTotals((long)fr);
+            if (framesNow >= 0 && core.NativeReturnSitesReport(framesNow) is { Length: > 0 } sites)
+            {
+                returns += "; busiest: " + sites;
+            }
+
+            line.Append($"; host time in native code {d.NativeTicks * msPerTick / fr:F2} ms/frame (generated code {(d.NativeTicks - d.NativeHleTicks) * msPerTick / fr:F2}, HLE calls from it {d.NativeHleTicks * msPerTick / fr:F2}, waits included), {d.NativeReturnsUnlinked / fr:F0} returns/frame through an exit with no link or table entry; per frame: {returns}");
+        }
+
+        if (d.SimdOps + d.CondBranches > 0)
+        {
+            line.Append($", {d.SimdOps / 1e3 / fr:F0} K VFP/NEON ops/frame, {d.CondBranches / 1e3 / fr:F0} K conditional branches/frame");
+        }
+
+        return line.ToString();
     }
 
     /// <summary>The GPU backend's report (PERF gpu, PERF mobile...), video decoding and the GPU command counts.</summary>

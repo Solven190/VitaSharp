@@ -195,6 +195,35 @@ public sealed unsafe class CpuCore : IDisposable
             $"{(NativeReturn)(kv.Key >> 33)} {(uint)(kv.Key >> 1):X8}{((kv.Key & 1) != 0 ? ":T" : "")} {kv.Value / (double)window:F1}"));
     }
 
+    /// <summary>The profiling counters of the PERF cycles line at one moment (<see cref="TakePerfWindow"/>).</summary>
+    public readonly record struct PerfSample(long Frames, long BlockCycles, long BlocksExecuted, long ChargedCycles, long NativeTicks,
+        long NativeHleTicks, long NativeEntries, long NativeReturnsUnlinked, long SimdOps, long CondBranches)
+    {
+        public static PerfSample operator -(PerfSample a, PerfSample b) => new(a.Frames - b.Frames, a.BlockCycles - b.BlockCycles,
+            a.BlocksExecuted - b.BlocksExecuted, a.ChargedCycles - b.ChargedCycles, a.NativeTicks - b.NativeTicks,
+            a.NativeHleTicks - b.NativeHleTicks, a.NativeEntries - b.NativeEntries, a.NativeReturnsUnlinked - b.NativeReturnsUnlinked,
+            a.SimdOps - b.SimdOps, a.CondBranches - b.CondBranches);
+    }
+
+    private PerfSample _perfAtReport;
+
+    /// <summary>The counters now, totals since the thread started (<paramref name="frames"/>: frames presented so far).</summary>
+    public PerfSample PerfTotals(long frames) => new(frames, BlockCycles, BlocksExecuted, ChargedCycles, NativeTicks, NativeHleTicks,
+        NativeEntries, NativeReturnsUnlinked, SimdOps, CondBranches);
+
+    /// <summary>
+    /// The counters since the previous call (the first call: since the thread started). The periodic PERF cycles lines
+    /// report these windows: averages since boot are dominated by the JIT warm-up after a load (Killzone's "1,521 native
+    /// entries per frame" were 240 in steady state). Read racily from the report thread (statistics).
+    /// </summary>
+    public PerfSample TakePerfWindow(long frames)
+    {
+        PerfSample now = PerfTotals(frames);
+        PerfSample window = now - _perfAtReport;
+        _perfAtReport = now;
+        return window;
+    }
+
     private readonly long[] _returnsAtReport = new long[(int)NativeReturn.Count];
     private long _framesAtReport, _framesAtSitesReport, _entriesAtReport;
 
@@ -217,6 +246,21 @@ public sealed unsafe class CpuCore : IDisposable
             {
                 parts.Add($"{(NativeReturn)i} {(now - _returnsAtReport[i]) / window:F1}");
                 _returnsAtReport[i] = now;
+            }
+        }
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>Native entries and returns by reason per frame over the whole run (the end-of-run summary).</summary>
+    public string NativeReturnTotals(long frames)
+    {
+        double all = Math.Max(1, frames);
+        var parts = new List<string> { $"entries {NativeEntries / all:F1}" };
+        for (int i = 0; i < (int)NativeReturn.Count; i++)
+        {
+            if (NativeReturns[i] != 0)
+            {
+                parts.Add($"{(NativeReturn)i} {NativeReturns[i] / all:F1}");
             }
         }
         return string.Join(", ", parts);
