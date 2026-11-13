@@ -156,6 +156,36 @@ public static class SessionReport
         Add(AudioDiagnostics.SummaryLines);
         Add(VitaSharp.Core.Hle.Modules.Ngs.PerfLines);
         Add(ProcessLines);
+        Add(() => StallLines(emu));
+        return lines;
+    }
+
+    private static long s_lastPeriodicFrame = -1;
+    private static long s_stallReportedAt = -1;
+
+    /// <summary>
+    /// "PERF stall": when no frame was presented since the previous summary while the emulation runs, every guest
+    /// thread once per stall (status, what it waits on or the HLE call it is in, PC and backtrace): the phone has no
+    /// sampler, and a game frozen at 0 fps (Uncharted after a load state at its title screen, 13/11/2026) otherwise
+    /// left only "frame N" lines to read.
+    /// </summary>
+    private static IEnumerable<string> StallLines(Emulator emu)
+    {
+        long frame = VitaSharp.Core.Hle.Modules.Display.FramesPresented;
+        long last = s_lastPeriodicFrame;
+        s_lastPeriodicFrame = frame;
+        if (frame != last || frame == 0 || EmulationPause.IsPaused || s_stallReportedAt == frame)
+        {
+            return [];
+        }
+
+        s_stallReportedAt = frame;
+        var lines = new List<string> { $"PERF stall: no frame presented since frame {frame}; guest threads:" };
+        foreach (Kernel.GuestThread t in emu.Kernel.Threads)
+        {
+            lines.Add("PERF stall:   " + t.Describe());
+        }
+
         return lines;
     }
 
