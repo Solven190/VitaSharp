@@ -767,7 +767,7 @@ public static class SaveStates
         }
 
         Log.Info($"Load state: GPU backend replaced in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
-        if (!KeepCodeOnLoad)
+        if (!s_keepCodeOnLoad)
         {
             emu.Code.Clear();
         }
@@ -786,13 +786,13 @@ public static class SaveStates
     }
 
     /// <summary><see cref="EnvVars.LoadKeepCode"/>: keep the translations of unchanged guest code across a load.</summary>
-    internal static bool KeepCodeOnLoad = Environment.GetEnvironmentVariable(EnvVars.LoadKeepCode) == "1";
+    private static readonly bool s_keepCodeOnLoad = Environment.GetEnvironmentVariable(EnvVars.LoadKeepCode) == "1";
 
-    /// <summary>After the state's memory and the HLE routines are in place: with <see cref="KeepCodeOnLoad"/>, drops only
+    /// <summary>After the state's memory and the HLE routines are in place: with <see cref="s_keepCodeOnLoad"/>, drops only
     /// the blocks whose guest code changed (the whole cache was dropped before the load otherwise).</summary>
     internal static void RevalidateCode(Cpu.BlockCache code)
     {
-        if (!KeepCodeOnLoad)
+        if (!s_keepCodeOnLoad)
         {
             return;
         }
