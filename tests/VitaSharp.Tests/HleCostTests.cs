@@ -205,4 +205,40 @@ public sealed class HleCostTests : IDisposable
         });
         Assert.Equal(2 * cycles, charged);
     }
+
+    /// <summary>A callback wait runs the thread's notified callbacks; any other call leaves them pending (the firmware
+    /// runs callbacks only in the CB waits and sceKernelCheckCallback). The name rule ran them in five exports whose NID
+    /// only ends in the hex digits C, B (SceWebKit, ScePaf and SceNpCommerce2 functions that wait for nothing).</summary>
+    [Theory]
+    [InlineData("sceKernelDelayThreadCB200", true)]
+    [InlineData("sceKernelDelayThread200", false)]
+    [InlineData("NID_9967EBCB", false)]
+    [InlineData("NID_EFFCB2CB", false)]
+    [InlineData("NID_BE315CCB", false)]
+    [InlineData("NID_00714ACB", false)]
+    [InlineData("sceNpCommerce2_984036CB", false)]
+    public void OnlyCallbackWaitsRunNotifiedCallbacks(string name, bool runs)
+    {
+        HleRegistry hle = _harness.Emu.Hle;
+        HleFunction function = Function(name);
+        uint stub = _harness.Alloc(16);
+        Linker.WriteHleStub(stub, hle.GetHleFunctionIndex(function.Nid, 0, NidDatabase.Lookup(function.Nid)?.Library ?? ""), function.Nid);
+        int callbackRuns = 0;
+        uint callback = _harness.Alloc(16);
+        Linker.WriteHleStub(callback, hle.RegisterHostFunction("test callback", c =>
+        {
+            callbackRuns++;
+            c.Return(0);
+        }), 0);
+        Core.Hle.Modules.ThreadMgr threadMgr = _harness.Module<Core.Hle.Modules.ThreadMgr>();
+        _harness.OnGuest(t =>
+        {
+            int uid = HleHarness.Call(threadMgr, "sceKernelCreateCallback", "cb", 0u, callback, 0u);
+            Assert.True(uid > 0);
+            Assert.Equal(0, HleHarness.Call(threadMgr, "sceKernelNotifyCallback", uid, 1));
+            Assert.Equal(1, t.PendingCallbacks);
+            t.CallGuest(stub, 0, 0, 0, 0);
+        });
+        Assert.Equal(runs ? 1 : 0, callbackRuns);
+    }
 }
