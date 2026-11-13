@@ -54,6 +54,8 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     readonly Stack<DecodedPicture> _free = new();
     readonly DecoderReplay _replay = new();
     readonly InputStallRecovery _stall = new();
+    // for the stall report: when the last unit was sent before this one, when the last picture came out
+    long _previousSendTicks, _lastSendTicks, _lastPictureTicks;
     int _skip;
     // SceAvcdec hands a picture out in the call that decoded it; MediaCodec decodes on its own threads, so each Send
     // waits for the picture of its unit (SynchronousOutput); IVideoDecoder.Asynchronous: a missed deadline can still
@@ -263,6 +265,8 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     {
         if (_codec == null)
             return;
+        _previousSendTicks = _lastSendTicks;
+        _lastSendTicks = System.Diagnostics.Stopwatch.GetTimestamp();
         if (!s_legacyOutputTiming && !_streamReorders && H264ReorderLimit.IsBSlice(accessUnit))
         {
             // F1 2011's movies have B frames and a reorder limit of their own: nothing to undo there
@@ -350,7 +354,13 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     void RecoverInputStall()
     {
         InputStallRecovery.Action action = _stall.OnInputStall();
-        Log.Warn($"MediaCodec: {_codecName} gave no input buffer back for {InputAttempts * InputTimeoutUs / 1000} ms (stalled, recovery {_stall.Recoveries}): "
+        double tickMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        // what the decoder held when it stalled: units queued without their picture, how long since its last picture
+        // and since the unit before this one (a long gap = the player's queue was full and nothing was sent)
+        Log.Warn($"MediaCodec: {_codecName} gave no input buffer back for {InputAttempts * InputTimeoutUs / 1000} ms (stalled, recovery {_stall.Recoveries}; "
+            + $"{_sync.Outstanding} units in flight, {_sync.HeldPictures} pictures held, last picture {(_lastPictureTicks == 0 ? -1 : (now - _lastPictureTicks) * tickMs):F0} ms ago, "
+            + $"previous unit {(_previousSendTicks == 0 ? -1 : (_lastSendTicks - _previousSendTicks) * tickMs):F0} ms before, {_sends} units sent): "
             + (action == InputStallRecovery.Action.ReopenSameDecoder ? "opening it again" : "trying the next decoder"));
         if (action == InputStallRecovery.Action.ReopenSameDecoder)
         {
@@ -518,6 +528,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
                         _lastOutputPts = p.Pts;
                         _ready.Enqueue(p);
                         _stall.OnPicture();
+                        _lastPictureTicks = System.Diagnostics.Stopwatch.GetTimestamp();
                     }
                 }
             }

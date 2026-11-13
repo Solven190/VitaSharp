@@ -26,7 +26,7 @@ LDFLAGS     := -Wl,-q
 
 LIBS := \
 	-lSceGxm_stub -lSceDisplay_stub -lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub \
-	-lSceAudio_stub -lSceCommonDialog_stub -lSceAppUtil_stub -lSceAppMgr_stub -lSceSysmodule_stub \
+	-lSceAudio_stub -lSceAvPlayer_stub -lSceCommonDialog_stub -lSceAppUtil_stub -lSceAppMgr_stub -lSceSysmodule_stub \
 	-lScePower_stub -lSceRtc_stub -lSceNetCtl_stub -lSceNet_stub -lSceLibKernel_stub \
 	-lSceKernelThreadMgr_stub -lSceIofilemgr_stub -lSceSysmem_stub -lSceProcessmgr_stub \
 	-lm
@@ -59,9 +59,9 @@ $(BUILD_DIR)/sce_sys/param.sfo: Makefile | $(BUILD_DIR)
 $(BUILD_DIR)/sce_sys/icon0.png: assets/icon0.png | $(BUILD_DIR)
 	cp $< $@
 
-$(BUILD_DIR)/$(TARGET).vpk: $(BUILD_DIR)/eboot.bin $(BUILD_DIR)/sce_sys/param.sfo $(BUILD_DIR)/sce_sys/icon0.png
+$(BUILD_DIR)/$(TARGET).vpk: $(BUILD_DIR)/eboot.bin $(BUILD_DIR)/sce_sys/param.sfo $(BUILD_DIR)/sce_sys/icon0.png assets/vstest.mp4
 	vita-pack-vpk -s $(BUILD_DIR)/sce_sys/param.sfo -b $(BUILD_DIR)/eboot.bin \
-		-a $(BUILD_DIR)/sce_sys/icon0.png=sce_sys/icon0.png $@
+		-a $(BUILD_DIR)/sce_sys/icon0.png=sce_sys/icon0.png -a assets/vstest.mp4=movie/vstest.mp4 $@
 
 clean:
 	rm -rf $(BUILD_DIR)

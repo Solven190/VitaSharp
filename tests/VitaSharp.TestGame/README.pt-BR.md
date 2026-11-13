@@ -21,6 +21,7 @@ menu onde cada área pode ser rodada de novo, os valores da entrada podem ser vi
 | `gfx` | `sceGxm` direto, desenhado fora da tela e lido pela CPU depois do `sceGxmFinish`: clear, triângulos, strips, fans, linhas, interpolação de cor por vértice, culling CW/CCW; 28 casos de textura (U8U8U8U8 ABGR/ARGB/X8, U8U8U8, 565 RGB/BGR, 4444, 1555, 2-10-10-10, U8, U8U8, F16x4, paletas P8 e P4, UBC1/2/3, ETC1) nos layouts linear, linear com stride, swizzled e tiled; samplers (point, linear, repeat / mirror / clamp, mipmaps); blending alfa, aditivo e multiplicativo, máscaras de cor; depth less / greater / sem escrita; stencil replace + equal; render to texture; bordas com MSAA 4x |
 | `input` | `sceCtrl` peek e modo de amostragem, analógicos em repouso; todos os botões, os dois analógicos, o toque da frente e de trás e uma inclinação vistos numa janela de 20 s (acaba antes quando tudo foi visto; START+SELECT para); info dos painéis de toque; estado do sensor de movimento e 1 g em repouso; uma tela com todos os valores ao vivo |
 | `audio` | portas MAIN 48 kHz e BGM 44,1 kHz do `sceAudioOut` tocando um tom de 1 kHz e outro de 1,5 kHz ao mesmo tempo em duas threads, o período medido de cada bloco contra o relógio, chamadas de volume e config, erro de taxa inválida, amostras restantes, porta VOICE mono |
+| `video` | `sceAvPlayer`: ativo desde o init (antes da fonte), um filme H.264 de 4 s com quadros B e AAC na fila e sem leitura por 2 s (o decodificador corre na frente com a fila cheia), depois tocado até o fim: todas as imagens em ordem até a última, quadros de áudio, `sceAvPlayerIsActive` 0 no fim; uma segunda rodada pula o filme no meio (`sceAvPlayerStop` retorna, o player fica inativo logo depois, `sceAvPlayerClose` retorna) |
 | `files` | `sceIo` mkdir, gravação / leitura de 64 KB, `getstat` tamanho / tipo / data, `lseek` set / end / cur, append, `dopen` / `dread`, rename, remove, rmdir, erro de arquivo inexistente; leituras de `app0:` (e que ele é só leitura); gravação / leitura em `savedata0:`, criar slot de save / ler parâmetros; o diálogo de save do sistema |
 | `threads` | criar / iniciar thread / status de saída, mutex (duas threads, try-lock, recursivo), mutex leve, semáforos (produtor / consumidor, poll, info, timeout), event flags (espera AND, poll OR + clear, set / clear), message pipe (32 mensagens em ordem, try-receive vazio), variável de condição, `sceKernelDelayThread` de 1 / 10 / 100 ms contra o relógio, RTC contra o relógio do processo, tempo do processo monotônico |
 | `system` | hora local do RTC, tick, resolução, anos bissextos, dias do mês, dia da semana, ida e volta do tick; parâmetros do sistema (idioma, botão de confirmar, formato de data / hora, fuso, horário de verão, tamanho do nome de usuário); bateria e clocks; taxa de atualização da tela e 30 vblanks; memória livre e modelo; módulo de rede, estado do `sceNetCtl` (sem tráfego); diálogo de mensagem; diálogo do IME |
@@ -117,13 +118,14 @@ src/                  o app (C11, VitaSDK)
   app.c, app.h        controle, quadros de progresso, listas de resultado, laço dos diálogos, entradas dos testes
   gfx.c, gfx.h        renderizador sceGxm direto: tela, shader patcher, alvos fora da tela + leitura, retângulos, texto
   results.c, .h       tabela de resultados, linhas de log, results.txt
-  test_*.c            um arquivo por área (graphics, input, audio, files, threads, system, perf)
+  test_*.c            um arquivo por área (graphics, input, audio, video, files, threads, system, perf)
   savedata_dialog.h   declarações do sceSaveDataDialog (o VitaSDK tem os stubs, mas não o cabeçalho)
   shaders.S           embute os shaders pré-compilados
 third_party/
   vita2d-shaders/     shaders GXP pré-compilados (+ fontes Cg) do libvita2d, MIT
   font8x8/            fonte bitmap 8x8, domínio público
 assets/icon0.png      ícone da LiveArea (gerado, 128x128 indexado)
+assets/vstest.mp4     o filme da área video (make_movie.sh / make_movie.ps1, FFmpeg com libx264)
 Makefile              regras de build (sem CMake)
 build.sh, build.ps1   scripts de build (Linux / macOS; Windows pelo WSL)
 ```

@@ -21,6 +21,7 @@ each area can be run again, the live input values can be watched and the results
 | `gfx` | raw `sceGxm`, drawn offscreen and read back by the CPU after `sceGxmFinish`: clear, triangles, strips, fans, lines, vertex colour interpolation, CW/CCW culling; 28 texture cases (U8U8U8U8 ABGR/ARGB/X8, U8U8U8, 565 RGB/BGR, 4444, 1555, 2-10-10-10, U8, U8U8, F16x4, P8 and P4 palettes, UBC1/2/3, ETC1) in linear, linear strided, swizzled and tiled layouts; samplers (point, linear, repeat / mirror / clamp, mipmaps); alpha, additive and multiply blending, colour masks; depth less / greater / write off; stencil replace + equal; render to texture; 4x MSAA edges |
 | `input` | `sceCtrl` peek and sampling mode, sticks at rest; every button, both sticks, front and rear touch and a tilt seen during a 20 s window (ends early when all were seen; START+SELECT stops it); touch panel info; motion state and 1 g at rest; a live screen with every value |
 | `audio` | `sceAudioOut` MAIN 48 kHz and BGM 44.1 kHz ports playing a 1 kHz and a 1.5 kHz tone at the same time from two threads, the measured block period of each against the clock, volume and config calls, bad-rate error, rest samples, VOICE mono port |
+| `video` | `sceAvPlayer`: active from init (before the source), a 4 s H.264 movie with B frames and AAC queued and left unread for 2 s (the decoder runs ahead with a full queue), then played to its end: every picture in order up to the last one, audio frames, `sceAvPlayerIsActive` 0 at the end; a second run skips the movie halfway (`sceAvPlayerStop` returns, the player is inactive right after it, `sceAvPlayerClose` returns) |
 | `files` | `sceIo` mkdir, 64 KB write / read back, `getstat` size / type / time, `lseek` set / end / cur, append, `dopen` / `dread`, rename, remove, rmdir, missing file error; `app0:` reads (and that it is read-only); `savedata0:` write / read, save slot create / get param; the system save data dialog |
 | `threads` | thread create / start / exit status, mutex (two threads, try-lock, recursive), lightweight mutex, semaphores (producer / consumer, poll, info, wait timeout), event flags (AND wait, OR + clear poll, set / clear), message pipe (32 messages in order, empty try-receive), condition variable, `sceKernelDelayThread` 1 / 10 / 100 ms against the clock, RTC against the process clock, monotonic process time |
 | `system` | RTC local time, tick, resolution, leap years, days in month, day of week, tick round trip; system parameters (language, enter button, date / time format, time zone, daylight savings, user name length); battery and clocks; display refresh rate and 30 vblanks; free memory and model; network module, `sceNetCtl` state (no traffic); message dialog; IME dialog |
@@ -115,13 +116,14 @@ src/                  the app (C11, VitaSDK)
   app.c, app.h        pad, progress frames, result lists, dialog loop, test entry points
   gfx.c, gfx.h        raw sceGxm renderer: display, shader patcher, offscreen targets + readback, rectangles, text
   results.c, .h       results table, log lines, results.txt
-  test_*.c            one file per area (graphics, input, audio, files, threads, system, perf)
+  test_*.c            one file per area (graphics, input, audio, video, files, threads, system, perf)
   savedata_dialog.h   sceSaveDataDialog declarations (VitaSDK has the stubs but no header)
   shaders.S           embeds the precompiled shaders
 third_party/
   vita2d-shaders/     precompiled GXP shaders (+ their Cg sources) from libvita2d, MIT
   font8x8/            8x8 bitmap font, public domain
 assets/icon0.png      LiveArea icon (generated, 128x128 indexed)
+assets/vstest.mp4     the video area's movie (make_movie.sh / make_movie.ps1, FFmpeg with libx264)
 Makefile              build rules (no CMake)
 build.sh, build.ps1   build scripts (Linux / macOS; Windows through WSL)
 ```

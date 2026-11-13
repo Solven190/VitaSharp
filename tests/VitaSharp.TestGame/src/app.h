@@ -47,6 +47,7 @@ void test_graphics_run(void);
 void test_input_run(int timeoutSeconds);
 void test_input_live_screen(void);
 void test_audio_run(void);
+void test_video_run(void);
 void test_files_run(void);
 void test_threads_run(void);
 void test_system_run(bool withDialogs);
