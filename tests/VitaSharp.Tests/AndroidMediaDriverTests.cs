@@ -311,6 +311,24 @@ public sealed class AndroidMediaDriverTests : IDisposable
         Assert.Empty(r.TakeReplay().Units);
     }
 
+    // ---------------------------------------------------------------- FFmpeg missing
+
+    [Fact]
+    public void FFmpegMissingWarningNamesOnlyWhatIsReallyOff()
+    {
+        // desktop without FFmpeg: no replacement, everything that uses it is off
+        string desktop = FFmpegLoader.MissingMessage(false, false, false, false, false);
+        Assert.Equal("FFmpeg libraries not found: videos (SceAvPlayer), H.264 decoding (SceAvcdec), MP4 reading (SceMp4), AAC decoding (SceAudiodec), "
+            + "MP3 decoding (SceAudiodec), G.729 decoding (SceG729), H.264 encoding (camera videos) disabled", desktop);
+
+        // Android installs MediaExtractor/MediaCodec replacements: movies and AAC are not off (Uncharted's log said
+        // they were while its movie played through MediaCodec)
+        string android = FFmpegLoader.MissingMessage(true, true, true, true, true);
+        Assert.Equal("FFmpeg libraries not found: G.729 decoding (SceG729), H.264 encoding (camera videos) disabled; videos (SceAvPlayer), "
+            + "H.264 decoding (SceAvcdec), MP4 reading (SceMp4), AAC decoding (SceAudiodec), MP3 decoding (SceAudiodec) through this platform's own decoders", android);
+        Assert.DoesNotContain("SceAvPlayer)", android.Split(';')[0]);
+    }
+
     // ---------------------------------------------------------------- MediaCodec input stalls
 
     [Fact]
