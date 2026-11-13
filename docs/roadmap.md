@@ -652,6 +652,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   mais), e o aviso "gave no input buffer back" dá unidades em voo, imagens presas, ms desde a última imagem e desde a
   unidade anterior: juntar esses números de algumas ocorrências e achar o gatilho (carga dos núcleos, quantidade de
   unidades em voo, B frames, tempo de reprodução)
+  Primeiras ocorrências (13/11, KZ no celular, APK com a recuperação; os dois filmes tocaram até o fim e o jogo chegou
+  ao gameplay): vídeo da campanha, 2.375 unidades enviadas: 14 unidades em voo, 0 imagens presas, última imagem 254 ms
+  antes, unidade anterior 53 ms antes; M02_Intro, 1.806 unidades: 14 em voo, 0 presas, última imagem 200 ms antes,
+  unidade anterior 13 ms antes. Uma vez por filme; a reabertura voltou a dar imagens em ~90-160 ms. Pista: 14 unidades
+  em voo sem nenhuma imagem saindo há 200+ ms, ou seja, enviamos bem mais entradas do que o decodificador devolve
+  (capacidade de entrada do c2, ordem dos quadros B). Próximo: limitar as unidades em voo (esperar uma imagem antes de
+  passar de N) e ver se o travamento some
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do
