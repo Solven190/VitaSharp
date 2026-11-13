@@ -134,10 +134,14 @@ public sealed unsafe partial class Arm64Emitter
         /// <summary>With <see cref="PackedDispatch"/>: the indirect-exit table is two-way set associative
         /// (<see cref="NativeRuntime.TwoWay"/>), so colliding hot targets stop sending each other through the dispatcher.</summary>
         AssocDispatch = 1048576,
-        All = 2097151,
+        /// <summary>With <see cref="VecCache"/> and <see cref="FpEntryCheck"/>: single-precision VFP operands and results
+        /// live in the SIMD register cache too (4-byte entries in lane 0; odd S registers of a cached D register read
+        /// with one DUP), instead of a store and a reload of the register file per operation.</summary>
+        SingleCache = 2097152,
+        All = 4194303,
     }
 
-    public static readonly string[] OptNames = ["pin", "backedge", "fuse", "pair", "vcache", "fpcr", "fpcheck", "dirty", "lit", "patch", "cond", "stub", "succ", "count", "fence", "group", "fpentry", "packed", "chain", "vlazy", "assoc"];
+    public static readonly string[] OptNames = ["pin", "backedge", "fuse", "pair", "vcache", "fpcr", "fpcheck", "dirty", "lit", "patch", "cond", "stub", "succ", "count", "fence", "group", "fpentry", "packed", "chain", "vlazy", "assoc", "scache"];
 
     /// <summary>Enabled optimisations (tests may change it; the trampoline's pinned-counter mode is fixed per runtime).</summary>
     public static A64Opt Opts = ParseOpts(Environment.GetEnvironmentVariable(Util.EnvVars.NativeA64NoOpt));
@@ -281,6 +285,7 @@ public sealed unsafe partial class Arm64Emitter
         Array.Clear(_vcDirty);
         _vcAny = _vcAnyDirty = false;
         _vlazy = _vcache && (opts & A64Opt.LazyVec) != 0;
+        _scache = _vcache && (opts & A64Opt.SingleCache) != 0;
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
         int[]? loc = LinearScan.Allocate(ir, s_callerSaved, _pin ? _count ? s_calleeSavedPinned : s_calleeSavedBudgetOnly : s_calleeSaved, SpillSlots, MaxTempRegisters, VerifyAllocation, reuse: true);
         AllocTicks = System.Diagnostics.Stopwatch.GetTimestamp() - t0;
@@ -787,7 +792,15 @@ public sealed unsafe partial class Arm64Emitter
             case IrOp.LoadState:
             {
                 int d = Def(x.D, X0);
-                LdState(d, (int)x.Imm);
+                if (_scache && InRegisterFile((int)x.Imm))
+                {
+                    LoadRegisterFileWord(d, (int)x.Imm);
+                }
+                else
+                {
+                    LdState(d, (int)x.Imm);
+                }
+
                 Commit(x.D, d);
                 return;
             }
@@ -798,6 +811,12 @@ public sealed unsafe partial class Arm64Emitter
                 StState(UseStored(x.A, X0), s_offN + 4 * (int)x.Imm);
                 return;
             case IrOp.StoreState:
+                if (_scache && InRegisterFile((int)x.Imm))
+                {
+                    StoreRegisterFileWord(UseZ(x.A, X0), (int)x.Imm);
+                    return;
+                }
+
                 StState(UseStored(x.A, X0), (int)x.Imm);
                 StateWritten((int)x.Imm, 4);
                 return;
@@ -2236,8 +2255,11 @@ public sealed unsafe partial class Arm64Emitter
         }
 
         // operands from the SIMD register cache when the op has no handler path (A64Opt.FpEntryCheck): a D register, or
-        // an S register in the low half of its D register; double results are cached (write-through, like VecOps)
+        // an S register (its own 4-byte entry, the low half of a cached D/Q register, or a lane of one); results are
+        // cached too (write-back with A64Opt.LazyVec, like VecOps). Without A64Opt.SingleCache only D registers and
+        // even S registers are read from the cache and only double results are cached.
         bool cache = checkedAtEntry && _vcache, resultCached = false;
+        bool cacheS = cache && _scache;
         if (cache)
         {
             _vcBusy = 0;
@@ -2246,7 +2268,17 @@ public sealed unsafe partial class Arm64Emitter
         int Opnd(int scratch, int off)
         {
             int rel = off - s_offD;
-            if (cache && (dbl || (rel & 7) == 0))
+            if (cache && dbl)
+            {
+                return Src(scratch, rel, 8);
+            }
+
+            if (cacheS)
+            {
+                return SrcSingle(scratch, rel);
+            }
+
+            if (cache && (rel & 7) == 0)
             {
                 return Src(scratch, rel, false);
             }
@@ -2255,12 +2287,12 @@ public sealed unsafe partial class Arm64Emitter
             assembler.LdSt(ld, scratch, State, off);
             return scratch;
         }
-        int ResultReg() => cache && dbl ? Dst(0) : 0;
+        int ResultReg() => cache && (dbl || cacheS) ? Dst(0) : 0;
         void Result(int r)
         {
-            if (cache && dbl)
+            if (cache && (dbl || cacheS))
             {
-                Put(dOff - s_offD, r, false);
+                Put(dOff - s_offD, r, dbl ? 8 : 4);
                 resultCached = true;
             }
             else

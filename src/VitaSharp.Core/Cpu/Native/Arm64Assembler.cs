@@ -687,6 +687,8 @@ public sealed class Arm64Assembler
         uint imm5 = (1u << (int)size) | ((uint)index << ((int)size + 1));
         Emit(0x0E000400 | Qb(q) | imm5 << 16 | (uint)rn << 5 | (uint)rd);
     }
+    /// <summary>DUP Sd, Vn.S[index] (MOV Sd, Vn.S[index]): one 32-bit lane to a scalar register (upper bits zeroed).</summary>
+    public void DupScalarS(int rd, int rn, int index) => Emit(0x5E000400 | (4u | (uint)index << 3) << 16 | (uint)rn << 5 | (uint)rd);
     /// <summary>DUP Vd.T, Wn.</summary>
     public void DupGp(uint size, bool q, int rd, int rn) => Emit(0x0E000C00 | Qb(q) | (1u << (int)size) << 16 | (uint)rn << 5 | (uint)rd);
     /// <summary>INS Vd.Ts[index], Wn/Xn.</summary>
