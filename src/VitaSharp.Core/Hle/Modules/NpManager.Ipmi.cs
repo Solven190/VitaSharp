@@ -1,5 +1,6 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -27,7 +28,9 @@ public sealed partial class NpManager
         MGR_REQUEST_DEAD = unchecked((int)0x80550507), MGR_NO_MEMORY = unchecked((int)0x80550504);
 
     readonly object _ipmiLock = new();
+    [SnapshotMissing] // states of builds before it: no IPC client yet (made on first use)
     uint _ipmi, _ipmiMem, _ipmiCfg;
+    [SnapshotMissing]
     bool _ipmiTried;
 
     /// <summary>The library's IPMI::Client, opened on first use (0: none).</summary>

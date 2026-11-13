@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -12,8 +13,10 @@ public sealed partial class AppUtil
 {
     const int ERR_ALREADY_MOUNTED = unchecked((int)0x80100603);
     const int BookAppDataId = 112;
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     string? _bookMount;
 
+    [SnapshotMissing] // a cache, found again on first use
     AppMgr? _appMgr;
     AppMgr Am => _appMgr ??= Emu.Hle.Modules.OfType<AppMgr>().First();
 
@@ -61,6 +64,7 @@ public sealed partial class AppUtil
 public sealed partial class AppUtil
 {
     const int ERR_ADDCONT_NOT_FOUND = unchecked((int)0x80100606);
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     string? _forceAddcont;
 
     [Hle("sceAppUtilAddcontForceAddcontMount")]
@@ -96,6 +100,7 @@ public sealed partial class AppUtil
 public sealed partial class AppUtil
 {
     const int VideoAppDataId = 109;
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     string? _videoMount;
 
     [Hle("sceAppUtilExtVideoMount")]

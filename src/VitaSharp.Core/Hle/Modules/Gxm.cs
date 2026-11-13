@@ -5,6 +5,7 @@ using VitaSharp.Core.Gxm;
 using VitaSharp.Core.Gxm.Shader;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -722,6 +723,7 @@ public sealed partial class Gxm : HleModule
     /// <summary><see cref="EnvVars.DisplayEarlySignal"/>=auto: the flip callback's signal is chosen from measured frame
     /// times (<see cref="AdaptiveEarlySignal"/>); null otherwise.</summary>
     readonly AdaptiveEarlySignal? _earlyAuto = DisplayEarlyMode == "auto" ? new AdaptiveEarlySignal() : null;
+    [SnapshotMissing] // states of builds before it: no entry measured yet (the next one starts the measure)
     long _lastDisplayEntry;
 
     [Hle]

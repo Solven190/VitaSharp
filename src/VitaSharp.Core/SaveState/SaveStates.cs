@@ -15,7 +15,7 @@ namespace VitaSharp.Core.SaveState;
 public static class SaveStates
 {
     private const string SysSection = "system", FunctionsSection = "hle.functions", ObjectsSection = "kernel.objects",
-        BlocksSection = "memory.blocks", MemPrefix = "mem:", ModulePrefix = "hle:";
+        BlocksSection = "memory.blocks", MemPrefix = "mem:", ModulePrefix = "hle:", LayoutsSection = "layouts";
 
     /// <summary>Raised after a state was loaded (front-ends refresh what they show of the game).</summary>
     public static event Action<Emulator>? Loaded;
@@ -379,6 +379,7 @@ public static class SaveStates
         list.Add((ObjectsSection, KernelSnapshot.Save(emu, kinds).Data.ToArray()));
 
         var used = new HashSet<string>();
+        var layouts = new HashSet<string>(StringComparer.Ordinal);
         foreach (HleModule hleModule in emu.Hle.Modules)
         {
             if (hleModule is not ISnapshotState s)
@@ -387,10 +388,15 @@ public static class SaveStates
             }
 
             string name = ModuleKey(hleModule, used);
-            var mw = new SnapshotWriter();
+            var mw = new SnapshotWriter { UsedLayouts = layouts };
             s.SaveState(mw);
             list.Add((ModulePrefix + name, mw.Data.ToArray()));
         }
+
+        // first in the file: a slot list checks it without reading the rest
+        var lw = new SnapshotWriter();
+        SnapshotLayouts.Write(lw, layouts);
+        list.Insert(0, (LayoutsSection, lw.Data.ToArray()));
 
         long t0 = Stopwatch.GetTimestamp(), raw = 0;
         List<GuestMemory.Block> blocks = emu.Memory.SnapshotBlocks();
@@ -426,7 +432,26 @@ public static class SaveStates
     {
         try
         {
-            return SaveStateFile.Incompatibility(SaveStateFile.ReadHeader(path), emu.TitleId);
+            using FileStream file = File.OpenRead(path);
+            SaveStateHeader header = SaveStateFile.ReadHeader(file);
+            if (SaveStateFile.Incompatibility(header, emu.TitleId) is { } why)
+            {
+                return why;
+            }
+
+            if (SaveStateFile.IsLegacy(header))
+            {
+                return LayoutProblem(header, SnapshotLayouts.Legacy(header.Schema)!, positional: true);
+            }
+
+            file.Position = 0;
+            using var reader = new SaveStateReader(file);
+            if (!reader.Next(out string? name, out _) || name != LayoutsSection)
+            {
+                return Localization.Loc.Format("StateModuleChanged", SaveStateFile.ShortVersion(header.EmulatorVersion), "the state has no layout table");
+            }
+
+            return LayoutProblem(header, SnapshotLayouts.Read(new SnapshotReader(reader.ReadAll())));
         }
         catch (SnapshotException e)
         {
@@ -579,6 +604,9 @@ public static class SaveStates
             }
         }
 
+        // whether this build can take every part of the state is decided here, with the game still running
+        (IReadOnlyDictionary<string, SnapshotLayout> layouts, bool positional) = CheckSections(emu, header, sections);
+
         bool wasPaused = EmulationPause.IsPaused;
         var held = new List<GuestThread>();
         try
@@ -596,7 +624,7 @@ public static class SaveStates
             Log.Info($"Load state: threads stopped in {sw.ElapsedMilliseconds - t0} ms");
             try
             {
-                StartRestored(LoadCore(emu, sections, backendFactory));
+                StartRestored(LoadCore(emu, sections, layouts, positional, backendFactory));
             }
             catch (Exception e) when (e is not SnapshotException)
             {
@@ -757,7 +785,68 @@ public static class SaveStates
         }
     }
 
-    private static List<GuestThread> LoadCore(Emulator emu, List<(string Name, byte[] Data)> list, Func<Gpu.IGpuBackend?>? backendFactory)
+    /// <summary>Why a state whose header this build accepts still cannot be loaded (a [GenerateSnapshot] type whose
+    /// fields or hooks changed in a way this build cannot map), or null.</summary>
+    private static string? LayoutProblem(SaveStateHeader header, IReadOnlyDictionary<string, SnapshotLayout> layouts, bool positional = false)
+    {
+        return SnapshotLayouts.Incompatibility(layouts, positional) is { } detail
+            ? Localization.Loc.Format("StateModuleChanged", SaveStateFile.ShortVersion(header.EmulatorVersion), detail)
+            : null;
+    }
+
+    /// <summary>
+    /// Checks, before anything stops, that every part of the state can be loaded into this build: the saved layouts map
+    /// to this build's (<see cref="SnapshotLayouts.Incompatibility"/>), and every module with save state support that
+    /// the game used in this session has a section (a module the saving build did not have keeps its state when the
+    /// game has not used it yet). Throws <see cref="SaveStateIncompatibleException"/> naming the module.
+    /// </summary>
+    internal static (IReadOnlyDictionary<string, SnapshotLayout> Layouts, bool Positional) CheckSections(Emulator emu, SaveStateHeader header, List<(string Name, byte[] Data)> sections)
+    {
+        string version = SaveStateFile.ShortVersion(header.EmulatorVersion);
+        bool positional = SaveStateFile.IsLegacy(header);
+        Dictionary<string, SnapshotLayout> layouts;
+        if (positional)
+        {
+            layouts = SnapshotLayouts.Legacy(header.Schema)!;
+        }
+        else
+        {
+            byte[]? table = sections.FirstOrDefault(s => s.Name == LayoutsSection).Data;
+            if (table == null)
+            {
+                throw new SaveStateIncompatibleException(Localization.Loc.Format("StateModuleChanged", version, "the state has no layout table"));
+            }
+
+            layouts = SnapshotLayouts.Read(new SnapshotReader(table));
+        }
+
+        if (LayoutProblem(header, layouts, positional) is { } why)
+        {
+            throw new SaveStateIncompatibleException(why);
+        }
+
+        var names = new HashSet<string>(sections.Select(s => s.Name), StringComparer.Ordinal);
+        var used = new HashSet<string>();
+        foreach (HleModule hleModule in emu.Hle.Modules)
+        {
+            if (hleModule is not ISnapshotState)
+            {
+                continue;
+            }
+
+            string key = ModuleKey(hleModule, used);
+            if (!names.Contains(ModulePrefix + key) && emu.Hle.WasUsed(hleModule))
+            {
+                throw new SaveStateIncompatibleException(Localization.Loc.Format("StateModuleChanged", version,
+                    $"module {key} has no state in it and was used in this session (restart the game, then load the state)"));
+            }
+        }
+
+        return (layouts, positional);
+    }
+
+    private static List<GuestThread> LoadCore(Emulator emu, List<(string Name, byte[] Data)> list, IReadOnlyDictionary<string, SnapshotLayout> layouts,
+        bool positional, Func<Gpu.IGpuBackend?>? backendFactory)
     {
         emu.Gpu.WaitIdle();
         long t0 = Stopwatch.GetTimestamp();
@@ -835,10 +924,15 @@ public static class SaveStates
             string key = ModuleKey(hleModule, used);
             if (!sections.TryGetValue(ModulePrefix + key, out byte[]? data))
             {
+                if (!emu.Hle.WasUsed(hleModule))
+                {
+                    continue; // a module the saving build did not have, unused here: it keeps its initial state
+                }
+
                 throw new SnapshotException($"module {key} has no state in the save state");
             }
 
-            var mr = new SnapshotReader(data) { Objects = emu.Kernel.Objects };
+            var mr = new SnapshotReader(data) { Objects = emu.Kernel.Objects, Layouts = layouts, Positional = positional };
             try
             {
                 s.LoadState(mr);

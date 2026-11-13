@@ -30,7 +30,8 @@ public sealed class SaveStateHeader
 /// </summary>
 public static class SaveStateFile
 {
-    public const int FormatVersion = 1;
+    /// <summary>2: [GenerateSnapshot] data in per-field blocks and a layout table (13/11/2026); 1: positional.</summary>
+    public const int FormatVersion = 2;
     private static ReadOnlySpan<byte> Magic => "VSSTATE\0"u8;
 
     /// <summary>Emulator version string stored in new states (front-ends set it from their assembly).</summary>
@@ -101,12 +102,15 @@ public static class SaveStateFile
     /// user as is (title bar, launcher tooltip, Android notice), so in the interface language.</summary>
     public static string? Incompatibility(SaveStateHeader saveStateHeader, string titleId)
     {
-        if (saveStateHeader.FormatVersion != FormatVersion)
+        if (IsLegacy(saveStateHeader))
+        {
+            // format 1 of a build whose layouts this build knows: mapped like format 2 (SnapshotLayouts.Legacy)
+        }
+        else if (saveStateHeader.FormatVersion != FormatVersion)
         {
             return Localization.Loc.Format("StateOtherFormat", ShortVersion(saveStateHeader.EmulatorVersion), saveStateHeader.FormatVersion, FormatVersion);
         }
-
-        if (saveStateHeader.Schema != SnapshotSchema.Hash)
+        else if (saveStateHeader.Schema != SnapshotSchema.Hash)
         {
             return Localization.Loc.Format("StateOtherVersion", ShortVersion(saveStateHeader.EmulatorVersion));
         }
@@ -117,6 +121,14 @@ public static class SaveStateFile
         }
 
         return null;
+    }
+
+    /// <summary>A format 1 state (positional [GenerateSnapshot] data) of the hand-written layouts this build has, saved by
+    /// a build whose layouts this build knows (<see cref="SnapshotLayouts.Legacy"/>).</summary>
+    public static bool IsLegacy(SaveStateHeader header)
+    {
+        return header.FormatVersion == 1 && header.Schema.StartsWith($"{SnapshotSchema.ManualVersion}-", StringComparison.Ordinal)
+            && SnapshotLayouts.Legacy(header.Schema) != null;
     }
 
     /// <summary>"1.0.0+60d6517ede5e..." as "1.0.0+60d6517": the build's commit, short enough for a title bar.</summary>
@@ -173,7 +185,7 @@ public sealed class SaveStateReader : IDisposable
     public SaveStateReader(Stream input)
     {
         Header = SaveStateFile.ReadHeader(input);
-        if (Header.FormatVersion != SaveStateFile.FormatVersion)
+        if (Header.FormatVersion != SaveStateFile.FormatVersion && !SaveStateFile.IsLegacy(Header))
         {
             throw new SaveStateIncompatibleException(SaveStateFile.Incompatibility(Header, Header.TitleId)!);
         }

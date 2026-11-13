@@ -1,5 +1,6 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -42,6 +43,7 @@ public sealed partial class VshBridge
 
     /// <summary>The I/O scheduling priority new processes get (the one the system set, 0 at boot).</summary>
     [Hle] int vshIoGetProcessDefaultPriorityForSystem() => Vsh ? _ioDefaultPriority : VSH_ERR_PERM;
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     int _ioDefaultPriority;
     [Hle] int vshIoSetProcessDefaultPriorityForSystem(int priority) { if (!Vsh) return VSH_ERR_PERM; _ioDefaultPriority = priority; return 0; }
     /// <summary>(SceUID evid): clears an I/O error event; events are not raised by the HLE's devices.</summary>

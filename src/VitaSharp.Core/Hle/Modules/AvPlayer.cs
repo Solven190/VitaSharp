@@ -3,6 +3,7 @@ using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Media;
 using VitaSharp.Core.Memory;
 using VitaSharp.Core.Util;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -35,6 +36,9 @@ public sealed partial class AvPlayer : HleModule
         /// <summary>The player reached its end: every queued source was played, or it was stopped. Until then the
         /// firmware's sceAvPlayerIsActive answers 1, also right after sceAvPlayerInit before any source is added
         /// (libsceavplayer: active while the player's state is not the end state).</summary>
+        /// <summary>States of builds before it: IsActive answered from the open media alone, which Ended = true
+        /// keeps.</summary>
+        [SnapshotMissing(true)]
         public bool Ended;
         public readonly GuestStopwatch Clock = new();
         public long ClockOffsetUs;

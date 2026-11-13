@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -52,6 +53,7 @@ public sealed partial class SystemServicesVsh
     [Hle(Default = true)] int sceBtSetL2capEchoResponseBufferForTest(uint mac0, uint mac1, uint buf, uint size) => BT_ERR_L2CAP_BUFFER;
     [Hle(Default = true)] int sceBtSetInquiryResultForTest(uint result) => 0;
     // the vendor HID channel (DualShock-style accessories): registration works, no device reports
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     int _hidVuCallback;
     [Hle(Default = true)] int sceBtHidVuRegisterCallback(int cb, uint a, uint b) { _hidVuCallback = cb; return 0; }
     [Hle(Default = true)] int sceBtHidVuUnregisterCallback() { if (_hidVuCallback == 0) return BT_ERR_HIDVU_NOT_REGISTERED; _hidVuCallback = 0; return 0; }

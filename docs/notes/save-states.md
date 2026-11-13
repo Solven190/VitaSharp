@@ -16,12 +16,31 @@ Code: `src/VitaSharp.Core/SaveState`, the `*.Snapshot.cs` parts next to each cla
 
 ## File
 
-`"VSSTATE\0"`, format version, uncompressed header (emulator version, layout hash, title id/name, app version,
-time, guest seconds, PNG picture), then Brotli sections: `system`, `hle.functions`, `kernel.objects`, `hle:<Module>`,
-`memory.blocks`, `mem:<address>` (a bitmap of the non-zero pages, then those pages). A state loads only when the
-format version, the title and the layout hash match (`SnapshotSchema.Hash` = `ManualVersion` + a hash the generator
-computes over every generated layout); otherwise the load is refused with the reason. Raise
-`SnapshotSchema.ManualVersion` whenever a hand-written layout changes.
+`"VSSTATE\0"`, format version (2), uncompressed header (emulator version, `SnapshotSchema.Hash` = the version of
+the hand-written layouts, title id/name, app version, time, guest seconds, PNG picture), then Brotli sections:
+`layouts` (first, so a slot list checks it cheaply), `system`, `hle.functions`, `kernel.objects`, `hle:<Module>`,
+`memory.blocks`, `mem:<address>` (a bitmap of the non-zero pages, then those pages).
+
+### States of other builds
+
+Each `[GenerateSnapshot]` type writes every field in its own length-prefixed block and its `SaveExtra` data in one
+more block; `layouts` records, for each type the state holds, its field names in that order with the shape of their
+data (primitive kinds, enums by underlying type, nested states by type, no names) and a signature of its
+`SaveExtra`/`LoadExtra` (the snapshot reader/writer calls they make, in their control flow: renamed locals, braces and
+comments do not change it). A load maps the saved fields to this build's by name, as PPSSPP's versioned `DoState`
+sections keep old states loading:
+
+- a field this build no longer has is skipped; a renamed field declares its old names with `[SnapshotAlias("old")]`;
+- a field this build added takes the value the older build behaved as, declared on the field with
+  `[SnapshotMissing(value)]` (`[SnapshotMissing]`: empty/zero). **Every field added to a saved type needs it**: without
+  it, states of older builds are refused with the module's name, never loaded with a guess;
+- a field whose data changed shape, or hooks that read or write differently, refuse the state with the module's name;
+- a module the saving build did not have keeps its initial state when the game has not used it in this session.
+
+The check runs before anything stops (`SaveStates.CheckSections`), so a refused state leaves the game running. The
+format version or `SnapshotSchema.ManualVersion` (raise it whenever a hand-written layout changes: kernel objects,
+memory, the container, the HLE function table) still refuse every state of another value. Format 1 (positional,
+before 13/11/2026) is refused. Tests: `SaveStateLayoutTests`.
 
 ## Safe point
 

@@ -1446,6 +1446,9 @@
   <data name="StateLoadFailed" xml:space="preserve">
     <value>Não foi possível carregar o estado: {0}</value>
   </data>
+  <data name="StateModuleChanged" xml:space="preserve">
+    <value>Este estado foi salvo por outra versão do VitaSharp ({0}) e não pode ser carregado: {1}</value>
+  </data>
   <data name="StateOtherFormat" xml:space="preserve">
     <value>Este estado foi salvo por outra versão do VitaSharp ({0}) e não pode ser carregado (formato {1}; esta versão lê o formato {2})</value>
   </data>

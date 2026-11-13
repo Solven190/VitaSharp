@@ -1,3 +1,5 @@
+using VitaSharp.Core.SaveState;
+
 namespace VitaSharp.Core.Hle.Modules;
 
 public sealed partial class Http
@@ -5,8 +7,11 @@ public sealed partial class Http
     sealed partial class Settings
     {
         /// <summary>sceHttpSetProxy: the two words of option 0x11 (mode, flags) and the host/port of option 0x12.</summary>
+        [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
         public int ProxyMode, ProxyFlags;
+        [SnapshotMissing]
         public string? ProxyHost;
+        [SnapshotMissing]
         public ushort ProxyPort;
     }
 

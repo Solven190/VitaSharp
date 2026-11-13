@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -40,6 +41,7 @@ public sealed partial class DebugPerf
 
     // ---------------------------------------------------------------- the Razor trace hardware (none)
 
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     uint _paIo;
 
     /// <summary>The PA register block libperf maps at module start (it refuses to start on 0): a zeroed page here.</summary>

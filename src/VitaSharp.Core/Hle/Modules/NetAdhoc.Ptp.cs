@@ -28,6 +28,7 @@ public sealed partial class NetAdhoc
         public bool Deleted;
     }
 
+    [SnapshotMissing] // states of builds before it: no PTP sockets
     readonly Dictionary<int, PtpSocket> _ptp = new();
 
     int NewSocketId()

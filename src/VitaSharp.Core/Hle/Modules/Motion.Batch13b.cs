@@ -1,3 +1,5 @@
+using VitaSharp.Core.SaveState;
+
 namespace VitaSharp.Core.Hle.Modules;
 
 /// <summary>
@@ -9,6 +11,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Sensors
 {
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     bool _locationSampling, _internalSampling;
 
     [Hle("NID_ACEFA121", Nid = 0xACEFA121, Library = "SceMotion")]
