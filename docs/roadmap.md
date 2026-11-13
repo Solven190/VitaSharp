@@ -661,6 +661,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   As 7 quebras RenderTargetRegion do atlas 256x512 são dependências reais: cada draw escreve um bloco 128x64 e o
   seguinte amostra o bloco recém-escrito (cadeia de redução); com o RENDER_AREA_TRIM cada renderização já cobre só o
   bloco desenhado. Sem ganho exato à vista ali
+  Medidas no celular (lab13, 13/11): VEC4 no KZ ao vivo (3x3 alternado) GPU mediana 28,7 -> 27,3 ms, fps 23,5 -> 24,0
+  (dentro do ruído); no bench kz_game (3 rodadas) 22,3 -> 23,9 ms (oposto, também no ruído). FLOAT_BITS_JOIN no bench
+  do Prologue do UC: sem diferença fora do ruído (34-54 ms). Nenhum dos dois vira padrão sem uma série maior.
+  Quadro serial do KZ (~42 ms com GPU 28,7): o jogo espera ~8-10 ms por quadro em sceGxmNotificationWait (~1 a cada
+  2 quadros, ~15 ms cada) e ~17,5 ms em sceKernelDelayThread esperando os jobs. O worker só confere as cercas no
+  começo de cena, no present ou com a fila vazia, então um quadro que a GPU já terminou pode esperar uma cena inteira
+  de gravação para ser publicado. `VITASHARP_RETIRE_WAKE` (d190e48a): uma thread espera cercas próprias (lote vazio
+  depois de cada quadro) e anota quando a GPU terminou; `measure` mostra no PERF sync o atraso GPU pronta ->
+  publicado; `1` também aposenta esses quadros no próximo draw. Ordem igual (mais antigo primeiro, resultados antes
+  dos sinais; RetireWakeTests nos três modos). A/B no KZ pedido ao laboratório
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
