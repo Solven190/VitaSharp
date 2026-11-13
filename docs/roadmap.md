@@ -645,6 +645,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
 
+- [ ] Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
+  no meio de um filme ele para de devolver buffers de entrada (200 ms sem nenhum, com a saída drenada a cada
+  tentativa). Visto no Killzone (vídeo da campanha, 3:20 de reprodução contínua; M02_Intro, 4 s depois de o jogo
+  começar a ler). Desde fix/kz-avplayer-end o decodificador é reaberto e continua do último IDR (o filme não congela
+  mais), e o aviso "gave no input buffer back" dá unidades em voo, imagens presas, ms desde a última imagem e desde a
+  unidade anterior: juntar esses números de algumas ocorrências e achar o gatilho (carga dos núcleos, quantidade de
+  unidades em voo, B frames, tempo de reprodução)
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do
