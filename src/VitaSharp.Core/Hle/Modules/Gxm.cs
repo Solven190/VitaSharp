@@ -709,6 +709,7 @@ public sealed partial class Gxm : HleModule
                 // a flip takes a few vblanks; a buffer that never leaves the screen must not hang the GPU
                 long w0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 bool ok = Gpu.WorkerWait(() => s.Released >= target || !Emu.Running, s, 250);
+                GpuQueue.CountDisplayHold(w0);
                 if (TraceDisplaySync && ++_syncWaits % 30 == 1) Log.Info($"[display-sync] wait {_syncWaits}: sync 0x{s.Handle:X8} {System.Diagnostics.Stopwatch.GetElapsedTime(w0).TotalMilliseconds:F1} ms");
                 if (!ok)
                     Log.WarnOnce("gxm-sync-timeout", $"sceGxmBeginScene: sync object 0x{s.Handle:X8} still displayed after 250 ms (display {s.Released}/{target}); rendering anyway");

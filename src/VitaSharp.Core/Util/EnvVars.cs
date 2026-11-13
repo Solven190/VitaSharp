@@ -32,6 +32,10 @@ public static class EnvVars
     public const string RetireDeferred = "VITASHARP_RETIRE_DEFERRED";
     /// <summary>Developer builds: presented frame from which VITASHARP_WORKER_PROF measures (default 30).</summary>
     public const string WorkerProfFrom = "VITASHARP_WORKER_PROF_FROM";
+    /// <summary>=1: every HLE call is timed (wall clock, blocking included) per guest thread, and each periodic summary
+    /// adds "PERF hle time" lines: where the busiest guest threads spend the time since the previous summary, per HLE
+    /// function (Util/HleTimeReport.cs). Two timestamps per call; works on every platform (Android included).</summary>
+    public const string PerfHleTime = "VITASHARP_PERF_HLE_TIME";
     /// <summary>A/B switch: =old scans draw indices for their min/max one at a time; default new (128-bit vectors).</summary>
     public const string MinMaxScan = "VITASHARP_MINMAX";
     /// <summary>A/B switch: =1 records the hot vkCmd* calls through device-level function pointers loaded once with

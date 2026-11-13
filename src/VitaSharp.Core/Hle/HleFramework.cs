@@ -135,11 +135,18 @@ public sealed class HleFunction
     public bool ExceptionLogged;
     /// <summary>Emulated CPU cycles charged for this function so far (profiling).</summary>
     public long ChargedCycles;
+    // declared before Track and Profile: static initializers run in textual order
+    /// <summary><see cref="EnvVars.PerfHleTime"/>=1: HLE calls are timed from the start (wall clock only, see
+    /// <see cref="ProfileWallOnly"/>) for the periodic "PERF hle time" lines (Util/HleTimeReport.cs).</summary>
+    public static readonly bool TimeFromEnv = Environment.GetEnvironmentVariable(EnvVars.PerfHleTime) == "1";
     /// <summary>--profile: guest threads record the HLE function they are in (GuestThread.CurrentHle).</summary>
-    public static bool Track;
+    public static bool Track = TimeFromEnv;
     /// <summary>--profile-hle: also times every HLE call per thread (GuestThread.HleProfile): two timestamps and two
     /// thread cycle-counter reads per call, which slows HLE-heavy games noticeably.</summary>
-    public static bool Profile;
+    public static bool Profile = TimeFromEnv;
+    /// <summary>With <see cref="Profile"/>: only the wall clock is read per call (no thread cycle counter, which costs a
+    /// system call on Linux/Android).</summary>
+    public static bool ProfileWallOnly = TimeFromEnv;
 
     long _cost = -1;
     /// <summary>Emulated CPU cost (guest instructions) charged per call: real syscalls (waits, signals, I/O, display)

@@ -644,6 +644,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   auto 26,1/25,5 (+3-5%), p90 66,6 nos três, fila de display ~7,5 ms/quadro igual; o auto ficou em EARLY quase todo o
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
+  Releitura das medidas de 09/11 (13/11, perf/android-frame-13): as linhas PERF são acumuladas desde o boot; na
+  janela de 30 s do gameplay o KZ espera só 0,2-1,5 ms/quadro na fila de display (os ~8,5 ms vinham das telas de
+  carga) e ~10 ms em notificações, e ~20 ms/quadro da thread do jogo ficam fora da CPU sem ser espera da GPU. No F1
+  corrida o EARLY não deixa o worker mais lento por disputa de CPU: o custo por draw é o mesmo (18,2-19,5 us), mas o
+  jogo manda 14-30% mais draws por quadro (1.651 contra 1.270-1.449) e 5-10% mais ciclos de guest quando o callback
+  da fila de display chega antes da GPU terminar. Próximo: medir onde a thread do jogo fica nesses ~20 ms
+  (`VITASHARP_PERF_HLE_TIME=1`: tempo de parede por função HLE e por thread; a linha "PERF guest waits" passou a dar o
+  tempo em que o worker segurou cenas esperando o display liberar o buffer) e só então atacar a espera certa
 
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma

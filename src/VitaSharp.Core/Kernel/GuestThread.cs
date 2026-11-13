@@ -407,15 +407,17 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
 
     private void InvokeTimed(HleFunction hleFunction, uint index)
     {
+        bool wallOnly = HleFunction.ProfileWallOnly;
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
-        ulong c0 = Util.NativeThread.CycleTime();
+        ulong c0 = wallOnly ? 0 : Util.NativeThread.CycleTime();
         try
         {
             hleFunction.Invoke!(Hle);
         }
         finally
         {
-            long cyc = (long)(Util.NativeThread.CycleTime() - c0), ticks = System.Diagnostics.Stopwatch.GetTimestamp() - t0;
+            long cyc = wallOnly ? 0 : (long)(Util.NativeThread.CycleTime() - c0);
+            long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - t0;
             long[] p = HleProfile;
             int i = (int)index * 3;
             if (i + 3 > p.Length)
