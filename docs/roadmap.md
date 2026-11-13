@@ -632,6 +632,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   display do KZ de outro jeito genérico; nos shaders, os vertex shaders da cena principal são limitados por load/store
   (`vitasharp-perf mali-cost`: ~79 leituras dinâmicas da paleta de ossos por vértice, ocupação 50%); ler 4 palavras
   com uma checagem (fetchMemory4) piorou no modelo; candidato: uniforms em UBO (registradores do Mali)
+  13/11/2026 (perf/android-gpu-13, malioc 2026.3 no kz_game): das ~79 leituras por vértice, 42 têm endereço
+  constante (ponteiro de buffer literal em sa + imediato) e o driver já as promove a registradores uniformes (UBO não
+  muda nada: 41/57 ciclos LS iguais); as outras 37 são as linhas da paleta de ossos (índice do osso x 48 bytes),
+  sempre alinhadas a 16. `VITASHARP_SHADER_VEC4_LOADS=1` (c08f23f6): leitura de 4 palavras vira um `fetch4` (um
+  load de 128 bits quando alinhado e dentro do binding, senão as 4 palavras como antes; leituras de endereço
+  constante ficam como estão, vetorizá-las tirava a promoção: 57 -> 78 LS). Caminho alinhado: posição 41 -> 14 ciclos
+  LS, varying 57 -> 30 (dd6a/4923); o modelo do mali-cost usa o caminho mais longo (o de reserva) e não mostra o
+  ganho. replay-gpu --compare: pixel-idêntico. Medida A/B no KZ pedida ao laboratório; ligar por padrão nos tilers se
+  ganhar. Também notado: o programa secundário (setup por draw no Vita) roda por vértice nos shaders traduzidos
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
