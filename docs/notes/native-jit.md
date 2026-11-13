@@ -47,6 +47,8 @@ were never cached, and VMOV Sn/Rt and VLDR/VSTR S flushed every dirty cache entr
   (VMOV Rt, Sn; VSTR Sn) reads the cache register (`fmov w, s` / `umov w, v.s[k]`). Neither flushes the cache any more.
 - VLDR Dd loads straight from guest memory into a cache register (`ldr d, [x20, w, uxtw]`), and VSTR Dd stores from
   the cache register when Dd is cached. Before, both went through x0 and the register file, and flushed the cache.
+  VLD1/VST1 of whole registers are LoadD/StoreD in the ARM64 frontend, and the lane and interleaved forms are register
+  file words, so NEON structure loads and stores use the cache too.
 
 This is the reference approach: Dynarmic's A32 register allocator keeps ExtReg (S/D) values in host vector registers
 and writes them back at block end, and ARMeilleure maps A32 S/D registers onto V registers with lane insert/extract.

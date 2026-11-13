@@ -614,7 +614,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   no JIT). A linha PERF agora separa o tempo HLE do tempo do código gerado. (2) A linha PERF mostra as voltas ao
   despachante por motivo (Window, Svc, StaticNoCode, IndirectTableMiss...); falta ler no celular. (3) Feito o `scache`:
   VFP de precisão simples (S pares e ímpares), VMOV S/R e VLDR/VSTR S e D pelo cache SIMD (`VITASHARP_NATIVE_A64_NOOPT=scache`
-  desliga). Falta a série A/B no celular e o (4), VecLdSt.
+  desliga). O (4) também ficou coberto: no ARM64, VLD1/VST1 de registros inteiros viram LoadD/StoreD, e as formas
+  de lane e as intercaladas viram palavras do banco de registros, e as duas passam agora pelo cache. Falta a série A/B
+  no celular.
   09/11/2026 (perf/android-gpu): **regressão desde 06/11 corrigida (23811d9)**: a 240a8de (Jak 1) fazia um `Finish` de
   todos os quadros a cada transferência de CPU sobre um writeback "em voo" e casava quadros que não estavam mais em
   voo; na main eram ~2.400 esperas por sessão (26-29 s) no Killzone. Agora só o quadro do writeback (gravando ou
