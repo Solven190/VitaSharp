@@ -1,5 +1,6 @@
 using VitaSharp.Core.Cpu;
 using VitaSharp.Core.Cpu.Backends;
+using VitaSharp.Core.Cpu.Native;
 using VitaSharp.Core.Memory;
 using VitaSharp.Core.Util;
 
@@ -78,6 +79,71 @@ public sealed unsafe class NativeReturnReasonTests(GuestMemoryFixture fixture)
             NativeX64Compiler.Instance.HotInstructions = oldHot;
             GuestClock.Turbo = oldTurbo;
             Jit.Select(oldMode);
+        }
+    }
+
+    /// <summary>Handles SVC #1 (it waits until the host clock moves, like a blocking HLE wait) and leaves the rest to
+    /// the dispatcher.</summary>
+    private sealed class WaitingHandler : CpuCore.ISvcHandler
+    {
+        public int Calls;
+
+        public bool TryHandleSvc(CpuState* s) => TryHandleSvcNative(s);
+
+        public bool TryHandleSvcNative(CpuState* s)
+        {
+            if (s->SvcImm != 1)
+            {
+                return false;
+            }
+
+            Calls++;
+            long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+            while (System.Diagnostics.Stopwatch.GetTimestamp() == t0)
+            {
+                Thread.SpinWait(10);
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// HLE calls made from native code (SVC callouts) report their wall time apart from generated code when the entry is
+    /// timed (<see cref="CpuCore.NativeHleTicks"/>): Killzone's Havok workers showed ~35 ms per frame of "native time" for
+    /// 0.3 M guest cycles, most of it asleep in semaphore and event-flag waits made from native code.
+    /// </summary>
+    [Fact]
+    public void HleCalloutTimeIsCountedOnlyInTimedEntries()
+    {
+        using var core = new CpuCore(new BlockCache());
+        var handler = new WaitingHandler();
+        core.SvcHandler = handler;
+        CpuCore? oldCore = CpuCore.CurrentCore;
+        CpuCore.CurrentCore = core;
+        try
+        {
+            CpuState* s = core.State;
+            s->SvcImm = 1;
+            NativeRuntime.HleCall(s);
+            Assert.Equal(1, handler.Calls);
+            Assert.Equal(0, core.CalloutHleTicks); // not a timed entry: no clock reads
+            Assert.Equal(ExitReason.None, s->Exit);
+
+            core.TimingNative = true;
+            NativeRuntime.HleCall(s);
+            Assert.Equal(2, handler.Calls);
+            Assert.True(core.CalloutHleTicks > 0);
+            Assert.Equal(ExitReason.None, s->Exit);
+
+            // a call the handler leaves to the dispatcher raises the SVC exit, timed or not
+            s->SvcImm = 2;
+            NativeRuntime.HleCall(s);
+            Assert.Equal(ExitReason.Svc, s->Exit);
+        }
+        finally
+        {
+            CpuCore.CurrentCore = oldCore;
         }
     }
 }

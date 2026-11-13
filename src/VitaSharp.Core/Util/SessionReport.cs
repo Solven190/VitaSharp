@@ -191,7 +191,7 @@ public static class SessionReport
         foreach (GuestThread? t in emu.Kernel.Threads.ToArray().Where(t => t.Core.BlockCycles + t.Core.ChargedCycles > 0).OrderByDescending(t => t.Core.BlockCycles + t.Core.ChargedCycles).Take(6))
         {
             yield return $"PERF cycles {t.Name}: guest code {t.Core.BlockCycles / 1e6 / fr:F2} M/frame ({t.Core.BlocksExecuted / 1e3 / fr:F0} K blocks), charged HLE {t.Core.ChargedCycles / 1e6 / fr:F2} M/frame" +
-                (t.Core.NativeTicks > 0 ? $"; host time in native code {t.Core.NativeTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2} ms/frame, {t.Core.NativeEntries / (double)fr:F0} entries/frame ({t.Core.NativeReturnsUnlinked / (double)fr:F0} returned through an exit with no link or table entry; returns/frame: {t.Core.NativeReturnReport(fr)})" : "") +
+                (t.Core.NativeTicks > 0 ? $"; host time in native code {t.Core.NativeTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2} ms/frame (generated code {(t.Core.NativeTicks - t.Core.NativeHleTicks) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2}, HLE calls from it {t.Core.NativeHleTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / fr:F2}, waits included),{t.Core.NativeEntries / (double)fr:F0} entries/frame ({t.Core.NativeReturnsUnlinked / (double)fr:F0} returned through an exit with no link or table entry; returns/frame: {t.Core.NativeReturnReport(fr)})" : "") +
                 (t.Core.SimdOps + t.Core.CondBranches > 0 ? $", {t.Core.SimdOps / 1e3 / fr:F0} K VFP/NEON ops/frame, {t.Core.CondBranches / 1e3 / fr:F0} K conditional branches/frame" : "");
         }
     }

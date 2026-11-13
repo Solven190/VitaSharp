@@ -393,6 +393,15 @@ public sealed unsafe class CpuCore : IDisposable
     public long BlockCycles, ChargedCycles;
     /// <summary>Profiling: host time (Stopwatch ticks) spent inside native-backend code, its callouts included.</summary>
     public long NativeTicks;
+    /// <summary>Profiling: the part of <see cref="NativeTicks"/> spent in HLE calls made from native code (SVC callouts),
+    /// blocking waits included: worker threads that wait on semaphores and event flags from native code showed ~35 ms per
+    /// frame of "native time" for 0.3 M guest cycles, most of it asleep in the wait.</summary>
+    public long NativeHleTicks;
+    /// <summary>True while a timed native entry runs (<see cref="NativeTimingSample"/>): the SVC handler then adds the
+    /// wall time of its HLE calls to <see cref="CalloutHleTicks"/>.</summary>
+    public bool TimingNative;
+    /// <summary>Wall ticks of HLE calls made from native code during the timed entry.</summary>
+    public long CalloutHleTicks;
     /// <summary>Profiling: entries into native code, and returns with no exit slot and no exit reason (an indirect exit
     /// whose target was not in the dispatch table, or the pacing window / a link break at an indirect exit).</summary>
     public long NativeEntries, NativeReturnsUnlinked;
@@ -487,8 +496,8 @@ public sealed unsafe class CpuCore : IDisposable
     /// <summary>See <see cref="ISvcHandler"/>; null: every SVC leaves <see cref="Run"/>.</summary>
     public ISvcHandler? SvcHandler;
 
-    /// <summary>The SVC handler of the thread running native code (HLE callouts find it here).</summary>
-    [ThreadStatic] public static ISvcHandler? CurrentSvcHandler;
+    /// <summary>The core the thread is running (HLE callouts from native code find its <see cref="SvcHandler"/> here).</summary>
+    [ThreadStatic] public static CpuCore? CurrentCore;
 
     /// <summary>Profiling: one native entry in <see cref="NativeTimingSample"/> is timed (twice a clock read per entry
     /// was a few percent of a phone core when HLE calls enter and leave native code hundreds of thousands of times a
@@ -520,7 +529,7 @@ public sealed unsafe class CpuCore : IDisposable
         PendingInstructions = 0;
         // read once per Run: static reads cost a class-initialisation check each under Mono's AOT
         bool verify = Native.NativeVerifier.Enabled;
-        CurrentSvcHandler = SvcHandler;
+        CurrentCore = this;
         Native.NativeRuntime? native = null;
         bool resume = false; // an HLE call returned: native code continues through the dispatch table
         bool republish = false; // an indirect exit missed the dispatch table: the block found next takes its entry back
@@ -606,9 +615,20 @@ public sealed unsafe class CpuCore : IDisposable
                 if (++_nativeEntries >= NativeTimingSample)
                 {
                     _nativeEntries = 0;
+                    TimingNative = true;
+                    CalloutHleTicks = 0;
                     long n0 = System.Diagnostics.Stopwatch.GetTimestamp();
-                    native.Run(s, entry);
+                    try
+                    {
+                        native.Run(s, entry);
+                    }
+                    finally
+                    {
+                        TimingNative = false; // also when an HLE call throws out of native code (thread exit)
+                    }
+
                     NativeTicks += (System.Diagnostics.Stopwatch.GetTimestamp() - n0) * NativeTimingSample;
+                    NativeHleTicks += CalloutHleTicks * NativeTimingSample;
                 }
                 else
                 {
