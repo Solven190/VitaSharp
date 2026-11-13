@@ -244,6 +244,18 @@ r54 proprietary driver (`ArmProprietary 54.1.0`), Vulkan 1.3, Android 16. Capabi
 - ASTC transcoding of BCn/PVRTC with a disk cache: implemented and checked on the Iris Xe; the speed and quality on a
   phone CPU/GPU are unmeasured ([mobile renderer notes](mobile-renderer.md)).
 
+## The phone's render path on the PC (SwiftShader)
+
+The desktop GPUs here (NVIDIA) have no `VK_EXT_rasterization_order_attachment_access`, so a `replay-gpu` with
+`--env=VITASHARP_GPU_PROFILE=mali` does not take the Mali's framebuffer-fetch path. SwiftShader has it: point the
+system loader at the copy Microsoft Edge ships (`VK_DRIVER_FILES` and `VK_ICD_FILENAMES` =
+`<Edge>\Application\<version>\vk_swiftshader_icd.json`; on Linux Mesa's lavapipe, through its ICD manifest) and the
+replay runs the phone's path: render passes (`DynamicRenderingSuspect`), fetch passes kept open, the same renderings,
+load/store ops and scene breaks in the `PERF gpu` line. Use it for exactness and for counting renderings and tile
+traffic, not for time (SwiftShader runs on the CPU). `--trace-draws=N` writes a `[break] <reason> before draw id=K`
+line where a rendering ends before its scene does (and `[raw]` where the colour view changes between raw-bit and float
+outputs).
+
 ## Mali cost estimator (`vitasharp-perf mali-cost`)
 
 Estimates what a GPU dump's frames cost on a Mali GPU, on the PC, without the phone. It lives in the developer tool

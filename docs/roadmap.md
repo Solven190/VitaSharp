@@ -644,6 +644,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   o bloco inteiro por constantes pré-calculadas (o teto de um pré-passo por draw) não muda nenhum ciclo no malioc
   (5 vertex e 5 fragment shaders do topo do KZ, posição/varying/fragment idênticos): o driver já avalia a computação
   uniforme uma vez por draw ("has uniform computation"). Não fazer o pré-passo por desempenho na Mali
+  Uncharted (dump do Prologue do celular, 05/11; mali-cost 700-720): 19,0 ms no modelo = tile 11,7 (89 MB por quadro)
+  + vértice 5,9 (skinning limitado por LS: VEC4 no caminho alinhado 53 -> 17 / 69 -> 33) + fragment 1,4. O replay no
+  SwiftShader (VK_DRIVER_FILES = vk_swiftshader_icd.json do Edge) tem VK_EXT_rasterization_order_attachment_access e,
+  com o perfil mali, faz o caminho do celular (render passes, fetch passes abertos): 34 renderings em 13 cenas por
+  quadro. Quebras por quadro (traço `[break]` do --trace-draws): 7 RenderTargetRegion na cena 256x512 (atlas que lê a
+  própria superfície, ~1 MB cada), 2 BeginSingleFetchPass na cena de luz e 2 "Draw" no G-buffer 720x408 F32F32: os
+  draws 1-373 escrevem bits crus (vista R32G32Uint) e os 374-377 saem em float (vista R32G32Sfloat), e a troca de
+  vista fecha a renderização (~7 MB de load/store por troca, ~14 MB por quadro). Próximo: draws float sem blend nem
+  framebuffer fetch numa superfície de canais F32 escrevem pela vista inteira (`floatBitsToUint`, os mesmos bits que
+  o Vita grava) quando a renderização aberta é crua, sem fechar; teste por replay no SwiftShader
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por

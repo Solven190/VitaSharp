@@ -145,6 +145,10 @@ public sealed unsafe partial class VulkanRenderer
         }
 
         _breakReasons[caller] = _breakReasons.GetValueOrDefault(caller) + 1;
+        if (_diagActive != null)
+        {
+            TraceLine($"[break] {caller} before draw id={NextDrawId}");
+        }
     }
 
     /// <summary>

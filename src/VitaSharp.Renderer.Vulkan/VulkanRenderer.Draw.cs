@@ -1405,6 +1405,11 @@ public sealed unsafe partial class VulkanRenderer
 
             if (_rendering && (_renderRaw != raw || (raw && _rawFormat != attachFormat)))
             {
+                if (_diagActive != null)
+                {
+                    TraceLine($"[raw] id={NextDrawId} raw {_renderRaw} -> {raw}, format {_rawFormat} -> {attachFormat}");
+                }
+
                 EndRendering(resolve: false);
             }
 
