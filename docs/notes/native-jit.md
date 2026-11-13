@@ -60,6 +60,23 @@ ways, VLDR/VSTR S and D, NEON on the same D registers, FPSCR in and out of the V
 against the interpreter: 0 differences in 2,000 runs), `Arm64SimdCacheMatchesInterpreter`, two new encodings in
 `Arm64AssemblerTests` (checked with the NDK's clang + llvm-objdump). Device A/B: `VITASHARP_NATIVE_A64_NOOPT=scache`.
 
+**Undone links are a save-state load, not ongoing invalidation.** In the KZ run (kz_jitnaot A_0) all 6,746 undone
+links appear between two report lines, then the count stays flat; UC shows the same pattern (15,937 at once). The cause is
+`SaveStates` dropping the whole translation cache (`Code.Clear()`). Guest code is otherwise dropped only by cache
+maintenance (ICIMVAU/ICIALLU), module load/unload and HLE stubs. Gameplay has no invalidation churn.
+
+**Keeping the JIT across a state load** (`VITASHARP_LOAD_KEEP_CODE=1`, off until measured). `BlockCache.Revalidate`
+runs after the state's memory and this build's HLE routines are in place. It decodes every cached block's start
+again and keeps the block when the instructions are identical and every range its translation depends on (`_deps`:
+superblock continuations, successors whose dead state it used) is an unchanged block. The rest is retired as an
+instruction-cache invalidation would retire it (links and dispatch entries undone). A failed load still clears
+everything. The references clear their whole cache on a state load: Dolphin clears the JIT when PowerPC state is
+read, and PCSX2 resets the recompilers. Keeping unchanged code is the same range-exact invalidation they apply at run
+time (Dolphin's per-range `InvalidateICache`, PCSX2's per-page protection), applied once at load by content
+comparison. Tests: `CodeRevalidateTests` (unchanged blocks are the same objects after a load with the same code;
+changed ARM and Thumb-32 code and a dependent block are dropped; a compiled x64 loop keeps its entry and runs again,
+and after a load with another loop body the new code runs, not the old translation).
+
 ## perf/android-jit (2026-11-09): hot-code size on the phone
 
 Branch `perf/android-jit` (from main 9f21653). Not merged, not pushed. x64 output unchanged (ARM64 compiler only).

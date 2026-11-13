@@ -741,6 +741,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] Load de save state sem descartar todo o JIT: `SaveStates` chama `Code.Clear()` e todo o código traduzido é
   recompilado (vários segundos no celular depois de cada load). Manter os blocos cujo código do convidado não mudou
   (comparando as páginas de código do state com as atuais) e descartar só o resto, conferido por teste.
+  Feito atrás de `VITASHARP_LOAD_KEEP_CODE=1` (perf/android-jit-13, `BlockCache.Revalidate`: redecodifica cada bloco
+  e mantém os iguais e com as dependências iguais; testes em `CodeRevalidateTests`). Falta medir no celular o tempo
+  até o fps estabilizar depois do load, com e sem a chave, e então decidir o padrão.
 - [ ] Reescrita do JIT para ARM64 (pedido do usuário, 04/11/2026): o código gerado ainda tem ~6-12 palavras por
   instrução do Vita no caminho quente e os cortes pequenos (perf/jit-a64: juntar marcações de página suja, PC só nas
   saídas frias, ponto flutuante fora do caminho, contagem simplificada) não deram ganho mensurável no Devious Dungeon.
