@@ -735,6 +735,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   overlay ("Pausado", "● REC") com os acentos certos (`and7_tools/shots/lib3.png`, `app_ajustes.png`, `app3.jpg`, `app3b.jpg`,
   `pm_main.png`). Texto dos jogos (PVF) não conferido
   Validado no celular (06/11/2026, perf/android-7): acentos certos em todas as telas do app
+- [ ] Invalidação de código no load de módulo: `Emulator.LoadModule` descarta o código traduzido do processo inteiro
+  (0..4 GB) a cada módulo carregado. Basta descartar o intervalo dos segmentos novos e os stubs de import religados
+  (o `Linker` já invalida os que reescreve), conferido por teste.
+- [ ] Load de save state sem descartar todo o JIT: `SaveStates` chama `Code.Clear()` e todo o código traduzido é
+  recompilado (vários segundos no celular depois de cada load). Manter os blocos cujo código do convidado não mudou
+  (comparando as páginas de código do state com as atuais) e descartar só o resto, conferido por teste.
 - [ ] Reescrita do JIT para ARM64 (pedido do usuário, 04/11/2026): o código gerado ainda tem ~6-12 palavras por
   instrução do Vita no caminho quente e os cortes pequenos (perf/jit-a64: juntar marcações de página suja, PC só nas
   saídas frias, ponto flutuante fora do caminho, contagem simplificada) não deram ganho mensurável no Devious Dungeon.
