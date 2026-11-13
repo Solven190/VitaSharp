@@ -12,7 +12,7 @@ public sealed partial class Gxm
     const int ERR_MEMORY_NOT_MAPPED = unchecked((int)0x805B0017);
     uint _callbackVersion, _initParamVersion;
 
-    [Hle]
+    [Hle(Cost = HleCost.KernelEntry)]
     int _sceGxmBeginScene(uint ctx, uint flags, uint renderTarget, uint validRegion, uint vertexSync, uint fragmentSync, uint colorSurface, uint depthStencil)
         => BeginScene(ctx, renderTarget, validRegion != 0 ? validRegion + 8 : 0, fragmentSync, colorSurface, depthStencil);
 
@@ -35,8 +35,8 @@ public sealed partial class Gxm
 
     /// <summary>(int version, const SceGxmCallbacks *callbacks): kept for version 0x10005 (the Razor GPU hooks, which
     /// nothing here calls), cleared otherwise.</summary>
-    [Hle] void sceGxmSetCallbackInternal(int version, uint callbacks) => _callbackVersion = version == InternalVersion && callbacks != 0 ? InternalVersion : 0;
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetCallbackInternal(int version, uint callbacks) => _callbackVersion = version == InternalVersion && callbacks != 0 ? InternalVersion : 0;
 
     /// <summary>(int version, const void *param 0x48): the same for the initialize parameters.</summary>
-    [Hle] void sceGxmSetInitializeParamInternal(int version, uint param) => _initParamVersion = version == InternalVersion && param != 0 ? InternalVersion : 0;
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetInitializeParamInternal(int version, uint param) => _initParamVersion = version == InternalVersion && param != 0 ? InternalVersion : 0;
 }

@@ -160,7 +160,7 @@ public sealed partial class IoFileMgr
     /// The firmware caps <paramref name="count"/> at a per-process limit of at least 0x5C (EINVAL above it).
     /// </summary>
     [Hle]
-    [Hle("_sceIoCompleteMultiple")]
+    [Hle("_sceIoCompleteMultiple", Cost = HleCost.KernelEntry)]
     int sceIoCompleteMultiple(uint parameters, int count, Ptr<int> numCompleted)
     {
         const int EINVAL = unchecked((int)0x80010016), EBUSY = unchecked((int)0x80010010);

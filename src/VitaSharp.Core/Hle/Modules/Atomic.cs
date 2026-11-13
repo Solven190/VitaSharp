@@ -9,6 +9,9 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Atomic : HleModule
 {
+    /// <summary>libkernel's atomics are user-mode LDREX/STREX loops (SceLibKernel), no kernel entry.</summary>
+    public override HleCost DefaultCost => HleCost.UserInline;
+
     /// <summary>Sign-extends the low <paramref name="bytes"/> bytes of <paramref name="v"/>.</summary>
     internal static long Narrow(long v, int bytes) => bytes switch { 1 => (sbyte)v, 2 => (short)v, 4 => (int)v, _ => v };
 

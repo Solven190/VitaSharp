@@ -35,7 +35,7 @@ public sealed partial class Audio : HleModule
     /// Normal ports use 1..8; the extended MAIN port (sceAudioOutOpenExtPort) is the ninth handle.</summary>
     const int FirstPortId = 1, MaxPorts = 8, ExtPortId = FirstPortId + MaxPorts;
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutOpenPort(int type, int len, int freq, int mode)
     {
         if (type is < 0 or > 2) return ERR_INVALID_PORT_TYPE;
@@ -49,7 +49,7 @@ public sealed partial class Audio : HleModule
     }
 
     /// <summary>The process's extended MAIN port (48 kHz), a ninth port next to the eight normal ones.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutOpenExtPort(int len, int mode) => OpenPort(0, len, 48000, mode, ext: true);
 
     int OpenPort(int type, int len, int freq, int mode, bool ext)
@@ -81,7 +81,7 @@ public sealed partial class Audio : HleModule
         }
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutReleasePort(int port)
     {
         Port? p;
@@ -96,7 +96,7 @@ public sealed partial class Audio : HleModule
 
     Port? Get(int port) { lock (_ports) return _ports.GetValueOrDefault(port); }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutOutput(int port, uint buf)
     {
         var p = Get(port);
@@ -162,7 +162,7 @@ public sealed partial class Audio : HleModule
         return p.Grain; // samples registered with the driver (Vita3K returns the grain too)
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutSetVolume(int port, uint flag, uint vols)
     {
         var p = Get(port);
@@ -174,7 +174,7 @@ public sealed partial class Audio : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutSetConfig(int port, int len, int freq, int mode)
     {
         var p = Get(port);
@@ -201,7 +201,7 @@ public sealed partial class Audio : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutGetConfig(int port, int type)
     {
         var p = Get(port);
@@ -239,7 +239,7 @@ public sealed partial class Audio : HleModule
 
     /// <summary>Samples queued on the port and not yet played. Bink-style players poll this to pace and sync their
     /// output; a constant 0 made God of War restart its video audio port every 100 ms.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutGetRestSample(int port)
     {
         var p = Get(port);
@@ -263,9 +263,9 @@ public sealed partial class Audio : HleModule
     /// <summary>The profile gain of a port type; 0 for the BGM ports of a background BGM holder (<see cref="VitaSystem.BgmMuted"/>).</summary>
     float ProfileGain(int type) => type == 1 && Emu.Vita.BgmMuted(Emu) ? 0f : type is >= 0 and <= 2 ? _profileGain[type] / 256f : 1f;
 
-    [Hle] int sceAudioOutGetAdopt(int type) => type is >= 0 and <= 2 && !_adopted[type] ? 0 : 1;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceAudioOutGetAdopt(int type) => type is >= 0 and <= 2 && !_adopted[type] ? 0 : 1;
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutSetAdopt_forUser(int type, int adopt, int rampLength, int waitForCompletion)
     {
         if (type is < 0 or > 2) return ERR_INVALID_PORT_TYPE;
@@ -273,10 +273,10 @@ public sealed partial class Audio : HleModule
         return 0;
     }
 
-    [Hle] int sceAudioOutSetAdoptMode(int mode) { _adoptMode = mode; return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceAudioOutSetAdoptMode(int mode) { _adoptMode = mode; return 0; }
 
     /// <summary>Compressed external-codec profile for BGM/VOICE ports: no audible effect on the host.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutSetCompress(int port, int enable)
     {
         var p = Get(port);
@@ -287,7 +287,7 @@ public sealed partial class Audio : HleModule
 
     /// <summary>Private 0..256 gain per profile, selected by mask (MAIN 2, BGM 4, VOICE 8); applied on top of the
     /// per-channel volume. The ramp is not emulated.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceAudioOutSetPortVolume_forUser(int portMask, uint volume, int rampLength)
     {
         if (volume > 256) return ERR_INVALID_VOLUME;
@@ -296,10 +296,10 @@ public sealed partial class Audio : HleModule
         return 0;
     }
 
-    [Hle] int sceAudioOutGetPortVolume_forUser(int type) => type is >= 0 and <= 2 ? _profileGain[type] : ERR_INVALID_PORT_TYPE;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceAudioOutGetPortVolume_forUser(int type) => type is >= 0 and <= 2 ? _profileGain[type] : ERR_INVALID_PORT_TYPE;
 
-    [Hle] int sceAudioOutSetAlcMode(int mode) => 0;
-    [Hle] int sceAudioOutSetEffectType(int type) => 0;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceAudioOutSetAlcMode(int mode) => 0;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceAudioOutSetEffectType(int type) => 0;
 
     // ---- SceAudioIn: virtual microphone (no host capture) that opens and delivers silence at the right pace
 

@@ -150,6 +150,8 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
                     string? library = null;
                     bool isDefault = false;
                     bool returnsValue = false;
+                    int cost = 0;
+                    bool callbackWait = false;
                     foreach (KeyValuePair<string, TypedConstant> na in a.NamedArguments)
                     {
                         if (na.Key == "Nid" && na.Value.Value is uint n)
@@ -168,10 +170,18 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
                         {
                             returnsValue = rv;
                         }
+                        else if (na.Key == "Cost" && na.Value.Value is int costValue)
+                        {
+                            cost = costValue;
+                        }
+                        else if (na.Key == "CallbackWait" && na.Value.Value is bool cbv)
+                        {
+                            callbackWait = cbv;
+                        }
                     }
                     string invocation = target.StartsWith("self.") ? $"{target}({call.Args})" : $"{target}(self{(call.Args.Length > 0 ? ", " + call.Args : "")})";
                     sb.AppendLine($"        new(\"{m.Name}\", {Str(name)}, 0x{nid:X8}u, {Str(library)}, {Str(layout)},");
-                    sb.AppendLine($"            static m => {{ var self = ({Fq(t)})m; return ctx => {{ unchecked {{ {call.Wrap(invocation)}; }} }}; }}{(isDefault ? ", true" : "")}{(returnsValue ? ", ReturnsValue: true" : "")}),");
+                    sb.AppendLine($"            static m => {{ var self = ({Fq(t)})m; return ctx => {{ unchecked {{ {call.Wrap(invocation)}; }} }}; }}{(isDefault ? ", true" : "")}{(returnsValue ? ", ReturnsValue: true" : "")}{(cost != 0 ? $", Cost: (global::VitaSharp.Core.Hle.HleCost){cost}" : "")}{(callbackWait ? ", CallbackWait: true" : "")}),");
                 }
             }
             sb.AppendLine("    };");

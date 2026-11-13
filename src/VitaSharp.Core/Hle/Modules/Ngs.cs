@@ -12,6 +12,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Ngs : HleModule
 {
+    /// <summary>libngs (SceNgs) mixes voices in user mode; SceSulphaNgs (the debug trace link) is a kernel
+    /// entry.</summary>
+    public override HleCost DefaultCost => HleCost.UserLibrary;
+
     const int OK = 0, ERROR = unchecked((int)0x804A0001), INVALID_ARG = unchecked((int)0x804A0002), INVALID_STATE = unchecked((int)0x804A0010),
         INVALID_HANDLE = unchecked((int)0x804A000C), PATCH_NOT_AVAIL = unchecked((int)0x804A000E);
     const int AT9_END_OF_DATA = 0, AT9_SWAPPED = 1, AT9_DECODE_ERROR = 3, AT9_LOOPED = 4;
@@ -87,13 +91,13 @@ public sealed partial class Ngs : HleModule
     }
 
     // Sulpha is the NGS debugging/profiling link to the PC tools: nothing is connected
-    [Hle] int sceSulphaNgsSetVoiceName(uint voice, uint name) => 0;
-    [Hle] int sceSulphaNgsSetSynthName(uint synth, uint name) => 0;
-    [Hle] int sceSulphaNgsSetRackName(uint rack, uint name) => 0;
-    [Hle] int sceSulphaNgsTrace(uint message) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsSetVoiceName(uint voice, uint name) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsSetSynthName(uint synth, uint name) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsSetRackName(uint rack, uint name) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsTrace(uint message) => 0;
 
     /// <summary>SceSulphaNgsConfig (8): max_named_samples, api_trace_buffer_size (FW 3.60 defaults 1024 / 4096).</summary>
-    [Hle]
+    [Hle(Cost = HleCost.KernelEntry)]
     int sceSulphaNgsGetDefaultConfig(uint config)
     {
         if (config == 0) return INVALID_ARG; // Sulpha's own error codes are undocumented
@@ -103,7 +107,7 @@ public sealed partial class Ngs : HleModule
     }
 
     /// <summary>Memory for the trace agent. The HLE never uses it; the size is an HLE choice, not the firmware's.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.KernelEntry)]
     int sceSulphaNgsGetNeededMemory(uint config, Ptr<uint> size)
     {
         if (config == 0 || size.IsNull) return INVALID_ARG;
@@ -111,9 +115,9 @@ public sealed partial class Ngs : HleModule
         return OK;
     }
 
-    [Hle] int sceSulphaNgsInit(uint config, uint buffer, uint size) => config == 0 || buffer == 0 ? INVALID_ARG : OK;
-    [Hle] int sceSulphaNgsShutdown() => OK;
-    [Hle] int sceSulphaNgsSetSampleName(uint location, uint length, uint name) => location == 0 || length == 0 ? INVALID_ARG : OK;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsInit(uint config, uint buffer, uint size) => config == 0 || buffer == 0 ? INVALID_ARG : OK;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsShutdown() => OK;
+    [Hle(Cost = HleCost.KernelEntry)] int sceSulphaNgsSetSampleName(uint location, uint length, uint name) => location == 0 || length == 0 ? INVALID_ARG : OK;
 
     [Hle("sceNgsSystemInitInternal")]
     [Hle]

@@ -82,12 +82,12 @@ public sealed unsafe partial class VmThreads : HleModule
         return 0;
     }
 
-    [Hle("sceKernelWaitExceptionForMono")]
-    [Hle("sceKernelWaitException")]
-    [Hle("sceKernelWaitExceptionCB")]
-    [Hle("sceKernelWaitExceptionCBForMono")] // libkernel.suprx 3.74: forwards to sceKernelWaitExceptionCB
+    [Hle("sceKernelWaitExceptionForMono", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitException", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitExceptionCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
+    [Hle("sceKernelWaitExceptionCBForMono", Cost = HleCost.SchedulerWait)] // libkernel.suprx 3.74: forwards to sceKernelWaitExceptionCB
     [Hle("_sceKernelWaitException")]          // the SceThreadmgr syscalls behind them
-    [Hle("_sceKernelWaitExceptionCB")]
+    [Hle("_sceKernelWaitExceptionCB", CallbackWait = true)]
     int WaitException()
     {
         var self = GuestThread.Current!;

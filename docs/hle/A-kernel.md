@@ -148,7 +148,8 @@ enum interno).
 - **`ThreadEventHandler : KernelObject`** (novo): hoje `sceKernelRegisterThreadEventHandler` registra um
   `SimpleEvent`, o que faria `sceKernelWaitEvent` aceitar o UID de um handler. Criar a classe (campos `ThreadMask`,
   `Mask`, `Handler`, `Common`, `UidClass = 9`) e reservar `SimpleEvent` para os eventos reais (seção 1.3).
-- **Faixa de custo:** helpers não mudam `HleFunction.ClassifyCost`; cada seção diz a faixa da função.
+- **Faixa de custo:** cada função declara o que é no firmware (`[Hle(Cost = HleCost...)]`, padrão do módulo em
+  `HleModule.DefaultCost`); cada seção diz a classe da função.
 
 ### 0.3 Caso especial P0: Devious Dungeon (PCSB01240, Unity) — `pthread` e `Il2CppAssemblies` via LLE
 
@@ -237,7 +238,7 @@ enum interno).
   trocando só a fatia. Escrever um helper genérico `Rmw32(addr, Func<int,int>)`/`Rmw64`/`RmwNarrow(addr, width, f)` e
   gerar as 72 funções com `[Hle]` de uma linha cada. Binder: parâmetro `T *store` como `uint`, `value` como
   `int`/`long` (o binder põe `long` no par r2:r3 e o 3º argumento de 64 bits na pilha alinhada a 8), retorno `int`
-  (já estendido) ou `long`, `void` para Set/ClearMask. Custo: `ClassifyCost` já tem `sceKernelAtomic` → 200.
+  (já estendido) ou `long`, `void` para Set/ClearMask. Custo: o módulo `Atomic` declara `UserInline` (20).
 - **Validação:** teste unitário em `tests/VitaSharp.Tests` chamando cada função com valores de borda (overflow em 8 bits,
   `CompareAndSet` falhando, `DecIfPositive` em 0); conferir que `imports` deixa de listar `sceKernelAtomic*`.
 
@@ -397,10 +398,9 @@ o registro de callbacks em eventos.
   abort, WaitDescription)`. Para "acorda na ordem da fila com AUTO_RESET" manter uma `LinkedList<Waiter>` (pattern,
   ponteiros de saída, flag `Done`, resultado) e decidir quem acorda dentro de `Set`/`Pulse`, não no predicado (senão o
   pulso some antes de o waiter rodar). Ordenar por prioridade só com TH_PRIO. As funções vão em `ThreadMgr.cs`;
-  `[Hle("...CB")]` reaproveita o mesmo método (o dispatcher já liga `CallbackWait`). Custo: `sceKernelWaitEvent*`,
-  `sceKernelWaitMultipleEvents*` caem em `sceKernelWait` → 12_000; acrescentar `sceKernelSetEvent`,
-  `sceKernelPulseEvent`, `sceKernelPollEvent`, `sceKernelClearEvent` à faixa 12_000 (são syscalls como
-  `sceKernelSetEventFlag`).
+  `[Hle("...CB", CallbackWait = true)]` reaproveita o mesmo método. Custo: `sceKernelWaitEvent*`,
+  `sceKernelWaitMultipleEvents*`, `sceKernelSetEvent`, `sceKernelPulseEvent`, `sceKernelPollEvent` e
+  `sceKernelClearEvent` declaram `Cost = HleCost.SchedulerWait` (12.000; são syscalls como `sceKernelSetEventFlag`).
 - **Validação:** teste unitário (thread A espera 0x01000000, B faz Pulse; segunda espera depois do pulso deve dar
   timeout; AUTO_RESET consome só os bits pedidos); `imports` dos 7 jogos sem esses nomes.
 
@@ -817,10 +817,9 @@ As funções de SceThreadmgr ligadas a eventos, timers, message pipes, cond/rwlo
 - **Protótipo:** sem header; inferido `int sceKernelDelayThreadCB200(SceUInt delay);`
 - **Comportamento:** como `sceKernelDelayThreadCB`, com atraso mínimo de 201 µs (Vita3K usa `< 201 → 201`; o
   VitaSharp usa 200 em `sceKernelDelayThread200`: alinhar os dois em 201, a confirmar).
-- **Implementação no VitaSharp:** `[Hle("sceKernelDelayThreadCB200")]` no método `sceKernelDelayThread200` de
-  `ThreadMgr.cs` (o sufixo `200` não termina em "CB", então `IsCallbackWait` não liga: criar método separado que
-  processa callbacks via `ProcessCallbacks(Self)` antes e depois, ou estender `IsCallbackWait` para nomes que contêm
-  "CB200"). Custo 12_000 (prefixo `sceKernelDelay`). **Validação:** `imports`.
+- **Implementação no VitaSharp:** método `sceKernelDelayThreadCB200` em `ThreadMgr.cs` com
+  `[Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]` (a declaração liga o processamento de callbacks, não o
+  nome). **Validação:** `imports`, `HleCostTests`.
 
 #### sceKernelGetThreadTLSAddr
 - [x] **Prioridade:** P1 · **Biblioteca:** SceThreadmgr · **NID:** 0xBACA6891
@@ -836,9 +835,9 @@ As funções de SceThreadmgr ligadas a eventos, timers, message pipes, cond/rwlo
 - [x] **Prioridade:** P1 · **Biblioteca:** SceThreadmgr · **NID:** 0xF3489EF4, 0x0373C5E3
 - **Protótipo:** sem header; inferido igual a `int sceKernelWaitThreadEnd(SceUID thid, int *stat, SceUInt *timeout);`
   (NIDs da firmware 0.89x).
-- **Implementação no VitaSharp:** `[Hle("sceKernelWaitThreadEnd_089")]`/`[Hle("sceKernelWaitThreadEndCB_089")]` no
-  método existente (o nome CB termina em `_089`, não em `CB`: tratar callbacks explicitamente como no item acima).
-  Custo 12_000. **Validação:** `imports`.
+- **Implementação no VitaSharp:** `sceKernelWaitThreadEnd_089`/`sceKernelWaitThreadEndCB_089` chamam o método
+  existente; a variante CB declara `CallbackWait = true`. Custo `SchedulerWait` (12.000). **Validação:** `imports`,
+  `HleCostTests`.
 
 #### FORA (SceThreadmgr)
 

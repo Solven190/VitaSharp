@@ -8,6 +8,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// <summary>SceIofilemgr (and the SceLibKernel I/O wrappers) over the virtual filesystem.</summary>
 public sealed partial class IoFileMgr : HleModule
 {
+    /// <summary>The user-mode sceIo* calls wait in the thread manager for the I/O to complete; the _sceIo* syscalls and
+    /// the kernel exports declare a kernel entry.</summary>
+    public override HleCost DefaultCost => HleCost.SchedulerWait;
+
     const int O_RDONLY = 1, O_WRONLY = 2, O_RDWR = 3, O_APPEND = 0x100, O_CREAT = 0x200, O_TRUNC = 0x400, O_EXCL = 0x800;
     const uint S_IFDIR = 0x1000, S_IFREG = 0x2000, S_RWX = 0x01FF;
 
@@ -63,7 +67,7 @@ public sealed partial class IoFileMgr : HleModule
     }
 
     [Hle("sceIoOpen")]
-    [Hle("ksceIoOpen")]
+    [Hle("ksceIoOpen", Cost = HleCost.KernelEntry)]
     internal int sceIoOpen(string path, int flags, int mode)
     {
         // the libc opens tty0:/tty1: as stdin/stdout/stderr; on retail the open succeeds and output is discarded
@@ -118,7 +122,7 @@ public sealed partial class IoFileMgr : HleModule
 
     [Hle]
     [Hle("sceIoClose2")] // SceLibKernel "v2" wrapper: no header, assumed to take the same argument
-    [Hle("ksceIoClose")]
+    [Hle("ksceIoClose", Cost = HleCost.KernelEntry)]
     internal int sceIoClose(int fd)
     {
         if (fd is >= 0x10 and <= 0x12) return 0;
@@ -129,7 +133,7 @@ public sealed partial class IoFileMgr : HleModule
 
     [Hle]
     [Hle("sceIoRead2")] // SceLibKernel "v2" wrapper: no header, assumed to take the same arguments
-    [Hle("ksceIoRead")]
+    [Hle("ksceIoRead", Cost = HleCost.KernelEntry)]
     internal int sceIoRead(int fd, uint buf, uint size)
     {
         if (fd is >= 0x10 and <= 0x12) return 0; // no console input: EOF
@@ -172,7 +176,7 @@ public sealed partial class IoFileMgr : HleModule
     }
 
     [Hle]
-    [Hle("ksceIoLseek")]
+    [Hle("ksceIoLseek", Cost = HleCost.KernelEntry)]
     internal long sceIoLseek(
 int fd, long offset, int whence)
     {

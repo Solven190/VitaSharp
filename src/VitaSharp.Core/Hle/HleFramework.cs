@@ -24,6 +24,59 @@ public sealed class HleAttribute(string? name = null) : Attribute
     /// return in 0x80000000-0x80FFFFFF is a normal result and the HLE error counter (debug mode, session captures)
     /// leaves it out.</summary>
     public bool ReturnsValue { get; init; }
+    /// <summary>What the function is on the Vita (user-mode code, a kernel entry, a wait in the scheduler), which sets
+    /// the emulated CPU time charged per call. <see cref="HleCost.Module"/> (not given): the module's
+    /// <see cref="HleModule.DefaultCost"/>.</summary>
+    public HleCost Cost { get; init; }
+    /// <summary>The function is the callback-processing variant of a wait (the firmware's "CB" syscalls,
+    /// sceKernelWaitSemaCB, sceDisplayWaitVblankStartCB...): the thread runs its notified callbacks before and while it
+    /// waits.</summary>
+    public bool CallbackWait { get; init; }
+}
+
+/// <summary>
+/// What an HLE function is on the Vita, declared per function (<see cref="HleAttribute.Cost"/>) or per library
+/// (<see cref="HleModule.DefaultCost"/>), never derived from its name. It sets the emulated CPU time (guest cycles,
+/// <see cref="HleCosts.Cycles"/>) a call charges to the calling thread: the instructions the firmware runs for it, so
+/// guest clocks and the CPU pacing see the call take time. The same declared model as Dolphin's HLE patch table
+/// (HookType/HookFlag per function) and PPSSPP's HLEFunction flags (HLE_KERNEL_SYSCALL, HLE_NOT_IN_INTERRUPT); the
+/// sizes follow the Cortex-A9 cost model and PPSSPP's measured charges (hleEatCycles).
+/// </summary>
+public enum HleCost
+{
+    /// <summary>Not declared on the function: the module's <see cref="HleModule.DefaultCost"/>.</summary>
+    Module = 0,
+    /// <summary>A few user-mode instructions, no kernel entry: a TLS slot address, the thread ID kept in user memory,
+    /// an LDREX/STREX atomic (20 cycles).</summary>
+    UserInline,
+    /// <summary>A short user-mode library call: an uncontended lwmutex (LDREX/STREX plus checks), a Clib routine's
+    /// prologue (the bytes it moves are charged by the implementation), a libgxm field getter or state setter
+    /// (50 cycles).</summary>
+    UserCall,
+    /// <summary>A user-mode library routine with real work and no kernel entry on its common path: libgxm command
+    /// building, libngs, librtc conversions, libfiber switches, the user-mode clock reads (200 cycles).</summary>
+    UserLibrary,
+    /// <summary>A syscall that does not go through the scheduler: the kernel entry and exit and the service's work
+    /// (2,000 cycles; PPSSPP charges its syscalls in the same range).</summary>
+    KernelEntry,
+    /// <summary>A syscall that waits in, or reschedules through, the thread manager: a wait, a signal that may wake a
+    /// thread, blocking I/O and device reads (12,000 cycles, ~40 us at 300 MIPS: syscall plus scheduler).</summary>
+    SchedulerWait,
+}
+
+/// <summary>The emulated CPU cycles of each <see cref="HleCost"/> class.</summary>
+public static class HleCosts
+{
+    /// <summary>Guest cycles charged per call of <paramref name="cost"/> (<see cref="HleCost.Module"/> counts as a
+    /// kernel entry: a function that declares nothing is a syscall).</summary>
+    public static long Cycles(HleCost cost) => cost switch
+    {
+        HleCost.UserInline => 20,
+        HleCost.UserCall => 50,
+        HleCost.UserLibrary => 200,
+        HleCost.SchedulerWait => 12_000,
+        _ => 2_000,
+    };
 }
 
 /// <summary>Base class for an HLE module (a group of related exported functions).</summary>
@@ -42,6 +95,11 @@ public abstract class HleModule
     /// <summary>The module is only a fallback for a firmware module the loader gives every program that imports its
     /// library, games included (the HLE has a few getters of it; the real module does the work).</summary>
     public virtual bool FirmwareForEveryImporter => false;
+
+    /// <summary>What the module's functions are on the Vita unless one declares otherwise
+    /// (<see cref="HleAttribute.Cost"/>): a kernel entry for a firmware service reached by syscall; user-mode libraries (libgxm, libngs, librtc, libfiber,
+    /// Clib) declare their class here.</summary>
+    public virtual HleCost DefaultCost => HleCost.KernelEntry;
 
 }
 
@@ -124,8 +182,8 @@ public sealed class HleFunction
     public string Library = "";
     public Action<HleContext>? Invoke;
     public bool Implemented => Invoke != null;
-    bool? _cbWait;
-    public bool IsCallbackWait => _cbWait ??= Name.EndsWith("CB", StringComparison.Ordinal);
+    /// <summary>The callback-processing variant of a wait (<see cref="HleAttribute.CallbackWait"/>).</summary>
+    public bool IsCallbackWait;
     public long CallCount;
     /// <summary>The "unimplemented" warning was issued (skips building its key on every later call).</summary>
     public bool WarnedUnimplemented;
@@ -141,61 +199,18 @@ public sealed class HleFunction
     /// thread cycle-counter reads per call, which slows HLE-heavy games noticeably.</summary>
     public static bool Profile;
 
-    long _cost = -1;
-    /// <summary>Emulated CPU cost (guest instructions) charged per call: real syscalls (waits, signals, I/O, display)
-    /// cost a kernel entry and often a context switch on the Vita; user-mode library calls (lwmutex, TLS, Clib, Gxm)
-    /// are cheap.</summary>
-    public long Cost => _cost >= 0 ? _cost : _cost = ClassifyCost(Name);
+    /// <summary>What the function is on the Vita (<see cref="HleCost"/>, declared by its [Hle] attribute or
+    /// module).</summary>
+    public HleCost CostClass = HleCost.KernelEntry;
+    /// <summary>Emulated CPU cost (guest cycles) charged per call: <see cref="HleCosts.Cycles"/> of
+    /// <see cref="CostClass"/>.</summary>
+    public long Cost = HleCosts.Cycles(HleCost.KernelEntry);
 
-    static long ClassifyCost(string n)
+    /// <summary>Sets the declared class and its per-call charge.</summary>
+    public void SetCost(HleCost cost)
     {
-        // user-mode library code that never enters the kernel on the uncontended path: a TLS lookup is a few
-        // instructions, an lwmutex lock/unlock an LDREX/STREX pair plus checks, a Clib call its prologue (the bytes a
-        // memcpy/memset moves are charged by the implementation). Charging these like syscalls made software-rendering
-        // games (thousands of calls per frame) run out of emulated CPU time.
-        if (n.StartsWith("sceKernelGetTLSAddr") || n.StartsWith("sceKernelGetThreadId") || n.StartsWith("sceKernelAtomic"))
-            return 20;
-        if (n.StartsWith("sceKernelLockLwMutex") || n.StartsWith("sceKernelUnlockLwMutex") || n.StartsWith("sceKernelTryLockLwMutex")
-            || n.StartsWith("sceClib"))
-            return 50;
-        // libgxm accessors and state setters: a texture control-word field read or written (GetType, SetLodBias,
-        // Set{U,V}AddrMode, Set{Min,Mip}Filter...), a pointer stored in the context with a dirty bit (SetVertexStream,
-        // SetFragmentTexture, Set*Program) or a ring-buffer pointer bumped (Reserve*DefaultUniformBuffer). On the Vita
-        // these are a few tens of instructions; the command-buffer work happens in sceGxmDraw, which keeps the 200 below.
-        // At 200 each, Jak 1's ~50,000 such calls per frame cost 10 M cycles (22 ms at 444 MHz) of a 33 ms frame.
-        if (n.StartsWith("sceGxmTextureGet") || n.StartsWith("sceGxmTextureSet") || n.StartsWith("sceGxmSet")
-            || n.StartsWith("sceGxmReserve") || (n.StartsWith("sceGxmPrecomputed") && (n.Contains("Get") || n.Contains("Set"))))
-            return 50;
-        if (n.StartsWith("sceGxm")
-            || n.StartsWith("sceNgs") || n.StartsWith("sceKernelGetProcessTime") || n.StartsWith("sceRtc") || n.StartsWith("sceFiber")
-            || n.StartsWith("sceKernelGetSystemTime") || n == "sceKernelGetThreadTLSAddr")
-            return 200;
-        // A mutex lock that does not wait (the owner relocking or the mutex free) and an unlock are a kernel entry: the
-        // firmware's sceKernelLockMutex is a syscall straight into the thread manager, which only goes through the
-        // scheduler when the caller blocks (that time is the wait itself). At 12,000 like the waits below, Silent Hill:
-        // Book of Memories' interface thread (~1,200 heap-lock calls per frame) needed 44 ms of emulated CPU per frame
-        // and the character creation ran at 15 fps (30 on a Vita, YouTube ruh4O2ZO7aA in 60 fps).
-        if (n.StartsWith("sceKernelLockMutex") || n.StartsWith("sceKernelUnlockMutex"))
-            return 2_000;
-        // The display's waits (sceDisplayWaitVblankStart*, sceDisplayWaitSetFrameBuf*) block in the scheduler; its getters
-        // and setters (sceDisplayGetVcount, sceDisplayGetFrameBuf, sceDisplaySetFrameBuf...) are a kernel entry that
-        // reads or writes the display state, the 2,000 below. Charged like a wait, a vcount polling loop paid 12,000
-        // cycles per poll (Wipeout 2048's flip callback spins on sceDisplayGetVcount until the next vblank).
-        // Delays are in this class too, so a DelayThread(1) polling loop costs 27 us of charge + the 30 us latency floor of
-        // Wait.Sleep per iteration (57 us; Killzone's job waits make ~500 per frame). Charging delays as a kernel entry
-        // only (2_000) looked more realistic but changed Killzone's scripted walk (another route, where the renderer ran
-        // out of VRAM), so it stays until it can be checked against hardware: docs/notes/kz-mainthread.md.
-        if (n.StartsWith("sceKernelWait") || n.StartsWith("sceKernelSignal") || n.StartsWith("sceKernelDelay") || n.StartsWith("sceKernelSetEventFlag")
-            || n.StartsWith("sceKernelClearEventFlag") || n.StartsWith("sceKernelPollEventFlag")
-            || n.StartsWith("sceKernelPollSema") || n.StartsWith("sceKernelStartThread") || n.StartsWith("sceKernelChangeThread") || n.StartsWith("sceKernelExitThread")
-            || n.StartsWith("sceIo") || n.StartsWith("sceDisplayWait") || n.StartsWith("sceAudioOut") || n.StartsWith("sceCtrl") || n.StartsWith("sceTouch")
-            || n.StartsWith("sceKernelSendMsgPipe") || n.StartsWith("sceKernelReceiveMsgPipe") || n.StartsWith("sceCamera")
-            || n.StartsWith("sceNetEpollWait") || n.StartsWith("sceNetRecv") || n.StartsWith("sceRudpPollWait") || n.StartsWith("sceHttpWaitRequest")
-            || n is "sceKernelSendSignal" or "sceKernelSetEvent" or "sceKernelPulseEvent" or "sceKernelPollEvent" or "sceKernelClearEvent"
-            || (n.StartsWith("sceUlt") && (n.EndsWith("Lock") || n.EndsWith("LockRead") || n.EndsWith("LockWrite") || n.EndsWith("Acquire")
-                || n.EndsWith("Wait") || n.EndsWith("Pop") || n.EndsWith("Push") || n.EndsWith("Join"))))
-            return 12_000; // ~40 us at 300 MIPS: syscall + scheduler
-        return 2_000;
+        CostClass = cost;
+        Cost = HleCosts.Cycles(cost);
     }
 }
 
@@ -209,6 +224,8 @@ public sealed partial class HleRegistry : IImportResolver
     readonly Dictionary<uint, string> _implNames = new();
     /// <summary>NIDs whose implementation returns a value, not an error code (<see cref="HleAttribute.ReturnsValue"/>).</summary>
     readonly HashSet<uint> _valueReturns = new();
+    /// <summary>What each implemented NID is on the Vita: its declared cost class and callback-wait flag.</summary>
+    readonly Dictionary<uint, (HleCost Cost, bool CallbackWait)> _declarations = new();
     readonly Dictionary<uint, Func<uint>> _varFactories = new();
     readonly Dictionary<uint, uint> _vars = new();
     public List<HleModule> Modules { get; } = new();
@@ -249,6 +266,7 @@ public sealed partial class HleRegistry : IImportResolver
                 continue;
             }
             var invoker = b.Bind(module);
+            HleCost cost = b.Cost != HleCost.Module ? b.Cost : module.DefaultCost;
             foreach (var nid in nids)
             {
                 NoteModuleNid(module, nid);
@@ -257,7 +275,14 @@ public sealed partial class HleRegistry : IImportResolver
                 _impls[nid] = invoker;
                 _implNames[nid] = name;
                 if (b.ReturnsValue) _valueReturns.Add(nid); else _valueReturns.Remove(nid);
-                if (_indexByNid.TryGetValue(nid, out var idx)) { _functions[idx].Invoke = invoker; _functions[idx].ReturnsValue = b.ReturnsValue; }
+                (HleCost Cost, bool CallbackWait) declaration = (cost, b.CallbackWait);
+                _declarations[nid] = declaration;
+                if (_indexByNid.TryGetValue(nid, out var idx))
+                {
+                    _functions[idx].Invoke = invoker;
+                    _functions[idx].ReturnsValue = b.ReturnsValue;
+                    Declare(_functions[idx], declaration);
+                }
             }
         }
         module.Initialize();
@@ -323,6 +348,12 @@ public sealed partial class HleRegistry : IImportResolver
                 Invoke = _impls.GetValueOrDefault(nid),
                 ReturnsValue = _valueReturns.Contains(nid),
             };
+            // a NID the HLE does not implement keeps the kernel entry charge
+            if (_declarations.TryGetValue(nid, out (HleCost Cost, bool CallbackWait) declaration))
+            {
+                Declare(f, declaration);
+            }
+
             _functions.Add(f);
             _indexByNid[nid] = _functions.Count - 1;
             return (uint)(_functions.Count - 1);
@@ -348,6 +379,12 @@ public sealed partial class HleRegistry : IImportResolver
     /// <summary>After a save state load: places this build's guest-code routines again (<see cref="HleGuestCode.Replace"/>).</summary>
     public Func<uint, bool> ReplaceGuestCode() => HleGuestCode.Replace(_emu.Memory, n => GetHleFunctionIndex(n, 0, NidDatabase.Lookup(n)?.Library ?? ""), this);
 
+    static void Declare(HleFunction function, (HleCost Cost, bool CallbackWait) declaration)
+    {
+        function.SetCost(declaration.Cost);
+        function.IsCallbackWait = declaration.CallbackWait;
+    }
+
     public HleFunction GetFunction(uint index) => index < _functions.Count ? _functions[(int)index] : _functions[0];
 
 }
@@ -360,8 +397,10 @@ public sealed partial class HleRegistry : IImportResolver
 /// <param name="Layout">Argument/return marshalling description (compared against a reflection reference in tests).</param>
 /// <param name="Bind">Creates the invoker for a module instance.</param>
 /// <param name="Default">The attribute's <see cref="HleAttribute.Default"/>: a default, not a real implementation.</param>
+/// <param name="Cost">The attribute's <see cref="HleAttribute.Cost"/>.</param>
+/// <param name="CallbackWait">The attribute's <see cref="HleAttribute.CallbackWait"/>.</param>
 public sealed record HleBinding(string Method, string? Name, uint Nid, string? Library, string Layout, Func<HleModule, Action<HleContext>> Bind,
-    bool Default = false, bool ReturnsValue = false);
+    bool Default = false, bool ReturnsValue = false, HleCost Cost = HleCost.Module, bool CallbackWait = false);
 
 /// <summary>A concrete HLE module type with its factory and bindings.</summary>
 public sealed record HleModuleEntry(Type Type, Func<HleModule> Create, Func<HleBinding[]> Bindings);

@@ -335,7 +335,7 @@ public sealed partial class ProcessMgr : HleModule
 
     // ------------------------------------------------------------------ SceClib
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceClibPrintf(string fmt, VarArgs va)
     {
         string s = CFormat.Format(fmt, va);
@@ -343,7 +343,7 @@ public sealed partial class ProcessMgr : HleModule
         return s.Length;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     [Hle("ksnprintf")]
     int sceClibSnprintf(uint buf, uint size, string fmt, VarArgs va)
     {
@@ -352,7 +352,7 @@ public sealed partial class ProcessMgr : HleModule
         return System.Text.Encoding.UTF8.GetByteCount(s);
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceClibVsnprintf(uint buf, uint size, string fmt, uint vaList)
     {
         // va_list on ARM is a pointer to the stacked arguments
@@ -361,13 +361,13 @@ public sealed partial class ProcessMgr : HleModule
         return System.Text.Encoding.UTF8.GetByteCount(s);
     }
 
-    [Hle("sceClibMemcpy")]
-    [Hle("sceClibMemcpy_safe")]
-    [Hle("sceClibMemmove")]
+    [Hle("sceClibMemcpy", Cost = HleCost.UserCall)]
+    [Hle("sceClibMemcpy_safe", Cost = HleCost.UserCall)]
+    [Hle("sceClibMemmove", Cost = HleCost.UserCall)]
     [Hle("kmemcpy")]
     uint sceClibMemcpy(uint dst, uint src, uint len) { GuestMemory.Copy(dst, src, len); Kernel.GuestThread.Current!.Core.ChargeInstructions(len / 4); return dst; }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     [Hle("kmemset")]
     uint sceClibMemset(uint dst, int ch, uint len)
     {
@@ -381,12 +381,12 @@ public sealed partial class ProcessMgr : HleModule
     [Hle] uint sceDmacMemcpy(uint dst, uint src, uint len) { GuestMemory.Copy(dst, src, len); return dst; }
     [Hle] uint sceDmacMemset(uint dst, int ch, uint len) { GuestMemory.Fill(dst, (byte)ch, len); return dst; }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceClibMemcmp(uint a, uint b, uint len) => GuestMemory.Span(a, (int)len).SequenceCompareTo(GuestMemory.Span(b, (int)len));
 
-    [Hle] uint sceClibStrnlen(uint s, uint max) { uint n = 0; while (n < max && GuestMemory.Read<byte>(s + n) != 0) n++; return n; }
+    [Hle(Cost = HleCost.UserCall)] uint sceClibStrnlen(uint s, uint max) { uint n = 0; while (n < max && GuestMemory.Read<byte>(s + n) != 0) n++; return n; }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     uint sceClibStrncpy(uint dst, uint src, uint n)
     {
         uint i = 0;
@@ -395,8 +395,8 @@ public sealed partial class ProcessMgr : HleModule
         return dst;
     }
 
-    [Hle] int sceClibStrcmp(string a, string b) => string.CompareOrdinal(a, b);
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)] int sceClibStrcmp(string a, string b) => string.CompareOrdinal(a, b);
+    [Hle(Cost = HleCost.UserCall)]
     [Hle("kstrncmp")]
     int sceClibStrncmp(uint a, uint b, uint n)
     {

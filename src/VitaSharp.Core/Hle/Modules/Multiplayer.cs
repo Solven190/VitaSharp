@@ -571,7 +571,7 @@ public sealed partial class Rudp : HleModule
     /// <summary>int sceRudpPollWait(int pollId, SceRudpPollEvent *events, SceSize eventLen, SceRudpUsec timeout)
     /// (inferred, 64-bit timeout in microseconds): 0 = poll, values with the top bit set = forever. Offline no event is
     /// ever ready, so it returns 0 after the timeout, or when the poll is cancelled/destroyed.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceRudpPollWait(int pollId, uint events, uint eventLen, ulong timeout)
     {
         if (!_pollWaitLogged) { _pollWaitLogged = true; Util.Log.Info($"sceRudpPollWait(poll={pollId}, len={eventLen}, timeout=0x{timeout:X})"); }

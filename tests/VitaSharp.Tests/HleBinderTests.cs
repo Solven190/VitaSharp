@@ -370,6 +370,32 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
         Assert.Contains(HleBindings.For(typeof(VitaSharp.Core.Hle.Modules.Gxm))!, b => b.Method == "sceGxmTextureGetType" && b.ReturnsValue);
     }
 
+    /// <summary>[Hle(Cost = ..., CallbackWait = true)] reaches the binding exactly as declared on each attribute (an
+    /// alias can be another kind of entry point: sceIoOpen waits in the scheduler, the _sceIoOpen syscall does not).</summary>
+    [Fact]
+    public void CostAndCallbackWaitReachTheBindings()
+    {
+        int declared = 0;
+        foreach (HleModuleEntry m in HleBindings.Modules)
+        {
+            foreach (HleBinding b in HleBindings.For(m.Type)!)
+            {
+                List<HleAttribute> attrs = m.Type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                    .Where(x => x.Name == b.Method).SelectMany(x => x.GetCustomAttributes<HleAttribute>())
+                    .Where(a => a.Name == b.Name && a.Nid == b.Nid && a.Library == b.Library).ToList();
+                Assert.NotEmpty(attrs);
+                Assert.Equal(attrs[0].Cost, b.Cost);
+                Assert.Equal(attrs[0].CallbackWait, b.CallbackWait);
+                if (b.Cost != HleCost.Module || b.CallbackWait)
+                {
+                    declared++;
+                }
+            }
+        }
+
+        Assert.True(declared > 300, $"only {declared} declarations reached the bindings");
+    }
+
     [Fact]
     public void EveryHleMethodBindsLikeTheReflectionBinder()
     {
