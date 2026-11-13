@@ -299,3 +299,15 @@ public sealed class SoftwareVulkanFactAttribute : FactAttribute
         }
     }
 }
+
+/// <summary>[Theory] skipped when no software Vulkan driver is installed, or shaderc cannot be loaded.</summary>
+public sealed class SoftwareVulkanTheoryAttribute : TheoryAttribute
+{
+    public SoftwareVulkanTheoryAttribute()
+    {
+        if ((SoftwareVulkan.SkipReason ?? ShadercAvailability.SkipReason) is { } r)
+        {
+            Skip = r;
+        }
+    }
+}

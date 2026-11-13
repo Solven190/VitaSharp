@@ -1175,6 +1175,7 @@ public sealed unsafe partial class VulkanRenderer
             return; // clip everything
         }
 
+        RetireWhatTheGpuFinished();
         BeginFrameIfNeeded();
         long stall0 = _frameStallTicks;
         ProfStart();

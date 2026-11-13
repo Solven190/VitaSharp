@@ -456,6 +456,10 @@ public static class EnvVars
     /// <summary>1 (A/B, default off): a float-colour draw without blending on an F32/F32F32 surface writes its bits
     /// through the integer view a raw-bit rendering keeps open instead of ending it (VulkanRenderer.SingleFetch.cs).</summary>
     public const string FloatBitsJoin = "VITASHARP_FLOAT_BITS_JOIN";
+    /// <summary>measure: a watcher thread notes when the GPU finished each submitted frame and the PERF sync line
+    /// reports how long until the frame was published (writebacks, notifications); 1 (A/B): also retires such frames at
+    /// the GPU worker's next draw instead of its next scene (VulkanRenderer.RetireWatch.cs). Default off.</summary>
+    public const string RetireWake = "VITASHARP_RETIRE_WAKE";
     /// <summary>Emulator updates: the releases feed to check instead of the GitHub API of the build's repository (a URL
     /// with the API's JSON, or a folder with releases.json whose assets are file:// URLs; tests).</summary>
     public const string UpdateFeed = "VITASHARP_UPDATE_FEED";

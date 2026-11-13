@@ -383,6 +383,14 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         f.Recording = false;
         f.Submitted = true;
         f.SubmitSeq = ++_submitSeq;
+        if (RetireWatchOn)
+        {
+            lock (_queueLock)
+            {
+                WatchSubmission(f.SubmitSeq);
+            }
+        }
+
 #if VITASHARP_DEVELOPER
         long qp0 = s_workerProf ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         if (present)
@@ -477,6 +485,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         }
 
         f.Signals.Clear();
+        NoteRetired(f);
     }
 
     private bool HasPendingResults(Frame f) => f.Writebacks.Count > 0 || f.Signals.Count > 0 || f.Visibility is { Used: > 0 };
@@ -2377,6 +2386,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         CloseTitleCaches();
         StopPresentThread();
         _vk.DeviceWaitIdle(_dev);
+        _retireWatcher?.Dispose();
         DestroyMirror();
         foreach (Frame fr in _frames)
         {
