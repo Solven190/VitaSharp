@@ -131,6 +131,60 @@ public sealed unsafe class CpuCore : IDisposable
         }
 
         NativeReturns[(int)reason]++;
+        if (CountReturnSites)
+        {
+            CountReturnSite(reason, s);
+        }
+    }
+
+    /// <summary>Profiling (<see cref="EnvVars.NativeCounters"/>=1): returns to the dispatcher by reason and guest target,
+    /// for the busiest ones on the PERF cycles line.</summary>
+    public static bool CountReturnSites = Environment.GetEnvironmentVariable(EnvVars.NativeCounters) == "1";
+    private Dictionary<ulong, long>? _returnSites;
+
+    private void CountReturnSite(NativeReturn reason, CpuState* s)
+    {
+        if (reason is NativeReturn.Window or NativeReturn.LinkBreak)
+        {
+            return; // pacing: not tied to a target
+        }
+
+        Dictionary<ulong, long> sites = _returnSites ??= new Dictionary<ulong, long>();
+        ulong key = (ulong)reason << 33 | (ulong)s->R[15] << 1 | (s->Thumb != 0 ? 1u : 0u);
+        lock (sites) // the session report reads it from another thread
+        {
+            sites[key] = sites.GetValueOrDefault(key) + 1;
+        }
+    }
+
+    /// <summary>Clears the return counts and sites (profiling windows, tests).</summary>
+    public void ResetNativeReturns()
+    {
+        Array.Clear(NativeReturns);
+        if (_returnSites is { } sites)
+        {
+            lock (sites)
+            {
+                sites.Clear();
+            }
+        }
+    }
+
+    /// <summary>The <paramref name="count"/> busiest return sites, "reason target[:T] n/frame", or "" when not counted.</summary>
+    public string NativeReturnSitesReport(long frames, int count = 6)
+    {
+        if (_returnSites is not { Count: > 0 } sites)
+        {
+            return "";
+        }
+
+        KeyValuePair<ulong, long>[] busiest;
+        lock (sites)
+        {
+            busiest = sites.OrderByDescending(kv => kv.Value).Take(count).ToArray();
+        }
+        return string.Join(", ", busiest.Select(kv =>
+            $"{(NativeReturn)(kv.Key >> 33)} {(uint)(kv.Key >> 1):X8}{((kv.Key & 1) != 0 ? ":T" : "")} {kv.Value / (double)frames:F1}"));
     }
 
     /// <summary>One line per reason with a count: "window 120, svc 30, ..." per frame.</summary>
@@ -574,7 +628,12 @@ public sealed unsafe class CpuCore : IDisposable
                 if (_pendingIndirect)
                 {
                     _pendingIndirect = false;
-                    NativeReturns[(int)(b.NativeEntry != 0 ? NativeReturn.IndirectTableMiss : NativeReturn.IndirectNoCode)]++;
+                    NativeReturn indirect = b.NativeEntry != 0 ? NativeReturn.IndirectTableMiss : NativeReturn.IndirectNoCode;
+                    NativeReturns[(int)indirect]++;
+                    if (CountReturnSites)
+                    {
+                        CountReturnSite(indirect, s);
+                    }
                 }
 
                 if (republish)

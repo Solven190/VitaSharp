@@ -37,6 +37,8 @@ public sealed unsafe class NativeReturnReasonTests(GuestMemoryFixture fixture)
         long oldHot = NativeX64Compiler.Instance.HotInstructions;
         string oldMode = Jit.Mode;
         bool oldTurbo = GuestClock.Turbo;
+        bool oldSites = CpuCore.CountReturnSites;
+        CpuCore.CountReturnSites = true;
         CpuCore.InstructionsPerSecond = CpuCore.DefaultClockHz; // a pacing window of ~83K cycles
         NativeX64Compiler.Instance.HotInstructions = 1;
         GuestClock.Turbo = true; // pacing checks run, without sleeping
@@ -52,7 +54,7 @@ public sealed unsafe class NativeReturnReasonTests(GuestMemoryFixture fixture)
             s->Thumb = 0;
             Assert.Equal(ExitReason.Svc, core.Run());
             Assert.True(Jit.WaitIdle(TimeSpan.FromSeconds(60)));
-            Array.Clear(core.NativeReturns);
+            core.ResetNativeReturns();
             core.NativeEntries = 0;
             s->R[15] = code;
             Assert.Equal(ExitReason.Svc, core.Run());
@@ -72,9 +74,12 @@ public sealed unsafe class NativeReturnReasonTests(GuestMemoryFixture fixture)
             Assert.Equal(0, returns[(int)CpuCore.NativeReturn.IndirectNoCode]);
             // the two indirect targets miss the table at most once each before they are republished
             Assert.True(returns[(int)CpuCore.NativeReturn.IndirectTableMiss] <= 2, report);
+            // the busiest return sites name the reason and the guest target: here the cold SVC block
+            Assert.Contains($"StaticNoCode {code + 0x14:X8} 1.0", core.NativeReturnSitesReport(1).Replace(',', '.'));
         }
         finally
         {
+            CpuCore.CountReturnSites = oldSites;
             CpuCore.InstructionsPerSecond = oldRate;
             NativeX64Compiler.Instance.HotInstructions = oldHot;
             GuestClock.Turbo = oldTurbo;
