@@ -811,14 +811,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Suspeita (não confirmada): os raios de luz leem essa cadeia de mips. Próximo: A/B no slot 6 com TRANSFER_DEFER=0 e
   com o padrão (20 s gravados cada); se for o adiamento, dar ao jogo o resultado do quadro certo sem a espera (rodar
   o downscale na ordem certa na GPU em vez de adiar o dado), com teste de exatidão por replay
-  14/11 (fix/android-flicker-14, pausado): o caminho já está claro no código (`VulkanRenderer.TransferDefer.cs`): a
-  transferência que lê um writeback do quadro sendo gravado vai para a aposentadoria do quadro, e
-  `WaitPendingTransferInto` deixa a textura ler o destino "como está" (dado do quadro anterior). Correção pensada:
-  quando uma textura lê um destino pendente do quadro gravado, gravar a transferência na própria GPU, em ordem (cópia
-  = vkCmdCopyImage/blit nearest, downscale = blit linear 2x para 1x, que é a média 2x2; fill = clear), da superfície de
-  origem para a imagem da textura de destino, encadeando os destinos; a execução na CPU na aposentadoria continua só
-  para a memória. Teste do contrato: sequência sintética render target -> TransferDownscale -> draw que amostra o
-  destino no mesmo quadro, com TRANSFER_DEFER=1, deve dar o mesmo pixel que com 0 (falha hoje).
+  14/11 (fix/android-flicker-14): feito, falta a confirmação no celular. A textura 0x66362000 384x64 de 5 níveis tem o
+  nível 0 no render target 0x66332000 e os níveis 1-4 feitos por uma cadeia de quatro TransferDownscale no mesmo
+  quadro; com o adiamento, os níveis (e as texturas 0x66382000/0x6638C000 lidas direto) vinham da memória com o
+  resultado de um ou dois quadros antes. Agora a cópia ou o downscale de pixels de 32 bits lineares cuja origem está na
+  GPU (superfície renderizada, ou o destino de uma transferência adiada anterior) também é gravada na GPU na ordem
+  dos comandos (blit linear 2:1 = média 2x2), e as texturas sobre o destino e os níveis de mip das texturas de
+  superfície leem esse resultado até a transferência da CPU rodar, sem a espera (`RendererTransferTests`: cores novas a
+  cada quadro, 1 e 2 downscales e cópia, defer ligado e desligado; sem a correção o quadro mostrava a cor do anterior).
+  A/B no celular (lab14\kzstairs) não serviu de prova: o feixe muda de forma entre quadros também com
+  TRANSFER_DEFER=0 (parece animação do próprio feixe). Falta: confirmar no celular com o APK novo, comparando o padrão
+  com TRANSFER_DEFER=0. Também em aberto: na aposentadoria, todos os writebacks do quadro são aplicados antes das
+  transferências adiadas, então uma transferência pode ler na memória uma cena posterior no mesmo render target
+  (só a memória; a GPU agora tem a ordem certa).
 - [ ] Uncharted (PCSA00029) no Android: alternância de quadros na névoa/neblina de fundo (vale à esquerda, abismo
   embaixo à direita). Captura "Gravar tudo" do celular (APK da release 14/11, sem chaves):
   `<scratchpad>\lab14\captures\PCSA00029_20261114_171006_tudo.zip` (extraída em `<scratchpad>\agfx14\uc`). O analisador
@@ -836,9 +841,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo
-  pausado e a pausa não vira marca na captura. Correção a fazer: `EmulationPause.Changed` grava marca na captura e o
-  analisador dá como causa "emulação pausada X s"; os escopos de espera do guest descontam
-  `EmulationPause.PausedHostTicks`. Com teste do analisador.
+  pausado e a pausa não vira marca na captura. Feito (fix/android-flicker-14): pausas e retomadas viram marcas
+  `mark emulation paused/resumed` no input.tsv, o analisador marca um intervalo passado em pausa como `[paused]` (info)
+  em vez de `[stall]`, e as esperas do guest na GPU contam só o tempo em que a emulação rodou
+  (`EmulationPause.ActiveHostTicks`). Testes: `Analyzer_tells_a_paused_interval_from_a_stall`,
+  `GuestGpuWaitLeavesThePausedTimeOut`, `PausesDuringARecordingAreMarked`.
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do

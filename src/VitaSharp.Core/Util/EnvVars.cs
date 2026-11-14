@@ -452,8 +452,10 @@ public static class EnvVars
     /// colour outputs mediump (RelaxedPrecision), as Vita3K does. Default off (everything highp).</summary>
     public const string ShaderFp16 = "VITASHARP_SHADER_FP16";
     /// <summary>1: a CPU transfer that reads a writeback still in flight runs when that frame retires (in order with the
-    /// later sync points and transfers) instead of the GPU worker waiting for the frame; textures read its destination as
-    /// it is meanwhile (a frame late). Default on Android, off on desktop (0/1 overrides).</summary>
+    /// later sync points and transfers) instead of the GPU worker waiting for the frame. Copies and downscales of 32-bit
+    /// linear pixels from a rendered surface are also made on the GPU in command order, and textures over their
+    /// destination read that result meanwhile; other transfers' destinations are read as they are (a frame late).
+    /// Default on Android, off on desktop (0/1 overrides).</summary>
     public const string TransferDefer = "VITASHARP_TRANSFER_DEFER";
     /// <summary>0 (A/B): a CPU transfer does not wait for a render-target writeback still in flight over its source (it may
     /// read the previous content, as before 240a8de). Default on.</summary>

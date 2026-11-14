@@ -19,6 +19,7 @@ internal enum TexSource : byte
     Region = 5,        // a region of a colour target copied out
     Reinterpret = 6,   // a colour target read with another format (alias view)
     RtMipmapped = 7,   // a colour target with generated mips
+    Transfer = 8,      // a deferred transfer's destination, produced on the GPU (VulkanRenderer.TransferDefer.cs)
     KindMask = 0x0F,
     Memo = 0x10,       // (worker profile only) the unit came from the resolved-unit memo
     Failed = 0x20,     // the resolution gave no view (the dummy texture was bound)
@@ -482,6 +483,7 @@ public sealed unsafe partial class VulkanRenderer
             TexSource.Region => "region",
             TexSource.Reinterpret => "reinterp",
             TexSource.RtMipmapped => "rtmip",
+            TexSource.Transfer => "xfer",
             _ => "none",
         };
         if (addr != 0)

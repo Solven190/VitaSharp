@@ -26,6 +26,8 @@ public sealed unsafe partial class VulkanRenderer
         public ulong UpperHash;
         public long CheckedFrame = -1;
         public uint Stamp; // dirty-page epoch the upper levels were last hashed at
+        /// <summary>The versions of the pending transfer images last copied into the upper levels (0 = none).</summary>
+        public long TransferStamp;
     }
 
     private readonly Dictionary<(RenderTarget, uint X, uint Y, uint Format, uint W, uint H, uint Mips, bool Gamma), RtMipTexture> _rtMipTextures = new();
@@ -87,6 +89,27 @@ public sealed unsafe partial class VulkanRenderer
                 rtMipTexture.Stamp = DirtyPages.Epoch;
             }
         }
+        // levels that a deferred transfer (VITASHARP_TRANSFER_DEFER) is about to write from the level above: its result
+        // as the GPU made it in command order, not the memory, which gets it only when the frame retires (Killzone's
+        // light-shaft mips, built by a chain of TransferDownscales and sampled in the same frame)
+        long transferStamp = 0;
+        if (_xferImages.Count > 0)
+        {
+            for (uint m = 1; m < mips; m++)
+            {
+                MipLayout level = layout.Levels[(int)m];
+                if (TransferImageForLevel(gxmTextureDesc.DataAddress + level.Offset, level.Width, level.Height, level.RowPitch, rt.Format) is { } levelImage)
+                {
+                    transferStamp = transferStamp * 31 + levelImage.Version * 16 + m;
+                }
+            }
+        }
+        if (transferStamp != rtMipTexture.TransferStamp)
+        {
+            rtMipTexture.TransferStamp = transferStamp;
+            uploadUpper = true;
+        }
+
         bool copyBase = rtMipTexture.Version != rt.Version;
         if (!copyBase && !uploadUpper)
         {
@@ -120,6 +143,20 @@ public sealed unsafe partial class VulkanRenderer
             for (uint m = 1; m < mips; m++)
             {
                 MipLayout mipLayout = layout.Levels[(int)m];
+                if (transferStamp != 0
+                    && TransferImageForLevel(gxmTextureDesc.DataAddress + mipLayout.Offset, mipLayout.Width, mipLayout.Height, mipLayout.RowPitch, rt.Format) is { } levelImage)
+                {
+                    var levelCopy = new ImageCopy
+                    {
+                        SrcSubresource = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, 0, 0, 1),
+                        DstSubresource = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, m, 0, 1),
+                        Extent = new Extent3D(mipLayout.Width, mipLayout.Height, 1),
+                    };
+                    DevStampOp();
+                    _vk.CmdCopyImage(Cmd, levelImage.Image, ImageLayout.General, rtMipTexture.Image, ImageLayout.TransferDstOptimal, 1, in levelCopy);
+                    continue;
+                }
+
                 using Texels data = TextureDecoder.Decode(gxmTextureDesc, info, gxmTextureDesc.DataAddress + mipLayout.Offset, mipLayout.Width, mipLayout.Height, mipLayout.RowPitch, out uint outW, out uint outH);
                 (Silk.NET.Vulkan.Buffer buf, ulong off) = UploadSpan(data.Span, 16);
                 var region = new BufferImageCopy
