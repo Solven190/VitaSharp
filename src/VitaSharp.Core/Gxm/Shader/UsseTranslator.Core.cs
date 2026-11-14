@@ -76,6 +76,12 @@ public sealed partial class UsseTranslator
     /// <summary>The program stores to memory through a buffer pointer (<c>storeMemory</c>, see
     /// <see cref="ShaderGenerator.MemoryStores"/>).</summary>
     public bool WritesMemory { get; private set; }
+    /// <summary>The program loads four words at a time through <c>fetch4</c> (<see cref="ShaderGenerator.VectorLoads"/>).</summary>
+    public bool UsesVectorLoads { get; private set; }
+    /// <summary>Secondary-attribute words the generator fills with a constant buffer pointer: a memory load through one
+    /// with immediate offsets has a compile-time address, which the driver reads as a promoted uniform (no load at
+    /// all), so it stays a word load (<see cref="ShaderGenerator.VectorLoads"/> would hide the constant).</summary>
+    public HashSet<int> ConstantPointerWords { get; } = new();
     public readonly Dictionary<int, SamplerUse> Samplers = new(); // keyed by SA offset (dependent) or REG_SA_COUNT+index
     public readonly HashSet<string> Warnings = new();
     /// <summary>Banks accessed at a dynamic word index through the switch helpers (<see cref="ShaderGenerator.LowerDynamicIndexing"/>).</summary>

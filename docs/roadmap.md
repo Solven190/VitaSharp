@@ -653,6 +653,54 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   display do KZ de outro jeito genérico; nos shaders, os vertex shaders da cena principal são limitados por load/store
   (`vitasharp-perf mali-cost`: ~79 leituras dinâmicas da paleta de ossos por vértice, ocupação 50%); ler 4 palavras
   com uma checagem (fetchMemory4) piorou no modelo; candidato: uniforms em UBO (registradores do Mali)
+  13/11/2026 (perf/android-gpu-13, malioc 2026.3 no kz_game): das ~79 leituras por vértice, 42 têm endereço
+  constante (ponteiro de buffer literal em sa + imediato) e o driver já as promove a registradores uniformes (UBO não
+  muda nada: 41/57 ciclos LS iguais); as outras 37 são as linhas da paleta de ossos (índice do osso x 48 bytes),
+  sempre alinhadas a 16. `VITASHARP_SHADER_VEC4_LOADS=1` (c08f23f6): leitura de 4 palavras vira um `fetch4` (um
+  load de 128 bits quando alinhado e dentro do binding, senão as 4 palavras como antes; leituras de endereço
+  constante ficam como estão, vetorizá-las tirava a promoção: 57 -> 78 LS). Caminho alinhado: posição 41 -> 14 ciclos
+  LS, varying 57 -> 30 (dd6a/4923); o modelo do mali-cost usa o caminho mais longo (o de reserva) e não mostra o
+  ganho. replay-gpu --compare: pixel-idêntico. Medida A/B no KZ pedida ao laboratório; ligar por padrão nos tilers se
+  ganhar. Programa secundário (setup por draw no Vita) por vértice nos shaders traduzidos: sem custo na Mali. Trocar
+  o bloco inteiro por constantes pré-calculadas (o teto de um pré-passo por draw) não muda nenhum ciclo no malioc
+  (5 vertex e 5 fragment shaders do topo do KZ, posição/varying/fragment idênticos): o driver já avalia a computação
+  uniforme uma vez por draw ("has uniform computation"). Não fazer o pré-passo por desempenho na Mali
+  Uncharted (dump do Prologue do celular, 05/11; mali-cost 700-720): 19,0 ms no modelo = tile 11,7 (89 MB por quadro)
+  + vértice 5,9 (skinning limitado por LS: VEC4 no caminho alinhado 53 -> 17 / 69 -> 33) + fragment 1,4. O replay no
+  SwiftShader (VK_DRIVER_FILES = vk_swiftshader_icd.json do Edge) tem VK_EXT_rasterization_order_attachment_access e,
+  com o perfil mali, faz o caminho do celular (render passes, fetch passes abertos): 34 renderings em 13 cenas por
+  quadro. Quebras por quadro (traço `[break]` do --trace-draws): 7 RenderTargetRegion na cena 256x512 (atlas que lê a
+  própria superfície, ~1 MB cada), 2 BeginSingleFetchPass na cena de luz e 2 "Draw" no G-buffer 720x408 F32F32: os
+  draws 1-373 escrevem bits crus (vista R32G32Uint) e os 374-377 saem em float (vista R32G32Sfloat), e a troca de
+  vista fecha a renderização (~7 MB de load/store por troca, ~14 MB por quadro). Próximo: draws float sem blend nem
+  framebuffer fetch numa superfície de canais F32 escrevem pela vista inteira (`floatBitsToUint`, os mesmos bits que
+  o Vita grava) quando a renderização aberta é crua, sem fechar; teste por replay no SwiftShader Feito atrás de chave:
+  `VITASHARP_FLOAT_BITS_JOIN=1` (variante `ShaderHints.FloatBitsOutput`): Uncharted Prologue no SwiftShader 34 -> 32
+  renderings por quadro, carga de cor 33 -> 31 e de depth 24 -> 22, 6/6 quadros idênticos; replay no NVIDIA (perfil
+  mali) dos 288 quadros do dump idêntico, 1.149 draws mantidos, 10.398 -> 9.824 renderings; os 9 dumps idênticos (lá
+  não dispara). Medir no celular (UC título e gameplay) antes de ligar por padrão nos tilers
+  As 7 quebras RenderTargetRegion do atlas 256x512 são dependências reais: cada draw escreve um bloco 128x64 e o
+  seguinte amostra o bloco recém-escrito (cadeia de redução); com o RENDER_AREA_TRIM cada renderização já cobre só o
+  bloco desenhado. Sem ganho exato à vista ali
+  Medidas no celular (lab13, 13/11): VEC4 no KZ ao vivo (3x3 alternado) GPU mediana 28,7 -> 27,3 ms, fps 23,5 -> 24,0
+  (dentro do ruído); no bench kz_game (3 rodadas) 22,3 -> 23,9 ms (oposto, também no ruído). FLOAT_BITS_JOIN no bench
+  do Prologue do UC: sem diferença fora do ruído (34-54 ms). Nenhum dos dois vira padrão sem uma série maior.
+  Quadro serial do KZ (~42 ms com GPU 28,7): o jogo espera ~8-10 ms por quadro em sceGxmNotificationWait (~1 a cada
+  2 quadros, ~15 ms cada) e ~17,5 ms em sceKernelDelayThread esperando os jobs. O worker só confere as cercas no
+  começo de cena, no present ou com a fila vazia, então um quadro que a GPU já terminou pode esperar uma cena inteira
+  de gravação para ser publicado. `VITASHARP_RETIRE_WAKE` (d190e48a): uma thread espera cercas próprias (lote vazio
+  depois de cada quadro) e anota quando a GPU terminou; `measure` mostra no PERF sync o atraso GPU pronta ->
+  publicado; `1` também aposenta esses quadros no próximo draw. Ordem igual (mais antigo primeiro, resultados antes
+  dos sinais; RetireWakeTests nos três modos, 50x sob carga). Medido no KZ (APK v4, 3x3 alternado, linhas cumulativas
+  desde o boot): o atraso GPU pronta -> publicado é ~1,9 ms por submissão, ~5 ms por quadro; com `1` cai para ~1,1 /
+  ~3 ms por quadro, a espera de notificação 9,9 -> 9,4 ms por quadro e o fps 23,5 -> 24,1 (no ruído). FLOAT_BITS_JOIN
+  ao vivo no UC: 30 fps nos dois (limite do jogo), GPU igual. Conclusão: a maior parte da espera de notificação do KZ é
+  tempo real da GPU e do worker na cadeia serial (o jogo espera o resultado da própria cena), não publicação atrasada;
+  as chaves ficam desligadas. A alavanca que sobra é o tempo de GPU/worker da cena que o jogo espera
+  Onde parou (thread principal do KZ, ~235 sceKernelDelayThread por quadro = ~17,5 ms de polling): falta descobrir o
+  que ela checa entre os polls. Plano: rota do kz_trace.txt no desktop com `--trace-hle-only=sceKernelDelayThread
+  --trace-hle-threads=killzone_vita --trace-hle-frames=A:B` para o LR do laço, ler o código em volta (o endereço que
+  ele lê) e `--watch=ADDR:4` para quem escreve e quando (job, callback de GPU ou fiber)
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
@@ -705,6 +753,32 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
   ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
   depois do primeiro travamento
+- [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
+  (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
+  - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:
+    main ~90-115 M ciclos/s, (4J) Chunk update e (4J) Server ~80-140 M/s cada, (4J) Tile update aparece no meio
+    (~0,8 núcleo). O trabalho de guest por segundo da main não cai com o fps (1,3 M ciclos/quadro a 55 fps, ~35 M a
+    2 fps): ela gira esperando as outras threads, que ficam sem CPU do host.
+  - Descartado: MSSTimer girando. O "host time in native code" das linhas antigas incluía as esperas; com as linhas
+    novas (generated code x HLE calls) ela passa ~15 de 16,7 ms por quadro bloqueada numa espera de HLE, igual em
+    qualquer momento. Também descartado: GC/heap (estável ~100 MB), GPU (estável) e térmica.
+  - A sessão de 10 min "parada" do laboratório (60 fps estáveis, `lab13\mc_long`) é inválida: o state de 10/11
+    (c41f784) foi recusado pelo APK v4 ("salvo por outra versão do VitaSharp") e o jogo ficou na tela de título,
+    sem as threads do mundo. No desktop (4 núcleos, entrando no mundo pelo menu e andando/girando a câmera por
+    script) o jogo segura 59-60 fps por 7 min: não reproduz.
+  - Próximo: sessão andando no mundo no celular com o APK do bugss (fix/savestate-regress, carrega states do
+    c41f784; conferir "state loaded" no log), salvar um state novo no mundo, ~10 min andando, linhas PERF por janela
+    (`VITASHARP_SESSION_REPORT_SECONDS=30`), simpleperf no minuto 1 e 9, "Gravar tudo" quando cair abaixo de 20 fps;
+    comparar começo x fim por thread (guest ciclos/s, tempo de host, esperas) para achar o que cresce do lado do host
+- [ ] Killzone no celular: o feixe de luz que entra pelo canto superior direito da escada muda de forma/intensidade
+  entre quadros (forte, quase some; captura parada no slot 6 da escada, APK a00b4b9b sem chaves de perf: screen20s.mp4,
+  cap_*.png e last.log em <scratchpad>\lab13\kzflicker). O log mostra a cadeia de downscale por transferências de CPU
+  0x66362000 -> 0x66382000 -> 0x6638A000 -> 0x6638C000 -> 0x6638C800 adiada para a aposentadoria do quadro
+  (`VITASHARP_TRANSFER_DEFER`, padrão no Android) e texturas lendo esses destinos antes da transferência rodar ("reads
+  transfer destination ... before its deferred transfer ran: read as it is now"), ou seja, um quadro atrasadas.
+  Suspeita (não confirmada): os raios de luz leem essa cadeia de mips. Próximo: A/B no slot 6 com TRANSFER_DEFER=0 e
+  com o padrão (20 s gravados cada); se for o adiamento, dar ao jogo o resultado do quadro certo sem a espera (rodar
+  o downscale na ordem certa na GPU em vez de adiar o dado), com teste de exatidão por replay
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do

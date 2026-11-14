@@ -236,6 +236,7 @@ public sealed unsafe partial class VulkanRenderer
         sb.Append(RangeCacheReport());
         sb.Append(TexSetReuseReport());
         sb.Append(BlockedCallersReport());
+        sb.Append(RetireWatchReport());
         return sb.ToString();
     }
 }

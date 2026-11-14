@@ -150,6 +150,9 @@ public static class EnvVars
     /// <summary>Index or part of the name of the Vulkan physical device to render with (default: the discrete GPU).</summary>
     public const string GpuDevice = "VITASHARP_GPU_DEVICE";
     public const string GpuQuirks = "VITASHARP_GPU_QUIRKS";
+    /// <summary>Megabytes: lowers the storage-buffer range the CDRAM mirror is bound with (default: the device's
+    /// maxStorageBufferRange), to test the windowed binding of drivers below 288 MB (MappedWindow.cs).</summary>
+    public const string GpuMaxStorageRange = "VITASHARP_GPU_MAX_STORAGE_RANGE";
     public const string HleModules = "VITASHARP_HLE_MODULES";
     /// <summary>0/off: guest threads and the GPU worker keep normal host priority (HostThreads; overrides --host-prio).</summary>
     public const string HostPrio = "VITASHARP_HOST_PRIO";
@@ -468,6 +471,16 @@ public static class EnvVars
     /// Default: skipped on tile-based GPUs (Mali -6 ms per Killzone frame), kept on desktop (bit-exact there: the
     /// different code shape moved a few pixels by 1-2/255 in one dump).</summary>
     public const string UniformUnchecked = "VITASHARP_UNIFORM_UNCHECKED";
+    /// <summary>1 (A/B, default off): memory loads of four words read them with one 128-bit load where the address is
+    /// 16-byte aligned (ShaderGenerator.VectorLoads; same values). Part of the shader cache key.</summary>
+    public const string ShaderVec4Loads = "VITASHARP_SHADER_VEC4_LOADS";
+    /// <summary>1 (A/B, default off): a float-colour draw without blending on an F32/F32F32 surface writes its bits
+    /// through the integer view a raw-bit rendering keeps open instead of ending it (VulkanRenderer.SingleFetch.cs).</summary>
+    public const string FloatBitsJoin = "VITASHARP_FLOAT_BITS_JOIN";
+    /// <summary>measure: a watcher thread notes when the GPU finished each submitted frame and the PERF sync line
+    /// reports how long until the frame was published (writebacks, notifications); 1 (A/B): also retires such frames at
+    /// the GPU worker's next draw instead of its next scene (VulkanRenderer.RetireWatch.cs). Default off.</summary>
+    public const string RetireWake = "VITASHARP_RETIRE_WAKE";
     /// <summary>Emulator updates: the releases feed to check instead of the GitHub API of the build's repository (a URL
     /// with the API's JSON, or a folder with releases.json whose assets are file:// URLs; tests).</summary>
     public const string UpdateFeed = "VITASHARP_UPDATE_FEED";

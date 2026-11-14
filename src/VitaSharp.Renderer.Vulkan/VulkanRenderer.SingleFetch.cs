@@ -204,6 +204,25 @@ public sealed unsafe partial class VulkanRenderer
     private static readonly string? s_fetchLargeSetting = Environment.GetEnvironmentVariable(EnvVars.FetchLarge)?.Trim();
     private static readonly string? s_fetchPassJoinSetting = Environment.GetEnvironmentVariable(EnvVars.FetchPassJoin)?.Trim();
     private static readonly string? s_depthFeedbackSetting = Environment.GetEnvironmentVariable(EnvVars.DepthFeedback)?.Trim();
+    private static readonly string? s_floatBitsJoinSetting = Environment.GetEnvironmentVariable(Core.Util.EnvVars.FloatBitsJoin)?.Trim();
+
+    /// <summary>
+    /// VITASHARP_FLOAT_BITS_JOIN=1 (A/B, default off): a draw with a float colour, no blending and no framebuffer fetch,
+    /// on a surface of 32-bit float channels whose open rendering uses the integer view (raw-bit programs drew before
+    /// it), writes its colour as bits through that view (<see cref="Core.Gxm.Shader.ShaderHints.FloatBitsOutput"/>) instead of ending
+    /// the rendering to switch to the float view. Uncharted's 720x408 F32F32 G-buffer: 2 renderings fewer per frame,
+    /// about 7 MB of tile loads and stores each on a tiler.
+    /// </summary>
+    private static bool FloatBitsJoin => Switch(s_floatBitsJoinSetting, false);
+
+    private long _statFloatBitsDraws;
+
+    /// <summary>The draw can write its float colour through the open raw view (see <see cref="FloatBitsJoin"/>).</summary>
+    /// <param name="otherPath">the draw renders in a fetch pass or with the tile-word / input-attachment variants</param>
+    private bool FloatBitsJoinPossible(FsEntry fs, bool blendOn, bool hasColor, bool otherPath) =>
+        FloatBitsJoin && _rendering && _renderRaw && hasColor && !blendOn && !otherPath && !_multisampled
+        && fs.Gen!.RawColorBits == 0 && !fs.Gen.UsesFragColor && Core.Gxm.Shader.ShaderGenerator.FloatBitsOutputPossible(_renderTarget!.ColorFormat);
+
     private static bool Switch(string? setting, bool dflt) => setting switch { "1" => true, "0" => false, _ => dflt };
 
     /// <summary>

@@ -38,7 +38,8 @@ public class ShaderRecipeTests : IDisposable
                      FragmentHints(fetch: true) with { OutputRegisterFormat = 5 }, FragmentHints() with { OutputRegisterFormat = 1, TileWord1 = true },
                      FragmentHints(fetch: true) with { OutputRegisterFormat = 1, TileWord1 = true },
                      FragmentHints(fetch: true) with { FetchInputSingleSample = true }, VertexHints() with { VaryingMask = 0x31 },
-                     VertexHints() with { ScaledPointSize = true }, VertexHints() with { VaryingMask = 0x31, ScaledPointSize = true } })
+                     VertexHints() with { ScaledPointSize = true }, VertexHints() with { VaryingMask = 0x31, ScaledPointSize = true },
+                     FragmentHints() with { FloatBitsOutput = true } })
         {
             var r = new ShaderRecipe(0x1122334455667788, h.Key(), h.Attributes.Length > 0, h);
             var back = ShaderRecipe.Decode(r.Encode());
@@ -55,6 +56,7 @@ public class ShaderRecipeTests : IDisposable
             Assert.Equal(h.FetchInputSingleSample, back.Hints.FetchInputSingleSample);
             Assert.Equal(h.VaryingMask, back.Hints.VaryingMask);
             Assert.Equal(h.ScaledPointSize, back.Hints.ScaledPointSize);
+            Assert.Equal(h.FloatBitsOutput, back.Hints.FloatBitsOutput);
             Assert.Equal(h.Key(), back.Hints.Key());
         }
     }

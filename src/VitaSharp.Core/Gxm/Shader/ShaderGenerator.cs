@@ -23,10 +23,16 @@ namespace VitaSharp.Core.Gxm.Shader;
 /// gl_PointSize is multiplied by the internal resolution (rinfo.res_multiplier), so point sprites keep their size on
 /// screen above native. Its own key bit: only these programs get new cache entries (the shader caches of every other
 /// program stay valid)</param>
+/// <param name="FloatBitsOutput">fragment programs with a float colour on a surface of 32-bit float channels (F32,
+/// F32F32): the colour goes out as its bits through the surface's integer view (<c>floatBitsToUint</c>,
+/// <see cref="GeneratedShader.RawColorBits"/> 32), so a draw joins a rendering that raw-bit programs keep open on that
+/// view instead of ending it (ShaderGenerator.FloatBitsOutputPossible)</param>
 public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int ComponentCount, byte Format)[] Attributes, uint ColorFormat,
     bool FetchInputAttachment = false, uint OutputRegisterFormat = 0, bool TileWord1 = false, bool FetchInputSingleSample = false,
-    uint VaryingMask = 0, bool ScaledPointSize = false)
+    uint VaryingMask = 0, bool ScaledPointSize = false, bool FloatBitsOutput = false)
 {
+    /// <summary>Mixed into the key of <see cref="FloatBitsOutput"/> variants (other keys are unchanged).</summary>
+    public const uint FloatBitsKey = 0x46425431;
     /// <summary>Mixed into the key of <see cref="ScaledPointSize"/> variants (other keys are unchanged).</summary>
     public const uint ScaledPointSizeKey = 0x50535A31;
     /// <summary>Mixed into the key, then <see cref="VaryingMask"/>, when the mask is set (other keys are unchanged).</summary>
@@ -84,6 +90,11 @@ public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int Comp
         if (ScaledPointSize)
         {
             h = Fnv.Mix(h, ScaledPointSizeKey);
+        }
+
+        if (FloatBitsOutput)
+        {
+            h = Fnv.Mix(h, FloatBitsKey);
         }
 
         return VaryingMask != 0 ? Fnv.Mix(Fnv.Mix(h, VaryingMaskKey), VaryingMask) : h;
@@ -324,6 +335,13 @@ public static class ShaderGenerator
     /// Mali bench of the Killzone frame with every check removed: -6 ms. Part of the cache key.</summary>
     public static bool UncheckedUniformLoads;
 
+    /// <summary>VITASHARP_SHADER_VEC4_LOADS (A/B, default off; set by the renderer): memory loads of four or more words
+    /// read four words with one 128-bit load (<c>fetch4</c>) where the address is 16-byte aligned and the four words
+    /// are in range, else word by word as before (same values either way). Killzone's skinning vertex programs read
+    /// their bone matrices as 4-word loads: malioc (Mali-G57) 41 -> 14 load/store cycles on the position shader, 57 -> 30
+    /// on the varying one, on the aligned path. Part of the cache key.</summary>
+    public static bool VectorLoads;
+
     /// <summary>VITASHARP_UB_SHARE (default on where the device allows it; 0 = off; set by the renderer): the slots with
     /// <see cref="UniformBufferSlot.Split"/> are read from bindings of their own (<see cref="SplitBinding"/>), the
     /// address flag <see cref="SplitFlag"/>(k) routing memory loads there. Part of the cache key.</summary>
@@ -469,6 +487,45 @@ float packC10(vec3 c) {
             }
         }
         return (slots, lastBase);
+    }
+
+    /// <summary>
+    /// <c>vec4 fetch4(int addr)</c>: the four words <c>fetchMemory</c> reads at addr, addr + 4, addr + 8 and addr + 12.
+    /// A 16-byte aligned address whose four words lie inside one binding reads them with one load through a uvec4
+    /// view of that binding (the same descriptor, so the same bytes); any other address goes word by word through
+    /// fetchMemory, so the values are the same in both cases. The bindings are tested in fetchMemory's order (split
+    /// slots, the mapped memory, the uniform data). A program that stores to the mapped memory reads it word by word
+    /// (its writable binding is not aliased); a flagged address never passes the uniform data's bounds test.
+    /// </summary>
+    internal static string VectorFetch(bool vertex, bool hasUb, bool mappedView, IReadOnlyList<UniformBufferSlot> splitSlots)
+    {
+        var text = new StringBuilder();
+        const string Fallback = "return vec4(fetchMemory(addr), fetchMemory(addr + 4), fetchMemory(addr + 8), fetchMemory(addr + 12));";
+        if (!hasUb)
+        {
+            text.AppendLine("vec4 fetch4(int addr) { " + Fallback + " }");
+            return text.ToString();
+        }
+
+        text.AppendLine($"layout(std430, set = 0, binding = {(vertex ? 0 : 1)}) readonly restrict buffer UniformDataQ {{ uvec4 ubq[]; }};");
+        var body = new StringBuilder("if ((addr & 15) == 0) { ");
+        foreach (UniformBufferSlot slot in splitSlots)
+        {
+            text.AppendLine($"layout(std430, set = 0, binding = {SplitBinding(vertex, slot.Split)}) readonly restrict buffer SplitData{slot.Split}Q {{ uvec4 us{slot.Split}q[]; }};");
+            body.Append($"if ((addr & 0x{SplitFlag(slot.Split):X}) != 0) {{ uint j = uint(addr & 0x{SplitFlag(0) - 1:X}) >> 4; " +
+                        $"if (j < uint(us{slot.Split}q.length())) {{ return uintBitsToFloat(us{slot.Split}q[j]); }} }} else ");
+        }
+
+        if (mappedView)
+        {
+            text.AppendLine($"layout(std430, set = 0, binding = {(vertex ? 2 : 3)}) readonly restrict buffer MappedDataQ {{ uvec4 memq[]; }};");
+            body.Append($"if ((addr & 0x{MappedFlag:X}) != 0) {{ uint j = uint(addr & 0x{MappedFlag - 1:X}) >> 4; " +
+                        "if (j < uint(memq.length())) { return uintBitsToFloat(memq[j]); } } else ");
+        }
+
+        body.Append("{ uint i = uint(addr) >> 4; if (i < uint(ubq.length())) { return uintBitsToFloat(ubq[i]); } } } ");
+        text.AppendLine("vec4 fetch4(int addr) { " + body + Fallback + " }");
+        return text.ToString();
     }
 
     public static GeneratedShader Generate(GxpProgram program, ShaderHints hints)
@@ -647,11 +704,13 @@ float packC10(vec3 c) {
                             // a split slot: its own binding, selected by the address flag
                             long baseAddr = SplitFlag(bb.Split) + u.Base;
                             t.Store(reg, new Val(baseAddr.ToString(), 'i', 1), 1);
+                            t.ConstantPointerWords.Add(reg.Num);
                         }
                         else
                         {
                             int baseAddr = (found ? bb.Base : 0) + (int)u.Base;
                             t.Store(reg, new Val(baseAddr.ToString(), 'i', 1), 1);
+                            t.ConstantPointerWords.Add(reg.Num);
                         }
                     }
                     break;
@@ -799,6 +858,11 @@ float packC10(vec3 c) {
                 decl.AppendLine("void storeMemory(int addr, float v) { }");
                 result.Warnings.Add("buffer store without a mapped uniform buffer (dropped)");
             }
+        }
+
+        if (t.UsesVectorLoads)
+        {
+            decl.Append(VectorFetch(vertex, hasUb, hasMapped && !result.WritesMemory, splitSlots));
         }
 
         // ---- assemble
@@ -1466,6 +1530,8 @@ float packC10(vec3 c) {
         }
 
         int rawBits = RawOutputBits(program, hints.ColorFormat);
+        // a float colour stored as its bits through the integer view of a 32-bit float surface (ShaderHints.FloatBitsOutput)
+        bool floatBits = rawBits == 0 && hints.FloatBitsOutput && !result.UsesFragColor && FloatBitsOutputPossible(hints.ColorFormat);
         if (rawBits != 0)
         {
             // raw register bits: written through an integer view of the surface (exact bits, no float conversion)
@@ -1495,7 +1561,17 @@ float packC10(vec3 c) {
                 v = usseTranslator.ToFloat(v, color.Type, true);
             }
 
-            decl.AppendLine("layout(location = 0) out vec4 out_color;");
+            if (floatBits)
+            {
+                result.RawColorBits = 32;
+                decl.AppendLine("layout(location = 0) out uvec4 out_raw;");
+                decl.AppendLine("vec4 out_color;"); // stored as its bits at the end (after the debug overrides)
+            }
+            else
+            {
+                decl.AppendLine("layout(location = 0) out vec4 out_color;");
+            }
+
             usseTranslator.Line($"out_color = {v.E};");
             // a one-word colour with the second output register word written: scratch the tile keeps (TileWord1Use)
             if (program.IsNativeColor && hints.OutputRegisterFormat != 0 && color.Type is DataType.UInt8 or DataType.Int8 && usseTranslator.WordType(Bank.Output, 1) != null)
@@ -1557,6 +1633,11 @@ float packC10(vec3 c) {
             EmitNanDrawCheck(decl, usseTranslator, hints.ColorFormat);
         }
 
+        if (floatBits)
+        {
+            usseTranslator.Line("out_raw = floatBitsToUint(out_color);");
+        }
+
         if (rawBits != 0 && overridden)
         {
             usseTranslator.Line(rawBits switch
@@ -1578,6 +1659,14 @@ float packC10(vec3 c) {
     /// such outputs through an integer view with components of this size (the surface's own component layout).
     /// Surfaces with a component swizzle or a host layout that differs from the guest are left to the float path.
     /// </summary>
+    /// <summary>
+    /// The colour surface has 32-bit float channels (F32, F32F32): a float colour written to its float view is stored
+    /// as the shader's 32-bit values, the same words its integer view receives from <c>floatBitsToUint</c>. On the Vita
+    /// the output register words go to the surface unconverted, so the integer view is the exact form of the store
+    /// (a float attachment may flush denormals; Vulkan leaves that to the implementation).
+    /// </summary>
+    public static bool FloatBitsOutputPossible(uint colorFormat) => (colorFormat & 0xF1800000) is 0x11000000 or 0x10800000;
+
     public static int RawOutputBits(GxpProgram program, uint colorFormat)
     {
         DataType type = GxpProgram.StoreType(program.OutputParamType);

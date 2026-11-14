@@ -43,9 +43,10 @@ public sealed record ShaderRecipe(ulong ProgramHash, ulong HintKey, bool Vertex,
         }
         BinaryPrimitives.WriteUInt32LittleEndian(s[o..], shaderHints.ColorFormat);
         o += 4;
-        // fetch flag byte: bit 0 FetchInputAttachment, bit 1 TileWord1, bit 2 FetchInputSingleSample, bit 3 ScaledPointSize
-        // (records without the latter three are unchanged)
-        s[o++] = (byte)((shaderHints.FetchInputAttachment ? 1 : 0) | (shaderHints.TileWord1 ? 2 : 0) | (shaderHints.FetchInputSingleSample ? 4 : 0) | (shaderHints.ScaledPointSize ? 8 : 0));
+        // fetch flag byte: bit 0 FetchInputAttachment, bit 1 TileWord1, bit 2 FetchInputSingleSample, bit 3 ScaledPointSize,
+        // bit 4 FloatBitsOutput (records without the latter four are unchanged)
+        s[o++] = (byte)((shaderHints.FetchInputAttachment ? 1 : 0) | (shaderHints.TileWord1 ? 2 : 0) | (shaderHints.FetchInputSingleSample ? 4 : 0) | (shaderHints.ScaledPointSize ? 8 : 0)
+                        | (shaderHints.FloatBitsOutput ? 16 : 0));
         if (outFmt)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(s[o..], shaderHints.OutputRegisterFormat);
@@ -103,7 +104,7 @@ public sealed record ShaderRecipe(ulong ProgramHash, ulong HintKey, bool Vertex,
         }
         uint color = BinaryPrimitives.ReadUInt32LittleEndian(s[o..]);
         o += 4;
-        if (s[o] > 15)
+        if (s[o] > 31)
         {
             return null;
         }
@@ -120,7 +121,7 @@ public sealed record ShaderRecipe(ulong ProgramHash, ulong HintKey, bool Vertex,
             return null;
         }
 
-        var hints = new ShaderHints(tex, attrs, color, (s[o] & 1) != 0, outputFormat, (s[o] & 2) != 0, (s[o] & 4) != 0, varyingMask, (s[o] & 8) != 0);
+        var hints = new ShaderHints(tex, attrs, color, (s[o] & 1) != 0, outputFormat, (s[o] & 2) != 0, (s[o] & 4) != 0, varyingMask, (s[o] & 8) != 0, (s[o] & 16) != 0);
         // the key is the identity used by every cache: a record whose hints disagree with it is useless
         return hints.Key() == hintKey ? new ShaderRecipe(program, hintKey, s[1] != 0, hints) : null;
     }

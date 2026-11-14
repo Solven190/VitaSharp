@@ -45,6 +45,7 @@ are queried so the log and info.txt say what the device has, and are never enabl
 | `VK_EXT_memory_budget` | eviction under memory pressure, VRAM logs | pressure = renderer bytes / 80% of the largest device heap; 50% on mobile/unified-memory devices (`ConservativeMemoryBudget`: Android kills apps before the heap is full) |
 | `maxPushConstantsSize` | 32 bytes of push constants | 128 is the Vulkan minimum: always fits |
 | per-stage samplers / sampled images, `maxDescriptorSetSamplers` | 16 vertex + 16 fragment texture units + 2 framebuffer-fetch samplers | fewer units bound (the Mali-G57 reports 8388608 per stage, so it binds all of them); a draw whose program samples a missing unit is skipped with a warning |
+| `maxStorageBufferRange` | the 288 MB CDRAM mirror bound whole as the mapped-slot storage buffer (`VulkanRenderer.Mapped.cs`) | below 288 MB (the Vulkan minimum 128 MB of lavapipe/SwiftShader; the Mali-G57 reports 2 GB): each stage binds a window of at most the limit holding the ranges it reads (`MappedWindow.cs`), ranges farther apart are copied into the scratch area; `VITASHARP_GPU_MAX_STORAGE_RANGE=<MB>` forces it for testing (9 dumps, 5,782 frames pixel-identical at 128 MB) |
 | `maxBoundDescriptorSets` | 4 sets | 4 is the Vulkan minimum: always fits |
 | `geometryShader`, `logicOp`, 16-bit storage, `shaderInt16` | not used (GXM has no logic op; the generator packs halves with `packHalf2x16`) | - |
 | `depthClamp` | not used since 08/11/2026: GXM clips the near plane (The Amazing Spider-Man's loading screen and pause menu lost their lower half with depth clamp; VkCore.DepthClamp) | the near plane clips (as on every device now) |
@@ -242,6 +243,18 @@ r54 proprietary driver (`ArmProprietary 54.1.0`), Vulkan 1.3, Android 16. Capabi
   commands through the returned handle, the "Driver da GPU" screen, and BCeNabler on real blobs.
 - ASTC transcoding of BCn/PVRTC with a disk cache: implemented and checked on the Iris Xe; the speed and quality on a
   phone CPU/GPU are unmeasured ([mobile renderer notes](mobile-renderer.md)).
+
+## The phone's render path on the PC (SwiftShader)
+
+The desktop GPUs here (NVIDIA) have no `VK_EXT_rasterization_order_attachment_access`, so a `replay-gpu` with
+`--env=VITASHARP_GPU_PROFILE=mali` does not take the Mali's framebuffer-fetch path. SwiftShader has it: point the
+system loader at the copy Microsoft Edge ships (`VK_DRIVER_FILES` and `VK_ICD_FILENAMES` =
+`<Edge>\Application\<version>\vk_swiftshader_icd.json`; on Linux Mesa's lavapipe, through its ICD manifest) and the
+replay runs the phone's path: render passes (`DynamicRenderingSuspect`), fetch passes kept open, the same renderings,
+load/store ops and scene breaks in the `PERF gpu` line. Use it for exactness and for counting renderings and tile
+traffic, not for time (SwiftShader runs on the CPU). `--trace-draws=N` writes a `[break] <reason> before draw id=K`
+line where a rendering ends before its scene does (and `[raw]` where the colour view changes between raw-bit and float
+outputs).
 
 ## Mali cost estimator (`vitasharp-perf mali-cost`)
 
