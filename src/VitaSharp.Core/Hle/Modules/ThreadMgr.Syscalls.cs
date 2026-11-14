@@ -24,7 +24,7 @@ public sealed partial class ThreadMgr
     // ---- threads
     [Hle] int _sceKernelStartThread(int thid, uint argSize, uint argp) => sceKernelStartThread(thid, argSize, argp);
     [Hle("_sceKernelWaitThreadEnd")]
-    [Hle("_sceKernelWaitThreadEndCB")]
+    [Hle("_sceKernelWaitThreadEndCB", CallbackWait = true)]
     int _sceKernelWaitThreadEnd(int thid, Ptr<int> stat, Ptr<uint> timeout) => sceKernelWaitThreadEnd(thid, stat, timeout);
     [Hle] int _sceKernelGetThreadExitStatus(int thid, Ptr<int> status) => sceKernelGetThreadExitStatus(thid, status);
     [Hle] int _sceKernelGetThreadCpuAffinityMask(int thid) => sceKernelGetThreadCpuAffinityMask(thid);
@@ -43,7 +43,7 @@ public sealed partial class ThreadMgr
     int _sceKernelCreateSema(string name, uint attr, int initVal, uint opt)
         => opt == 0 ? SceError.ILLEGAL_ADDR : sceKernelCreateSema(name, attr, initVal, (int)OptWord(opt, 0), OptWord(opt, 1));
     [Hle("_sceKernelWaitSema")]
-    [Hle("_sceKernelWaitSemaCB")]
+    [Hle("_sceKernelWaitSemaCB", CallbackWait = true)]
     int _sceKernelWaitSema(int uid, int need, Ptr<uint> timeout) => sceKernelWaitSema(uid, need, timeout);
     [Hle] int _sceKernelCancelSema(int uid, int setCount, Ptr<int> numWait) => sceKernelCancelSema(uid, setCount, numWait);
     [Hle] int _sceKernelGetSemaInfo(int uid, uint info, uint opt) => InfoWithOpt(info, opt, () => sceKernelGetSemaInfo(uid, info));
@@ -52,7 +52,7 @@ public sealed partial class ThreadMgr
     [Hle] int _sceKernelCreateEventFlag(string name, uint attr, uint initPattern, uint opt) => sceKernelCreateEventFlag(name, attr, initPattern, opt);
     /// <summary>(uid, bits, mode, opt {outBits*, timeout*}).</summary>
     [Hle("_sceKernelWaitEventFlag")]
-    [Hle("_sceKernelWaitEventFlagCB")]
+    [Hle("_sceKernelWaitEventFlagCB", CallbackWait = true)]
     int _sceKernelWaitEventFlag(int uid, uint bits, uint mode, uint opt)
         => sceKernelWaitEventFlag(uid, bits, mode, new Ptr<uint>(OptWord(opt, 0)), new Ptr<uint>(OptWord(opt, 1)));
     [Hle] int _sceKernelPollEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits) => sceKernelPollEventFlag(uid, bits, mode, outBits);
@@ -62,7 +62,7 @@ public sealed partial class ThreadMgr
     // ---- mutexes
     [Hle] int _sceKernelCreateMutex(string name, uint attr, int initCount, uint opt) => sceKernelCreateMutex(name, attr, initCount, opt);
     [Hle("_sceKernelLockMutex")]
-    [Hle("_sceKernelLockMutexCB")]
+    [Hle("_sceKernelLockMutexCB", CallbackWait = true)]
     int _sceKernelLockMutex(int uid, int count, Ptr<uint> timeout) => sceKernelLockMutex(uid, count, timeout);
     [Hle] int _sceKernelCancelMutex(int uid, int newCount, Ptr<int> numWait) => sceKernelCancelMutex(uid, newCount, numWait);
     [Hle] int _sceKernelGetMutexInfo(int uid, uint info, uint opt) => InfoWithOpt(info, opt, () => sceKernelGetMutexInfo(uid, info));
@@ -82,7 +82,7 @@ public sealed partial class ThreadMgr
         => opt == 0 ? SceError.ILLEGAL_ADDR : sceKernelCreateLwCond(work, name, attr, OptWord(opt, 0), OptWord(opt, 1));
     [Hle] int _sceKernelDeleteLwCond(uint work) => sceKernelDeleteLwCond(work);
     [Hle("_sceKernelWaitLwCond")]
-    [Hle("_sceKernelWaitLwCondCB")]
+    [Hle("_sceKernelWaitLwCondCB", CallbackWait = true)]
     int _sceKernelWaitLwCond(uint work, Ptr<uint> timeout) => sceKernelWaitLwCond(work, timeout);
     [Hle] int _sceKernelSignalLwCond(uint work) => sceKernelSignalLwCond(work);
     [Hle] int _sceKernelSignalLwCondAll(uint work) => sceKernelSignalLwCondAll(work);
@@ -93,7 +93,7 @@ public sealed partial class ThreadMgr
     // ---- condition variables
     [Hle] int _sceKernelCreateCond(string name, uint attr, int mutexId, uint opt) => sceKernelCreateCond(name, attr, mutexId, opt);
     [Hle("_sceKernelWaitCond")]
-    [Hle("_sceKernelWaitCondCB")]
+    [Hle("_sceKernelWaitCondCB", CallbackWait = true)]
     int _sceKernelWaitCond(int uid, Ptr<uint> timeout) => sceKernelWaitCond(uid, timeout);
     [Hle] int _sceKernelGetCondInfo(int uid, uint info, uint opt) => InfoWithOpt(info, opt, () => sceKernelGetCondInfo(uid, info));
 
@@ -104,11 +104,11 @@ public sealed partial class ThreadMgr
         => opt == 0 ? SceError.ILLEGAL_ADDR : sceKernelCreateMsgPipe(name, type, attr, OptWord(opt, 0), OptWord(opt, 1));
     /// <summary>(uid, vector, count, opt {mode, result*, timeout*}).</summary>
     [Hle("_sceKernelSendMsgPipeVector")]
-    [Hle("_sceKernelSendMsgPipeVectorCB")]
+    [Hle("_sceKernelSendMsgPipeVectorCB", CallbackWait = true)]
     int _sceKernelSendMsgPipeVector(int uid, uint vec, uint count, uint opt)
         => MsgPipeVector(uid, vec, count, OptWord(opt, 0), new Ptr<uint>(OptWord(opt, 1)), new Ptr<uint>(OptWord(opt, 2)), true, false);
     [Hle("_sceKernelReceiveMsgPipeVector")]
-    [Hle("_sceKernelReceiveMsgPipeVectorCB")]
+    [Hle("_sceKernelReceiveMsgPipeVectorCB", CallbackWait = true)]
     int _sceKernelReceiveMsgPipeVector(int uid, uint vec, uint count, uint opt)
         => MsgPipeVector(uid, vec, count, OptWord(opt, 0), new Ptr<uint>(OptWord(opt, 1)), new Ptr<uint>(OptWord(opt, 2)), false, false);
     /// <summary>(uid, vector, count, opt {mode, result*}).</summary>
@@ -124,10 +124,10 @@ public sealed partial class ThreadMgr
     // ---- rw locks
     [Hle] int _sceKernelCreateRWLock(string name, uint attr, uint opt) => sceKernelCreateRWLock(name, attr, opt);
     [Hle("_sceKernelLockReadRWLock")]
-    [Hle("_sceKernelLockReadRWLockCB")]
+    [Hle("_sceKernelLockReadRWLockCB", CallbackWait = true)]
     int _sceKernelLockReadRWLock(int uid, Ptr<uint> timeout) => sceKernelLockReadRWLock(uid, timeout);
     [Hle("_sceKernelLockWriteRWLock")]
-    [Hle("_sceKernelLockWriteRWLockCB")]
+    [Hle("_sceKernelLockWriteRWLockCB", CallbackWait = true)]
     int _sceKernelLockWriteRWLock(int uid, Ptr<uint> timeout) => sceKernelLockWriteRWLock(uid, timeout);
     [Hle] int _sceKernelCancelRWLock(int uid, Ptr<uint> numRead, Ptr<uint> numWrite, int flag) => sceKernelCancelRWLock(uid, numRead, numWrite, flag);
     [Hle] int _sceKernelGetRWLockInfo(int uid, uint info, uint opt) => InfoWithOpt(info, opt, () => sceKernelGetRWLockInfo(uid, info));
@@ -149,13 +149,13 @@ public sealed partial class ThreadMgr
     [Hle] int _sceKernelCreateSimpleEvent(uint namePtr, uint attr, uint initPattern, uint opt) => sceKernelCreateSimpleEvent(namePtr, attr, initPattern, opt);
     /// <summary>(uid, waitPattern, resultPattern*, opt {userData*, timeout*}).</summary>
     [Hle("_sceKernelWaitEvent")]
-    [Hle("_sceKernelWaitEventCB")]
+    [Hle("_sceKernelWaitEventCB", CallbackWait = true)]
     int _sceKernelWaitEvent(int uid, uint waitPattern, Ptr<uint> resultPattern, uint opt)
         => sceKernelWaitEvent(uid, waitPattern, resultPattern, new Ptr<ulong>(OptWord(opt, 0)), new Ptr<uint>(OptWord(opt, 1)));
     [Hle] int _sceKernelPollEvent(int uid, uint waitPattern, Ptr<uint> resultPattern, Ptr<ulong> userData) => sceKernelPollEvent(uid, waitPattern, resultPattern, userData);
     /// <summary>(events, count, mode, opt {results*, timeout*}).</summary>
     [Hle("_sceKernelWaitMultipleEvents")]
-    [Hle("_sceKernelWaitMultipleEventsCB")]
+    [Hle("_sceKernelWaitMultipleEventsCB", CallbackWait = true)]
     int _sceKernelWaitMultipleEvents(uint events, uint count, uint mode, uint opt)
         => sceKernelWaitMultipleEvents(events, count, mode, OptWord(opt, 0), new Ptr<uint>(OptWord(opt, 1)));
     [Hle] int _sceKernelCancelEvent(int uid, Ptr<uint> numWait) => sceKernelCancelEvent(uid, numWait);

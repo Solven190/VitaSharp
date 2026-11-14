@@ -244,15 +244,15 @@ public sealed partial class Net
         return NetErr(w == SceError.WAIT_TIMEOUT ? EAGAIN : EINTR);
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceNetRecv(int s, uint buf, uint len, int flags) => OnSock(s,
         so => buf == 0 && len != 0 ? NetErr(EINVAL) : RealReceive(so, buf, len, flags, 0, 0), so => ReceiveOffline(so, flags));
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceNetRecvfrom(int s, uint buf, uint len, int flags, uint from, uint fromlen) => OnSock(s,
         so => buf == 0 && len != 0 ? NetErr(EINVAL) : RealReceive(so, buf, len, flags, from, fromlen), so => ReceiveOffline(so, flags));
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceNetRecvmsg(int s, uint msg, int flags)
     {
         if (msg == 0) return NetErr(EINVAL);
@@ -421,8 +421,8 @@ public sealed partial class Net
 
     /// <summary>Timeout in microseconds; negative = forever, 0 = poll. Offline no registered socket ever becomes ready,
     /// so the wait ends on timeout (0 events) or on abort/destroy (EINTR).</summary>
-    [Hle("sceNetEpollWait")]
-    [Hle("sceNetEpollWaitCB")]
+    [Hle("sceNetEpollWait", Cost = HleCost.SchedulerWait)]
+    [Hle("sceNetEpollWaitCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceNetEpollWait(int eid, uint events, int maxevents, int timeout)
     {
         lock (_netLock)

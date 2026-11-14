@@ -248,22 +248,22 @@ public sealed partial class Display : HleModule
 
     // display waits go through the per-game frame rate mode (FrameRate): fixed modes cap the vblanks a wait asks for,
     // unlimited skips them
-    [Hle] int sceDisplayWaitVblankStart() { if (!FrameRate.NoWaits) VBlank.WaitNext(); return 0; }
-    [Hle] int sceDisplayWaitVblankStartCB() { if (!FrameRate.NoWaits) VBlank.WaitNext(); RunCallbacks(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceDisplayWaitVblankStart() { if (!FrameRate.NoWaits) VBlank.WaitNext(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)] int sceDisplayWaitVblankStartCB() { if (!FrameRate.NoWaits) VBlank.WaitNext(); RunCallbacks(); return 0; }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceDisplayWaitVblankStartMulti(uint count)
     {
         if (!FrameRate.NoWaits) VBlank.DisplayWait(VBlank.Count + FrameRate.Vblanks(count));
         return 0;
     }
 
-    [Hle] int sceDisplayWaitVblankStartMultiCB(uint count) { sceDisplayWaitVblankStartMulti(count); RunCallbacks(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)] int sceDisplayWaitVblankStartMultiCB(uint count) { sceDisplayWaitVblankStartMulti(count); RunCallbacks(); return 0; }
 
-    [Hle] int sceDisplayWaitSetFrameBuf() { if (!FrameRate.NoWaits) VBlank.WaitFor(_lastSetVcount + 1); return 0; }
-    [Hle] int sceDisplayWaitSetFrameBufCB() { if (!FrameRate.NoWaits) VBlank.WaitFor(_lastSetVcount + 1); RunCallbacks(); return 0; }
-    [Hle] int sceDisplayWaitSetFrameBufMulti(uint count) { if (!FrameRate.NoWaits) VBlank.DisplayWait(_lastSetVcount + FrameRate.Vblanks(count)); return 0; }
-    [Hle] int sceDisplayWaitSetFrameBufMultiCB(uint count) { if (!FrameRate.NoWaits) VBlank.DisplayWait(_lastSetVcount + FrameRate.Vblanks(count)); RunCallbacks(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceDisplayWaitSetFrameBuf() { if (!FrameRate.NoWaits) VBlank.WaitFor(_lastSetVcount + 1); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)] int sceDisplayWaitSetFrameBufCB() { if (!FrameRate.NoWaits) VBlank.WaitFor(_lastSetVcount + 1); RunCallbacks(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceDisplayWaitSetFrameBufMulti(uint count) { if (!FrameRate.NoWaits) VBlank.DisplayWait(_lastSetVcount + FrameRate.Vblanks(count)); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)] int sceDisplayWaitSetFrameBufMultiCB(uint count) { if (!FrameRate.NoWaits) VBlank.DisplayWait(_lastSetVcount + FrameRate.Vblanks(count)); RunCallbacks(); return 0; }
 
     /// <summary>On hardware the callbacks notified during a *CB wait run inside the wait, before it returns.</summary>
     static void RunCallbacks()
@@ -375,6 +375,10 @@ public sealed partial class Display : HleModule
 
 public sealed partial class Ctrl : HleModule
 {
+    /// <summary>libctrl's calls are syscalls into the controller driver; the reads wait for the next sample through the
+    /// thread manager.</summary>
+    public override HleCost DefaultCost => HleCost.SchedulerWait;
+
     uint _samplingMode;
     long _lastRead;
     bool _psDown;
@@ -467,7 +471,7 @@ public sealed partial class Ctrl : HleModule
 
     const Api Ext = Api.Ext, V2 = Api.Ext | Api.V2;
     [Hle]
-    [Hle("ksceCtrlPeekBufferPositive")]
+    [Hle("ksceCtrlPeekBufferPositive", Cost = HleCost.KernelEntry)]
     int sceCtrlPeekBufferPositive(int port, uint data, uint count) => Peek(Port(port), data, count, false, Api.Standard);
 
     [Hle] int sceCtrlPeekBufferNegative(int port, uint data, uint count) => Peek(Port(port), data, count, true, Api.Standard);
@@ -602,6 +606,10 @@ public sealed partial class Hid : HleModule
 
 public sealed partial class Touch : HleModule
 {
+    /// <summary>libtouch's calls are syscalls into the touch driver; the reads wait for the next sample through the
+    /// thread manager.</summary>
+    public override HleCost DefaultCost => HleCost.SchedulerWait;
+
     const int ERR_INVALID_ARG = unchecked((int)0x80350001);
     const int MaxBuffers = 64;
 

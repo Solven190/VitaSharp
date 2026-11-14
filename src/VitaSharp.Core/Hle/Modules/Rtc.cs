@@ -5,6 +5,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// <summary>SceRtc: ticks are microseconds since 0001-01-01 00:00:00 UTC.</summary>
 public sealed partial class Rtc : HleModule
 {
+    /// <summary>librtc's conversions and formatting run in user mode; the _sceRtc* entry points are its
+    /// syscalls.</summary>
+    public override HleCost DefaultCost => HleCost.UserLibrary;
+
     const ulong UnixEpochTick = 62135596800000000UL;
 
     // wall-clock date at boot plus guest elapsed time, so RTC deltas agree with the other guest clocks
@@ -33,7 +37,7 @@ public sealed partial class Rtc : HleModule
         catch { return DateTime.UnixEpoch; }
     }
 
-    [Hle("_sceRtcGetCurrentTick")]
+    [Hle("_sceRtcGetCurrentTick", Cost = HleCost.KernelEntry)]
     [Hle] internal int sceRtcGetCurrentTick(Ptr<ulong> tick) { tick.TrySet(TrophyServerTick(Emu) ?? NowTick); return 0; }
 
     /// <summary>The date of a trophy the trophy server bridge is giving (<see cref="Kernel.VitaSystem.TrophyUnlockTick"/>),
@@ -43,11 +47,11 @@ public sealed partial class Rtc : HleModule
         Interlocked.Read(ref emu.Vita.TrophyUnlockTick) is var t and not 0 && emu.IsShell
         && Kernel.GuestThread.Current?.Name.StartsWith("SceNpTrophyServer", StringComparison.Ordinal) == true ? (ulong)t : null;
 
-    [Hle("_sceRtcGetCurrentNetworkTick")]
+    [Hle("_sceRtcGetCurrentNetworkTick", Cost = HleCost.KernelEntry)]
     [Hle] internal int sceRtcGetCurrentNetworkTick(Ptr<ulong> tick) { tick.TrySet(NowTick); return 0; }
     [Hle] uint sceRtcGetTickResolution() => 1_000_000;
 
-    [Hle("_sceRtcGetCurrentClock")]
+    [Hle("_sceRtcGetCurrentClock", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcGetCurrentClock(uint time, int tzMinutes)
     {
@@ -55,7 +59,7 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcGetCurrentClockLocalTime")]
+    [Hle("_sceRtcGetCurrentClockLocalTime", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcGetCurrentClockLocalTime(uint time)
     {
@@ -118,7 +122,7 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcConvertUtcToLocalTime")]
+    [Hle("_sceRtcConvertUtcToLocalTime", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcConvertUtcToLocalTime(Ptr<ulong> utc, Ptr<ulong> local)
     {
@@ -127,7 +131,7 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcConvertLocalTimeToUtc")]
+    [Hle("_sceRtcConvertLocalTimeToUtc", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcConvertLocalTimeToUtc(Ptr<ulong> local, Ptr<ulong> utc)
     {
@@ -136,7 +140,7 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcFormatRFC3339")]
+    [Hle("_sceRtcFormatRFC3339", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcFormatRFC3339(uint buf, Ptr<ulong> tick, int tzMinutes)
     {
@@ -146,12 +150,12 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcFormatRFC3339LocalTime")]
+    [Hle("_sceRtcFormatRFC3339LocalTime", Cost = HleCost.KernelEntry)]
     [Hle]
     internal int sceRtcFormatRFC3339LocalTime(uint buf, Ptr<ulong> tick) =>
         sceRtcFormatRFC3339(buf, tick, (int)TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalMinutes);
 
-    [Hle("_sceRtcFormatRFC2822")]
+    [Hle("_sceRtcFormatRFC2822", Cost = HleCost.KernelEntry)]
     [Hle]
     int sceRtcFormatRFC2822(uint buf, Ptr<ulong> tick, int tzMinutes)
     {
@@ -160,7 +164,7 @@ public sealed partial class Rtc : HleModule
         return 0;
     }
 
-    [Hle("_sceRtcFormatRFC2822LocalTime")]
+    [Hle("_sceRtcFormatRFC2822LocalTime", Cost = HleCost.KernelEntry)]
     [Hle]
     int sceRtcFormatRFC2822LocalTime(uint buf, Ptr<ulong> tick) =>
         sceRtcFormatRFC2822(buf, tick, (int)TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalMinutes);
@@ -253,13 +257,13 @@ public sealed partial class Rtc : HleModule
 
     /// <summary>Ad hoc, debug, GPS and retained network clocks: no such sources here, they follow the network tick.</summary>
     [Hle("sceRtcGetCurrentAdNetworkTick")]
-    [Hle("_sceRtcGetCurrentAdNetworkTick")]
+    [Hle("_sceRtcGetCurrentAdNetworkTick", Cost = HleCost.KernelEntry)]
     [Hle("sceRtcGetCurrentDebugNetworkTick")]
-    [Hle("_sceRtcGetCurrentDebugNetworkTick")]
+    [Hle("_sceRtcGetCurrentDebugNetworkTick", Cost = HleCost.KernelEntry)]
     [Hle("sceRtcGetCurrentGpsTick")]
-    [Hle("_sceRtcGetCurrentGpsTick")]
+    [Hle("_sceRtcGetCurrentGpsTick", Cost = HleCost.KernelEntry)]
     [Hle("sceRtcGetCurrentRetainedNetworkTick")]
-    [Hle("_sceRtcGetCurrentRetainedNetworkTick")]
+    [Hle("_sceRtcGetCurrentRetainedNetworkTick", Cost = HleCost.KernelEntry)]
     int sceRtcGetCurrentOtherNetworkTick(Ptr<ulong> tick)
     {
         if (tick.IsNull) return RTC_INVALID_POINTER;
@@ -269,9 +273,9 @@ public sealed partial class Rtc : HleModule
 
     /// <summary>Last user clock adjustment / RTC reset: reported as the emulator's boot time.</summary>
     [Hle("sceRtcGetLastAdjustedTick")]
-    [Hle("_sceRtcGetLastAdjustedTick")]
+    [Hle("_sceRtcGetLastAdjustedTick", Cost = HleCost.KernelEntry)]
     [Hle("sceRtcGetLastReincarnatedTick")]
-    [Hle("_sceRtcGetLastReincarnatedTick")]
+    [Hle("_sceRtcGetLastReincarnatedTick", Cost = HleCost.KernelEntry)]
     int sceRtcGetLastAdjustedTick(Ptr<ulong> tick)
     {
         if (tick.IsNull) return RTC_INVALID_POINTER;

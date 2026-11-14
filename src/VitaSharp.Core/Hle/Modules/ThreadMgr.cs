@@ -32,7 +32,7 @@ public sealed partial class ThreadMgr : HleModule
         return t.Uid;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     [Hle("ksceKernelStartThread")]
     internal int sceKernelStartThread(int thid, uint argSize, uint argp)
     {
@@ -41,7 +41,7 @@ public sealed partial class ThreadMgr : HleModule
         return t.Start(argSize, argp);
     }
 
-    [Hle] void sceKernelExitThread(int status) => throw new GuestThreadExitException(status, false);
+    [Hle(Cost = HleCost.SchedulerWait)] void sceKernelExitThread(int status) => throw new GuestThreadExitException(status, false);
     [Hle] void sceKernelExitDeleteThread(int status) => throw new GuestThreadExitException(status, true);
 
     [Hle]
@@ -54,8 +54,8 @@ public sealed partial class ThreadMgr : HleModule
         return 0;
     }
 
-    [Hle("sceKernelWaitThreadEnd")]
-    [Hle("sceKernelWaitThreadEndCB")]
+    [Hle("sceKernelWaitThreadEnd", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitThreadEndCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     [Hle("ksceKernelWaitThreadEnd")]
     internal int sceKernelWaitThreadEnd(int thid, Ptr<int> stat, Ptr<uint> timeout)
     {
@@ -75,10 +75,10 @@ public sealed partial class ThreadMgr : HleModule
 
     /// <summary>sceKernelWaitSignal(unk, delay, timeout): blocks until another thread sent this thread a signal, then consumes it.
     /// A pending signal is consumed at once without touching timeout; delay is ignored (as Vita3K).</summary>
-    [Hle("sceKernelWaitSignal")]
-    [Hle("sceKernelWaitSignalCB")]
+    [Hle("sceKernelWaitSignal", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitSignalCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     [Hle("_sceKernelWaitSignal")]
-    [Hle("_sceKernelWaitSignalCB")]
+    [Hle("_sceKernelWaitSignalCB", CallbackWait = true)]
     int sceKernelWaitSignal(uint unk, uint delay, Ptr<uint> timeout)
     {
         var t = Self;
@@ -90,7 +90,7 @@ public sealed partial class ThreadMgr : HleModule
         }
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelSendSignal(int thid)
     {
         if (thid == SCE_KERNEL_THREAD_ID_SELF) return SceError.ILLEGAL_THREAD_ID; // Vita3K
@@ -105,14 +105,14 @@ public sealed partial class ThreadMgr : HleModule
         return 0;
     }
 
-    [Hle] internal int sceKernelGetThreadId() => Self.Uid;
+    [Hle(Cost = HleCost.UserInline)] internal int sceKernelGetThreadId() => Self.Uid;
 
     [Hle]
     [Hle("ksceKernelGetThreadCurrentPriority")] // same NID exported under the kernel name by early firmware
     int sceKernelGetThreadCurrentPriority() => Self.Priority;
 
-    [Hle]
-    [Hle("sceKernelChangeThreadPriority2")]
+    [Hle(Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelChangeThreadPriority2", Cost = HleCost.SchedulerWait)]
     internal int sceKernelChangeThreadPriority(int thid, int priority)
     {
         var t = K.GetThread(thid);
@@ -122,7 +122,7 @@ public sealed partial class ThreadMgr : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelChangeThreadCpuAffinityMask(int thid, int mask)
     {
         var t = K.GetThread(thid);
@@ -147,7 +147,7 @@ public sealed partial class ThreadMgr : HleModule
     ref int VfpExceptionWord(GuestThread t) => ref GuestMemory.Ref<int>(t.TlsBase + GuestThread.TlsVfpException * 4);
 
     /// <summary>mask = set | (mask &amp; ~clear). VitaSharp raises no VFP traps; the mask is only kept for the getter.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelChangeThreadVfpException(uint clear, uint set)
     {
         if (((clear | set) & ~VfpExceptionBits) != 0 || (clear & set) != 0) return SceError.INVALID_ARGUMENT;
@@ -220,20 +220,6 @@ public sealed partial class ThreadMgr : HleModule
         return KernelInfo.Write(info, full);
     }
 
-    /// <summary>Runs <paramref name="f"/> as a callback-processing wait (for *CB functions whose name does not end in
-    /// "CB", which the dispatcher would otherwise not recognise).</summary>
-    int WithCallbacks(Func<int> f)
-    {
-        var t = Self;
-        bool prev = t.CallbackWait;
-        t.CallbackWait = true;
-        try
-        {
-            if (t.PendingCallbacks > 0) ProcessCallbacks(t);
-            return f();
-        }
-        finally { t.CallbackWait = prev; }
-    }
 
     /// <summary>sceKernelCreateThreadForUser opt (0x18): +0 size, +4 stack_size, +8 attr, +0xC cpu_affinity_mask,
     /// +0x10 opt_param, +0x14 caller_address.</summary>
@@ -255,28 +241,29 @@ public sealed partial class ThreadMgr : HleModule
         return t.Uid;
     }
 
-    [Hle("sceKernelDelayThread")]
-    [Hle("sceKernelDelayThreadCB")]
+    [Hle("sceKernelDelayThread", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelDelayThreadCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     internal int sceKernelDelayThread(uint usec)
     {
         Kernel.Wait.Sleep(usec);
         return 0;
     }
 
-    [Hle] int sceKernelDelayThread200(uint usec) { Kernel.Wait.Sleep(Math.Max(usec, 200u)); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelDelayThread200(uint usec) { Kernel.Wait.Sleep(Math.Max(usec, 200u)); return 0; }
 
-    /// <summary>DelayThreadCB with the 200 us minimum; runs callbacks that arrive (name does not end in "CB").</summary>
-    [Hle]
+    /// <summary>DelayThreadCB with the 200 us minimum; runs the callbacks that arrive.</summary>
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelDelayThreadCB200(uint usec)
     {
-        WithCallbacks(() => { Kernel.Wait.Sleep(Math.Max(usec, 200u)); return 0; });
+        Kernel.Wait.Sleep(Math.Max(usec, 200u));
         if (Self.PendingCallbacks > 0) ProcessCallbacks(Self);
         return 0;
     }
 
     // firmware 0.89x NIDs of sceKernelWaitThreadEnd(CB)
-    [Hle] int sceKernelWaitThreadEnd_089(int thid, Ptr<int> stat, Ptr<uint> timeout) => sceKernelWaitThreadEnd(thid, stat, timeout);
-    [Hle] int sceKernelWaitThreadEndCB_089(int thid, Ptr<int> stat, Ptr<uint> timeout) => WithCallbacks(() => sceKernelWaitThreadEnd(thid, stat, timeout));
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelWaitThreadEnd_089(int thid, Ptr<int> stat, Ptr<uint> timeout) => sceKernelWaitThreadEnd(thid, stat, timeout);
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
+    int sceKernelWaitThreadEndCB_089(int thid, Ptr<int> stat, Ptr<uint> timeout) => sceKernelWaitThreadEnd(thid, stat, timeout);
 
     static long _getThreadInfoCalls;
 
@@ -333,7 +320,7 @@ public sealed partial class ThreadMgr : HleModule
         return sp > t.StackAddr && sp <= t.StackAddr + t.StackSize ? (int)(sp - t.StackAddr) : 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserInline)]
     uint sceKernelGetTLSAddr(int key)
     {
         if (key < 0 || key >= 0x100) return 0;
@@ -341,7 +328,7 @@ public sealed partial class ThreadMgr : HleModule
     }
 
     /// <summary>TLS slot address of another thread (0 = the calling thread); NULL for an unknown thread or key.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.UserLibrary)]
     uint sceKernelGetThreadTLSAddr(int thid, int key)
     {
         if (key < 0 || key >= 0x100) return 0;
@@ -439,23 +426,23 @@ public sealed partial class ThreadMgr : HleModule
         return match ? t : (ulong)(t / Util.TimeScale.Proc);
     }
     // the *Core forms are the SceProcessmgr syscalls behind the SceLibKernel wrappers
-    [Hle]
-    [Hle("sceKernelGetProcessTimeLowCore")]
+    [Hle(Cost = HleCost.UserLibrary)]
+    [Hle("sceKernelGetProcessTimeLowCore", Cost = HleCost.UserLibrary)]
     uint sceKernelGetProcessTimeLow() => (uint)ProcTime();
-    [Hle]
-    [Hle("sceKernelGetProcessTimeWideCore")]
+    [Hle(Cost = HleCost.UserLibrary)]
+    [Hle("sceKernelGetProcessTimeWideCore", Cost = HleCost.UserLibrary)]
     ulong sceKernelGetProcessTimeWide() => ProcTime();
-    [Hle] int sceKernelGetProcessTime(Ptr<ulong> clock) { clock.TrySet(ProcTime()); return 0; }
+    [Hle(Cost = HleCost.UserLibrary)] int sceKernelGetProcessTime(Ptr<ulong> clock) { clock.TrySet(ProcTime()); return 0; }
     /// <summary>Copies the 8-byte clock to user memory; a NULL pointer fails the copy (error code approximated).</summary>
-    [Hle]
+    [Hle(Cost = HleCost.UserLibrary)]
     int sceKernelGetProcessTimeCore(Ptr<ulong> clock)
     {
         if (clock.IsNull) return SceError.ILLEGAL_ADDR;
         clock.Value = ProcTime();
         return 0;
     }
-    [Hle] ulong sceKernelGetSystemTimeWide() => K.ProcessTimeUs;
-    [Hle] int sceKernelGetSystemTime(Ptr<ulong> clock) { clock.TrySet(K.ProcessTimeUs); return 0; }
+    [Hle(Cost = HleCost.UserLibrary)] ulong sceKernelGetSystemTimeWide() => K.ProcessTimeUs;
+    [Hle(Cost = HleCost.UserLibrary)] int sceKernelGetSystemTime(Ptr<ulong> clock) { clock.TrySet(K.ProcessTimeUs); return 0; }
 
     // ------------------------------------------------------------------ semaphores
 
@@ -483,13 +470,13 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle] int sceKernelOpenSema(uint name) => KernelInfo.OpenByName<Semaphore>(K.Objects, name);
     [Hle] int sceKernelCloseSema(int uid) => KernelInfo.CloseHandle<Semaphore>(K.Objects, uid, SceError.UNKNOWN_SEMA_ID);
-    [Hle] internal int sceKernelSignalSema(int uid, int signal) => Obj<Semaphore>(uid)?.Signal(signal) ?? SceError.UNKNOWN_SEMA_ID;
+    [Hle(Cost = HleCost.SchedulerWait)] internal int sceKernelSignalSema(int uid, int signal) => Obj<Semaphore>(uid)?.Signal(signal) ?? SceError.UNKNOWN_SEMA_ID;
 
-    [Hle("sceKernelWaitSema")]
-    [Hle("sceKernelWaitSemaCB")]
+    [Hle("sceKernelWaitSema", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitSemaCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     internal int sceKernelWaitSema(int uid, int need, Ptr<uint> timeout) => Obj<Semaphore>(uid)?.WaitSema(need, timeout) ?? SceError.UNKNOWN_SEMA_ID;
 
-    [Hle] int sceKernelPollSema(int uid, int need) => Obj<Semaphore>(uid)?.Poll(need) ?? SceError.UNKNOWN_SEMA_ID;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelPollSema(int uid, int need) => Obj<Semaphore>(uid)?.Poll(need) ?? SceError.UNKNOWN_SEMA_ID;
     [Hle] int sceKernelCancelSema(int uid, int setCount, Ptr<int> numWait) => Obj<Semaphore>(uid)?.Cancel(setCount, numWait) ?? SceError.UNKNOWN_SEMA_ID;
 
     [Hle]
@@ -528,15 +515,15 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle] int sceKernelOpenEventFlag(uint name) => KernelInfo.OpenByName<EventFlag>(K.Objects, name);
     [Hle] int sceKernelCloseEventFlag(int uid) => KernelInfo.CloseHandle<EventFlag>(K.Objects, uid, SceError.UNKNOWN_EVF_ID);
-    [Hle] internal int sceKernelSetEventFlag(int uid, uint bits) { var e = Obj<EventFlag>(uid); if (e == null) return SceError.UNKNOWN_EVF_ID; e.Set(bits); return 0; }
-    [Hle] internal int sceKernelClearEventFlag(int uid, uint bits) { var e = Obj<EventFlag>(uid); if (e == null) return SceError.UNKNOWN_EVF_ID; e.Clear(bits); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] internal int sceKernelSetEventFlag(int uid, uint bits) { var e = Obj<EventFlag>(uid); if (e == null) return SceError.UNKNOWN_EVF_ID; e.Set(bits); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] internal int sceKernelClearEventFlag(int uid, uint bits) { var e = Obj<EventFlag>(uid); if (e == null) return SceError.UNKNOWN_EVF_ID; e.Clear(bits); return 0; }
 
-    [Hle("sceKernelWaitEventFlag")]
-    [Hle("sceKernelWaitEventFlagCB")]
+    [Hle("sceKernelWaitEventFlag", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitEventFlagCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     internal int sceKernelWaitEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits, Ptr<uint> timeout)
         => Obj<EventFlag>(uid)?.WaitFlag(bits, mode, outBits, timeout) ?? SceError.UNKNOWN_EVF_ID;
 
-    [Hle] int sceKernelPollEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits) => Obj<EventFlag>(uid)?.Poll(bits, mode, outBits) ?? SceError.UNKNOWN_EVF_ID;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelPollEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits) => Obj<EventFlag>(uid)?.Poll(bits, mode, outBits) ?? SceError.UNKNOWN_EVF_ID;
     [Hle] int sceKernelCancelEventFlag(int uid, uint pattern, Ptr<int> numWait) => Obj<EventFlag>(uid)?.Cancel(pattern, numWait) ?? SceError.UNKNOWN_EVF_ID;
 
     [Hle]
@@ -614,7 +601,7 @@ public sealed partial class ThreadMgr : HleModule
     }
 
     [Hle("sceKernelLockMutex")]
-    [Hle("sceKernelLockMutexCB")]
+    [Hle("sceKernelLockMutexCB", CallbackWait = true)]
     [Hle("ksceKernelLockMutex")]
     int sceKernelLockMutex(int uid, int count, Ptr<uint> timeout) => Obj<Mutex>(uid)?.Lock(Self, count, timeout) ?? SceError.UNKNOWN_MUTEX_ID;
 
@@ -659,18 +646,18 @@ public sealed partial class ThreadMgr : HleModule
         return 0;
     }
 
-    [Hle("sceKernelLockLwMutex")]
-    [Hle("sceKernelLockLwMutexCB")]
-    [Hle("sceKernelLockLwMutex_0")] // older SDKs' NID of the same call (Vita3K: an alias)
+    [Hle("sceKernelLockLwMutex", Cost = HleCost.UserCall)]
+    [Hle("sceKernelLockLwMutexCB", Cost = HleCost.UserCall, CallbackWait = true)]
+    [Hle("sceKernelLockLwMutex_0", Cost = HleCost.UserCall)] // older SDKs' NID of the same call (Vita3K: an alias)
     internal int sceKernelLockLwMutex(uint work, int count, Ptr<uint> timeout) => LwMutexOf(work)?.Lock(Self, count, timeout) ?? SceError.UNKNOWN_LW_MUTEX_ID;
 
-    [Hle("sceKernelTryLockLwMutex")]
-    [Hle("sceKernelTryLockLwMutex_16XX")] // the 1.6x SDKs' NID (Vita3K: an alias)
+    [Hle("sceKernelTryLockLwMutex", Cost = HleCost.UserCall)]
+    [Hle("sceKernelTryLockLwMutex_16XX", Cost = HleCost.UserCall)] // the 1.6x SDKs' NID (Vita3K: an alias)
     internal int sceKernelTryLockLwMutex(uint work, int count) => LwMutexOf(work)?.TryLock(Self, count) ?? SceError.UNKNOWN_LW_MUTEX_ID;
 
-    [Hle("sceKernelUnlockLwMutex")]
-    [Hle("sceKernelUnlockLwMutex2")]
-    [Hle("sceKernelUnlockLwMutex_0")]
+    [Hle("sceKernelUnlockLwMutex", Cost = HleCost.UserCall)]
+    [Hle("sceKernelUnlockLwMutex2", Cost = HleCost.UserCall)]
+    [Hle("sceKernelUnlockLwMutex_0", Cost = HleCost.UserCall)]
     internal int sceKernelUnlockLwMutex(uint work, int count) => LwMutexOf(work)?.Unlock(Self, count) ?? SceError.LW_MUTEX_NOT_OWNED;
 
     [Hle]
@@ -706,14 +693,14 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle] int sceKernelDeleteCond(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.Delete(); K.Objects.Remove(uid); return 0; }
 
-    [Hle("sceKernelWaitCond")]
-    [Hle("sceKernelWaitCondCB")]
+    [Hle("sceKernelWaitCond", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitCondCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelWaitCond(int uid, Ptr<uint> timeout) => Obj<CondVar>(uid)?.WaitCond(Self, timeout) ?? SceError.UNKNOWN_COND_ID;
 
-    [Hle] int sceKernelSignalCond(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.Signal(); return 0; }
-    [Hle] int sceKernelSignalCondAll(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.SignalAll(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelSignalCond(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.Signal(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelSignalCondAll(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.SignalAll(); return 0; }
     /// <summary>Wakes the given thread if it waits on the cond; ILLEGAL_THREAD_ID when it does not (Vita3K).</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelSignalCondTo(int uid, int thid)
     {
         var c = Obj<CondVar>(uid);
@@ -781,13 +768,13 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle] internal int sceKernelDeleteLwCond(uint work) { var c = LwCondOf(work); if (c == null) return SceError.UNKNOWN_LW_COND_ID; c.Delete(); K.Objects.Remove(c.Uid); return 0; }
 
-    [Hle("sceKernelWaitLwCond")]
-    [Hle("sceKernelWaitLwCondCB")]
+    [Hle("sceKernelWaitLwCond", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitLwCondCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     internal int sceKernelWaitLwCond(uint work, Ptr<uint> timeout) => LwCondOf(work)?.WaitCond(Self, timeout) ?? SceError.UNKNOWN_LW_COND_ID;
 
-    [Hle] internal int sceKernelSignalLwCond(uint work) { var c = LwCondOf(work); if (c == null) return SceError.UNKNOWN_LW_COND_ID; c.Signal(); return 0; }
-    [Hle] internal int sceKernelSignalLwCondAll(uint work) { var c = LwCondOf(work); if (c == null) return SceError.UNKNOWN_LW_COND_ID; c.SignalAll(); return 0; }
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)] internal int sceKernelSignalLwCond(uint work) { var c = LwCondOf(work); if (c == null) return SceError.UNKNOWN_LW_COND_ID; c.Signal(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)] internal int sceKernelSignalLwCondAll(uint work) { var c = LwCondOf(work); if (c == null) return SceError.UNKNOWN_LW_COND_ID; c.SignalAll(); return 0; }
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelSignalLwCondTo(uint work, int thid)
     {
         var c = LwCondOf(work);
@@ -940,16 +927,16 @@ public sealed partial class ThreadMgr : HleModule
         return GuestMemory.R32(processParam + 0xC);
     }
 
-    [Hle("sceKernelSendMsgPipeVector")]
-    [Hle("sceKernelSendMsgPipeVectorCB")]
+    [Hle("sceKernelSendMsgPipeVector", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelSendMsgPipeVectorCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelSendMsgPipeVector(int uid, uint vec, uint count, uint mode, Ptr<uint> result, Ptr<uint> timeout)
         => MsgPipeVector(uid, vec, count, mode, result, timeout, true, false);
 
     [Hle] int sceKernelTrySendMsgPipeVector(int uid, uint vec, uint count, uint mode, Ptr<uint> result)
         => MsgPipeVector(uid, vec, count, mode, result, default, true, true);
 
-    [Hle("sceKernelReceiveMsgPipeVector")]
-    [Hle("sceKernelReceiveMsgPipeVectorCB")]
+    [Hle("sceKernelReceiveMsgPipeVector", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelReceiveMsgPipeVectorCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelReceiveMsgPipeVector(int uid, uint vec, uint count, uint mode, Ptr<uint> result, Ptr<uint> timeout)
         => MsgPipeVector(uid, vec, count, mode, result, timeout, false, false);
 
@@ -966,8 +953,8 @@ public sealed partial class ThreadMgr : HleModule
         return 0;
     }
 
-    [Hle("sceKernelSendMsgPipe")]
-    [Hle("sceKernelSendMsgPipeCB")]
+    [Hle("sceKernelSendMsgPipe", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelSendMsgPipeCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelSendMsgPipe(int uid, uint buf, uint size, uint mode, Ptr<uint> result, Ptr<uint> timeout)
     {
         if ((mode & MsgPipe.DontWait) != 0 && Obj<MsgPipe>(uid) is { } pipe)
@@ -981,8 +968,8 @@ public sealed partial class ThreadMgr : HleModule
     [Hle] int sceKernelTrySendMsgPipe(int uid, uint buf, uint size, uint mode, Ptr<uint> result)
         => Obj<MsgPipe>(uid)?.Send(buf, (int)size, mode, result, default, true) ?? SceError.UNKNOWN_MSG_PIPE_ID;
 
-    [Hle("sceKernelReceiveMsgPipe")]
-    [Hle("sceKernelReceiveMsgPipeCB")]
+    [Hle("sceKernelReceiveMsgPipe", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelReceiveMsgPipeCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelReceiveMsgPipe(int uid, uint buf, uint size, uint mode, Ptr<uint> result, Ptr<uint> timeout)
     {
         if ((mode & MsgPipe.DontWait) != 0 && Obj<MsgPipe>(uid) is { } pipe)
@@ -1004,11 +991,11 @@ public sealed partial class ThreadMgr : HleModule
     [Hle] int sceKernelDeleteRWLock(int uid) { var l = Obj<RwLock>(uid); if (l == null) return SceError.UNKNOWN_RW_LOCK_ID; l.Delete(); K.Objects.Remove(uid); return 0; }
 
     [Hle("sceKernelLockReadRWLock")]
-    [Hle("sceKernelLockReadRWLockCB")]
+    [Hle("sceKernelLockReadRWLockCB", CallbackWait = true)]
     int sceKernelLockReadRWLock(int uid, Ptr<uint> timeout) => Obj<RwLock>(uid)?.LockRead(Self, timeout) ?? SceError.UNKNOWN_RW_LOCK_ID;
 
     [Hle("sceKernelLockWriteRWLock")]
-    [Hle("sceKernelLockWriteRWLockCB")]
+    [Hle("sceKernelLockWriteRWLockCB", CallbackWait = true)]
     int sceKernelLockWriteRWLock(int uid, Ptr<uint> timeout) => Obj<RwLock>(uid)?.LockWrite(Self, timeout) ?? SceError.UNKNOWN_RW_LOCK_ID;
 
     [Hle] int sceKernelTryLockReadRWLock(int uid) => Obj<RwLock>(uid)?.TryLockRead(Self) ?? SceError.UNKNOWN_RW_LOCK_ID;
@@ -1299,8 +1286,8 @@ public sealed partial class ThreadMgr : HleModule
     [Hle] int sceKernelOpenSimpleEvent(uint name) => KernelInfo.OpenByName<SimpleEvent>(K.Objects, name, static e => (e.Attr & EventBits.AttrOpenable) != 0);
     [Hle] int sceKernelCloseSimpleEvent(int uid) => KernelInfo.CloseHandle<SimpleEvent>(K.Objects, uid, SceError.UNKNOWN_EVENT_ID);
 
-    [Hle] int sceKernelSetEvent(int uid, uint setPattern, ulong userData) => Event(uid)?.SetOrPulse(setPattern, userData, false) ?? SceError.UNKNOWN_EVENT_ID;
-    [Hle] int sceKernelPulseEvent(int uid, uint setPattern, ulong userData) => Event(uid)?.SetOrPulse(setPattern, userData, true) ?? SceError.UNKNOWN_EVENT_ID;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelSetEvent(int uid, uint setPattern, ulong userData) => Event(uid)?.SetOrPulse(setPattern, userData, false) ?? SceError.UNKNOWN_EVENT_ID;
+    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelPulseEvent(int uid, uint setPattern, ulong userData) => Event(uid)?.SetOrPulse(setPattern, userData, true) ?? SceError.UNKNOWN_EVENT_ID;
 
     /// <summary>sceKernelSetEventWithNotifyCallback / PulseEventWithNotifyCallback(uid, pattern, userData, notifyArg):
     /// the set (pulse) of sceKernelSetEvent, then the callbacks registered to the event are notified with notifyArg
@@ -1318,7 +1305,7 @@ public sealed partial class ThreadMgr : HleModule
         param == 0 ? SceError.ILLEGAL_ADDR : sceKernelPulseEvent(uid, setPattern, GuestMemory.Read<ulong>(param));
 
     /// <summary>Keeps only the given bits; on a timer it clears the event state.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelClearEvent(int uid, uint keepPattern)
     {
         if (Event(uid) is { } e) return e.Clear(keepPattern);
@@ -1326,8 +1313,8 @@ public sealed partial class ThreadMgr : HleModule
         return SceError.UNKNOWN_EVENT_ID;
     }
 
-    [Hle("sceKernelWaitEvent")]
-    [Hle("sceKernelWaitEventCB")]
+    [Hle("sceKernelWaitEvent", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitEventCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelWaitEvent(int uid, uint waitPattern, Ptr<uint> resultPattern, Ptr<ulong> userData, Ptr<uint> timeout)
     {
         if (Event(uid) is { } e) return e.Wait(Self, waitPattern, resultPattern, userData, timeout);
@@ -1337,7 +1324,7 @@ public sealed partial class ThreadMgr : HleModule
         return SceError.UNKNOWN_EVENT_ID;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelPollEvent(int uid, uint waitPattern, Ptr<uint> resultPattern, Ptr<ulong> userData)
     {
         if (Event(uid) is { } e) return e.Poll(waitPattern, resultPattern, userData);
@@ -1358,8 +1345,8 @@ public sealed partial class ThreadMgr : HleModule
     /// the time runs out first (the results so far stay). Any event object works: simple events, timers, message pipes
     /// and asynchronous I/O operations, the objects sceKernelPollEvent takes.
     /// </summary>
-    [Hle("sceKernelWaitMultipleEvents")]
-    [Hle("sceKernelWaitMultipleEventsCB")]
+    [Hle("sceKernelWaitMultipleEvents", Cost = HleCost.SchedulerWait)]
+    [Hle("sceKernelWaitMultipleEventsCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceKernelWaitMultipleEvents(uint events, uint count, uint mode, uint results, Ptr<uint> timeout)
     {
         if (events == 0) return SceError.ILLEGAL_ADDR;

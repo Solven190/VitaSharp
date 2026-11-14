@@ -12,6 +12,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// <summary>SceGxm: GPU command recording. Draws become <see cref="GpuCommand"/>s executed by the GPU worker.</summary>
 public sealed partial class Gxm : HleModule
 {
+    /// <summary>libgxm builds command lists in user mode; its kernel calls go through the GPU driver's own
+    /// syscalls.</summary>
+    public override HleCost DefaultCost => HleCost.UserLibrary;
+
     const int ERR_UNINITIALIZED = unchecked((int)0x805B0000), ERR_ALREADY_INITIALIZED = unchecked((int)0x805B0001),
         ERR_INVALID_VALUE = unchecked((int)0x805B0003), ERR_INVALID_POINTER = unchecked((int)0x805B0004),
         ERR_INVALID_ALIGNMENT = unchecked((int)0x805B0005), ERR_NOT_WITHIN_SCENE = unchecked((int)0x805B0006),
@@ -169,12 +173,12 @@ public sealed partial class Gxm : HleModule
     [Hle] int sceGxmPadHeartbeat(uint displaySurface, uint displaySync) => 0;
     /// <summary>SCE_GXM_WCLAMP_MODE_ENABLED = 0x8000. Stored in the draw state; the clamp itself is not applied by the
     /// renderer yet (Vulkan clipping already handles W &lt;= 0).</summary>
-    [Hle] void sceGxmSetWClampEnable(uint ctx, uint enable) { if (Ctx(ctx) is { } c) c.State.WClampEnabled = enable != 0; }
-    [Hle] void sceGxmSetWClampValue(uint ctx, float value) { if (Ctx(ctx) is { } c) c.State.WClampValue = value; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetWClampEnable(uint ctx, uint enable) { if (Ctx(ctx) is { } c) c.State.WClampEnabled = enable != 0; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetWClampValue(uint ctx, float value) { if (Ctx(ctx) is { } c) c.State.WClampValue = value; }
     [Hle] int sceGxmIsDebugVersion() => 0;
-    [Hle] int sceGxmSetValidationEnable(uint ctx, uint enable) => 0;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmSetValidationEnable(uint ctx, uint enable) => 0;
     /// <summary>Inferred (not in vita-headers): toggles a warning class of the debug libgxm; a no-op in release.</summary>
-    [Hle] int sceGxmSetWarningEnabled(uint warning, uint enable) => 0;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmSetWarningEnabled(uint warning, uint enable) => 0;
 
     /// <summary>Parameter buffer threshold: VitaSharp has no parameter buffer (never partial-renders), so the size given to
     /// sceGxmInitialize is reported (actual hardware fraction unknown).</summary>
@@ -219,7 +223,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] int sceGxmSetUserMarker(uint ctx, uint tag) => Ctx(ctx) == null ? ERR_INVALID_POINTER : 0;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmSetUserMarker(uint ctx, uint tag) => Ctx(ctx) == null ? ERR_INVALID_POINTER : 0;
 
     // ---- Razor GPU capture/trace (devkit profiler): no capture is ever taken, so registering memory is a no-op
 
@@ -790,10 +794,10 @@ public sealed partial class Gxm : HleModule
 
     // =========================================================== state setters
 
-    [Hle] void sceGxmSetVertexProgram(uint ctx, uint vp) { if (Ctx(ctx) is { } c) Edit(c, _vertexPrograms.GetValueOrDefault(vp), static (c, p) => c.VertexProgram = p); }
-    [Hle] void sceGxmSetFragmentProgram(uint ctx, uint fp) { if (Ctx(ctx) is { } c) Edit(c, _fragmentPrograms.GetValueOrDefault(fp), static (c, p) => c.FragmentProgram = p); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetVertexProgram(uint ctx, uint vp) { if (Ctx(ctx) is { } c) Edit(c, _vertexPrograms.GetValueOrDefault(vp), static (c, p) => c.VertexProgram = p); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFragmentProgram(uint ctx, uint fp) { if (Ctx(ctx) is { } c) Edit(c, _fragmentPrograms.GetValueOrDefault(fp), static (c, p) => c.FragmentProgram = p); }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetVertexStream(uint ctx, uint index, uint data)
     {
         var c = Ctx(ctx);
@@ -803,7 +807,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetFragmentTexture(uint ctx, uint index, uint texture)
     {
         var c = Ctx(ctx);
@@ -813,8 +817,8 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
-    [Hle(Nid = 0x16C9D339, Library = "SceGxm")] // _sceGxmSetVertexTexture (old SDK)
+    [Hle(Cost = HleCost.UserCall)]
+    [Hle(Nid = 0x16C9D339, Library = "SceGxm", Cost = HleCost.UserCall)] // _sceGxmSetVertexTexture (old SDK)
     int sceGxmSetVertexTexture(uint ctx, uint index, uint texture)
     {
         var c = Ctx(ctx);
@@ -824,7 +828,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetVertexUniformBuffer(uint ctx, uint index, uint data)
     {
         var c = Ctx(ctx);
@@ -834,7 +838,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetFragmentUniformBuffer(uint ctx, uint index, uint data)
     {
         var c = Ctx(ctx);
@@ -844,10 +848,10 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] int sceGxmSetVertexDefaultUniformBuffer(uint ctx, uint data) { if (Ctx(ctx) is { } c) c.VertexUniformBuffers[14] = data; return 0; }
-    [Hle] int sceGxmSetFragmentDefaultUniformBuffer(uint ctx, uint data) { if (Ctx(ctx) is { } c) c.FragmentUniformBuffers[14] = data; return 0; }
+    [Hle(Cost = HleCost.UserCall)] int sceGxmSetVertexDefaultUniformBuffer(uint ctx, uint data) { if (Ctx(ctx) is { } c) c.VertexUniformBuffers[14] = data; return 0; }
+    [Hle(Cost = HleCost.UserCall)] int sceGxmSetFragmentDefaultUniformBuffer(uint ctx, uint data) { if (Ctx(ctx) is { } c) c.FragmentUniformBuffers[14] = data; return 0; }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmReserveVertexDefaultUniformBuffer(uint ctx, Ptr<uint> outBuf)
     {
         var c = Ctx(ctx);
@@ -873,7 +877,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmReserveFragmentDefaultUniformBuffer(uint ctx, Ptr<uint> outBuf)
     {
         var c = Ctx(ctx);
@@ -899,19 +903,19 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] internal void sceGxmSetCullMode(uint ctx, uint mode) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.CullModeOffset, (byte)mode); }
-    [Hle] void sceGxmSetTwoSidedEnable(uint ctx, uint mode) { if (Ctx(ctx) is { } c) Edit(c, mode != 0, static (c, v) => c.State.TwoSided = v); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetCullMode(uint ctx, uint mode) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.CullModeOffset, (byte)mode); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetTwoSidedEnable(uint ctx, uint mode) { if (Ctx(ctx) is { } c) Edit(c, mode != 0, static (c, v) => c.State.TwoSided = v); }
 
-    [Hle] internal void sceGxmSetFrontDepthFunc(uint ctx, uint f) { if (Ctx(ctx) is { } c) Edit(c, (byte)(f >> 22), static (c, v) => c.State.Front.DepthFunc = v); }
-    [Hle] void sceGxmSetBackDepthFunc(uint ctx, uint f) { if (Ctx(ctx) is { } c) Edit(c, (byte)(f >> 22), static (c, v) => c.State.Back.DepthFunc = v); }
-    [Hle] internal void sceGxmSetFrontDepthWriteEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Front.DepthWrite = v); }
-    [Hle] internal void sceGxmSetBackDepthWriteEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Back.DepthWrite = v); }
-    [Hle] void sceGxmSetFrontFragmentProgramEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Front.FragmentEnabled = v); }
-    [Hle] void sceGxmSetBackFragmentProgramEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Back.FragmentEnabled = v); }
-    [Hle] internal void sceGxmSetFrontPolygonMode(uint ctx, uint m) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.FrontPolygonModeOffset, (byte)(m >> 15)); }
-    [Hle] internal void sceGxmSetBackPolygonMode(uint ctx, uint m) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.BackPolygonModeOffset, (byte)(m >> 15)); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetFrontDepthFunc(uint ctx, uint f) { if (Ctx(ctx) is { } c) Edit(c, (byte)(f >> 22), static (c, v) => c.State.Front.DepthFunc = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackDepthFunc(uint ctx, uint f) { if (Ctx(ctx) is { } c) Edit(c, (byte)(f >> 22), static (c, v) => c.State.Back.DepthFunc = v); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetFrontDepthWriteEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Front.DepthWrite = v); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetBackDepthWriteEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Back.DepthWrite = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontFragmentProgramEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Front.FragmentEnabled = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackFragmentProgramEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) Edit(c, e == 0, static (c, v) => c.State.Back.FragmentEnabled = v); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetFrontPolygonMode(uint ctx, uint m) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.FrontPolygonModeOffset, (byte)(m >> 15)); }
+    [Hle(Cost = HleCost.UserCall)] internal void sceGxmSetBackPolygonMode(uint ctx, uint m) { if (Ctx(ctx) is { } c) GuestMemory.Write(c.Handle + GxmContext.BackPolygonModeOffset, (byte)(m >> 15)); }
     /// <summary>SCE_GXM_WBUFFER_ENABLED = 0x4000 (not 1).</summary>
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     void sceGxmSetWBufferEnable(uint ctx, uint enable)
     {
         if (Ctx(ctx) is not { } c) return;
@@ -919,12 +923,12 @@ public sealed partial class Gxm : HleModule
         if (enable != 0) Log.WarnOnce("gxm-wbuffer", "sceGxmSetWBufferEnable: W-buffering approximated with Z/W depth");
     }
     /// <summary>SCE_GXM_LINE_FILL_LAST_PIXEL_ENABLED = 0x80000.</summary>
-    [Hle] void sceGxmSetFrontLineFillLastPixelEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.State.Front.LineFillLastPixel = e != 0; }
-    [Hle] void sceGxmSetBackLineFillLastPixelEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.State.Back.LineFillLastPixel = e != 0; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontLineFillLastPixelEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.State.Front.LineFillLastPixel = e != 0; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackLineFillLastPixelEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.State.Back.LineFillLastPixel = e != 0; }
 
     /// <summary>YUV->RGB matrix of the colour space converter <paramref name="index"/> (0/1): BT601 0, BT709 1,
     /// BT601 full range 2, BT709 full range 3. Stored per context; the texture decoder still uses its fixed matrices.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetYuvProfile(uint ctx, uint index, uint profile)
     {
         if (Ctx(ctx) is not { } c) return ERR_INVALID_POINTER;
@@ -932,10 +936,10 @@ public sealed partial class Gxm : HleModule
         c.YuvProfile[index] = (byte)profile;
         return 0;
     }
-    [Hle] void sceGxmSetFrontPointLineWidth(uint ctx, uint w) { if (Ctx(ctx) is { } c) c.State.Front.PointLineWidth = (byte)w; }
-    [Hle] void sceGxmSetBackPointLineWidth(uint ctx, uint w) { if (Ctx(ctx) is { } c) c.State.Back.PointLineWidth = (byte)w; }
-    [Hle] void sceGxmSetFrontDepthBias(uint ctx, int factor, int units) { if (Ctx(ctx) is { } c) { c.State.Front.DepthBiasFactor = factor; c.State.Front.DepthBiasUnits = units; } }
-    [Hle] void sceGxmSetBackDepthBias(uint ctx, int factor, int units) { if (Ctx(ctx) is { } c) { c.State.Back.DepthBiasFactor = factor; c.State.Back.DepthBiasUnits = units; } }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontPointLineWidth(uint ctx, uint w) { if (Ctx(ctx) is { } c) c.State.Front.PointLineWidth = (byte)w; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackPointLineWidth(uint ctx, uint w) { if (Ctx(ctx) is { } c) c.State.Back.PointLineWidth = (byte)w; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontDepthBias(uint ctx, int factor, int units) { if (Ctx(ctx) is { } c) { c.State.Front.DepthBiasFactor = factor; c.State.Front.DepthBiasUnits = units; } }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackDepthBias(uint ctx, int factor, int units) { if (Ctx(ctx) is { } c) { c.State.Back.DepthBiasFactor = factor; c.State.Back.DepthBiasUnits = units; } }
 
     static void SetStencil(ref StencilState s, uint func, uint sf, uint df, uint dp, uint compareMask, uint writeMask)
     {
@@ -947,7 +951,7 @@ public sealed partial class Gxm : HleModule
         s.WriteMask = (byte)writeMask;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     void sceGxmSetFrontStencilFunc(uint ctx, uint func, uint stencilFail, uint depthFail, uint depthPass, uint compareMask, uint writeMask)
     {
         if (Ctx(ctx) is not { } c) return;
@@ -957,7 +961,7 @@ public sealed partial class Gxm : HleModule
         c.PublishGuestState();
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     void sceGxmSetBackStencilFunc(uint ctx, uint func, uint stencilFail, uint depthFail, uint depthPass, uint compareMask, uint writeMask)
     {
         if (Ctx(ctx) is not { } c) return;
@@ -966,10 +970,10 @@ public sealed partial class Gxm : HleModule
         c.PublishGuestState();
     }
 
-    [Hle] void sceGxmSetFrontStencilRef(uint ctx, uint r) { if (Ctx(ctx) is { } c) Edit(c, (byte)r, static (c, v) => { c.State.Front.Stencil.Ref = v; if (!c.State.TwoSided) c.State.Back.Stencil.Ref = v; }); }
-    [Hle] void sceGxmSetBackStencilRef(uint ctx, uint r) { if (Ctx(ctx) is { } c) Edit(c, (byte)r, static (c, v) => c.State.Back.Stencil.Ref = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontStencilRef(uint ctx, uint r) { if (Ctx(ctx) is { } c) Edit(c, (byte)r, static (c, v) => { c.State.Front.Stencil.Ref = v; if (!c.State.TwoSided) c.State.Back.Stencil.Ref = v; }); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackStencilRef(uint ctx, uint r) { if (Ctx(ctx) is { } c) Edit(c, (byte)r, static (c, v) => c.State.Back.Stencil.Ref = v); }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     void sceGxmSetViewport(uint ctx, float xOffset, float xScale, float yOffset, float yScale, float zOffset, float zScale)
     {
         if (Ctx(ctx) is not { } c) return;
@@ -980,9 +984,9 @@ public sealed partial class Gxm : HleModule
         c.PublishGuestState();
     }
 
-    [Hle] void sceGxmSetViewportEnable(uint ctx, uint enable) { if (Ctx(ctx) is { } c) Edit(c, enable == 0, static (c, v) => { c.State.ViewportEnabled = v; c.ViewportSet = true; }); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetViewportEnable(uint ctx, uint enable) { if (Ctx(ctx) is { } c) Edit(c, enable == 0, static (c, v) => { c.State.ViewportEnabled = v; c.ViewportSet = true; }); }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     void sceGxmSetRegionClip(uint ctx, uint mode, uint xMin, uint yMin, uint xMax, uint yMax)
     {
         if (Ctx(ctx) is not { } c) return;
@@ -994,18 +998,18 @@ public sealed partial class Gxm : HleModule
         c.PublishGuestState();
     }
 
-    [Hle] void sceGxmSetDefaultRegionClipAndViewport(uint ctx, uint xMax, uint yMax) { if (Ctx(ctx) is { } c) { SetDefaultRegionClipAndViewport(c, xMax, yMax); Edit(c, 0, static (c, _) => c.ViewportSet = c.RegionClipSet = true); } }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetDefaultRegionClipAndViewport(uint ctx, uint xMax, uint yMax) { if (Ctx(ctx) is { } c) { SetDefaultRegionClipAndViewport(c, xMax, yMax); Edit(c, 0, static (c, _) => c.ViewportSet = c.RegionClipSet = true); } }
     // visibility tests: the GPU counts the samples of a draw that pass the depth/stencil tests into a word of the
     // visibility buffer (index * 4 within the per-core stride); games use them for occlusion culling and streaming
     const uint VisibilityOpIncrement = 0, VisibilityAlignment = 16;
-    [Hle] void sceGxmSetFrontVisibilityTestEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.VisFrontEnable = e != 0; }
-    [Hle] void sceGxmSetBackVisibilityTestEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.VisBackEnable = e != 0; }
-    [Hle] void sceGxmSetFrontVisibilityTestIndex(uint ctx, uint i) { if (Ctx(ctx) is { } c) Edit(c, i, static (c, v) => c.VisFrontIndex = v); }
-    [Hle] void sceGxmSetBackVisibilityTestIndex(uint ctx, uint i) { if (Ctx(ctx) is { } c) Edit(c, i, static (c, v) => c.VisBackIndex = v); }
-    [Hle] void sceGxmSetFrontVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisFrontIncrement = op == VisibilityOpIncrement; }
-    [Hle] void sceGxmSetBackVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisBackIncrement = op == VisibilityOpIncrement; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontVisibilityTestEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.VisFrontEnable = e != 0; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackVisibilityTestEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.VisBackEnable = e != 0; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontVisibilityTestIndex(uint ctx, uint i) { if (Ctx(ctx) is { } c) Edit(c, i, static (c, v) => c.VisFrontIndex = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackVisibilityTestIndex(uint ctx, uint i) { if (Ctx(ctx) is { } c) Edit(c, i, static (c, v) => c.VisBackIndex = v); }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisFrontIncrement = op == VisibilityOpIncrement; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisBackIncrement = op == VisibilityOpIncrement; }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetVisibilityBuffer(uint ctx, uint bufferBase, uint stride)
     {
         if (Ctx(ctx) is not { } c) return ERR_INVALID_POINTER;
@@ -1760,7 +1764,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetDeferredContextVdmBuffer(uint ctx, uint mem, uint size)
     {
         if (DeferredCtx(ctx, out int err) is not { } c) return err;
@@ -1779,7 +1783,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetDeferredContextVertexBuffer(uint ctx, uint mem, uint size)
     {
         if (DeferredCtx(ctx, out int err) is not { } c) return err;
@@ -1799,7 +1803,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetDeferredContextFragmentBuffer(uint ctx, uint mem, uint size)
     {
         if (DeferredCtx(ctx, out int err) is not { } c) return err;
@@ -1892,7 +1896,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmPrecomputedDrawSetAllVertexStreams(uint state, uint streams)
     {
         if (state == 0 || streams == 0) return ERR_INVALID_POINTER;
@@ -1902,7 +1906,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmPrecomputedDrawSetVertexStream(uint state, uint index, uint data)
     {
         // Same validation as Vita3K: the index is checked against the hardware limit, not the program's stream count.
@@ -1914,7 +1918,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmPrecomputedDrawSetParams(uint state, uint primType, uint indexType, uint indexData, uint indexCount)
     {
         if (state == 0 || indexData == 0) return ERR_INVALID_POINTER;
@@ -1926,7 +1930,7 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmPrecomputedDrawSetParamsInstanced(uint state, uint primType, uint indexType, uint indexData, uint indexCount, uint indexWrap)
     {
         if (state == 0 || indexData == 0) return ERR_INVALID_POINTER;
@@ -1995,10 +1999,10 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] int sceGxmPrecomputedVertexStateSetAllUniformBuffers(uint s, uint a) => PrecomputedSetAllUniformBuffers(s, a);
-    [Hle] int sceGxmPrecomputedFragmentStateSetAllUniformBuffers(uint s, uint a) => PrecomputedSetAllUniformBuffers(s, a);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedVertexStateSetAllUniformBuffers(uint s, uint a) => PrecomputedSetAllUniformBuffers(s, a);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedFragmentStateSetAllUniformBuffers(uint s, uint a) => PrecomputedSetAllUniformBuffers(s, a);
     /// <summary>No type check: the raw field + 1, even for linear strided textures where those bits belong to the stride.</summary>
-    [Hle] uint sceGxmTextureGetMipmapCountUnsafe(uint tex) => (((GuestMemory.R32(tex) >> 17) & 0xF) + 1) & 0xF;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetMipmapCountUnsafe(uint tex) => (((GuestMemory.R32(tex) >> 17) & 0xF) + 1) & 0xF;
 
     static int PrecomputedSetDefaultUniformBuffer(uint state, uint data)
     {
@@ -2011,26 +2015,26 @@ public sealed partial class Gxm : HleModule
 
     // 0x1625D348: old-SDK NID of the same function (Uncharted imports it instead of 0x6A29EB06; its call sites pick
     // it for non-fragment precomputed states right next to sceGxmPrecomputedFragmentStateSetTexture).
-    [Hle]
-    [Hle(Nid = 0x1625D348, Library = "SceGxm")]
+    [Hle(Cost = HleCost.UserCall)]
+    [Hle(Nid = 0x1625D348, Library = "SceGxm", Cost = HleCost.UserCall)]
     int sceGxmPrecomputedVertexStateSetTexture(uint s, uint i, uint t) => PrecomputedSetTexture(s, i, t);
-    [Hle] int sceGxmPrecomputedFragmentStateSetTexture(uint s, uint i, uint t) => PrecomputedSetTexture(s, i, t);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedFragmentStateSetTexture(uint s, uint i, uint t) => PrecomputedSetTexture(s, i, t);
     // 0x8FF68274: old-SDK NID of the same function, the 0x1625D348 counterpart (Wipeout 2048 imports it). In
     // libgxm_es4 3.74 it fills the vertex state's texture words from the array exactly like 0xC40C9127, only without
     // that NID's per-texture validation: a null state or array is INVALID_POINTER, anything else succeeds.
-    [Hle]
-    [Hle(Nid = 0x8FF68274, Library = "SceGxm")]
+    [Hle(Cost = HleCost.UserCall)]
+    [Hle(Nid = 0x8FF68274, Library = "SceGxm", Cost = HleCost.UserCall)]
     int sceGxmPrecomputedVertexStateSetAllTextures(uint s, uint t) => PrecomputedSetAllTextures(s, t);
-    [Hle] int sceGxmPrecomputedFragmentStateSetAllTextures(uint s, uint t) => PrecomputedSetAllTextures(s, t);
-    [Hle] int sceGxmPrecomputedVertexStateSetUniformBuffer(uint s, uint i, uint d) => PrecomputedSetUniformBuffer(s, i, d);
-    [Hle] int sceGxmPrecomputedFragmentStateSetUniformBuffer(uint s, uint i, uint d) => PrecomputedSetUniformBuffer(s, i, d);
-    [Hle] int sceGxmPrecomputedVertexStateSetDefaultUniformBuffer(uint s, uint d) => PrecomputedSetDefaultUniformBuffer(s, d);
-    [Hle] int sceGxmPrecomputedFragmentStateSetDefaultUniformBuffer(uint s, uint d) => PrecomputedSetDefaultUniformBuffer(s, d);
-    [Hle] uint sceGxmPrecomputedVertexStateGetDefaultUniformBuffer(uint s) => GuestMemory.Read<ushort>(s + 10) >= 15 ? GuestMemory.R32(GuestMemory.R32(s + 12) + 56) : 0;
-    [Hle] uint sceGxmPrecomputedFragmentStateGetDefaultUniformBuffer(uint s) => GuestMemory.Read<ushort>(s + 10) >= 15 ? GuestMemory.R32(GuestMemory.R32(s + 12) + 56) : 0;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedFragmentStateSetAllTextures(uint s, uint t) => PrecomputedSetAllTextures(s, t);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedVertexStateSetUniformBuffer(uint s, uint i, uint d) => PrecomputedSetUniformBuffer(s, i, d);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedFragmentStateSetUniformBuffer(uint s, uint i, uint d) => PrecomputedSetUniformBuffer(s, i, d);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedVertexStateSetDefaultUniformBuffer(uint s, uint d) => PrecomputedSetDefaultUniformBuffer(s, d);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmPrecomputedFragmentStateSetDefaultUniformBuffer(uint s, uint d) => PrecomputedSetDefaultUniformBuffer(s, d);
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmPrecomputedVertexStateGetDefaultUniformBuffer(uint s) => GuestMemory.Read<ushort>(s + 10) >= 15 ? GuestMemory.R32(GuestMemory.R32(s + 12) + 56) : 0;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmPrecomputedFragmentStateGetDefaultUniformBuffer(uint s) => GuestMemory.Read<ushort>(s + 10) >= 15 ? GuestMemory.R32(GuestMemory.R32(s + 12) + 56) : 0;
 
-    [Hle] void sceGxmSetPrecomputedVertexState(uint ctx, uint state) { if (Ctx(ctx) is { } c) c.PrecomputedVertexState = state; }
-    [Hle] void sceGxmSetPrecomputedFragmentState(uint ctx, uint state) { if (Ctx(ctx) is { } c) c.PrecomputedFragmentState = state; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetPrecomputedVertexState(uint ctx, uint state) { if (Ctx(ctx) is { } c) c.PrecomputedVertexState = state; }
+    [Hle(Cost = HleCost.UserCall)] void sceGxmSetPrecomputedFragmentState(uint ctx, uint state) { if (Ctx(ctx) is { } c) c.PrecomputedFragmentState = state; }
 
     static void ReadStateArrays(uint state, uint[] ubs, GxmTextureDesc[] tex)
     {
@@ -2223,7 +2227,7 @@ public sealed partial class Gxm : HleModule
     [Hle] uint sceGxmFragmentProgramGetProgram(uint fp) => _fragmentPrograms.TryGetValue(fp, out var f) ? f.Info?.Address ?? 0 : 0;
     [Hle] bool sceGxmFragmentProgramIsEnabled(uint fp) => _fragmentPrograms.TryGetValue(fp, out var f) && f.Info != null && !f.IsMaskUpdate;
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetUniformDataF(uint buffer, uint param, uint componentOffset, uint componentCount, uint source)
     {
         if (buffer == 0 || param == 0 || source == 0) return ERR_INVALID_POINTER;
@@ -2503,7 +2507,7 @@ public sealed partial class Gxm : HleModule
         return (w0 & ~StrideBitsMask) | ((s & 1) << 9) | (((s >> 1) & 3) << 10) | (((s >> 3) & 0xF) << 17) | (((s >> 7) & 0x3F) << 21);
     }
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmTextureSetStride(uint tex, uint byteStride)
     {
         if (tex == 0) return ERR_INVALID_POINTER;
@@ -2523,42 +2527,42 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] uint sceGxmTextureGetData(uint tex) => GuestMemory.R32(tex + 8) & ~3u;
-    [Hle] int sceGxmTextureSetData(uint tex, uint data) => SetBits(tex + 8, 2, 30, data >> 2);
-    [Hle] int sceGxmTextureSetMagFilter(uint tex, uint f) => SetBits(tex, 12, 2, f);
-    [Hle] int sceGxmTextureSetMinFilter(uint tex, uint f) => IsStrided(tex) ? 0 : SetBits(tex, 10, 2, f);
-    [Hle] int sceGxmTextureSetMipFilter(uint tex, uint f) => IsStrided(tex) ? 0 : SetBits(tex, 9, 1, f != 0 ? 1u : 0);
-    [Hle] internal int sceGxmTextureSetUAddrMode(uint tex, uint m) => SetBits(tex, 6, 3, m);
-    [Hle] internal int sceGxmTextureSetVAddrMode(uint tex, uint m) => SetBits(tex, 3, 3, m);
-    [Hle] int sceGxmTextureSetUAddrModeSafe(uint tex, uint m) => tex != 0 && IsStrided(tex) ? 0 : SetBits(tex, 6, 3, m);
-    [Hle] int sceGxmTextureSetVAddrModeSafe(uint tex, uint m) => tex != 0 && IsStrided(tex) ? 0 : SetBits(tex, 3, 3, m);
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetData(uint tex) => GuestMemory.R32(tex + 8) & ~3u;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetData(uint tex, uint data) => SetBits(tex + 8, 2, 30, data >> 2);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetMagFilter(uint tex, uint f) => SetBits(tex, 12, 2, f);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetMinFilter(uint tex, uint f) => IsStrided(tex) ? 0 : SetBits(tex, 10, 2, f);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetMipFilter(uint tex, uint f) => IsStrided(tex) ? 0 : SetBits(tex, 9, 1, f != 0 ? 1u : 0);
+    [Hle(Cost = HleCost.UserCall)] internal int sceGxmTextureSetUAddrMode(uint tex, uint m) => SetBits(tex, 6, 3, m);
+    [Hle(Cost = HleCost.UserCall)] internal int sceGxmTextureSetVAddrMode(uint tex, uint m) => SetBits(tex, 3, 3, m);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetUAddrModeSafe(uint tex, uint m) => tex != 0 && IsStrided(tex) ? 0 : SetBits(tex, 6, 3, m);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetVAddrModeSafe(uint tex, uint m) => tex != 0 && IsStrided(tex) ? 0 : SetBits(tex, 3, 3, m);
     /// <summary>Linear strided textures do not support address modes: they read as CLAMP (2).</summary>
-    [Hle] uint sceGxmTextureGetUAddrModeSafe(uint tex) => IsStrided(tex) ? 2u : (GuestMemory.R32(tex) >> 6) & 7;
-    [Hle] uint sceGxmTextureGetVAddrModeSafe(uint tex) => IsStrided(tex) ? 2u : (GuestMemory.R32(tex) >> 3) & 7;
-    [Hle] int sceGxmTextureSetLodBias(uint tex, uint bias) => IsStrided(tex) ? 0 : SetBits(tex, 21, 6, bias);
-    [Hle] int sceGxmTextureSetLodMin(uint tex, uint lodMin) { if (IsStrided(tex)) return 0; int r = SetBits(tex + 8, 0, 2, (lodMin >> 2) & 3); return r != 0 ? r : SetBits(tex + 12, 26, 2, lodMin & 3); }
-    [Hle] uint sceGxmTextureGetLodMin(uint tex) => IsStrided(tex) ? 0 : GxmTextureDesc.Read(tex).LodMin;
-    [Hle] int sceGxmTextureSetGammaMode(uint tex, uint mode) => SetBits(tex, 27, 2, mode >> 27);
-    [Hle] uint sceGxmTextureGetGammaMode(uint tex) => ((GuestMemory.R32(tex) >> 27) & 3) << 27;
-    [Hle] int sceGxmTextureSetPalette(uint tex, uint data) => SetBits(tex + 12, 0, 26, data >> 6);
-    [Hle] int sceGxmTextureSetNormalizeMode(uint tex, uint mode) => SetBits(tex + 12, 31, 1, mode >> 31);
-    [Hle] uint sceGxmTextureGetNormalizeMode(uint tex) => GuestMemory.R32(tex + 12) & 0x80000000;
-    [Hle] uint sceGxmTextureGetPalette(uint tex) => (GuestMemory.R32(tex + 12) & 0x03FFFFFF) << 6;
-    [Hle(ReturnsValue = true)] uint sceGxmTextureGetFormat(uint tex) => GxmTextureDesc.Read(tex).Format;
-    [Hle(ReturnsValue = true)] uint sceGxmTextureGetType(uint tex) => GuestMemory.R32(tex + 4) & 0xE0000000;
-    [Hle] uint sceGxmTextureGetWidth(uint tex) => GxmTextureDesc.Read(tex).Width;
-    [Hle] uint sceGxmTextureGetHeight(uint tex) => GxmTextureDesc.Read(tex).Height;
-    [Hle] uint sceGxmTextureGetMipmapCount(uint tex) => GxmTextureDesc.Read(tex).MipCount;
-    [Hle] uint sceGxmTextureGetStride(uint tex) => IsStrided(tex) ? GxmTextureDesc.Read(tex).StrideBytes : 0;
-    [Hle] uint sceGxmTextureGetMagFilter(uint tex) => (GuestMemory.R32(tex) >> 12) & 3;
-    [Hle] uint sceGxmTextureGetMinFilter(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 10) & 3;
-    [Hle] uint sceGxmTextureGetMipFilter(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 9) & 1;
-    [Hle] uint sceGxmTextureGetUAddrMode(uint tex) => (GuestMemory.R32(tex) >> 6) & 7;
-    [Hle] uint sceGxmTextureGetVAddrMode(uint tex) => (GuestMemory.R32(tex) >> 3) & 7;
-    [Hle] uint sceGxmTextureGetLodBias(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 21) & 0x3F;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetUAddrModeSafe(uint tex) => IsStrided(tex) ? 2u : (GuestMemory.R32(tex) >> 6) & 7;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetVAddrModeSafe(uint tex) => IsStrided(tex) ? 2u : (GuestMemory.R32(tex) >> 3) & 7;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetLodBias(uint tex, uint bias) => IsStrided(tex) ? 0 : SetBits(tex, 21, 6, bias);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetLodMin(uint tex, uint lodMin) { if (IsStrided(tex)) return 0; int r = SetBits(tex + 8, 0, 2, (lodMin >> 2) & 3); return r != 0 ? r : SetBits(tex + 12, 26, 2, lodMin & 3); }
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetLodMin(uint tex) => IsStrided(tex) ? 0 : GxmTextureDesc.Read(tex).LodMin;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetGammaMode(uint tex, uint mode) => SetBits(tex, 27, 2, mode >> 27);
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetGammaMode(uint tex) => ((GuestMemory.R32(tex) >> 27) & 3) << 27;
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetPalette(uint tex, uint data) => SetBits(tex + 12, 0, 26, data >> 6);
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetNormalizeMode(uint tex, uint mode) => SetBits(tex + 12, 31, 1, mode >> 31);
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetNormalizeMode(uint tex) => GuestMemory.R32(tex + 12) & 0x80000000;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetPalette(uint tex) => (GuestMemory.R32(tex + 12) & 0x03FFFFFF) << 6;
+    [Hle(ReturnsValue = true, Cost = HleCost.UserCall)] uint sceGxmTextureGetFormat(uint tex) => GxmTextureDesc.Read(tex).Format;
+    [Hle(ReturnsValue = true, Cost = HleCost.UserCall)] uint sceGxmTextureGetType(uint tex) => GuestMemory.R32(tex + 4) & 0xE0000000;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetWidth(uint tex) => GxmTextureDesc.Read(tex).Width;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetHeight(uint tex) => GxmTextureDesc.Read(tex).Height;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetMipmapCount(uint tex) => GxmTextureDesc.Read(tex).MipCount;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetStride(uint tex) => IsStrided(tex) ? GxmTextureDesc.Read(tex).StrideBytes : 0;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetMagFilter(uint tex) => (GuestMemory.R32(tex) >> 12) & 3;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetMinFilter(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 10) & 3;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetMipFilter(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 9) & 1;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetUAddrMode(uint tex) => (GuestMemory.R32(tex) >> 6) & 7;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetVAddrMode(uint tex) => (GuestMemory.R32(tex) >> 3) & 7;
+    [Hle(Cost = HleCost.UserCall)] uint sceGxmTextureGetLodBias(uint tex) => IsStrided(tex) ? 0 : (GuestMemory.R32(tex) >> 21) & 0x3F;
     [Hle] int sceGxmTextureValidate(uint tex) => tex == 0 ? ERR_INVALID_POINTER : 0;
 
-    [Hle]
+    [Hle(Cost = HleCost.UserCall)]
     int sceGxmTextureSetFormat(uint tex, uint format)
     {
         if (tex == 0) return ERR_INVALID_POINTER;
@@ -2568,8 +2572,8 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle]
-    [Hle(Nid = 0x5A690B60, Library = "SceGxm")] // _sceGxmTextureSetWidth (old SDK)
+    [Hle(Cost = HleCost.UserCall)]
+    [Hle(Nid = 0x5A690B60, Library = "SceGxm", Cost = HleCost.UserCall)] // _sceGxmTextureSetWidth (old SDK)
     int sceGxmTextureSetWidth(uint tex, uint width)
     {
         if (tex == 0) return ERR_INVALID_POINTER;
@@ -2577,8 +2581,8 @@ public sealed partial class Gxm : HleModule
         return type is TexSwizzled or TexCube ? SetBits(tex + 4, 16, 4, (uint)BitOperations.Log2(Math.Max(width, 1))) : SetBits(tex + 4, 12, 12, width - 1);
     }
 
-    [Hle]
-    [Hle(Nid = 0x1B20D5DF, Library = "SceGxm")] // _sceGxmTextureSetHeight (old SDK)
+    [Hle(Cost = HleCost.UserCall)]
+    [Hle(Nid = 0x1B20D5DF, Library = "SceGxm", Cost = HleCost.UserCall)] // _sceGxmTextureSetHeight (old SDK)
     int sceGxmTextureSetHeight(uint tex, uint height)
     {
         if (tex == 0) return ERR_INVALID_POINTER;
@@ -2586,7 +2590,7 @@ public sealed partial class Gxm : HleModule
         return type is TexSwizzled or TexCube ? SetBits(tex + 4, 0, 4, (uint)BitOperations.Log2(Math.Max(height, 1))) : SetBits(tex + 4, 0, 12, height - 1);
     }
 
-    [Hle] int sceGxmTextureSetMipmapCount(uint tex, uint count) => IsStrided(tex) ? 0 : SetBits(tex, 17, 4, Math.Min(15u, count - 1));
+    [Hle(Cost = HleCost.UserCall)] int sceGxmTextureSetMipmapCount(uint tex, uint count) => IsStrided(tex) ? 0 : SetBits(tex, 17, 4, Math.Min(15u, count - 1));
 
     // =========================================================== transfers (CPU, in GPU order)
 

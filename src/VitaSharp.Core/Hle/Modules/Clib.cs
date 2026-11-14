@@ -11,6 +11,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Clib : HleModule
 {
+    /// <summary>SceLibKernel's Clib routines run in user mode; the bytes a copy or fill moves are charged by the
+    /// implementation.</summary>
+    public override HleCost DefaultCost => HleCost.UserCall;
+
     // ------------------------------------------------------------------ mspace heaps
     // An mspace manages a block the game hands over. Bookkeeping is host-side; the first bytes of the block are
     // reserved (as the real dlmalloc header would be) so the handle is the block address and allocations never

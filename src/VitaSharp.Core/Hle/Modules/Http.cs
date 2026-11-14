@@ -844,8 +844,8 @@ public sealed partial class Http : HleModule
 
     /// <summary>SceHttpNBEvent (0x10, inferred): +0 events, +4 eventDetail, +8 id, +C userArg. Timeout in microseconds,
     /// negative = forever.</summary>
-    [Hle("sceHttpWaitRequest")]
-    [Hle("sceHttpWaitRequestCB")]
+    [Hle("sceHttpWaitRequest", Cost = HleCost.SchedulerWait)]
+    [Hle("sceHttpWaitRequestCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     int sceHttpWaitRequest(uint eh, uint nbev, int maxevents, int timeout)
     {
         lock (_lock)

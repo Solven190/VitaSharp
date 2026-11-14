@@ -96,6 +96,11 @@ tabela com o que muda por função.
 2. Parâmetros seguem AAPCS-VFP pelo binder (`HleFramework.cs`): `int/uint/Ptr<T>/string` em r0–r3 e pilha,
    `long/ulong` em par alinhado, `float` em s0–s15, `VarArgs` para variádicas.
 3. Erros vêm de `SceError` (`Kernel/KernelObjects.cs`); objetos do kernel via `K.Objects`.
-4. Funções de espera ou I/O novas precisam cair na faixa certa de `HleFunction.ClassifyCost`.
+4. Declare o que a função é no firmware, que dá o custo de CPU emulada por chamada (`HleCost`, nunca pelo nome):
+   `[Hle(Cost = HleCost.SchedulerWait)]` para quem espera no escalonador (esperas, sinais, I/O bloqueante),
+   `KernelEntry` para syscall sem escalonador (o padrão), `UserInline`/`UserCall`/`UserLibrary` para código de usuário
+   sem entrada no kernel; o padrão de uma biblioteca inteira fica em `HleModule.DefaultCost` (libgxm, libngs, librtc,
+   libfiber, Clib, atomics, Ctrl/Touch/Camera, sceIo). A variante que processa callbacks durante a espera (os "CB")
+   declara `CallbackWait = true`. `HleCostTests` confere as declarações e o custo cobrado por chamada.
 5. Depois de implementar: `VitaSharp.Desktop imports <TITLEID>` deve mostrar o nome fora da lista de faltantes, e os
    cenários do jogo afetado devem rodar sem regressão.

@@ -11,6 +11,9 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed unsafe partial class Fiber : HleModule
 {
+    /// <summary>libfiber switches contexts in user mode (SceFiber); only its *Impl entry points are syscalls.</summary>
+    public override HleCost DefaultCost => HleCost.UserLibrary;
+
     const int OK = 0;
     const int ERR_NULL = unchecked((int)0x80590001), ERR_ALIGNMENT = unchecked((int)0x80590002), ERR_RANGE = unchecked((int)0x80590003),
         ERR_INVALID = unchecked((int)0x80590004), ERR_PERMISSION = unchecked((int)0x80590005), ERR_STATE = unchecked((int)0x80590006);
@@ -195,11 +198,11 @@ public sealed unsafe partial class Fiber : HleModule
         return OK;
     }
 
-    [Hle("_sceFiberInitializeImpl")]
+    [Hle("_sceFiberInitializeImpl", Cost = HleCost.KernelEntry)]
     int _sceFiberInitializeImpl(uint fiber, uint name, uint entry, uint argOnInitialize, uint addrContext, uint sizeContext) =>
         Initialize(fiber, name, entry, argOnInitialize, addrContext, sizeContext);
 
-    [Hle("_sceFiberInitializeWithInternalOptionImpl")]
+    [Hle("_sceFiberInitializeWithInternalOptionImpl", Cost = HleCost.KernelEntry)]
     int _sceFiberInitializeWithInternalOptionImpl(uint fiber, uint name, uint entry, uint argOnInitialize, uint addrContext, uint sizeContext) =>
         Initialize(fiber, name, entry, argOnInitialize, addrContext, sizeContext);
 
@@ -367,7 +370,7 @@ public sealed unsafe partial class Fiber : HleModule
         return OK;
     }
 
-    [Hle("_sceFiberAttachContextAndRun")]
+    [Hle("_sceFiberAttachContextAndRun", Cost = HleCost.KernelEntry)]
     int _sceFiberAttachContextAndRun(uint fiber, uint addrContext, uint sizeContext, uint argOnRunTo, uint argOnReturn)
     {
         lock (_fibers)
@@ -378,7 +381,7 @@ public sealed unsafe partial class Fiber : HleModule
         return sceFiberRun(fiber, argOnRunTo, argOnReturn);
     }
 
-    [Hle("_sceFiberAttachContextAndSwitch")]
+    [Hle("_sceFiberAttachContextAndSwitch", Cost = HleCost.KernelEntry)]
     int _sceFiberAttachContextAndSwitch(uint fiber, uint addrContext, uint sizeContext, uint argOnRunTo, uint argOnRun)
     {
         lock (_fibers)

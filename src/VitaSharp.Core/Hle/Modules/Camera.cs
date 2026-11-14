@@ -15,6 +15,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Camera : HleModule
 {
+    /// <summary>libcamera's calls are syscalls into the camera driver, which waits for the sensor through the thread
+    /// manager.</summary>
+    public override HleCost DefaultCost => HleCost.SchedulerWait;
+
     const int ERR_PARAM = unchecked((int)0x802E0000);
     const int ERR_ALREADY_OPEN = unchecked((int)0x802E0003);
     const int ERR_NOT_OPEN = unchecked((int)0x802E0004);

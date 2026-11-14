@@ -262,10 +262,10 @@ public sealed partial class Ult : HleModule
         return 0;
     }
 
-    [Hle] int sceUltQueuePush(uint queue, uint data) => Push(queue, data, true);
-    [Hle] int sceUltQueueTryPush(uint queue, uint data) => Push(queue, data, false);
-    [Hle] int sceUltQueuePop(uint queue, uint data) => Pop(queue, data, true);
-    [Hle] int sceUltQueueTryPop(uint queue, uint data) => Pop(queue, data, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltQueuePush(uint queue, uint data) => Push(queue, data, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltQueueTryPush(uint queue, uint data) => Push(queue, data, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltQueuePop(uint queue, uint data) => Pop(queue, data, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltQueueTryPop(uint queue, uint data) => Pop(queue, data, false);
     [Hle] int sceUltGetQueueInfo(uint queue, uint info) => Find<UQueue>(queue, out int e) is { } q ? WriteInfo(q, info) : e;
 
     // ------------------------------------------------------------------ mutexes
@@ -315,8 +315,8 @@ public sealed partial class Ult : HleModule
         return 0;
     }
 
-    [Hle] int sceUltMutexLock(uint mutex) => Lock(mutex, true);
-    [Hle] int sceUltMutexTryLock(uint mutex) => Lock(mutex, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltMutexLock(uint mutex) => Lock(mutex, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltMutexTryLock(uint mutex) => Lock(mutex, false);
 
     [Hle]
     int sceUltMutexUnlock(uint mutex)
@@ -349,7 +349,7 @@ public sealed partial class Ult : HleModule
 
     /// <summary>The mutex is bound at creation (libult: Create(cv, name, mutex, opt), Wait(cv)). Wait releases it (all
     /// recursion levels), waits for a signal, then takes it back; the caller must own it (else PERMISSION).</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait)]
     int sceUltConditionVariableWait(uint cv)
     {
         if (Find<UCond>(cv, out int e) is not { } c) return e;
@@ -429,8 +429,8 @@ public sealed partial class Ult : HleModule
         return 0;
     }
 
-    [Hle] int sceUltSemaphoreAcquire(uint sema, int numResource) => Acquire(sema, numResource, true);
-    [Hle] int sceUltSemaphoreTryAcquire(uint sema, int numResource) => Acquire(sema, numResource, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltSemaphoreAcquire(uint sema, int numResource) => Acquire(sema, numResource, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltSemaphoreTryAcquire(uint sema, int numResource) => Acquire(sema, numResource, false);
 
     [Hle]
     int sceUltSemaphoreRelease(uint sema, int numResource)
@@ -485,10 +485,10 @@ public sealed partial class Ult : HleModule
         return 0;
     }
 
-    [Hle] int sceUltReaderWriterLockLockRead(uint rw) => RwLock(rw, false, true);
-    [Hle] int sceUltReaderWriterLockLockWrite(uint rw) => RwLock(rw, true, true);
-    [Hle] int sceUltReaderWriterLockTryLockRead(uint rw) => RwLock(rw, false, false);
-    [Hle] int sceUltReaderWriterLockTryLockWrite(uint rw) => RwLock(rw, true, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltReaderWriterLockLockRead(uint rw) => RwLock(rw, false, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltReaderWriterLockLockWrite(uint rw) => RwLock(rw, true, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltReaderWriterLockTryLockRead(uint rw) => RwLock(rw, false, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltReaderWriterLockTryLockWrite(uint rw) => RwLock(rw, true, false);
 
     [Hle]
     int sceUltReaderWriterLockUnlockRead(uint rw)
@@ -612,8 +612,8 @@ public sealed partial class Ult : HleModule
         return Destroy(ut);
     }
 
-    [Hle] int sceUltUlthreadJoin(uint ulthread, Ptr<int> status) => Join(ulthread, status, true);
-    [Hle] int sceUltUlthreadTryJoin(uint ulthread, Ptr<int> status) => Join(ulthread, status, false);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltUlthreadJoin(uint ulthread, Ptr<int> status) => Join(ulthread, status, true);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceUltUlthreadTryJoin(uint ulthread, Ptr<int> status) => Join(ulthread, status, false);
 
     /// <summary>Writes the calling ulthread's object (NULL outside an ulthread, as libult) and returns 0.</summary>
     [Hle]

@@ -1012,7 +1012,7 @@ public sealed partial class SysmemKernel : HleModule
     /// <summary>ksceKernelSysrootGetCurrentAddressSpaceCB(): the address space object of the calling process. Its
     /// firmware layout (page tables, memory block trees) is not reproduced: VitaSharp's address spaces are host
     /// mappings, so the record is a zeroed 0x100-byte block per process, stable for the process.</summary>
-    [Hle(ReturnsValue = true)]
+    [Hle(ReturnsValue = true, CallbackWait = true)]
     uint ksceKernelSysrootGetCurrentAddressSpaceCB()
     {
         int key = ProcessScope.CurrentPid == KernelSpace.KernelPid ? KernelSpace.KernelPid : Emu.Pid;

@@ -324,7 +324,7 @@ public sealed partial class ModulemgrKernel : HleModule
     /// +0xC the module's kernel UID, +0x10 its process UID (the same here), +0x1C a pointer to its name, +0x20/+0x24
     /// the export table range, +0x28/+0x2C the import table range, +0x30 the module NID.
     /// </summary>
-    [Hle]
+    [Hle(CallbackWait = true)]
     int ksceKernelGetModuleCB(int modid, uint cbOut)
     {
         if (cbOut == 0)

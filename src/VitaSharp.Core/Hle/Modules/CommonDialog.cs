@@ -905,11 +905,11 @@ public sealed partial class CommonDialog : HleModule
     [Hle] int scePhotoReviewDialogTerm() => State.Term(DialogType.PhotoReview);
     [Hle] int scePhotoReviewDialogAbort() => State.Abort(DialogType.PhotoReview);
 
-    [Hle] int sceCameraImportDialogInit(uint param) => SimpleInit(DialogType.CameraImport, param, ResultUserCanceled);
-    [Hle] int sceCameraImportDialogGetStatus() => State.StatusOf(DialogType.CameraImport);
-    [Hle] int sceCameraImportDialogGetResult(uint result) => SimpleResult(DialogType.CameraImport, result);
-    [Hle] int sceCameraImportDialogTerm() => State.Term(DialogType.CameraImport);
-    [Hle] int sceCameraImportDialogAbort() => State.Abort(DialogType.CameraImport);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCameraImportDialogInit(uint param) => SimpleInit(DialogType.CameraImport, param, ResultUserCanceled);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCameraImportDialogGetStatus() => State.StatusOf(DialogType.CameraImport);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCameraImportDialogGetResult(uint result) => SimpleResult(DialogType.CameraImport, result);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCameraImportDialogTerm() => State.Term(DialogType.CameraImport);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCameraImportDialogAbort() => State.Abort(DialogType.CameraImport);
 
     [Hle] int sceVideoImportDialogInit(uint param) => SimpleInit(DialogType.VideoImport, param, ResultUserCanceled);
     [Hle] int sceVideoImportDialogGetStatus() => State.StatusOf(DialogType.VideoImport);

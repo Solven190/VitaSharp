@@ -82,8 +82,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
-- [ ] **Custos do HLE:** a classe de custo de cada função (código de usuário, entrada no kernel, espera) testada como
-  contrato, sem depender do nome.
+- [x] **Custos do HLE:** a classe de custo de cada função (código de usuário, entrada no kernel, espera) testada como
+  contrato, sem depender do nome. Feito: `[Hle(Cost = HleCost...)]` por função e `HleModule.DefaultCost` por
+  biblioteca, `CallbackWait = true` nas esperas com callbacks; `HleCostTests` confere as classes, o custo cobrado por
+  chamada e os pares CB de cada espera.
+- [ ] **Revalidar as classes herdadas da regra por nome** (a migração manteve os custos idênticos): `sceCtrl*`
+  (incluindo Peek, Get/Set de modo, barra de luz) e `sceTouch*` estão como espera no escalonador, mas só as leituras
+  `Read*` esperam a próxima amostra; `__rtabi_*` (divisão, deslocamento de 64 bits) estão como entrada no kernel, mas
+  são código de usuário de poucas instruções; os getters de prioridade de `sceIo*` estão como espera; as funções de
+  libgxm/librtc que a HLE não implementa caem em entrada no kernel. Cada mudança mexe no tempo de guest: uma por vez,
+  com fonte (firmware 3.74, PPSSPP) e A/B em gameplay.
 - [ ] **CPU ARM:** cada instrução e cada modo comparado com uma referência (resultado, flags, exceções), nos três
   backends (native, IL, interpretador).
 - [ ] **GXM e tradução de shaders:** sequências sintéticas de comandos (cenas, sync objects, fila de display, MSAA,
@@ -1935,9 +1943,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
   console (a fila só chama o callback depois da fence; a liberação vem depois do callback) onde as duas esperas se
   cruzam no VitaSharp.
-- [ ] Custo de `sceKernelDelayThread` (achado do agente P1, 13/11/2026): no Wipeout, a thread `avPlayer VideoDec`
-  chama `sceKernelDelayThread(30 us)` em laço, cobrada como espera do agendador (12.000 ciclos cada, ~4,7 M ciclos por
-  quadro). Derivar a classe de custo do firmware e do PPSSPP (`hleEatCycles`), com teste.
+- [ ] Tamanho da classe "espera no escalonador" (12.000 ciclos): `sceKernelDelayThread*` é uma espera como as outras
+  (o threadmgr 3.74 põe a thread na lista de timers e troca de contexto, o mesmo caminho de uma espera com timeout),
+  então fica na classe `SchedulerWait` (`HleCostTests.DelaysAreSchedulerWaits`); baixar só o delay para 2.000
+  (perf/desktop-24, não medido) deixaria ele como a única chamada bloqueante fora da classe. O que falta é calibrar a
+  classe inteira (no Wipeout, `avPlayer VideoDec` paga ~4,7 M ciclos por quadro em `DelayThread(30)`) contra uma
+  referência de hardware, com A/B em gameplay, sem quebrar o tempo que o Havok do Killzone mede.
 - [ ] PSM: o shell não enxerga a atualização 2.01 do runtime (relato do usuário, 12/11/2026, captura
   `shell_20261112_030858_tudo`). Instalada em `ux0:patch/PCSI00011` (`runtime_version.txt` 2.01; o `ux0:app`
   continua 1.00), mas ao tocar no Cave Squid (NPOA00239, PSM) o shell ainda pede a atualização do runtime e falha
