@@ -62,7 +62,9 @@ before 13/11/2026) is refused. Tests: `SaveStateLayoutTests`.
 
 The file is decompressed while the game still runs. Then the threads are held, the service threads idle, the
 emulation paused, every guest thread stopped, and: GPU backend replaced (its caches rebuild from guest memory, as
-after a LoadExec; render targets the game reads back before drawing are black for a frame), translated code dropped,
+after a LoadExec; render targets the game reads back before drawing are black for a frame; the new renderer keeps the
+window's Vulkan instance, device, surface and swapchain, `VulkanRendererOptions.KeepDevice`, on by default for every
+front-end: recreating them per load crashed NVIDIA and lost the device on Mali at the second recreation), translated code dropped,
 memory blocks and contents restored, HLE function table, kernel objects (new threads with their saved registers;
 module service threads kept and given their saved UIDs), modules, guest clock (exactly the saved time), then the
 threads start. The loaded modules must be the saved ones at the same addresses: a game that loads modules late

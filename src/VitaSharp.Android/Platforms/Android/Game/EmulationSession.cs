@@ -542,6 +542,11 @@ public sealed partial class EmulationSession : IDisposable
                 _stats.WriteFinal(); // the desktop Runner's end-of-run lines (SessionReport)
             Performance.Dispose();
             _emu.Dispose();
+            // the renderer the emulator disposed kept the window's device for a next one: there is none
+            lock (_surfaceLock)
+            {
+                _rendererOptions.ReleaseKeptDevice();
+            }
         }
         catch (Exception e)
         {
