@@ -24,7 +24,7 @@ public sealed class YuvTextureTests
     {
         var rng = new Random((int)(width * 31 + height * 7 + pitch + swizzle + (threePlane ? 1000 : 0)));
         // luma plus the larger of the two chroma layouts, with slack after it
-        var planes = new byte[pitch * height * 2 + 64];
+        byte[] planes = new byte[pitch * height * 2 + 64];
         rng.NextBytes(planes);
         using (TextureDecoder.UseSource(Base, planes))
         {
@@ -39,7 +39,7 @@ public sealed class YuvTextureTests
     {
         // every combination of 0 and 255 in Y, U and V, in both ranges: the clamping at both ends
         const uint Width = 8, Height = 2, Pitch = 8;
-        var planes = new byte[Pitch * Height * 2];
+        byte[] planes = new byte[Pitch * Height * 2];
         for (int i = 0; i < planes.Length; i++)
         {
             planes[i] = (byte)(((i * 0x9E37) >> 3 & 1) == 0 ? 0 : 255);

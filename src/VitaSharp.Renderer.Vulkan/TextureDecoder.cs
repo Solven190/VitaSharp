@@ -454,7 +454,7 @@ public static class TextureDecoder
 
     private static int[] Table(Func<int, int> term)
     {
-        var table = new int[256];
+        int[] table = new int[256];
         for (int v = 0; v < 256; v++)
         {
             table[v] = term(v);
