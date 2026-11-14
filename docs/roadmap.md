@@ -1786,6 +1786,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] CI do Windows e da cobertura (pausado em 11/11/2026): `fix/ci-green-2` (SwiftShader registrado para o carregador
   como administrador, `--gpu-dump-at` armado antes do jogo, limite de 3 apresentações pendentes). Antes de juntar:
   medição A/B do F1 2011 e do Uncharted com a máquina quieta e conferência de travadas nos quadros gravados.
+- [ ] Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
+  `%LOCALAPPDATA%\VitaSharpTools`), o mesmo driver que o CI do Linux usa. Antes de trocar: conferir se ele expõe
+  `VK_EXT_rasterization_order_attachment_access` (caminho de fetch passes da Mali no replay), rodar os mesmos
+  replays/testes do renderizador nos dois (exatidão, extensões, tempo) e só então mudar a regra do `regras.md`, o CI do
+  Windows e o README.
 - [ ] **PRIORIDADE (11/11/2026)** Builds do GitHub Actions quebrando na main (relato do usuário, 11/11/2026, página de
   commits da main). Ver em cada workflow (ci.yml: Windows/Ubuntu/macOS, publish, "Coverage gate" novo de 11/11;
   release.yml) qual job falha desde quando e por quê (suspeitos do dia: o job de cobertura e o build-coverage-gate.txt,

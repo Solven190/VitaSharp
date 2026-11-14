@@ -32,12 +32,53 @@ Needs the .NET MAUI Android workload (`dotnet workload install maui-android`), t
 build-tools) and a JDK 17. The desktop build does not: the app is outside `VitaSharp.sln`, which only gained the
 platform-neutral `VitaSharp.Mobile.Core` (plain `net10.0`).
 
-```
+### Requirements
+
+| | Windows | Linux | macOS |
+|---|---|---|---|
+| SDK | .NET 10 SDK + `dotnet workload install maui-android` | the same | the same |
+| Android SDK (platform 36, build-tools) | Android Studio or `sdkmanager`; default `%LOCALAPPDATA%\Android\Sdk` | default `~/Android/Sdk` | default `~/Library/Android/sdk` |
+| JDK 17 | `winget install Microsoft.OpenJDK.17` | `sudo apt install openjdk-17-jdk` (Fedora: `java-17-openjdk-devel`) | `brew install openjdk@17` |
+| NDK (only for the shaderc and libadrenotools builds below) | `sdkmanager "ndk;30.0.16248370"` | the same | the same |
+| Phone | arm64, Android 8.0+ (API 26), Vulkan 1.1+ | the same | the same |
+
+### Build
+
+Windows (PowerShell):
+
+```powershell
+build/build-android-shaderc.ps1            # once per checkout: the device's shader compiler
 dotnet build src/VitaSharp.Android -c Release -m:2
+```
+
+Linux and macOS:
+
+```sh
+build/build-android-shaderc.sh             # once per checkout: the device's shader compiler
+dotnet build src/VitaSharp.Android -c Release -m:2
+```
+
+```
 # or the whole Android side: dotnet build VitaSharp.Android.sln -c Release -m:2
 # without ANDROID_HOME in the environment: add -p:AndroidSdkDirectory=<sdk>
 #   (Windows %LOCALAPPDATA%\Android\Sdk, Linux ~/Android/Sdk, macOS ~/Library/Android/sdk)
+# one ABI only (faster): -r android-arm64 (phones) or -r android-x64 (the emulator)
 ```
+
+### Install
+
+Every system (`adb` comes with the Android SDK's platform-tools):
+
+```sh
+adb install -r src/VitaSharp.Android/bin/Release/net10.0-android/io.github.vitasharp-Signed.apk
+```
+
+Or open the APK on the phone. Once the current CI PR is merged, each CI run also publishes the APK as the artifact
+`VitaSharp-android-arm64-nativeaot`. The APK is signed with a debug key: a build signed with another key (another PC,
+or the CI) does not install over it, and uninstalling first deletes the data folder ([Storage](#storage)); copy
+`fs/ux0/user/00/savedata` out before switching.
+
+### Native libraries
 
 The renderer needs shaderc on the device, and `Silk.NET.Shaderc.Native` has no Android build: once per checkout,
 `build/build-android-shaderc.ps1` (or `.sh`) compiles `libshaderc_shared.so` for arm64-v8a and x86_64 from the shaderc sources
@@ -51,6 +92,8 @@ pinned commit (git, once) into `third_party/android-adrenotools/src` and builds 
 libraries for arm64-v8a with ndk-build (no CMake needed, 2 jobs, under a minute) into
 `third_party/android-adrenotools/libs/arm64-v8a/` (not committed); the app packages them when they exist, else the
 system Vulkan driver is always used. Details: [mobile GPU notes](../notes/mobile-gpu.md#custom-drivers-android).
+
+### Output and build times
 
 Output: `src/VitaSharp.Android/bin/Release/net10.0-android/io.github.vitasharp-Signed.apk` (debug-keystore signed,
 arm64-v8a + x86_64). Size on 30/10/2026: 43,713,556 bytes (41.7 MiB) with libshaderc (38,974,327 without); with the
@@ -528,6 +571,23 @@ adb shell rm /sdcard/Android/data/io.github.vitasharp/files/config/env.txt
 ```
 
 ## Screens
+
+Real screenshots from the phone (Redmi Note 14, Mali-G57, 14/11/2026):
+
+<table>
+<tr>
+<td rowspan="3" valign="top"><img src="../assets/screenshots/android-library.webp" width="260" alt="The app's game library"><br><sub><b>Library</b></sub></td>
+<td><img src="../assets/screenshots/android-killzone-mercenary.webp" width="420" alt="Killzone: Mercenary on the phone with the on-screen controls"><br><sub><b>Killzone: Mercenary</b>, on-screen controls</sub></td>
+</tr>
+<tr>
+<td><img src="../assets/screenshots/android-pause-menu.webp" width="420" alt="The pause menu over Killzone: Mercenary"><br><sub><b>Pause menu</b>, save states and Record everything</sub></td>
+</tr>
+<tr>
+<td><img src="../assets/screenshots/android-uncharted.webp" width="420" alt="Uncharted: Golden Abyss on the phone"><br><sub><b>Uncharted: Golden Abyss</b>, the Prologue</sub></td>
+</tr>
+</table>
+
+The design mockups (below) are rendered from HTML, not taken from the phone:
 
 | Biblioteca | Detalhes do jogo | Troféus | Controles |
 | --- | --- | --- | --- |

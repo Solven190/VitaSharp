@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=1b830d6606f873744fa1c81cbeea89c7d294bbedf73667d07bbf0157cbdbb36b -->
+<!-- pair: README.md sha256=415340fb7db76a918fc3e4effae7094d01342c0e1381a074d26d24521fe52a6b -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -55,6 +55,21 @@ LiveArea e jogos abertos por elas. É um projeto de pesquisa em desenvolvimento 
 <td><img src="docs/assets/screenshots/god-of-war.webp" alt="God of War Collection" width="300"><br><sub><b>God of War Collection</b>, combate</sub></td>
 <td><img src="docs/assets/screenshots/persona-4-golden.webp" alt="Persona 4 Golden" width="300"><br><sub><b>Persona 4 Golden</b>, abertura</sub></td>
 <td><img src="docs/assets/screenshots/shell-livearea.webp" alt="LiveArea do Uncharted" width="300"><br><sub><b>Sistema do Vita</b>, LiveArea de um jogo</sub></td>
+</tr>
+</table>
+
+<p><b>No Android</b> (Redmi Note 14, Mali-G57; veja <a href="#android">Android</a>):</p>
+
+<table>
+<tr>
+<td rowspan="3" width="40%" valign="top"><img src="docs/assets/screenshots/android-library.webp" alt="A biblioteca de jogos do app VitaSharp" width="260"><br><sub><b>Biblioteca</b>, a lista de jogos do app</sub></td>
+<td width="60%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary num celular com os controles na tela" width="420"><br><sub><b>Killzone: Mercenary</b>, campanha, controles na tela</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-pause-menu.webp" alt="O menu de pausa com save states e Gravar tudo" width="420"><br><sub><b>Menu de pausa</b>, save states e Gravar tudo</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss num celular" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, o Prólogo, 30 fps</sub></td>
 </tr>
 </table>
 
