@@ -670,7 +670,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   de gravação para ser publicado. `VITASHARP_RETIRE_WAKE` (d190e48a): uma thread espera cercas próprias (lote vazio
   depois de cada quadro) e anota quando a GPU terminou; `measure` mostra no PERF sync o atraso GPU pronta ->
   publicado; `1` também aposenta esses quadros no próximo draw. Ordem igual (mais antigo primeiro, resultados antes
-  dos sinais; RetireWakeTests nos três modos). A/B no KZ pedido ao laboratório
+  dos sinais; RetireWakeTests nos três modos, 50x sob carga). Medido no KZ (APK v4, 3x3 alternado, linhas cumulativas
+  desde o boot): o atraso GPU pronta -> publicado é ~1,9 ms por submissão, ~5 ms por quadro; com `1` cai para ~1,1 /
+  ~3 ms por quadro, a espera de notificação 9,9 -> 9,4 ms por quadro e o fps 23,5 -> 24,1 (no ruído). FLOAT_BITS_JOIN
+  ao vivo no UC: 30 fps nos dois (limite do jogo), GPU igual. Conclusão: a maior parte da espera de notificação do KZ é
+  tempo real da GPU e do worker na cadeia serial (o jogo espera o resultado da própria cena), não publicação atrasada;
+  as chaves ficam desligadas. A alavanca que sobra é o tempo de GPU/worker da cena que o jogo espera
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
