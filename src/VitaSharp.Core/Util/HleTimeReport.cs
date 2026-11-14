@@ -4,8 +4,9 @@ using VitaSharp.Core.Kernel;
 namespace VitaSharp.Core.Util;
 
 /// <summary>
-/// <see cref="EnvVars.PerfHleTime"/>=1: the periodic "PERF hle time" lines. For the guest threads that spent the most
-/// wall time in HLE calls since the previous summary: that time per presented frame and the functions it went to
+/// <see cref="EnvVars.PerfHleTime"/>=1: the periodic "PERF hle time" lines. For the busiest guest threads since the
+/// previous summary (the most emulated cycles: guest code and charged HLE; ranking by HLE time picked the idle threads,
+/// which wait in HLE all the time, and left the game's main thread out): that time per presented frame and the functions it went to
 /// (blocking waits included: notification and display queue waits, lwcond/semaphore/event flag waits, delays), next to
 /// the window's frame count. A thread's frame time minus its HLE time is the time it ran guest code or waited for a
 /// host core, so the lines say where a serial frame waits without a system trace. A call made from inside another
@@ -21,6 +22,7 @@ public static class HleTimeReport
 
     private static readonly object s_lock = new();
     private static readonly Dictionary<GuestThread, long[]> s_last = new();
+    private static readonly Dictionary<GuestThread, long> s_lastCycles = new();
     private static long s_lastFrame = -1;
     private static long s_lastTicks;
 
@@ -40,9 +42,11 @@ public static class HleTimeReport
         {
             GuestThread[] threads = emu.Kernel.Threads.ToArray();
             var now = new Dictionary<GuestThread, long[]>();
+            var cycles = new Dictionary<GuestThread, long>();
             foreach (GuestThread t in threads)
             {
                 now[t] = (long[])t.HleProfile.Clone();
+                cycles[t] = t.Core.BlockCycles + t.Core.ChargedCycles;
             }
 
             long frames = frame - s_lastFrame;
@@ -50,27 +54,29 @@ public static class HleTimeReport
             {
                 double tickMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 lines.Add($"PERF hle time window: frames {s_lastFrame}-{frame}, {(ticksNow - s_lastTicks) * tickMs / frames:F2} ms/frame");
-                var windows = new List<(string Name, (string Function, long Calls, long Ticks)[] Rows, long Ticks)>();
+                var windows = new List<(string Name, (string Function, long Calls, long Ticks)[] Rows, long Cycles)>();
                 foreach ((GuestThread t, long[] profile) in now)
                 {
                     (string, long, long)[] rows = Window(s_last.GetValueOrDefault(t), profile, index => emu.Hle.GetFunction(index).Name);
-                    long total = rows.Sum(r => r.Item3);
-                    if (total > 0)
+                    long busy = cycles[t] - s_lastCycles.GetValueOrDefault(t);
+                    if (rows.Length > 0)
                     {
-                        windows.Add((t.Name, rows, total));
+                        windows.Add((t.Name, rows, busy));
                     }
                 }
 
-                foreach ((string name, (string, long, long)[] rows, long _) in windows.OrderByDescending(w => w.Ticks).Take(Threads))
+                foreach ((string name, (string, long, long)[] rows, long _) in windows.OrderByDescending(w => w.Cycles).Take(Threads))
                 {
                     lines.Add(ThreadLine(name, rows, frames, tickMs, s_lastFrame, frame));
                 }
             }
 
             s_last.Clear();
+            s_lastCycles.Clear();
             foreach ((GuestThread t, long[] profile) in now)
             {
                 s_last[t] = profile;
+                s_lastCycles[t] = cycles[t];
             }
 
             s_lastFrame = frame;
