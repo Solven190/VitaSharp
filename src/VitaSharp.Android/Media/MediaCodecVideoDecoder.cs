@@ -312,7 +312,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
             if (!queued)
             {
                 // the decoder stalled: replaced, and this unit goes in again with the replay from the last IDR
-                RecoverInputStall();
+                RecoverInputStall(pts, unitToQueue.Length, H264AnnexB.ContainsIdr(accessUnit));
                 return;
             }
 
@@ -354,7 +354,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     /// <summary>The decoder took no input buffer back for a whole unit's wait (InputStallRecovery): the same decoder is
     /// opened again, or the next one when that one stalled too before giving out a picture, and the units since the last
     /// IDR picture (this one included) are decoded again.</summary>
-    void RecoverInputStall()
+    void RecoverInputStall(long pts, int unitBytes, bool idr)
     {
         InputStallRecovery.Action action = _stall.OnInputStall();
         double tickMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
@@ -363,7 +363,8 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
         // and since the unit before this one (a long gap = the player's queue was full and nothing was sent)
         Log.Warn($"MediaCodec: {_codecName} gave no input buffer back for {InputAttempts * InputTimeoutUs / 1000} ms (stalled, recovery {_stall.Recoveries}; "
             + $"{_sync.Outstanding} units in flight, {_sync.HeldPictures} pictures held, last picture {(_lastPictureTicks == 0 ? -1 : (now - _lastPictureTicks) * tickMs):F0} ms ago, "
-            + $"previous unit {(_previousSendTicks == 0 ? -1 : (_lastSendTicks - _previousSendTicks) * tickMs):F0} ms before, {_sends} units sent): "
+            + $"previous unit {(_previousSendTicks == 0 ? -1 : (_lastSendTicks - _previousSendTicks) * tickMs):F0} ms before, {_sends} units sent; "
+            + $"this unit pts {pts} us, {unitBytes} bytes{(idr ? ", IDR" : "")}, last picture out pts {_lastOutputPts} us): "
             + (action == InputStallRecovery.Action.ReopenSameDecoder ? "opening it again" : "trying the next decoder"));
         if (action == InputStallRecovery.Action.ReopenSameDecoder)
         {
