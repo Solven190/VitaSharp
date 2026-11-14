@@ -65,6 +65,9 @@ public static class EnvVars
     /// max_num_ref_frames from the first unit (H264ReorderLimit.ReorderUpToRefFrames), instead of 0 until a B slice
     /// restarts the decoder with the stream's own SPS (the whole DPB). Default: unset.</summary>
     public const string MediaCodecReorder = "VITASHARP_MEDIACODEC_REORDER";
+    /// <summary>A/B: =old makes sceAvPlayerJumpToTime hand out the pictures before the jump time and accept a jump
+    /// while another is in progress (the code before Media/MediaPlayerBase.JumpTargetUs). Default: unset.</summary>
+    public const string AvPlayerJump = "VITASHARP_AVPLAYER_JUMP";
     /// <summary>Tests: path of a media parity trace pulled from an Android device or emulator
     /// (build/android-media-parity.sh); MediaParityTests compares it with the desktop's (skipped when unset).</summary>
     public const string AndroidMediaTrace = "VITASHARP_ANDROID_MEDIA_TRACE";

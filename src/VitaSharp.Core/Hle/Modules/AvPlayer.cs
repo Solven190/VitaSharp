@@ -56,6 +56,9 @@ public sealed partial class AvPlayer : HleModule
         /// <summary>sceAvPlayerJumpToTime calls (diagnostics); not saved.</summary>
         [SnapshotIgnore]
         public int Jumps;
+        /// <summary>sceAvPlayerJumpToTime calls refused while a jump was in progress (diagnostics); not saved.</summary>
+        [SnapshotIgnore]
+        public int RefusedJumps;
 
         public readonly List<string> TempFiles = new();
     }
@@ -285,11 +288,19 @@ public sealed partial class AvPlayer : HleModule
         var p = Get(handle);
         if (p == null) return ERR_INVALID_ARGUMENT;
         long us = (long)timeMs * 1000;
+        if (p.Media is { JumpInProgress: true })
+        {
+            // libsceavplayer refuses a jump while the previous one has not reached its time ("Jump attempted while
+            // still in jump State"): the caller gets 0x806a0002 and the movie keeps going to the first jump's time
+            p.RefusedJumps++;
+            return ERR_INVALID_ARGUMENT;
+        }
+
         p.Jumps++;
         if (p.Jumps <= 30 || p.Jumps % 100 == 0)
         {
             // games keep a movie in step with its own audio by jumping: how often and how far behind the video was
-            Log.Info($"AvPlayer: jump {p.Jumps} to {timeMs} ms in {Path.GetFileName(p.SourcePath)} (clock {ClockUs(p) / 1000} ms, last picture {p.LastTimeUs / 1000} ms)");
+            Log.Info($"AvPlayer: jump {p.Jumps} to {timeMs} ms in {Path.GetFileName(p.SourcePath)} (clock {ClockUs(p) / 1000} ms, last picture {p.LastTimeUs / 1000} ms, {p.RefusedJumps} refused while one was in progress)");
         }
 
         p.Media?.Seek(us);

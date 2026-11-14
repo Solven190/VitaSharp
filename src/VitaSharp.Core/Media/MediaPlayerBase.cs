@@ -136,7 +136,7 @@ public abstract class MediaPlayerBase : IDisposable
         lock (SyncRoot)
         {
             SeekRequestUs = Math.Max(0, timeUs);
-            JumpTargetUs = SeekRequestUs;
+            JumpTargetUs = LegacyJumps ? -1 : SeekRequestUs;
             VideoQueue.Clear();
             AudioQueue.Clear();
             DemuxDone = false;
@@ -154,6 +154,11 @@ public abstract class MediaPlayerBase : IDisposable
     /// (6022 units for 70 s of a 30 fps movie, 14/11/2026).
     /// </summary>
     protected long JumpTargetUs = -1;
+
+    /// <summary>VITASHARP_AVPLAYER_JUMP=old (A/B on a device): a jump hands out what comes before its time and another
+    /// jump is accepted at once, as before the firmware's jump state was followed.
+    /// Tests set it to show the old behaviour.</summary>
+    internal static bool LegacyJumps { get; set; } = Environment.GetEnvironmentVariable(Util.EnvVars.AvPlayerJump) == "old";
 
     /// <summary>A jump (<see cref="Seek"/>) has not reached its time yet: the firmware's jump state.</summary>
     public bool JumpInProgress
