@@ -879,7 +879,7 @@ public static class SaveStates
 
         try
         {
-            List<GuestThread> restored = LoadSections(emu, list);
+            List<GuestThread> restored = LoadSections(emu, list, layouts, positional);
             RevalidateCode(emu.Code);
             return restored;
         }
@@ -907,7 +907,8 @@ public static class SaveStates
         Log.Info($"Load state: kept {kept} translated blocks, dropped {dropped} whose code changed ({Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms)");
     }
 
-    private static List<GuestThread> LoadSections(Emulator emu, List<(string Name, byte[] Data)> list)
+    private static List<GuestThread> LoadSections(Emulator emu, List<(string Name, byte[] Data)> list,
+        IReadOnlyDictionary<string, SnapshotLayout> layouts, bool positional)
     {
         AudioDiagnostics.ProcessEnded();
 
