@@ -51,7 +51,7 @@ public sealed class Registry
     private Registry(string fsRoot)
     {
         StorePath = System.IO.Path.Combine(fsRoot, "vd0", "registry", "vitasharp-registry.txt");
-        string template = System.IO.Path.Combine(fsRoot, "os0", "kd", "registry.db0");
+        string template = Io.FirmwareLayout.KernelModules.Host(fsRoot, "registry.db0");
         try
         {
             if (File.Exists(template))
@@ -65,7 +65,7 @@ public sealed class Registry
         }
         if (_keys.Count == 0)
         {
-            Log.Info("registry: no firmware template (os0:kd/registry.db0); only the keys VitaSharp knows exist");
+            Log.Info($"registry: no firmware template ({Io.FirmwareLayout.KernelModules.Guest("registry.db0")}); only the keys VitaSharp knows exist");
         }
 
         Load();

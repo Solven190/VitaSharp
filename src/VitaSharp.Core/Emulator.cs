@@ -1153,6 +1153,13 @@ public sealed class Emulator : IDisposable
         // a missing file or folder is the guest's error (the callers return it), never a host exception that ends the thread
         string host = Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath);
         byte[] elf = SelfDecryptor.ToElf(File.ReadAllBytes(host), Klicensee);
+        if (kernel)
+        {
+            // the firmware's kernel modules are in the kernel before any other kernel module, as on the Vita: the new
+            // module links to their exports and finds them in the module manager's list
+            FirmwareKernel.Load();
+        }
+
         LoadedModule loadedModule;
         using (ProcessScope.Enter(kernel ? KernelSpace.KernelPid : ProcessScope.CurrentPid))
         {
@@ -1166,6 +1173,11 @@ public sealed class Emulator : IDisposable
         CheckPendingVariables(loadedModule);
         return loadedModule;
     }
+
+    private Hle.FirmwareKernelModules? _firmwareKernel;
+
+    /// <summary>The firmware's kernel modules as kernel code sees them (shown when the first other kernel module loads).</summary>
+    public Hle.FirmwareKernelModules FirmwareKernel => LazyInitializer.EnsureInitialized(ref _firmwareKernel, () => new Hle.FirmwareKernelModules(this));
 
     /// <summary>SCE_KERNEL_START_SUCCESS, _NO_RESIDENT and _FAILED: what module_start returns.</summary>
     public const int ModuleStartSuccess = 0, ModuleStartNoResident = 1, ModuleStartFailed = 2;
