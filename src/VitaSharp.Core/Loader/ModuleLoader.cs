@@ -231,7 +231,13 @@ public sealed class Linker(IImportResolver importResolver)
                 }
 
                 BindHle(stub, nid, libNid, libName);
-                InvalidateCode?.Invoke(stub, 12);
+                // only a rewritten stub drops translated code: the stubs a state load finds as this build writes them
+                // keep the blocks that call them (VITASHARP_LOAD_KEEP_CODE), and each invalidation walks every block
+                if (GuestMemory.R32(stub) != w0 || GuestMemory.R32(stub + 4) != w1 || GuestMemory.R32(stub + 8) != w2)
+                {
+                    InvalidateCode?.Invoke(stub, 12);
+                }
+
                 n++;
             }
         }

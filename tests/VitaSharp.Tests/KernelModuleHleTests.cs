@@ -201,7 +201,11 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
         Linker.WriteHleStub(sCode, 0x999, nidCode);   // saved before nidCode had guest code
         Linker.WriteJumpStub(sCode2, oldCode + 8);     // the saved session's routine
         Linker.WriteJumpStub(sHooked, hook);           // a hook
+        var invalidated = new List<uint>();
+        linker.InvalidateCode = (address, size) => invalidated.Add(address);
         Assert.Equal(3, linker.RebindHleStubs(a => a - oldCode < 0x40)); // the two above and the plain SVC stub
+        // only the rewritten stubs drop translated code; the SVC stub was already this build's
+        Assert.Equal([sCode, sCode2], invalidated);
         Assert.Equal(newCode, StubTarget(sCode));
         Assert.Equal(newCode, StubTarget(sCode2));
         Assert.Equal(0xEF000000u | (nidSvc & 0xFFFF), GuestMemory.R32(sSvc));
