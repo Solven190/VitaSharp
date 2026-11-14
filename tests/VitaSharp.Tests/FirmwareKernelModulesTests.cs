@@ -245,7 +245,7 @@ public sealed class FirmwareKernelModulesTests : IDisposable
     {
         (SceModuleBuilder first, int firstCaller) = CallerPlugin("CallerPlugin");
         (SceModuleBuilder second, int secondCaller) = CallerPlugin("OtherCaller");
-        var hooker = new SceModuleBuilder("CountingModule").Start(0);
+        SceModuleBuilder hooker = new SceModuleBuilder("CountingModule").Start(0);
         (int hookFunction, uint counterLiteral, uint continueLiteral) = CountingHook(hooker);
         List<LoadedModule> loaded = LoadKernelPlugins(("caller.skprx", first), ("other.skprx", second), ("hook.skprx", hooker));
 
@@ -269,7 +269,7 @@ public sealed class FirmwareKernelModulesTests : IDisposable
     {
         (SceModuleBuilder first, int firstCaller) = CallerPlugin("CallerPlugin");
         (SceModuleBuilder second, int secondCaller) = CallerPlugin("OtherCaller");
-        var hooker = new SceModuleBuilder("CountingModule").Start(0);
+        SceModuleBuilder hooker = new SceModuleBuilder("CountingModule").Start(0);
         (int hookFunction, uint counterLiteral, uint continueLiteral) = CountingHook(hooker);
         List<LoadedModule> loaded = LoadKernelPlugins(("caller.skprx", first), ("other.skprx", second), ("hook.skprx", hooker));
 
@@ -295,7 +295,7 @@ public sealed class FirmwareKernelModulesTests : IDisposable
     {
         Directory.Delete(Path.Combine(_harness.Root, "os0", "kd"), true);
         FirmwareKernelImage.Forget(_harness.Root);
-        var plugin = new SceModuleBuilder("EmptyPlugin").Start(0);
+        SceModuleBuilder plugin = new SceModuleBuilder("EmptyPlugin").Start(0);
         LoadKernelPlugins(("empty.skprx", plugin));
         Assert.Empty(_harness.Emu.FirmwareKernel.Modules);
         Assert.Equal(0u, _harness.Emu.FirmwareKernel.EntryOf(CpuForDriver, AtomicAddAndGet32));

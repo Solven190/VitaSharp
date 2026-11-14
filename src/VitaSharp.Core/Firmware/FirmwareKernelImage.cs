@@ -17,7 +17,7 @@ public sealed class FirmwareKernelImage
     /// <summary>One kernel module of the firmware: where it is, its ELF and its tables.</summary>
     public sealed record Module(string VitaPath, byte[] Elf, ModuleImage Image);
 
-    static readonly ConcurrentDictionary<string, FirmwareKernelImage> s_cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, FirmwareKernelImage> s_cache = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The modules in load order of the firmware: the image's own modules first, then the os0:kd files by name.</summary>
     public IReadOnlyList<Module> Modules { get; }
@@ -31,7 +31,7 @@ public sealed class FirmwareKernelImage
     /// <summary>The module named <paramref name="name"/> (the name in its module_info), or null.</summary>
     public Module? Named(string name) => Modules.FirstOrDefault(m => m.Image.Name == name);
 
-    FirmwareKernelImage(string fsRoot)
+    private FirmwareKernelImage(string fsRoot)
     {
         var modules = new List<Module>();
         string folder = Io.FirmwareLayout.KernelModules.Host(fsRoot);
@@ -66,7 +66,7 @@ public sealed class FirmwareKernelImage
         Modules = modules;
     }
 
-    static byte[]? ReadElf(string file)
+    private static byte[]? ReadElf(string file)
     {
         try
         {
@@ -79,11 +79,11 @@ public sealed class FirmwareKernelImage
         }
     }
 
-    static ModuleImage? TryRead(byte[] elf)
+    private static ModuleImage? TryRead(byte[] elf)
     {
         try
         {
-            ModuleImage image = ModuleImage.Read(elf);
+            var image = ModuleImage.Read(elf);
             return image.Name.Length > 0 ? image : null;
         }
         catch (Exception e) when (e is InvalidDataException or ArgumentException or IndexOutOfRangeException or KeyNotFoundException)
@@ -93,7 +93,7 @@ public sealed class FirmwareKernelImage
     }
 
     /// <summary>The ELFs inside the kernel image (after its own header): each runs to the next ELF magic.</summary>
-    static IEnumerable<byte[]> EmbeddedElfs(byte[] kernelImage)
+    private static IEnumerable<byte[]> EmbeddedElfs(byte[] kernelImage)
     {
         ReadOnlySpan<byte> magic = [0x7F, (byte)'E', (byte)'L', (byte)'F'];
         var starts = new List<int>();

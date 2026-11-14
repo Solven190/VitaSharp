@@ -33,17 +33,17 @@ namespace VitaSharp.Core.Hle;
 /// </summary>
 public sealed class FirmwareKernelModules(Emulator emu)
 {
-    const uint BxLr = 0xE12FFF1E, SvcOpcode = 0xEF000000;
+    private const uint BxLr = 0xE12FFF1E, SvcOpcode = 0xEF000000;
 
     /// <summary>(library NID, function NID) -> the entry's address and its unpatched first word.</summary>
-    readonly Dictionary<(uint LibNid, uint Nid), (uint Entry, uint Svc)> _entries = new();
+    private readonly Dictionary<(uint LibNid, uint Nid), (uint Entry, uint Svc)> _entries = new();
 
     /// <summary>(importing module, library NID, function NID) -> the import stub and the code the linker put in it.</summary>
-    readonly Dictionary<(string Module, uint LibNid, uint Nid), (uint Stub, uint[] Bound)> _imports = new();
+    private readonly Dictionary<(string Module, uint LibNid, uint Nid), (uint Stub, uint[] Bound)> _imports = new();
 
-    const int StubWords = 4;
-    readonly object _lock = new();
-    bool _loaded;
+    private const int StubWords = 4;
+    private readonly object _lock = new();
+    private bool _loaded;
 
     /// <summary>The kernel modules loaded for the firmware's modules (empty until <see cref="Load"/>).</summary>
     public List<LoadedModule> Modules { get; } = new();
@@ -101,7 +101,7 @@ public sealed class FirmwareKernelModules(Emulator emu)
     }
 
     /// <summary>Loads one firmware module's tables as a kernel module and writes its function entries.</summary>
-    LoadedModule LoadShell(string path, ModuleImage image, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
+    private LoadedModule LoadShell(string path, ModuleImage image, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
         List<(string Library, uint LibNid, uint[] FuncNids)> imports)
     {
         (byte[] elf, List<(int Library, int Function, uint Offset)> stubs, List<(int Library, int Function, uint Offset)> importStubs) =
@@ -200,7 +200,7 @@ public sealed class FirmwareKernelModules(Emulator emu)
         return RunGuest(thread, ImportStubOf(module, libNid, nid), args);
     }
 
-    static uint RunGuest(GuestThread thread, uint address, ReadOnlySpan<uint> args)
+    private static uint RunGuest(GuestThread thread, uint address, ReadOnlySpan<uint> args)
     {
         bool wasKernel = thread.KernelMode;
         thread.KernelMode = true;
@@ -237,7 +237,7 @@ public sealed class FirmwareKernelModules(Emulator emu)
     /// 0x34-byte import entries with a 16-byte stub per function, which the loader links. Returns the ELF, where each
     /// exported function's entry is in the segment, and where each import stub is.
     /// </summary>
-    static (byte[] Elf, List<(int Library, int Function, uint Offset)> Stubs, List<(int Library, int Function, uint Offset)> ImportStubs) BuildShell(
+    private static (byte[] Elf, List<(int Library, int Function, uint Offset)> Stubs, List<(int Library, int Function, uint Offset)> ImportStubs) BuildShell(
         string name, uint moduleNid, ushort attributes, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
         List<(string Library, uint LibNid, uint[] FuncNids)> imports)
     {
@@ -361,7 +361,7 @@ public sealed class FirmwareKernelModules(Emulator emu)
         return (elf, stubs, importStubs);
     }
 
-    static void ProgramHeader(Span<byte> header, int at, uint type, uint offset, uint size, uint flags)
+    private static void ProgramHeader(Span<byte> header, int at, uint type, uint offset, uint size, uint flags)
     {
         BinaryPrimitives.WriteUInt32LittleEndian(header[at..], type);
         BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 4)..], offset);
