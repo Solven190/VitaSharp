@@ -6,7 +6,25 @@ SurfaceView) that builds into an installable APK. It has run on the **x86_64 And
 pause/resume, AAudio and the on-screen controls. It has also run on a **phone** (Redmi Note 14, Mali-G57, 30/10/2026:
 [Phone run](#phone-run-redmi-note-14-mali-g57-30102026)): the native ARM64 JIT, the Mali driver, AAudio, MediaCodec
 movies and six games. Adreno (and libadrenotools) and real controllers are still unverified (the checklist at the end).
-On-screen text is in Portuguese, like the desktop launcher.
+On-screen text follows the app's language setting (English or Brazilian Portuguese), like the desktop launcher.
+
+## Current state (14/11/2026)
+
+The user-facing summary is the [main README's Android section](../../README.md#android); the dated runs below keep the
+history.
+
+- **Runtime**: the Release APK uses `VitaSharpAndroidRuntime=nativeaot` by default (see
+  [Runtime and AOT choice](#runtime-and-aot-choice-vitasharpandroidruntime)), with the native ARM64 JIT for guest code.
+- **Requirements**: arm64, Android 8.0+ (API 26, `SupportedOSPlatformVersion`), a Vulkan 1.1+ driver.
+- **Measured** on the Redmi Note 14 (Helio G99, Mali-G57): Killzone: Mercenary about 22-25 fps in the campaign,
+  Uncharted: Golden Abyss 30 fps in the Prologue, F1 2011 30 fps in the race (all three native 30). Other games have
+  not been measured on the phone yet.
+- **Install**: once the current CI PR is merged, each CI run publishes the artifact
+  `VitaSharp-android-arm64-nativeaot`; otherwise build it as in [Building](#building). The APK is signed with a debug
+  key, so switching to a build signed with another key needs an uninstall, which deletes the data folder (games,
+  saves, settings; see [Storage](#storage)): copy `fs/ux0/user/00/savedata` out first.
+- **Known limitations**: Killzone: Mercenary's movies can play slowly for a while before they catch up; Minecraft loses
+  performance as a session goes on (under investigation); Adreno phones and custom drivers are barely tested.
 
 ## Building
 
