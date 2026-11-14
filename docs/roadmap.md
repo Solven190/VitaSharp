@@ -363,6 +363,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `last_frag_in` (input attachment 0, variantes fetch-input do `ShaderGenerator`) numa biblioteca de fragmento ou na
   ligação com renderização dinâmica e `colorAttachmentCount` 0. Pôr os anexos de cor da chave na biblioteca e na
   ligação não resolveu; a chamada exata ainda não foi identificada (quadros idênticos)
+- [ ] Engasgos de shader na primeira vez que se joga (plano escolhido): o custo é o driver montar cada pipeline
+  (~80 ms por pipeline na GTX 1650; traduzir os shaders do Vita custa no máximo ~116 ms por sessão), e na segunda
+  sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Três frentes:
+  (1) opção do emulador "Precompilar shaders", como no RPCS3: antes de iniciar o jogo, com tela de progresso, achar
+  os shaders GXP nos arquivos do jogo (na instalação ou no primeiro boot), traduzir, criar os módulos de shader e
+  pré-aquecer os pipelines conhecidos; decidir se vem ligada por padrão; (2) menos variantes de pipeline com estado
+  dinâmico (`VK_EXT_extended_dynamic_state` 2/3, como Ryujinx e yuzu), onde o driver tiver as extensões, mantendo o
+  caminho atual onde o suporte for parcial (Mali); (3) mais threads de compilação quando a CPU tiver folga (hoje 2
+  workers). Pular o desenho até o pipeline ficar pronto não entra como padrão (não é 1:1 com o console).
 - [ ] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
