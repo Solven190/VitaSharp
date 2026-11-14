@@ -451,6 +451,86 @@ public sealed class AndroidMediaDriverTests : IDisposable
         Assert.True(frozen.Count < 110, $"{frozen.Count} pictures");
     }
 
+    /// <summary>
+    /// A decoder that stalls for good once its input ring holds <c>stallAt</c> units (the c2.android.avc.decoder stalls
+    /// seen in Killzone: Mercenary's movies, each with 14 units in flight), and otherwise gives one picture per poll
+    /// (it decodes more slowly than the movie player feeds it).
+    /// </summary>
+    private sealed class RingStallCodec(int stallAt)
+    {
+        private readonly Queue<long> _ring = new();
+        public bool Stalled { get; private set; }
+        public List<long> Pictures { get; } = new();
+        public long InFlight => _ring.Count;
+
+        public void Queue(long pts)
+        {
+            _ring.Enqueue(pts);
+            if (_ring.Count >= stallAt)
+            {
+                Stalled = true;
+            }
+        }
+
+        public void Poll(long timeoutUs)
+        {
+            if (!Stalled && _ring.Count > 0)
+            {
+                Pictures.Add(_ring.Dequeue());
+            }
+        }
+    }
+
+    private static RingStallCodec FeedRingStallCodec(int maxInFlight)
+    {
+        var codec = new RingStallCodec(stallAt: 14);
+        long clockUs = 0;
+        for (int unit = 0; unit < 200; unit++)
+        {
+            Assert.True(InputPacing.WaitForRoom(maxInFlight, () => codec.InFlight, timeoutUs =>
+            {
+                clockUs += timeoutUs;
+                codec.Poll(timeoutUs);
+            }, () => clockUs));
+            codec.Queue(unit);
+            if (unit % 2 == 1)
+            {
+                codec.Poll(0); // the decoder keeps up with every other unit only
+            }
+        }
+
+        while (codec.InFlight > 0 && !codec.Stalled)
+        {
+            codec.Poll(0);
+        }
+
+        return codec;
+    }
+
+    [Fact]
+    public void InputPacingKeepsTheDecoderRingFromFillingUp()
+    {
+        // fed as fast as the player's queue allows, the ring fills to 14 and the decoder stalls
+        RingStallCodec unpaced = FeedRingStallCodec(maxInFlight: 0);
+        Assert.True(unpaced.Stalled);
+        Assert.True(unpaced.Pictures.Count < 200);
+
+        // at most 8 in flight: the next unit waits for a picture, the decoder never stalls, every picture in order
+        RingStallCodec paced = FeedRingStallCodec(maxInFlight: 8);
+        Assert.False(paced.Stalled);
+        Assert.Equal(Enumerable.Range(0, 200).Select(i => (long)i), paced.Pictures);
+    }
+
+    [Fact]
+    public void InputPacingGivesUpAfterItsLongestWait()
+    {
+        // a decoder that gives nothing back: the wait ends after MaxWaitUs and the unit is queued anyway
+        long clockUs = 0;
+        bool roomFound = InputPacing.WaitForRoom(4, () => 4, timeoutUs => clockUs += timeoutUs, () => clockUs);
+        Assert.False(roomFound);
+        Assert.InRange(clockUs, InputPacing.MaxWaitUs, InputPacing.MaxWaitUs + 10_000);
+    }
+
     // ---------------------------------------------------------------- MediaCodec output timing (sceAvcdecDecode contract)
 
     /// <summary>

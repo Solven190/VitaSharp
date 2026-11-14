@@ -491,6 +491,46 @@ public sealed class InputStallRecovery
     public void OnPicture() => _reopenedWithoutPicture = false;
 }
 
+/// <summary>
+/// Optional input pacing of the MediaCodec H.264 decoder (VITASHARP_MEDIACODEC_MAX_IN_FLIGHT, A/B): before a unit is
+/// queued, while the decoder holds at least that many units whose pictures did not come out, the caller's output is
+/// drained (waiting for a picture) instead of queueing more. Android's software decoder (c2.android.avc.decoder) stalled
+/// once per Killzone: Mercenary movie with 14 units in flight and no picture for 200+ ms (13/11/2026, the stall warning
+/// of InputStallRecovery); the AvPlayer decoder thread feeds a movie as fast as its 12-picture queue allows, so the
+/// codec's whole input ring fills. ExoPlayer and the MediaCodec guide feed only when an input buffer is free and drain
+/// every loop; this goes one step further and keeps the ring partly empty. The wait is bounded: past it the unit is
+/// queued anyway (the stall recovery still applies).
+/// </summary>
+public static class InputPacing
+{
+    /// <summary>The longest wait for room (microseconds) before a unit is queued anyway.</summary>
+    public const long MaxWaitUs = 100_000;
+
+    /// <summary>Waits while <paramref name="unitsInFlight"/> is at least <paramref name="maxInFlight"/> (0 = no pacing),
+    /// draining the output with <paramref name="pollOutput"/> (its argument: the longest wait in microseconds). False
+    /// when the wait ran out.</summary>
+    public static bool WaitForRoom(int maxInFlight, Func<long> unitsInFlight, Action<long> pollOutput, Func<long> nowUs, long maxWaitUs = MaxWaitUs)
+    {
+        if (maxInFlight <= 0)
+        {
+            return true;
+        }
+
+        long start = nowUs();
+        while (unitsInFlight() >= maxInFlight)
+        {
+            if (nowUs() - start >= maxWaitUs)
+            {
+                return false;
+            }
+
+            pollOutput(10_000);
+        }
+
+        return true;
+    }
+}
+
 /// <summary>The ADTS header of an AAC frame (ISO/IEC 13818-7 / 14496-3): its length and the AudioSpecificConfig it
 /// stands for, so ADTS frames can go to a decoder as raw frames.</summary>
 public static class AdtsHeader

@@ -81,6 +81,8 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     // first picture only after its reorder depth. VITASHARP_MEDIACODEC_PRIME=all drains every stream's first picture
     int _statedReorderFrames = -1;
     static readonly bool s_primeEveryStream = System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecPrime) == "all";
+    // VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N (A/B): at most N units in flight before the next one is queued (InputPacing)
+    static readonly int s_maxInFlight = int.TryParse(System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecMaxInFlight), out int maxInFlight) ? Math.Max(0, maxInFlight) : 0;
     long _lastOutputPts = long.MinValue, _skipThroughPts = long.MinValue;
     // output format (raw-buffer path and crop)
     int _width, _height, _stride, _sliceHeight, _colorFormat, _cropX, _cropY;
@@ -304,6 +306,7 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
                 }
                 unitToQueue = limited;
             }
+            InputPacing.WaitForRoom(s_maxInFlight, () => _sync.Outstanding, PollOutput, MonotonicMicroseconds);
             bool queued = Queue(unitToQueue, pts, 0);
             _queueTicks += System.Diagnostics.Stopwatch.GetTimestamp() - queueStart;
             if (!queued)
