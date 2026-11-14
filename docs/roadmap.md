@@ -693,6 +693,23 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
 
+- [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
+  (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
+  - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:
+    main ~90-115 M ciclos/s, (4J) Chunk update e (4J) Server ~80-140 M/s cada, (4J) Tile update aparece no meio
+    (~0,8 núcleo). O trabalho de guest por segundo da main não cai com o fps (1,3 M ciclos/quadro a 55 fps, ~35 M a
+    2 fps): ela gira esperando as outras threads, que ficam sem CPU do host.
+  - Descartado: MSSTimer girando. O "host time in native code" das linhas antigas incluía as esperas; com as linhas
+    novas (generated code x HLE calls) ela passa ~15 de 16,7 ms por quadro bloqueada numa espera de HLE, igual em
+    qualquer momento. Também descartado: GC/heap (estável ~100 MB), GPU (estável) e térmica.
+  - A sessão de 10 min "parada" do laboratório (60 fps estáveis, `lab13\mc_long`) é inválida: o state de 10/11
+    (c41f784) foi recusado pelo APK v4 ("salvo por outra versão do VitaSharp") e o jogo ficou na tela de título,
+    sem as threads do mundo. No desktop (4 núcleos, entrando no mundo pelo menu e andando/girando a câmera por
+    script) o jogo segura 59-60 fps por 7 min: não reproduz.
+  - Próximo: sessão andando no mundo no celular com o APK do bugss (fix/savestate-regress, carrega states do
+    c41f784; conferir "state loaded" no log), salvar um state novo no mundo, ~10 min andando, linhas PERF por janela
+    (`VITASHARP_SESSION_REPORT_SECONDS=30`), simpleperf no minuto 1 e 9, "Gravar tudo" quando cair abaixo de 20 fps;
+    comparar começo x fim por thread (guest ciclos/s, tempo de host, esperas) para achar o que cresce do lado do host
 - [ ] Killzone no celular: o feixe de luz que entra pelo canto superior direito da escada muda de forma/intensidade
   entre quadros (forte, quase some; captura parada no slot 6 da escada, APK a00b4b9b sem chaves de perf: screen20s.mp4,
   cap_*.png e last.log em <scratchpad>\lab13\kzflicker). O log mostra a cadeia de downscale por transferências de CPU
