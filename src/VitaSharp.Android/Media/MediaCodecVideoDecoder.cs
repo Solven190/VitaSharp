@@ -81,11 +81,11 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     // first picture only after its reorder depth. VITASHARP_MEDIACODEC_PRIME=all drains every stream's first picture
     int _statedReorderFrames = -1;
     static readonly bool s_primeEveryStream = System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecPrime) == "all";
-    // VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N (A/B): at most N units in flight before the next one is queued (InputPacing)
     // VITASHARP_MEDIACODEC_REORDER=refs (A/B): SPSs without a reorder limit get max_num_reorder_frames = their
     // max_num_ref_frames from the first unit (H264ReorderLimit.ReorderUpToRefFrames) instead of 0 and a restart
     static readonly bool s_reorderUpToRefFrames = System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecReorder) == "refs";
-    static readonly int s_maxInFlight =int.TryParse(System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecMaxInFlight), out int maxInFlight) ? Math.Max(0, maxInFlight) : 0;
+    // VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N (A/B): at most N units in flight before the next one is queued (InputPacing)
+    static readonly int s_maxInFlight = int.TryParse(System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecMaxInFlight), out int maxInFlight) ? Math.Max(0, maxInFlight) : 0;
     long _lastOutputPts = long.MinValue, _skipThroughPts = long.MinValue;
     // output format (raw-buffer path and crop)
     int _width, _height, _stride, _sliceHeight, _colorFormat, _cropX, _cropY;
