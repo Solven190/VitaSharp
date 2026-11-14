@@ -278,6 +278,12 @@ public sealed partial class FirmwareLayoutTests : IDisposable
         Assert.Contains(FirmwareLayout.PsmTitles, FirmwareLayout.ShellRebuildSources);
         Assert.True(File.Exists(vfs.Resolve(FirmwareLayout.PspGames.Guest("ULUS99904", "EBOOT.PBP"))));
         Assert.Null(FirmwareLayout.FindApplication(_fs, "PCSE99999"));
+        // a title one can start by its ID (--launch-app): the applications by their eboot.bin, a PSM title by its folder
+        // (appmgr's own lookup, FindApplication, never takes a PSM title: it has no executable)
+        Assert.Null(FirmwareLayout.FindApplication(g => vfs.Resolve(g), "NPXX99999"));
+        Assert.Equal(psmTitle.Dir, FirmwareLayout.FindStartableTitle(g => vfs.Resolve(g), "NPXX99999"));
+        Assert.Equal(game.Dir, FirmwareLayout.FindStartableTitle(g => vfs.Resolve(g), "PCSE99901"));
+        Assert.Null(FirmwareLayout.FindStartableTitle(g => vfs.Resolve(g), "PCSE99999"));
     }
 
     [Fact]

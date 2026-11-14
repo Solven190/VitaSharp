@@ -1,0 +1,74 @@
+# PlayStation Mobile: censo do HLE dos runtimes
+
+Tudo o que os módulos do runtime de PSM importam e quem fornece cada função no VitaSharp. Fonte: as tabelas de import
+de cada módulo do `PCSI00011` instalado (`ux0:app/PCSI00011` 1.00 e a atualização `ux0:patch/PCSI00011` 2.01:
+`eboot.bin`, `sce_module/*.suprx`, `module/*.suprx`; só leitura), medidas com
+`VitaSharp.Desktop imports PCSI00011 --tsv=<arquivo>` (uma linha por função: módulo, biblioteca, NID, nome e quem
+fornece, pelas mesmas regras do carregador). Firmware instalado: 3.74. O runtime Unity (`PCSI00010`, em
+`ux0:psm/<id>/runtime` de cada título Unity) continua cifrado no PFS do título e não entra no censo (B5 cuida da
+decifração).
+
+Categorias (as do `hle-coverage`): **HLE** função real; **default** valor documentado do firmware para o que o
+aparelho emulado não tem; **LLE do runtime** um módulo do próprio pacote exporta (libc, libm, libstdcxx, fios2, ult,
+mono, mono_bridge, psm, shacccg); **LLE do firmware** o HLE não conhece a biblioteca e um módulo do firmware a exporta
+(o carregador carrega esse módulo); **falta** ninguém fornece.
+
+## Resumo (união 1.00 + 2.01, NIDs distintos)
+
+| | HLE | default | LLE do runtime | LLE do firmware | falta | total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| antes (main 6b52a109) | 486 | 6 | 542 | 19 | 9 | 1062 |
+| depois (feat/psm-hle) | 491 | 13 | 542 | 14 | 2 | 1062 |
+
+Por módulo (2.01): `eboot.bin` 122 imports, `libc` 56, `libfios2` 66, `libmono_bridge` 173, `libmono` 376,
+`libpsm` 494, `libshacccg` 27, `libult` 26.
+
+## O que não era HLE real antes
+
+| Biblioteca | NID | Função | Quem importa | Antes | Depois |
+| --- | --- | --- | --- | --- | --- |
+| SceSysmem | 0xEC636BCB | sceKernelAllocUnmapMemBlock | eboot | falta | HLE |
+| SceAppMgrUser | 0x9D6D8058 | (sem nome) | eboot 1.00 | falta | default: nenhum módulo do FW 3.74 exporta; o stub do próprio módulo devolve -1 |
+| SceAppUtilPsm | 0xDEB51A38 | (sem nome) | libpsm | LLE do firmware (apputil.suprx inteiro) | HLE |
+| SceLibTargetTransport | 0x11EBD107, 0x1AD7239E, 0x4CF1664B, 0x4F644C0F, 0x9D3FC23C, 0xD45C74BE | (sem nome) | libmono_bridge | falta | default: biblioteca só do devkit; o stub do módulo devolve -1 |
+| SceIpmi | 0xB282B430 | IPMI::Client::create | eboot (não chama), libpsm | falta | falta (em estudo: cliente do serviço "SceDownload" do shell) |
+| ScePsmDrm | 0xE31A6220 | scePsmDrmGetRifInfo | libmono_bridge, libpsm, psmkdc | default | HLE (PSM-B, feat/psm-hle-14) |
+| ScePsmDrm | 0xA89653B3 | scePsmDrmGetActInfo | idem | default | HLE (PSM-B) |
+| ScePsmDrm | 0x207A2C53 | scePsmDrmGetRifKey | idem | default | HLE (PSM-B; aparelho sem ativação de PSM) |
+| ScePsmDrm | 0x0E193CBB | scePsmDrmRemoveActData | idem | default | HLE (PSM-B) |
+| ScePsmDrm | 0x3E881391, 0x0D6470DA | scePsmDrmGetRifName(ForInstall) | idem | default | default (o nome é o id da conta cifrado com uma chave do módulo) |
+| SceDrmPsmKdc | 0x7EE0F1BC, 0xC16EDCD9, 0xE768E9D1, 0xF562D06D | (sem nome) | eboot | LLE do firmware (psmkdc.suprx) | idem (sceSysmoduleLoadModuleInternal é privilegiado: qualquer chamador carrega o psmkdc) |
+| SceFt2 | 14 NIDs (FT_*) | FreeType | libpsm | LLE do firmware (libSceFt2.suprx) | idem |
+
+Os módulos do firmware carregados por LLE importam, por sua vez: `psmkdc.suprx` usa SceHttp, ScePsmDrm (acima) e
+`sceSblGcAuthMgrPsmactCreateC1`/`VerifyR1` (default: a ativação de PSM do processador seguro); `libSceFt2.suprx` só
+SceLibKernel/SceIofilemgr (HLE).
+
+## Como o console faz (FW 3.74, módulos do firmware instalado, só estudo)
+
+- **Título de PSM do processo.** O runtime chama `sceAppMgrInitSafeMemoryById(const char *id)` (SceAppUtilPsm
+  0xDEB51A38 é o envoltório do apputil, com os erros dele). O appmgr só aceita um runtime de PSM (0x80800009), uma vez
+  (0x8080004A); o runtime do pacote passa o ID do título (4 maiúsculas + 5 dígitos, senão 0x80800001), um runtime que
+  o título traz passa um nome `[0-9A-Za-z_-]{1,63}`. O ID fica nas informações do processo (`AppMgr.PsmTitleId` no
+  VitaSharp, o único lugar) e a memória segura passa para `ux0:psm/<id>/RW/System/pm.dat`
+  (`ux0:cache/<title id>/<nome>/System/pm.dat`): um pm.dat de 64 KiB é lido para a área, senão é criado a partir dela;
+  a pasta tem de existir (0x80800049).
+- **Montagens 106/107.** `sceAppMgrAppDataMountById(106|107, id, mp)` exige um ID de PSM e o ponto de montagem
+  (0x80800001) e cria a pasta `ux0:psm/<id>/RO|RW` se faltar, antes de montar.
+- **0x9D6D8058.** Só o runtime 1.00 (SDK 2.00) importa; o FW 3.74 não exporta (o `driver_us` não tem esse NID). O
+  carregador deixa o stub do módulo (`mvn r0, #0; bx lr`), a chamada devolve -1, a montagem 106 recebe um ID vazio e
+  falha: o 1.00 não roda títulos no 3.74, por isso o shell pede a atualização do runtime.
+- **ScePsmDrm** (implementação no PSM-B, feat/psm-hle-14). O PSM tem ativação própria (`tm0:/psmdrm/act.dat`, "PSM-ACT", assinada e presa à conta e a um
+  resumo do aparelho); o aparelho emulado não tem: `GetActInfo`/`GetRifKey` respondem 0x808F0106. `GetRifInfo` não
+  precisa de ativação: confere a assinatura RSA-2048 da licença (SHA-256 dos 0x300 primeiros bytes, assinatura em
+  +0x300, chave pública do módulo lida do firmware instalado do usuário em tempo de execução, nunca no repositório),
+  o cabeçalho ("PSM-RIF" versão 1, campos zerados, início <= fim: 0x808F0105), a conta (0x808F0108) e o resumo da
+  ativação (0x808F0109), e em todo caso com a assinatura do PSM preenche ID do conteúdo, conta e validade (ticks do
+  SceRtc; 0 = sem fim). Uma licença sem assinatura (as do NoPsmDrm) dá 0x808F0104 com os campos preenchidos, como no
+  console. Sem a chave do firmware (outra versão, sem firmware): 0x80020004, com aviso no log.
+
+## Falta
+
+- `IPMI::Client::create` (libpsm, serviço "SceDownload" do shell): verificar se o servidor do shell sobe no VitaSharp
+  e ligar o cliente do firmware a ele pelo IPC do kernel.
+- Runtime Unity (`PCSI00010`): censo depois que o PFS do título puder ser lido (B5).

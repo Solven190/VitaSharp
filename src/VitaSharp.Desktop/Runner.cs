@@ -964,7 +964,8 @@ public static class Runner
                 shell.Vita.RequestLaunchByUri(shell, uri, flags);
                 return;
             }
-            string? dir = VitaSharp.Core.Io.FirmwareLayout.FindApplication(guest => shell.Vfs.Resolve(guest), app!);
+            // a PSM title too: the process that starts is its runtime, with the title as its launch parameter
+            string? dir = VitaSharp.Core.Io.FirmwareLayout.FindStartableTitle(guest => shell.Vfs.Resolve(guest), app!);
 
             if (dir == null)
             {

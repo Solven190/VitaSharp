@@ -14,6 +14,7 @@ namespace VitaSharp.Tests;
 public sealed class AppUtilSaveDataTests : IDisposable
 {
     private const int ERR_PARAMETER = unchecked((int)0x80100600);
+    private const int ERR_NOT_INITIALIZED = unchecked((int)0x80100601);
     private readonly HleHarness _harness;
     private readonly string _save;
     private AppUtil AppUtil => _harness.Module<AppUtil>();
@@ -33,6 +34,10 @@ public sealed class AppUtilSaveDataTests : IDisposable
     {
         uint buf = _harness.Alloc(64);
         GuestMemory.Fill(buf, 0xEE, 64);
+        // apputil.suprx 3.74 answers both before sceAppUtilInit with NOT_INITIALIZED
+        Assert.Equal(ERR_NOT_INITIALIZED, Call(AppUtil, "sceAppUtilLoadSafeMemory", buf, 64u, 0L));
+        Assert.Equal(ERR_NOT_INITIALIZED, Call(AppUtil, "sceAppUtilSaveSafeMemory", buf, 64u, 0L));
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilInit", _harness.Alloc(0x40), _harness.Alloc(0x40)));
         Assert.Equal(64, Call(AppUtil, "sceAppUtilLoadSafeMemory", buf, 64u, 0L)); // nothing saved yet: zeros, and the size copied (apputil.suprx 3.74)
         Assert.All(GuestMemory.ReadSpan(buf, 64).ToArray(), b => Assert.Equal(0, b));
         for (uint i = 0; i < 64; i++)
@@ -50,6 +55,8 @@ public sealed class AppUtilSaveDataTests : IDisposable
         Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilLoadSafeMemory", 0u, 4u, 0L));
         Assert.Equal(unchecked((int)0x80801001), AppUtil.LoadSafeMemoryKernel(0u, 4u, 0L)); // the kernel code sceAppMgrLoadSafeMemory returns
         Assert.Equal(unchecked((int)0x80801000), AppUtil.LoadSafeMemoryKernel(buf, 64u, 64L * 1024));
+        Assert.Equal(unchecked((int)0x80801001), AppUtil.SaveSafeMemoryKernel(0u, 4u, 0L)); // what sceAppMgrSaveSafeMemory returns
+        Assert.Equal(unchecked((int)0x80801000), AppUtil.SaveSafeMemoryKernel(buf, 64u, 64L * 1024 - 32));
         Assert.Equal(0, Call(AppUtil, "sceAppUtilLoadSafeMemory", buf, 0u, 0L));
     }
 

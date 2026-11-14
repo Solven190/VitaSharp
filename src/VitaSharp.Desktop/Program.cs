@@ -187,11 +187,13 @@ public static class Program
             case "imports" when args.Length >= 2:
             {
                 // imports <title> [exe] [--names=SceNp,SceNet]: also list every imported function name of the
-                // libraries whose name starts with one of the prefixes (online-feature survey).
+                // libraries whose name starts with one of the prefixes (online-feature survey). --tsv=<file>: one line
+                // per imported function with who provides it (ImportProvider), for a census of a title's imports.
                 var names = args.Skip(2).FirstOrDefault(a => a.StartsWith("--names="))?["--names=".Length..]
                     .Split(',', StringSplitOptions.RemoveEmptyEntries) ?? [];
                 var exeArg = args.Skip(2).FirstOrDefault(a => !a.StartsWith("--")) ?? "eboot.bin";
-                return ListImports(args[1], exeArg, names);
+                string? tsv = args.Skip(2).FirstOrDefault(a => a.StartsWith("--tsv="))?["--tsv=".Length..];
+                return ListImports(args[1], exeArg, names, tsv);
             }
             case "shadertest" when args.Length >= 2:
                 return ShaderTest.Run(ResolveApp(args[1]), args.Skip(2).ToArray());
@@ -557,9 +559,10 @@ public static class Program
         return answer != null && (answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase));
     }
 
-    static int ListImports(string titleArg, string exe, string[] namePrefixes)
+    static int ListImports(string titleArg, string exe, string[] namePrefixes, string? tsv = null)
     {
         Log.Level = LogLevel.Warn;
+        HashSet<uint> defaults = HleBindingNids().Where(e => e.Value.Default).Select(e => e.Key).ToHashSet();
         using var emu = new Emulator(new EmulatorOptions { FsRoot = FsRoot, EnableJit = false });
         string appDir = ResolveApp(titleArg);
         emu.LoadTitle(appDir, exe);
@@ -588,6 +591,7 @@ public static class Program
             }
         }
         int total = 0, hle = 0, lle = 0;
+        var rows = new List<string>();
         foreach (var m in emu.Kernel.Modules.Values.OrderBy(m => m.Uid))
         {
             Console.WriteLine($"== {m.Name} ({m.Path})");
@@ -596,6 +600,7 @@ public static class Program
                 var missing = new List<string>();
                 foreach (var nid in nids)
                 {
+                    rows.Add($"{m.Path}	{lib}	0x{nid:X8}	{NidDatabase.NameOf(nid)}	{ImportProvider(emu, lib, nid, defaults)}");
                     total++;
                     if (emu.Linker.TryGetFunctionExport(nid, out _))
                     {
@@ -629,7 +634,37 @@ public static class Program
             }
         }
         Console.WriteLine($"Total {total}: LLE {lle}, HLE {hle}, missing {total - lle - hle}");
+        if (tsv != null)
+        {
+            File.WriteAllLines(tsv, ["# module	library	nid	name	provider", .. rows]);
+        }
+
         return 0;
+    }
+
+    /// <summary>Who gives a process an imported function, by the loader's rules: "lle:&lt;path&gt;" a loaded module exports
+    /// it, "hle" / "hle-default" (a documented firmware default) the HLE implements it, "firmware:&lt;path&gt;" the HLE knows
+    /// nothing of the library and an installed firmware module exports it (the loader then loads that module), else
+    /// "missing".</summary>
+    static string ImportProvider(Emulator emu, string library, uint nid, HashSet<uint> defaults)
+    {
+        if (emu.Linker.TryGetFunctionExport(nid, out uint address))
+        {
+            var owner = emu.Kernel.Modules.Values.FirstOrDefault(x => x.Segments.Values.Any(s => address >= s.Address && address < s.Address + s.Size));
+            return "lle:" + (owner?.Path ?? "?");
+        }
+
+        if (emu.Hle.IsImplemented(nid))
+        {
+            return defaults.Contains(nid) ? "hle-default" : "hle";
+        }
+
+        if (!emu.Hle.KnowsLibrary(library) && VitaSharp.Core.Firmware.FirmwareLibraries.For(FsRoot).Provider(library) is { } provider)
+        {
+            return "firmware:" + provider.VitaPath;
+        }
+
+        return "missing";
     }
 
     /// <summary>Every NID with an HLE implementation -> (name, HLE module). Same resolution as
@@ -644,24 +679,7 @@ public static class Program
     /// the scan makes (only one guest memory can exist per process).</summary>
     static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareForEveryImporter)
     {
-        var byNid = new SortedDictionary<uint, (string Name, string Module, bool Default)>();
-        foreach (var m in HleBindings.Modules)
-        {
-            foreach (var b in m.Bindings())
-            {
-                string name = b.Name ?? b.Method;
-                var nids = b.Nid != 0 ? [b.Nid]
-                    : NidDatabase.LookupName(name).Where(i => b.Library == null || i.Library == b.Library).Select(i => i.Nid).ToArray();
-                foreach (var nid in nids)
-                {
-                    byNid[nid] = byNid.TryGetValue(nid, out var had) ? had with
-                    {
-                        Default = had.Default && b.Default
-                    }
-                        : (NidDatabase.Lookup(nid)?.Name ?? name, m.Type.Name, b.Default);
-                }
-            }
-        }
+        SortedDictionary<uint, (string Name, string Module, bool Default)> byNid = HleBindingNids();
         // data exports (variables) the HLE hands to importers: the modules register them when the emulator is made
         string tmp = Path.Combine(Path.GetTempPath(), "vitasharp-hle-vars-" + Environment.ProcessId);
         Directory.CreateDirectory(tmp);
@@ -685,6 +703,32 @@ public static class Program
             {
             }
         }
+        return byNid;
+    }
+
+    /// <summary>Every NID of an [Hle] function entry point (the bindings only, no emulator); Default when every entry
+    /// point of it is a documented firmware default.</summary>
+    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleBindingNids()
+    {
+        var byNid = new SortedDictionary<uint, (string Name, string Module, bool Default)>();
+        foreach (var m in HleBindings.Modules)
+        {
+            foreach (var b in m.Bindings())
+            {
+                string name = b.Name ?? b.Method;
+                var nids = b.Nid != 0 ? [b.Nid]
+                    : NidDatabase.LookupName(name).Where(i => b.Library == null || i.Library == b.Library).Select(i => i.Nid).ToArray();
+                foreach (var nid in nids)
+                {
+                    byNid[nid] = byNid.TryGetValue(nid, out var had) ? had with
+                    {
+                        Default = had.Default && b.Default
+                    }
+                        : (NidDatabase.Lookup(nid)?.Name ?? name, m.Type.Name, b.Default);
+                }
+            }
+        }
+
         return byNid;
     }
 
@@ -857,7 +901,7 @@ public static class Program
         Console.WriteLine("  hle-implemented [--vitasdk=<tsv>]   list every NID the HLE implements (docs/hle/data/vitasharp-implemented.tsv)");
         Console.WriteLine("  audio-devices [--audio-device=<name>]  list the audio outputs and show the one a game opens");
         Console.WriteLine("  hle-coverage [--out=<tsv>] [--vitasdk=<tsv>] [--status=<repo>]  HLE coverage of every function the installed firmware exports (games/system/general)");
-        Console.WriteLine("  imports <TITLEID|folder> [x.self]   list the system functions a title (or one of its executables) needs");
+        Console.WriteLine("  imports <TITLEID|folder> [x.self] [--tsv=<file>]   list the system functions a title (or one of its executables) needs; --tsv: who provides each one");
         Console.WriteLine("        [--names=SceNp,SceNet]          ...and every imported function name of the libraries with these prefixes");
         Console.WriteLine("  self2elf <in> <out> [license]        decrypt a SELF");
         Console.WriteLine("  rco-dump <file.rco> [--extract=<dir>]  print a system RCO resource tree; write out its textures, sounds and other files");

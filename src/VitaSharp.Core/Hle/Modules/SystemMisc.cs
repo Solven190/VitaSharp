@@ -13,16 +13,132 @@ public sealed partial class SystemMisc : HleModule
 
     // ------------------------------------------------------------------ SceSysmodule
 
-    [Hle("sceSysmoduleLoadModule")]
-    [Hle("sceSysmoduleLoadModuleInternal")]
-    int sceSysmoduleLoadModule(uint id) => LoadSysmodule(id, 0, 0);
+    /// <summary>The public syscall: the id is cut to 16 bits (it never reaches an internal module) and checked as an
+    /// unprivileged request (<see cref="SysmodulePermission"/>).</summary>
+    [Hle]
+    int sceSysmoduleLoadModule(uint id)
+    {
+        uint publicId = id & 0xFFFF;
+        int denied = SysmodulePermission(publicId, privileged: false);
+        return denied < 0 ? denied : LoadSysmodule(publicId, 0, 0);
+    }
+
+    /// <summary>The internal syscall: the kernel marks the request privileged (id | 0x40000000).</summary>
+    [Hle]
+    int sceSysmoduleLoadModuleInternal(uint id)
+    {
+        int denied = SysmodulePermission(id, privileged: true);
+        return denied < 0 ? denied : LoadSysmodule(id, 0, 0);
+    }
 
     /// <summary>SceSysmoduleOpt (0x10): +0 flags, +4 int *result (module_start's result), +8 unused[2].</summary>
     [Hle]
     int sceSysmoduleLoadModuleInternalWithArg(uint id, uint args, uint argp, uint option)
     {
+        int denied = SysmodulePermission(id, privileged: true);
+        if (denied < 0)
+        {
+            return denied;
+        }
+
         int r = LoadSysmodule(id, args, argp, option != 0 ? GuestMemory.R32(option + 4) : 0);
         return r;
+    }
+
+    /// <summary>What SceSysmodule answers when the caller may not load a module, or the id has no module.</summary>
+    internal const int SysmoduleNotPermitted = unchecked((int)0xC05A1000);
+
+    /// <summary>Any caller (permission word bit 0).</summary>
+    const ushort SysmoduleAnyCaller = 0x1;
+    /// <summary>Unprivileged requests: a system program only.</summary>
+    const ushort SysmoduleSystemCaller = 0x2;
+    /// <summary>Unprivileged requests: a system or non-game program.</summary>
+    const ushort SysmoduleNonGameCaller = 0x4;
+    /// <summary>Unprivileged requests: a system or PSM program.</summary>
+    const ushort SysmodulePsmCaller = 0x8;
+    /// <summary>Every request: a system program.</summary>
+    const ushort SysmoduleSystemAlways = 0x10;
+    /// <summary>Every request: a development kit.</summary>
+    const ushort SysmoduleDevelopmentOnly = 0x20;
+
+    /// <summary>
+    /// The permission word of each sysmodule id, from the tables of FW 3.74's SceSysmodule (the bootimage module): public
+    /// ids 0-0x55, internal ids 0x80000000 | 0-0x29. Public modules are open to any caller except the development
+    /// tools (0x21: libperf, the Razor modules, libsulpha...), the non-game programs' libraries (4: trigger_util,
+    /// video/music export, bgapputil, incoming dialog, the IPMI client, the MLN libraries, telephony, DTCP-IP, video
+    /// search, the mail API, the player's AVC decoder) and the PSM runtime's (8: libshacccg, libmono_bridge, libmono,
+    /// libpsm, libpsm_devagent). The internal modules are all 0x42 (libult 0x2): a system program only for an
+    /// unprivileged request, which the public syscall can never make for them.
+    /// </summary>
+    static ushort SysmodulePermissionWord(uint id)
+    {
+        if ((id & 0x80000000) != 0)
+        {
+            uint index = id & 0xFFFF;
+            return index switch
+            {
+                0 => 0,
+                0x25 => SysmoduleSystemCaller,
+                <= 0x29 => 0x42,
+                _ => 0,
+            };
+        }
+
+        return (id & 0xFFFF) switch
+        {
+            0 => 0,
+            0x05 or 0x09 or 0x0A or 0x0C or 0x22 => SysmoduleDevelopmentOnly | SysmoduleAnyCaller,
+            0x20 or 0x32 or (>= 0x34 and <= 0x37) or (>= 0x3A and <= 0x3D) or 0x44 or 0x45 or 0x4E or 0x54 => SysmoduleNonGameCaller,
+            >= 0x3E and <= 0x42 => SysmodulePsmCaller,
+            <= 0x55 => SysmoduleAnyCaller,
+            _ => 0,
+        };
+    }
+
+    /// <summary>
+    /// SceSysmodule's check before a load (FW 3.74): development-only modules need a development kit and
+    /// "system always" ones a system program, for every request; then, for an unprivileged request only, the caller
+    /// class the word names (system; system or non-game; system or PSM); a privileged one (the internal syscalls) is let
+    /// through. Bit 0 lets anyone through. 0 when allowed, else <see cref="SysmoduleNotPermitted"/>.
+    /// </summary>
+    int SysmodulePermission(uint id, bool privileged)
+    {
+        ushort word = SysmodulePermissionWord(id);
+        Loader.Self.ProgramAccess caller = Emu.Access;
+        if ((word & SysmoduleDevelopmentOnly) != 0 && !caller.IsDevelopmentMode)
+        {
+            return SysmoduleNotPermitted;
+        }
+
+        if ((word & SysmoduleSystemAlways) != 0 && !caller.IsSystemProgram)
+        {
+            return SysmoduleNotPermitted;
+        }
+
+        bool allowed;
+        if ((word & SysmoduleNonGameCaller) != 0)
+        {
+            allowed = privileged || caller.IsSystemProgram || caller.IsNonGameProgram;
+        }
+        else if ((word & SysmodulePsmCaller) != 0)
+        {
+            allowed = privileged || caller.IsSystemProgram || caller.IsPsmProgram;
+        }
+        else if ((word & SysmoduleSystemCaller) != 0)
+        {
+            allowed = privileged || caller.IsSystemProgram;
+        }
+        else
+        {
+            allowed = (word & SysmoduleAnyCaller) != 0;
+        }
+
+        if (!allowed)
+        {
+            Log.WarnOnce($"sysmodule-denied-{id:X}", $"sceSysmoduleLoadModule{(privileged ? "Internal" : "")}(0x{id:X}): not permitted for {Emu.Describe()} (permission 0x{word:X})");
+        }
+
+        return allowed ? 0 : SysmoduleNotPermitted;
     }
 
     int LoadSysmodule(uint id, uint args, uint argp, uint resultPtr = 0)
@@ -30,7 +146,9 @@ public sealed partial class SystemMisc : HleModule
         lock (_loadedSysmodules)
             if (_loadedSysmodules.Contains(id)) { if (resultPtr != 0) GuestMemory.W32(resultPtr, 0); return 0; }
         int start = 0;
-        if (Emu.IsSystemProgram && InternalSysmodules.TryGetValue(id, out var internalLib))
+        // an internal module the permission check let through: the firmware's own module, as the console loads it;
+        // outside the system software only when the HLE emulates none of its libraries (as for the public modules)
+        if (InternalSysmodules.TryGetValue(id, out var internalLib) && (Emu.IsSystemProgram || FirmwareOnly(internalLib)))
         {
             int r = TryLoadModuleLle(internalLib, args, argp, out start);
             if (r < 0) return r;
@@ -113,7 +231,8 @@ public sealed partial class SystemMisc : HleModule
     /// <summary>
     /// SCE_SYSMODULE_INTERNAL_* (0x80000000 | n): the system software's own modules, loaded LLE from the firmware for
     /// system programs (vs0:app, the shell). File names from Vita3K's sysmodule_internal_paths and the vs0 layout.
-    /// Games keep the HLE behaviour (these ids then load nothing).
+    /// Any other program may load them too (sceSysmoduleLoadModuleInternal is privileged, <see cref="SysmodulePermission"/>):
+    /// the PSM runtime loads psmkdc; there the firmware's module is used when the HLE emulates none of its libraries.
     /// </summary>
     static readonly Dictionary<uint, string> InternalSysmodules = new()
     {

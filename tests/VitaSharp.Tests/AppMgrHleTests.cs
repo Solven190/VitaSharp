@@ -54,21 +54,28 @@ public sealed class AppMgrHleTests(GuestMemoryFixture fixture) : IDisposable
     }
 
     private const int ERR_PARAM = unchecked((int)0x80802002), ERR_NOT_FOUND = unchecked((int)0x80802012),
-        ERR_NULL_POINTER = unchecked((int)0x80802016);
+        ERR_NULL_POINTER = unchecked((int)0x80802016), ERR_NULL = unchecked((int)0x80800001);
 
     [Fact]
     public void AppDataMountByIdMountsPsmDirectories()
     {
         (AppMgr? mgr, Emulator? emu) = Make();
         uint mp = Alloc(16), tid = Str("NPXS10001");
-        Assert.Equal(ERR_NOT_FOUND, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, tid, mp));
-        Directory.CreateDirectory(Path.Combine(_root, "ux0", "psm", "NPXS10001", "RO"));
+        // FW 3.74 appmgr: the PSM mounts take a PSM title ID (four capitals, five digits) and a mount point, else
+        // 0x80800001; the PSM runtime 1.00 asks with an empty one on FW 3.74
+        Assert.Equal(ERR_NULL, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, Str(""), mp));
+        Assert.Equal(ERR_NULL, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, Str("npxs10001"), mp));
+        Assert.Equal(ERR_NULL, Call<int>(mgr, "sceAppMgrAppDataMountById", 107, Str("NPXS1000"), mp));
+        Assert.Equal(ERR_NULL, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, 0u, mp));
+        Assert.Equal(ERR_NULL, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, tid, 0u));
+        Assert.False(Directory.Exists(Path.Combine(_root, "ux0", "psm")));
+        // a missing folder is made, as the kernel makes the path before it mounts it
         Assert.Equal(0, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, tid, mp));
+        Assert.True(Directory.Exists(Path.Combine(_root, "ux0", "psm", "NPXS10001", "RO")));
         string dev = GuestMemory.ReadCString(mp, 16);
         Assert.Equal("am106:", dev);
         Assert.Equal(Path.Combine(_root, "ux0", "psm", "NPXS10001", "RO", "a.bin"), emu.Vfs.Resolve(dev + "a.bin"));
         Assert.Equal(ERR_PARAM, Call<int>(mgr, "sceAppMgrAppDataMountById", 104, tid, mp)); // target undocumented
-        Assert.Equal(ERR_NULL_POINTER, Call<int>(mgr, "sceAppMgrAppDataMountById", 106, tid, 0u));
         Assert.Equal(0, Call<int>(mgr, "sceAppMgrUmount", mp));
         Assert.False(emu.Vfs.IsMounted("am106"));
     }

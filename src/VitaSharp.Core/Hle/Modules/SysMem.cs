@@ -1,5 +1,6 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -9,6 +10,10 @@ public sealed class MemBlock : KernelObject
     public uint Address, Size, Type;
     /// <summary>Allocated by sceKernelAllocMemBlockForVM.</summary>
     public bool IsVm;
+    /// <summary>Allocated by sceKernelAllocUnmapMemBlock: holds its share of the process's memory budget but is never
+    /// mapped in the process (no address).</summary>
+    [SnapshotMissing(false)] // states of builds before it: every block was mapped
+    public bool IsUnmapped;
 }
 
 /// <summary>SceSysmem: memory blocks.</summary>
@@ -60,6 +65,46 @@ public sealed partial class SysMem : HleModule
             Log.Error($"sceKernelAllocMemBlock({name}, 0x{type:X}, 0x{size:X}) out of memory");
             return SceError.NO_MEMORY;
         }
+    }
+
+    /// <summary>The granule of sceKernelAllocUnmapMemBlock's size (1 MiB).</summary>
+    const uint UnmapBlockGranule = 0x100000;
+
+    /// <summary>
+    /// <c>SceUID sceKernelAllocUnmapMemBlock(const char *name, SceSize size)</c> (SceSysmem syscall, FW 3.74 sysmem): a
+    /// block of type USER_RX (0x0C20D050) that takes <paramref name="size"/> of the process's memory budget and is left
+    /// unmapped (the kernel marks the object 0x600 and only opens a uid for the process, no mapping): the PSM runtime
+    /// allocates "ScePsmDummyMemBlock" (40 MiB) so the PSM application gets only what is left. Errors as the syscall:
+    /// no name 0x80020006, a size that is not a multiple of 1 MiB 0x80024B05.
+    /// </summary>
+    [Hle]
+    int sceKernelAllocUnmapMemBlock(uint namePtr, uint size)
+    {
+        if (namePtr == 0)
+        {
+            return SceError.ILLEGAL_ADDR;
+        }
+
+        // the kernel copies at most 31 characters of the name
+        string name = GuestMemory.ReadCString(namePtr, 31);
+        if ((size & (UnmapBlockGranule - 1)) != 0)
+        {
+            return SceError.ILLEGAL_MEMBLOCK_SIZE;
+        }
+
+        if (size == 0)
+        {
+            return SceError.ILLEGAL_SIZE;
+        }
+
+        long used = K.Objects.Owned<MemBlock>(Emu.Pid).Where(b => b.Type != TypeUserCdramRw).Sum(b => (long)b.Size);
+        if (used + size > UserBudget)
+        {
+            return SceError.NO_MEMORY;
+        }
+
+        MemBlock block = new() { Name = name, Address = 0, Size = size, Type = TypeUserRx, IsUnmapped = true };
+        return K.Objects.Register(block);
     }
 
     const uint VmBlockGranule = 0x100000, VmBudget = 0x1000000;
@@ -116,7 +161,11 @@ public sealed partial class SysMem : HleModule
     {
         var b = K.Objects.Get<MemBlock>(uid);
         if (b == null) return SceError.INVALID_UID;
-        Mem.Free(b.Address);
+        if (!b.IsUnmapped)
+        {
+            Mem.Free(b.Address);
+        }
+
         K.Objects.Remove(uid);
         return 0;
     }
@@ -134,7 +183,12 @@ public sealed partial class SysMem : HleModule
     int sceKernelFindMemBlockByAddr(uint addr, uint size)
     {
         foreach (var b in K.Objects.Owned<MemBlock>(Emu.Pid))
-            if (addr >= b.Address && addr < b.Address + b.Size) return b.Uid;
+        {
+            if (!b.IsUnmapped && addr >= b.Address && addr < b.Address + b.Size)
+            {
+                return b.Uid;
+            }
+        }
         return SceError.BLOCK_ERROR;
     }
 
@@ -143,7 +197,11 @@ public sealed partial class SysMem : HleModule
     {
         foreach (var b in K.Objects.Owned<MemBlock>(Emu.Pid))
         {
-            if (addr < b.Address || addr >= b.Address + b.Size) continue;
+            if (b.IsUnmapped || addr < b.Address || addr >= b.Address + b.Size)
+            {
+                continue;
+            }
+
             GuestMemory.W32(info + 4, b.Address);
             GuestMemory.W32(info + 8, b.Size);
             GuestMemory.W32(info + 12, b.Type == TypeUserCdramRw ? 0x40u : 0x20u);

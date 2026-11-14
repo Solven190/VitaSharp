@@ -184,9 +184,38 @@ public sealed class UpdateModelTests : IDisposable
     }
 
     [Fact]
+    public void APsmTitlesContentsLeftOutsideRoMoveIntoRo()
+    {
+        // the first PSM installer kept the package's "contents/" items in ux0:psm/<id>/contents; the console's promote
+        // puts them in RO, where the shell reads RO/Application/app.info and the runtime mounts its application
+        string title = FirmwareLayout.PsmTitles.Host(_fs, "NPXX99914");
+        string misplaced = Path.Combine(title, "contents", "Application");
+        Directory.CreateDirectory(misplaced);
+        File.WriteAllBytes(Path.Combine(misplaced, "app.exe"), [1, 2]);
+        File.WriteAllBytes(Path.Combine(misplaced, FirmwareLayout.PsmAppInfo.Split('/')[^1]), [3]);
+        string license = Path.Combine(title, FirmwareLayout.PsmReadOnly, "License");
+        Directory.CreateDirectory(license);
+        File.WriteAllBytes(Path.Combine(license, "x.rif"), [4]);
+        string ux0 = Path.Combine(_fs, "ux0");
+        File.WriteAllBytes(Path.Combine(ux0, FirmwareLayout.CardIdFile), [1]);
+
+        Assert.Equal(1, PsmLayoutMigration.Run(_fs));
+
+        string application = Path.Combine(title, FirmwareLayout.PsmReadOnly, "Application");
+        Assert.Equal(new byte[] { 1, 2 }, File.ReadAllBytes(Path.Combine(application, "app.exe")));
+        Assert.True(File.Exists(Path.Combine(license, "x.rif")));
+        Assert.False(Directory.Exists(Path.Combine(title, "contents")));
+        // the shell registers the title again at its next start
+        Assert.False(File.Exists(Path.Combine(ux0, FirmwareLayout.CardIdFile)));
+        Assert.Equal(0, PsmLayoutMigration.Run(_fs));
+    }
+
+    [Fact]
     public void OnlyAPsmTitlesRuntimeFolderIsItsOwnRuntime()
     {
         Assert.Null(FirmwareLayout.PsmTitleOfOwnRuntime(_fs, FirmwareLayout.Applications.Host(_fs, "PCSE99901")));
+        // a process with no application folder yet (the harness, a process being made) runs no PSM runtime
+        Assert.Null(FirmwareLayout.PsmTitleOfOwnRuntime(_fs, ""));
         Assert.Null(FirmwareLayout.PsmTitleOfOwnRuntime(_fs, FirmwareLayout.PsmTitles.Host(_fs, "NPXX99913")));
         Assert.Null(FirmwareLayout.PsmTitleOfOwnRuntime(_fs, Path.Combine(FirmwareLayout.Applications.Host(_fs, "PCSE99901"), FirmwareLayout.PsmOwnRuntime)));
         Assert.Equal("NPXX99913", FirmwareLayout.PsmTitleOfOwnRuntime(_fs, FirmwareLayout.PsmTitles.Host(_fs, "NPXX99913", FirmwareLayout.PsmOwnRuntime)));

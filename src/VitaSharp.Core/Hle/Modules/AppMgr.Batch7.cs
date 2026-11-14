@@ -574,18 +574,6 @@ public sealed partial class AppMgr
         return 0;
     }
 
-    /// <summary>(int id, const char *name 0x40[, opt]): initialises the safe memory (the 64 KB save area that survives a
-    /// crash) of a process by id: a fresh area of zeros the next sceAppMgrLoadSafeMemory reads.</summary>
-    [Hle] int sceAppMgrInitSafeMemoryById(int id) => _sceAppMgrInitSafeMemoryById(id, 0, 0);
-
-    [Hle]
-    int _sceAppMgrInitSafeMemoryById(int id, uint name, uint opt)
-    {
-        if (name != 0 && KString(name, 0x40) == null) return ERR_TOO_LONG;
-        AppUtil.ClearSafeMemory();
-        return 0;
-    }
-
     // ---- system data files (PlayReady / music licenses) and content install periods
     readonly Dictionary<uint, ulong> _playReady = new();
 
