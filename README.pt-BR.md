@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=b71c621fb08768ed3365bca007957125ff7c1401d820b9f28252a1de25a0bbcc -->
+<!-- pair: README.md sha256=1b830d6606f873744fa1c81cbeea89c7d294bbedf73667d07bbf0157cbdbb36b -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -97,7 +97,7 @@ não abrem no Vita3K) e o resto chega aos menus. Os defeitos conhecidos e o trab
 | Plataforma | Estado |
 | --- | --- |
 | **Windows** (x64) | A mais testada: launcher, janela do jogo, Sistema do Vita, todas as ferramentas de diagnóstico |
-| **Android** (arm64) | App próprio (biblioteca, ajustes, controles na tela, menu de pausa); testado num Redmi Note 14 (Mali-G57) e no emulador x86_64. Por enquanto o APK é compilado localmente ([`docs/android/README.md`](docs/android/README.md)) |
+| **Android** (arm64) | App .NET MAUI próprio (Native AOT, JIT ARM64, Vulkan 1.1+; biblioteca, ajustes, controles na tela, menu de pausa); testado num Redmi Note 14 (Mali-G57). APK pelo artefato do CI ou compilado localmente ([Android](#android)) |
 | Linux, macOS | Compilam e geram pacotes; Linux x64 testado no Debian 12, macOS ainda sem teste num Mac |
 
 Requisitos no PC: um driver Vulkan 1.3 (NVIDIA, AMD ou Intel recentes) e um processador com vários núcleos.
@@ -190,17 +190,33 @@ pode ser remapeado em **Configurações > Controles**, por controle ([`docs/note
 
 ## Android
 
-O app Android (`src/VitaSharp.Android`) roda o mesmo núcleo do emulador do desktop em celulares arm64 (Android 8.0 ou
-mais novo, Vulkan), com telas próprias: biblioteca de jogos, detalhes do jogo (backend de CPU, clock, perfil de GPU,
-VSync e FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU, conta PSN e rede, e uma página de
-desempenho. Os textos do app estão em português por enquanto. Telas e design:
+O app Android (`src/VitaSharp.Android`) é um app .NET MAUI que roda o mesmo núcleo do emulador do desktop em celulares
+arm64: o APK Release é compilado com Native AOT por padrão, o código ARMv7 do Vita roda no JIT nativo ARM64 e a imagem é
+desenhada com Vulkan. Tem telas próprias: biblioteca de jogos, detalhes do jogo (backend de CPU, clock, perfil de GPU,
+resolução interna, MSAA, VSync e contador de FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU,
+conta PSN e rede, e uma página de desempenho. O app segue o idioma escolhido (**Ajustes > Aparência > Idioma**; os
+nomes de menu abaixo são os em português). Telas e design:
 [`docs/android/README.md`](docs/android/README.md#screens).
+
+**Requisitos.** Um celular arm64 com Android 8.0 ou mais novo (API 26) e driver Vulkan 1.1 ou mais novo.
+
+**Estado (medido num Redmi Note 14, Helio G99, Mali-G57).** A versão mobile chegou a uma certa estabilidade; o
+desempenho ainda é o principal trabalho em andamento. Medido hoje:
+
+| Jogo | Onde foi medido | fps (nativo) |
+| --- | --- | --- |
+| Killzone: Mercenary | campanha | cerca de 22-25 (30) |
+| Uncharted: Golden Abyss | o Prólogo | 30 (30) |
+| F1 2011 | a corrida | 30 (30) |
+
+Jogos mais leves chegam aos seus 30 ou 60 fps nativos; os outros jogos ainda não foram medidos no celular. Celulares
+Adreno foram pouco testados.
 
 **Instalar o APK.** Ainda não há APK na página de Releases. Toda execução do CI gera um para celulares arm64: na
 página da execução em **Actions**, o artefato **VitaSharp-android-arm64-nativeaot** traz o
 `VitaSharp-<versão>-android-arm64.apk` (Release, Native AOT, com o compilador de shaders do aparelho e o
 libadrenotools; assinado com uma chave de debug descartável, então um APK de outra execução ou de outro PC só instala
-depois de desinstalar o anterior, o que apaga os dados do app). Instale com `adb install` ou abrindo-o no celular.
+depois de desinstalar o anterior, o que apaga os dados do app). Instale com `adb install` ou abrindo-o no celular. Copie os saves antes (veja abaixo).
 Para compilar num PC: o SDK do .NET 10 com o workload MAUI Android (`dotnet workload install maui-android`), um JDK
 17, o Android SDK (plataforma 36) e o NDK (r30: `sdkmanager "ndk;30.0.16248370"`), e então
 `build/build-android-apk.ps1` / `.sh`, o mesmo script do CI (compila as bibliotecas nativas na primeira vez, depois o
@@ -212,30 +228,38 @@ build/build-android-apk.sh          # Windows: build/build-android-apk.ps1
 adb install -r artifacts/android/packages/VitaSharp-dev-android-arm64.apk
 ```
 
-**Jogos e firmware.** O app não pede permissão de armazenamento: os arquivos entram pelo seletor de arquivos do
-Android. Na **Biblioteca**, **Instalar jogo** aceita um `.vpk` (ou `.zip`) ou um `.pkg` com a licença (`work.bin`,
-`.rif` ou o zRIF colado). O firmware é opcional, como no PC: **Ajustes > Firmware > Instalar firmware (.PUP)** com o
-`PSVUPDAT.PUP`; depois o **Sistema do Vita** na biblioteca abre a tela inicial de verdade. Drivers de GPU próprios
-(Adreno, pela libadrenotools) se instalam em **Ajustes > Driver da GPU**. Os dados ficam na pasta do próprio app
-(`Android/data/io.github.vitasharp/files`, a mesma organização do desktop); desinstalar o app apaga essa pasta.
+**Jogos, licenças, firmware e saves.** O app não pede permissão de armazenamento nem pasta: cada arquivo entra pelo
+seletor de arquivos do Android (Storage Access Framework) e é lido no lugar. Em **Biblioteca**, **Instalar jogo** aceita
+um `.vpk` (ou `.zip`) ou um `.pkg` com a licença (`work.bin`, `.rif` ou o zRIF colado). O firmware é opcional, como no
+PC: **Ajustes > Firmware > Instalar firmware (.PUP)** com o `PSVUPDAT.PUP`; depois **Sistema do Vita** na biblioteca
+inicia a tela inicial de verdade. Drivers de GPU próprios (Adreno, pela libadrenotools) são instalados em **Ajustes >
+Driver da GPU**. Tudo fica na pasta do próprio app (`Android/data/io.github.vitasharp/files`, com a organização do
+desktop: jogos em `fs/ux0/app`, licenças em `fs/ux0/license/app`, saves em `fs/ux0/user/00/savedata`), acessível por USB/MTP
+ou pelo app Arquivos na maioria dos celulares; desinstalar o app apaga essa pasta.
 
-**Controles.** Controles translúcidos na tela, nas laterais da imagem (direcional, analógicos, botões de ação, L/R,
-SELECT/PS/START, o botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque da frente. Controles
-Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os controles na tela somem enquanto um
-está conectado), e um teclado físico usa as teclas do desktop. **Controles** ajusta a troca O/X, zona morta,
-opacidade, vibração e ocultar sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do
-Vita (ainda não verificado num aparelho).
+**Controles.** Controles translúcidos na tela, sobre as laterais da imagem (direcional, analógicos, botões de ação,
+L/R, SELECT/PS/START, um botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque frontal. Controles
+Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os controles na tela somem enquanto um está
+conectado), e um teclado físico usa as teclas do desktop. **Controles** ajusta a troca O/X, zona morta, opacidade,
+vibração e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
 
-**Menu de pausa.** O botão PS (na tela ou no controle) pausa um jogo aberto sozinho: **Continuar**, **Salvar estado** /
-**Carregar estado** (6 slots com imagem), **Ajustes** (toque traseiro, controles na tela, pré-gravação),
-**Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. O **Gravar tudo** grava o mesmo relatório de bug do
-F8 do desktop (estado salvo, entrada, dump da GPU, quadros, áudio e log) em `captures/` até **Parar gravação**; envie
-o `.zip` como em [Relatar um bug](#relatar-um-bug).
+**Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:
+**Continuar**, **Salvar estado** / **Carregar estado** (6 slots com imagem), **Ajustes** (toque traseiro, controles na
+tela, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
+relatório de bug do F8 do desktop (save state, entrada, GPU dump, quadros, áudio e log) em `captures/` até **Parar
+gravação**; envie o `.zip` como em [Relatar um bug](#relatar-um-bug).
 
-**Estado e limites.** Testado num Redmi Note 14 (Mali-G57) e no emulador Android x86_64; celulares Adreno e controles
-físicos ainda não foram verificados. O desempenho é o trabalho em andamento: jogos mais leves chegam aos 30 ou 60 fps
-nativos, os 3D pesados ainda não (Killzone: Mercenary, o teste de referência, roda a uns 12-15 fps contra os 30
-dele). Os itens em aberto estão no [roadmap](docs/roadmap.md) (seção Android).
+**Ajustes por jogo.** Nos detalhes do jogo: resolução interna, MSAA, VSync (a taxa de quadros segue os 30 ou 60 fps do
+próprio jogo; ainda não há escolha separada de taxa de quadros no Android), o contador de FPS, backend de CPU, clock e
+perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
+
+**Limitações conhecidas.**
+
+- Os vídeos do Killzone: Mercenary podem ficar lentos por um tempo até se recuperarem.
+- O Minecraft perde desempenho com o tempo de sessão (em investigação).
+- GPUs Adreno (e drivers próprios) foram pouco testadas; as medidas acima são de uma Mali-G57.
+
+Os itens abertos estão no [roadmap](docs/roadmap.md) (seção Android).
 
 ## Relatar um bug
 

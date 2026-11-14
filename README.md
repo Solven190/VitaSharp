@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=2c20fe950603930789bdf3f366bdb4388730889c73fa1a88b5a6cf2e2364b7fd -->
+<!-- pair: README.pt-BR.md sha256=0fe02189d853eac278af8692669eeccf52084eed051117b31dc764cab902c8e6 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -96,7 +96,7 @@ boot on Vita3K) and the rest reach the menus. Known issues and future work are i
 | Platform | State |
 | --- | --- |
 | **Windows** (x64) | The most tested: launcher, game window, Vita System, every diagnostic tool |
-| **Android** (arm64) | Its own app (library, settings, on-screen controls, pause menu); tested on a Redmi Note 14 (Mali-G57) and the x86_64 emulator. For now the APK is built locally ([`docs/android/README.md`](docs/android/README.md)) |
+| **Android** (arm64) | Its own .NET MAUI app (Native AOT, ARM64 JIT, Vulkan 1.1+; library, settings, on-screen controls, pause menu); tested on a Redmi Note 14 (Mali-G57). APK from the CI artifact or built locally ([Android](#android)) |
 | Linux, macOS | Build and make packages; Linux x64 tested on Debian 12, macOS not yet tested on a Mac |
 
 PC requirements: a Vulkan 1.3 driver (recent NVIDIA, AMD or Intel) and a multi-core processor.
@@ -186,16 +186,33 @@ gyroscope. Everything can be remapped in **Settings > Controls**, per controller
 
 ## Android
 
-The Android app (`src/VitaSharp.Android`) runs the same emulator core as the desktop on arm64 phones (Android 8.0 or
-newer, Vulkan), with its own screens: game library, game details (CPU backend, clock, GPU profile, VSync and FPS per
-game, saves), trophies, controls, settings, firmware, GPU driver, PSN account and network, and a performance page.
-The app's texts are in Portuguese for now. Screens and design: [`docs/android/README.md`](docs/android/README.md#screens).
+The Android app (`src/VitaSharp.Android`) is a .NET MAUI app that runs the same emulator core as the desktop on arm64
+phones: the Release APK is compiled with Native AOT by default, the Vita's ARMv7 code runs on the native ARM64 JIT and
+the picture is drawn with Vulkan. It has its own screens: game library, game details (CPU backend, clock, GPU profile,
+internal resolution, MSAA, VSync and the FPS counter per game, saves), trophies, controls, settings, firmware, GPU driver, PSN
+account and network, and a performance page. The app follows the language setting (**Ajustes > Aparência > Idioma**;
+the menu names below are the Portuguese ones). Screens and design:
+[`docs/android/README.md`](docs/android/README.md#screens).
+
+**Requirements.** An arm64 phone with Android 8.0 or newer (API 26) and a Vulkan 1.1 or newer driver.
+
+**State (measured on a Redmi Note 14, Helio G99, Mali-G57).** The mobile version has reached a certain stability;
+performance is still the main work in progress. Measured today:
+
+| Game | Where it was measured | fps (native) |
+| --- | --- | --- |
+| Killzone: Mercenary | campaign | about 22-25 (30) |
+| Uncharted: Golden Abyss | the Prologue | 30 (30) |
+| F1 2011 | the race | 30 (30) |
+
+Lighter games reach their native 30 or 60 fps; other games have not been measured on the phone yet. Adreno phones are
+barely tested.
 
 **Install the APK.** There is no APK on the Releases page yet. Every CI run builds one for arm64 phones: on the
 run's page in **Actions**, the artifact **VitaSharp-android-arm64-nativeaot** holds
 `VitaSharp-<version>-android-arm64.apk` (Release, Native AOT, with the device shader compiler and libadrenotools;
 signed with a throwaway debug key, so a later APK from another run or PC installs only after uninstalling the old one,
-which deletes the app's data). Install it with `adb install` or by opening it on the phone. To build it on a PC: the
+which deletes the app's data). Install it with `adb install` or by opening it on the phone. Copy the saves out first (see below). To build it on a PC: the
 .NET 10 SDK with the MAUI Android workload (`dotnet workload install maui-android`), a JDK 17, the Android SDK
 (platform 36) and the NDK (r30: `sdkmanager "ndk;30.0.16248370"`), then `build/build-android-apk.ps1` / `.sh`, the
 CI's own script (it builds the native libraries the first time, then the APK into `artifacts/android/packages`, and
@@ -206,30 +223,38 @@ build/build-android-apk.sh          # Windows: build/build-android-apk.ps1
 adb install -r artifacts/android/packages/VitaSharp-dev-android-arm64.apk
 ```
 
-**Games and firmware.** The app asks for no storage permission: files come in through Android's file picker. In
-**Biblioteca**, **Instalar jogo** takes a `.vpk` (or `.zip`) or a `.pkg` with its license (`work.bin`, `.rif` or the
-pasted zRIF). The firmware is optional, as on the PC: **Ajustes > Firmware > Instalar firmware (.PUP)** with
-`PSVUPDAT.PUP`; then **Sistema do Vita** in the library boots the real home screen. Custom GPU drivers (Adreno, through
-libadrenotools) are installed in **Ajustes > Driver da GPU**. Data lives in the app's own folder
-(`Android/data/io.github.vitasharp/files`, the desktop's layout); uninstalling the app deletes it.
+**Games, licenses, firmware and saves.** The app asks for no storage permission and no folder: each file comes in
+through Android's file picker (Storage Access Framework) and is read in place. In **Biblioteca**, **Instalar jogo** takes
+a `.vpk` (or `.zip`) or a `.pkg` with its license (`work.bin`, `.rif` or the pasted zRIF). The firmware is optional, as
+on the PC: **Ajustes > Firmware > Instalar firmware (.PUP)** with `PSVUPDAT.PUP`; then **Sistema do Vita** in the
+library boots the real home screen. Custom GPU drivers (Adreno, through libadrenotools) are installed in **Ajustes >
+Driver da GPU**. Everything lives in the app's own folder (`Android/data/io.github.vitasharp/files`, with the desktop's
+layout: games in `fs/ux0/app`, licenses in `fs/ux0/license/app`, saves in `fs/ux0/user/00/savedata`), reachable over
+USB/MTP or the Files app on most phones; uninstalling the app deletes it.
 
 **Controls.** Translucent on-screen controls over the sides of the picture (D-pad, sticks, face buttons, L/R,
 SELECT/PS/START, a TRÁS toggle for the rear touchpad); touches on the picture are the front touch screen. Bluetooth or
 USB controllers are detected on their own with the desktop's positional layout (the on-screen controls hide while one
 is connected), and a hardware keyboard uses the desktop's keys. **Controles** sets the O/X swap, deadzone, opacity,
-vibration and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor (not verified on a
-device yet).
+vibration and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
 
-**Pause menu.** The PS button (on screen or on the controller) pauses a game started on its own: **Continuar**, **Salvar
-estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear touch, on-screen controls, pre-recording),
-**Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar tudo** records the same bug report as the
-desktop's F8 (save state, input, GPU dump, frames, audio and log) into `captures/` until **Parar gravação**; send the
-`.zip` as in [Report a bug](#report-a-bug).
+**Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game
+started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear
+touch, on-screen controls, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
+tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
+`captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
 
-**State and limits.** Tested on a Redmi Note 14 (Mali-G57) and on the x86_64 Android emulator; Adreno phones and real
-controllers are not verified yet. Performance is the work in progress: lighter games reach their native 30 or 60 fps,
-heavy 3D ones do not yet (Killzone: Mercenary, the reference test, runs at about 12-15 fps against its 30). Open items
-are in the [roadmap](docs/roadmap.md) (Android section).
+**Per-game settings.** In the game's details: internal resolution, MSAA, VSync (the frame rate follows the game's own
+30 or 60 fps; there is no separate frame rate choice on Android yet), the FPS counter, CPU backend, clock and GPU
+profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
+
+**Known limitations.**
+
+- Killzone: Mercenary's movies can play slowly for a while before they catch up.
+- Minecraft loses performance as the session goes on (under investigation).
+- Adreno GPUs (and custom drivers) are barely tested; the measurements above are from a Mali-G57.
+
+Open items are in the [roadmap](docs/roadmap.md) (Android section).
 
 ## Report a bug
 
