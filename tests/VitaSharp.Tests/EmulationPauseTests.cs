@@ -48,6 +48,29 @@ public sealed class EmulationPauseTests(GuestMemoryFixture fixture)
         }
     }
 
+    /// <summary>A guest wait on the GPU counts only the time the emulation ran: a wait that spans the pause menu was
+    /// charged whole, and the capture blamed the GPU for a 2.7 s pause (Uncharted, 14/11).</summary>
+    [Fact]
+    public void GuestGpuWaitLeavesThePausedTimeOut()
+    {
+        try
+        {
+            long before = FrameLedger.Total(FrameLedger.Cat.GuestGpuWait);
+            Assert.True(EmulationPause.Pause("test"));
+            using (FrameLedger.Time(FrameLedger.Cat.GuestGpuWait))
+            {
+                Thread.Sleep(120); // the guest blocked on the GPU while the emulation is paused
+            }
+            Assert.True(EmulationPause.Resume("test"));
+            double counted = Ms(FrameLedger.Total(FrameLedger.Cat.GuestGpuWait) - before);
+            Assert.True(counted < 60, $"the paused time was counted as a GPU wait: {counted:F1} ms");
+        }
+        finally
+        {
+            EmulationPause.Resume("test cleanup");
+        }
+    }
+
     [Fact]
     public async Task ClockWaitsBlockUntilTheResume()
     {

@@ -78,4 +78,48 @@ public sealed class SessionCaptureFlowTests(GuestMemoryFixture fixture) : IDispo
         cap.Hurry();
         cap.Dispose();
     }
+
+    /// <summary>A pause of the emulation during a recording (the pause menu, a save state) leaves a pause and a resume
+    /// mark in input.tsv: the analyzer tells a present interval spent paused from a stall of the game.</summary>
+    [Fact]
+    public void PausesDuringARecordingAreMarked()
+    {
+        string root = Path.Combine(_harness.Root, "captures_pause");
+        IPresentTap? tap = null;
+        var cap = new SessionCapture(_harness.Emu, new SessionCaptureOptions
+        {
+            Root = root,
+            SetPresentTap = t => tap = t,
+            StartState = false,
+            GpuDump = false,
+            Zip = false,
+            Threads = () => "no threads",
+            Info = () => "test info",
+        });
+        try
+        {
+            Assert.True(cap.Start("test"));
+            HleHarness.Until(() => cap.IsRecording && tap != null, "the recording to start");
+            try
+            {
+                Assert.True(VitaSharp.Core.EmulationPause.Pause("test menu"));
+            }
+            finally
+            {
+                VitaSharp.Core.EmulationPause.Resume("test menu");
+            }
+            Assert.True(cap.Stop("test end"));
+            Assert.True(cap.Idle.Wait(120_000), "the recording was not saved");
+            var marks = File.ReadAllLines(Path.Combine(cap.Dir!, "input.tsv")).Select(InputEvent.Parse)
+                .Where(e => e is { Kind: "mark" }).Select(e => e!.Value.Data).ToList();
+            int paused = marks.IndexOf(CaptureMarks.Paused);
+            Assert.True(paused >= 0, "no pause mark: " + string.Join(", ", marks));
+            Assert.Equal(CaptureMarks.Resumed, marks[paused + 1]);
+        }
+        finally
+        {
+            cap.Hurry();
+            cap.Dispose();
+        }
+    }
 }

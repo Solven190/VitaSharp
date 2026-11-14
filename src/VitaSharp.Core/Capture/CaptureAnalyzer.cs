@@ -579,6 +579,15 @@ public static class CaptureAnalyzer
             }
 
             PresentInfo p = frameStats[i].F.Info;
+            // the emulation paused (pause menu, a save state): the interval is the emulator's, not a stall of the game
+            // (a guest wait on the GPU that spans the pause shows up as a long "guestGpuWait")
+            double pausedMs = PausedNs(input, frameStats[i - 1].F.Info.PresentNs, p.PresentNs) / 1e6;
+            if (pausedMs > 0 && d - pausedMs < limit)
+            {
+                findings.Add(new Finding("paused", i, 1, FormattableString.Invariant($"(info) {d:F0} ms between presents, {pausedMs:F0} ms of them with the emulation paused (pause menu or a save state): not a stall of the game")));
+                continue;
+            }
+
             bool restarted = p.Present < frameStats[i - 1].F.Info.Present;
             // a cause longer than the interval is a ledger total carried over a renderer change, not this frame's
             string cause = restarted ? "the renderer was replaced here (LoadExec or a state load): boot of the new process or the load itself"
@@ -587,6 +596,48 @@ public static class CaptureAnalyzer
                 : FormattableString.Invariant($"{p.Hitch} {p.HitchMs:F1} ms");
             findings.Add(new Finding("stall", i, 1, FormattableString.Invariant($"{d:F0} ms between presents (median {med:F1} ms); GPU {p.GpuMs:F1} ms, {p.Draws} draws, new shaders {p.NewShaders}, new pipelines {p.NewPipelines}; cause: {cause}")));
         }
+    }
+
+    /// <summary>Host time in (<paramref name="fromNs"/>, <paramref name="toNs"/>] the emulation spent paused, from the
+    /// pause and resume marks (a resume without a pause before it: paused since before the input starts).</summary>
+    internal static long PausedNs(List<InputEvent> input, long fromNs, long toNs)
+    {
+        long total = 0;
+        long? pausedSince = null;
+        bool seenPause = false;
+        foreach (InputEvent inputEvent in input)
+        {
+            if (inputEvent.Kind != "mark")
+            {
+                continue;
+            }
+
+            if (CaptureMarks.IsPause(inputEvent.Data))
+            {
+                seenPause = true;
+                pausedSince ??= inputEvent.Ns;
+            }
+            else if (inputEvent.Data == CaptureMarks.Resumed)
+            {
+                long start = pausedSince ?? (seenPause ? inputEvent.Ns : long.MinValue);
+                seenPause = true;
+                total += Overlap(start, inputEvent.Ns, fromNs, toNs);
+                pausedSince = null;
+            }
+        }
+        if (pausedSince is { } open)
+        {
+            total += Overlap(open, toNs, fromNs, toNs);
+        }
+
+        return total;
+    }
+
+    private static long Overlap(long a0, long a1, long b0, long b1)
+    {
+        long lo = Math.Max(a0, b0);
+        long hi = Math.Min(a1, b1);
+        return hi > lo ? hi - lo : 0;
     }
 
     private static string FpsLine(List<FrameStat> frameStats)

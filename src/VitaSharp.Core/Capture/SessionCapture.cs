@@ -166,6 +166,16 @@ public sealed class SessionCapture : IPresentTap, IRandomHook, IDisposable
             InstallInput();
             _input!.RecordMotion = false;
         }
+        EmulationPause.Changed += OnEmulationPauseChanged;
+    }
+
+    /// <summary>Pauses and resumes of the whole emulation (pause menu, save states) go into the input as marks: the
+    /// analyzer then tells a long present interval spent paused from a stall of the game (a guest wait on the GPU that
+    /// spans the pause is not the GPU's).</summary>
+    private void OnEmulationPauseChanged(bool paused)
+    {
+        string data = !paused ? CaptureMarks.Resumed : EmulationPause.IsUserPaused ? CaptureMarks.Paused : CaptureMarks.PausedInternal;
+        AddInput(InputEvent.Now("mark", data));
     }
 
     /// <summary>The last pad and touch changes while no recording runs (input_before.tsv of the next recording).</summary>
@@ -1313,6 +1323,7 @@ public sealed class SessionCapture : IPresentTap, IRandomHook, IDisposable
             }
 
             _disposed = true;
+            EmulationPause.Changed -= OnEmulationPauseChanged;
             _preRollSeconds = 0;
             ClearRing();
             if (_rec == null)
