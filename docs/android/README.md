@@ -548,9 +548,18 @@ adb shell rm /sdcard/Android/data/io.github.vitasharp/files/config/env.txt
 
 Real screenshots from the phone (Redmi Note 14, Mali-G57, 14/11/2026):
 
-| Killzone: Mercenary, on-screen controls | Uncharted: Golden Abyss, the Prologue |
-| --- | --- |
-| <img src="../assets/screenshots/android-killzone-mercenary.webp" width="420" alt="Killzone: Mercenary on the phone with the on-screen controls"> | <img src="../assets/screenshots/android-uncharted.webp" width="420" alt="Uncharted: Golden Abyss on the phone"> |
+<table>
+<tr>
+<td rowspan="3" valign="top"><img src="../assets/screenshots/android-library.webp" width="260" alt="The app's game library"><br><sub><b>Library</b></sub></td>
+<td><img src="../assets/screenshots/android-killzone-mercenary.webp" width="420" alt="Killzone: Mercenary on the phone with the on-screen controls"><br><sub><b>Killzone: Mercenary</b>, on-screen controls</sub></td>
+</tr>
+<tr>
+<td><img src="../assets/screenshots/android-pause-menu.webp" width="420" alt="The pause menu over Killzone: Mercenary"><br><sub><b>Pause menu</b>, save states and Record everything</sub></td>
+</tr>
+<tr>
+<td><img src="../assets/screenshots/android-uncharted.webp" width="420" alt="Uncharted: Golden Abyss on the phone"><br><sub><b>Uncharted: Golden Abyss</b>, the Prologue</sub></td>
+</tr>
+</table>
 
 The design mockups (below) are rendered from HTML, not taken from the phone:
 

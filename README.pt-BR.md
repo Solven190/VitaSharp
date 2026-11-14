@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=21d629f172873af6991c76ab6abc40bf3609257a7252e3dded16d9a6f7a0234b -->
+<!-- pair: README.md sha256=f25d5f9bf230a9e71719439960da55ada76d6de3d4bf71029baa75d9bd8ab4f6 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -62,8 +62,14 @@ LiveArea e jogos abertos por elas. É um projeto de pesquisa em desenvolvimento 
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary num celular com os controles na tela" width="420"><br><sub><b>Killzone: Mercenary</b>, campanha, controles na tela</sub></td>
-<td width="50%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss num celular" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, o Prólogo, 30 fps</sub></td>
+<td rowspan="3" width="40%" valign="top"><img src="docs/assets/screenshots/android-library.webp" alt="A biblioteca de jogos do app VitaSharp" width="260"><br><sub><b>Biblioteca</b>, a lista de jogos do app</sub></td>
+<td width="60%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary num celular com os controles na tela" width="420"><br><sub><b>Killzone: Mercenary</b>, campanha, controles na tela</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-pause-menu.webp" alt="O menu de pausa com save states e Gravar tudo" width="420"><br><sub><b>Menu de pausa</b>, save states e Gravar tudo</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss num celular" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, o Prólogo, 30 fps</sub></td>
 </tr>
 </table>
 

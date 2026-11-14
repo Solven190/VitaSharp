@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=d04bb88f7e1cd0e36c56cb9da14e1b76ebb84f7acdb6b7efb85bde44458bd708 -->
+<!-- pair: README.pt-BR.md sha256=1dbb4fbc70903bded4d51797987e66eacd870c13a590c22e2a949065ec3ed2b7 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -62,8 +62,14 @@ started from them. It is a research project under active development, all in C#.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary on a phone with the on-screen controls" width="420"><br><sub><b>Killzone: Mercenary</b>, campaign, on-screen controls</sub></td>
-<td width="50%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss on a phone" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, the Prologue, 30 fps</sub></td>
+<td rowspan="3" width="40%" valign="top"><img src="docs/assets/screenshots/android-library.webp" alt="The VitaSharp app's game library" width="260"><br><sub><b>Library</b>, the app's game list</sub></td>
+<td width="60%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary on a phone with the on-screen controls" width="420"><br><sub><b>Killzone: Mercenary</b>, campaign, on-screen controls</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-pause-menu.webp" alt="The pause menu with save states and Record everything" width="420"><br><sub><b>Pause menu</b>, save states and Record everything</sub></td>
+</tr>
+<tr>
+<td width="60%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss on a phone" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, the Prologue, 30 fps</sub></td>
 </tr>
 </table>
 
