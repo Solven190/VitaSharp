@@ -23,10 +23,12 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-avjump-" + Guid.NewGuid().ToString("N"));
     private readonly bool _legacy = MediaPlayerBase.LegacyJumps;
+    private readonly bool _newestPacing = MediaPlayerBase.NewestPicturePacing;
 
     public void Dispose()
     {
         MediaPlayerBase.LegacyJumps = _legacy;
+        MediaPlayerBase.NewestPicturePacing = _newestPacing;
         MediaPlayers.Backend = null;
         try
         {
@@ -201,10 +203,154 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
         MediaPlayerBase.LegacyJumps = false;
         var media = new SteppedPlayer();
         (AvPlayer module, uint handle) = PlayerWith(media);
+        // paused: the playback clock stands still, so the answers do not depend on the host clock
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerPause", handle)!);
+        SetPlaybackClock(module, handle, 0);
         Assert.Equal(0UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
         Assert.Equal(0, (int)Invoke(module, "sceAvPlayerJumpToTime", handle, 14_500UL)!);
         Assert.Equal(14_500UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
         Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>The playback clock of a paused player set to <paramref name="elapsedUs"/> since its start or jump.</summary>
+    private static void SetPlaybackClock(AvPlayer module, uint handle, long elapsedUs)
+    {
+        object player = typeof(AvPlayer).GetMethod("Get", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(module, [handle])!;
+        object clock = player.GetType().GetField("Clock")!.GetValue(player)!;
+        long ticks = elapsedUs * System.Diagnostics.Stopwatch.Frequency / 1_000_000;
+        clock.GetType().GetField("_accumulated", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(clock, ticks);
+    }
+
+    /// <summary>The playback clock of a playing player stopped at <paramref name="elapsedUs"/> since its start or jump,
+    /// so a test steps it instead of the host clock.</summary>
+    private static void FreezePlaybackClock(AvPlayer module, uint handle, long elapsedUs)
+    {
+        object player = typeof(AvPlayer).GetMethod("Get", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(module, [handle])!;
+        object clock = player.GetType().GetField("Clock")!.GetValue(player)!;
+        clock.GetType().GetMethod("Stop")!.Invoke(clock, null);
+        long ticks = elapsedUs * System.Diagnostics.Stopwatch.Frequency / 1_000_000;
+        clock.GetType().GetField("_accumulated", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(clock, ticks);
+    }
+
+    /// <summary>The timestamp (ms) of the picture GetVideoData answers now, or -1 when it answers none.</summary>
+    private long PictureNow(AvPlayer module, uint handle, uint frameInfo)
+    {
+        if ((int)Invoke(module, "sceAvPlayerGetVideoData", handle, frameInfo)! != 1)
+        {
+            return -1;
+        }
+
+        return (long)GuestMemory.Read<ulong>(frameInfo + 8);
+    }
+
+    /// <summary>
+    /// libsceavplayer hands out the next picture in order, one per GetVideoData call, also when several are late (it
+    /// never skips to the newest): a decoder that delivers in bursts (the phone's MediaCodec) still shows every picture.
+    /// </summary>
+    [Fact]
+    public void LatePicturesAreHandedOutInOrderOnePerCall()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        MediaPlayerBase.NewestPicturePacing = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        FreezePlaybackClock(module, handle, 400_000);
+        for (int i = 0; i < 10; i++)
+        {
+            media.Deliver(i * FrameUs); // a burst: all ten are already due on the clock
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            FreezePlaybackClock(module, handle, 400_000 + i * FrameUs);
+            Assert.Equal(i * FrameUs / 1000, PictureNow(module, handle, frameInfo));
+            Assert.Equal((ulong)(i * FrameUs / 1000), (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
+        }
+
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>
+    /// The firmware's pacing without sound: the next picture comes 20 ms or more after the last one was handed out;
+    /// a call sooner answers the picture already out.
+    /// </summary>
+    [Fact]
+    public void PicturesComeAtLeast20MsApart()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        MediaPlayerBase.NewestPicturePacing = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        media.Deliver(0);
+        media.Deliver(FrameUs);
+        FreezePlaybackClock(module, handle, 0);
+        Assert.Equal(0, PictureNow(module, handle, frameInfo)); // the first picture is due at once
+        FreezePlaybackClock(module, handle, 10_000);
+        Assert.Equal(0, PictureNow(module, handle, frameInfo)); // 10 ms later: still the first
+        FreezePlaybackClock(module, handle, 20_000);
+        Assert.Equal(FrameUs / 1000, PictureNow(module, handle, frameInfo)); // 20 ms: the next
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>
+    /// Killzone: Mercenary's campaign intro (no sound; the game plays its own): the game reads CurrentTime every frame
+    /// and asks for a picture only when it is more than 200 ms behind its own time; the decoder hands pictures out in
+    /// bursts. With the newest due picture handed out (the code before), CurrentTime jumped to the player's clock and
+    /// the game asked again only ~7 frames later: 3-5 different pictures a second at 30 fps (phone and desktop re-run of
+    /// the phone capture, 14/11/2026: 2.7/s handed out, 27/s dropped as late, 3 GetVideoData/s). With the firmware's
+    /// one picture per call it asks on every frame and every picture is shown. Returns the different pictures shown per
+    /// second over 10 s of 30 fps frames.
+    /// </summary>
+    private double DistinctPicturesPerSecond(bool newestPacing)
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        MediaPlayerBase.NewestPicturePacing = newestPacing;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        const int Frames = 300;
+        const int BurstEvery = 8; // the decoder: 8 pictures at once every 8 frames
+        int next = 0, distinct = 0;
+        long shown = -1;
+        for (int f = 0; f < Frames; f++)
+        {
+            long nowUs = f * FrameUs;
+            if (f % BurstEvery == 0)
+            {
+                while (next * FrameUs <= nowUs + BurstEvery * FrameUs && media.Queued < 12)
+                {
+                    media.Deliver(next * FrameUs);
+                    next++;
+                }
+            }
+
+            FreezePlaybackClock(module, handle, nowUs);
+            long currentMs = (long)(ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!;
+            if (shown < 0 || nowUs / 1000 - currentMs > 200)
+            {
+                long picture = PictureNow(module, handle, frameInfo);
+                if (picture >= 0 && picture != shown)
+                {
+                    distinct++;
+                    shown = picture;
+                }
+            }
+        }
+
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+        return distinct / (Frames * FrameUs / 1e6);
+    }
+
+    [Fact]
+    public void AGameThatAsksWhenBehindSeesEveryPicture()
+    {
+        double before = DistinctPicturesPerSecond(newestPacing: true);
+        double now = DistinctPicturesPerSecond(newestPacing: false);
+        string numbers = $"different pictures a second: before the fix {before:F1}, now {now:F1}";
+        Assert.True(before < 10, numbers);
+        Assert.True(now >= 25, numbers);
     }
 
     /// <summary>

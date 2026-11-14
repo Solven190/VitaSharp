@@ -53,12 +53,20 @@ public sealed partial class AvPlayer : HleModule
         public uint[] AudioBufferSizes = new uint[4];
         public int AudioIndex;
         public long LastTimeUs;
+        /// <summary>The player's clock when the last picture was handed out (-1 = none since the start, a jump or the
+        /// next source); not saved: after a load the next picture is due at once.</summary>
+        [SnapshotIgnore]
+        public long ShownAtUs = -1;
         /// <summary>sceAvPlayerJumpToTime calls (diagnostics); not saved.</summary>
         [SnapshotIgnore]
         public int Jumps;
         /// <summary>sceAvPlayerJumpToTime calls refused while a jump was in progress (diagnostics); not saved.</summary>
         [SnapshotIgnore]
         public int RefusedJumps;
+        /// <summary>Delivery statistics (the "AvPlayer: pictures" line every 10 s): GetVideoData calls, the host time of the
+        /// last line, the counts then; not saved.</summary>
+        [SnapshotIgnore]
+        public long VideoCalls, DeliveryLogTicks, LoggedTaken, LoggedDropped, LoggedLatenessUs, LoggedCalls;
 
         public readonly List<string> TempFiles = new();
     }
@@ -324,7 +332,24 @@ public sealed partial class AvPlayer : HleModule
         return 0;
     }
 
-    [Hle] ulong sceAvPlayerCurrentTime(uint handle) => Get(handle) is { } p ? (ulong)Math.Max(0, p.LastTimeUs / 1000) : 0;
+    /// <summary>
+    /// The player's sync clock as libsceavplayer 3.74 answers it for a movie without sound (the video is its own clock):
+    /// the time of the last picture handed out, or the time a jump set. Killzone: Mercenary asks for a picture only
+    /// when this is more than ~200 ms behind its own time, so the answer moves one picture per call with the firmware's
+    /// one-picture pacing (see NextPictureDue); a clock that ran on its own kept it from asking at all (64 pictures in
+    /// 150 s in a desktop re-run of the campaign intro, 14/11/2026). With sound the firmware answers the time of the
+    /// last sound handed out; here it is still the last picture's (docs/roadmap.md).
+    /// </summary>
+    [Hle]
+    ulong sceAvPlayerCurrentTime(uint handle)
+    {
+        if (Get(handle) is not { } p)
+        {
+            return 0;
+        }
+
+        return (ulong)Math.Max(0, p.LastTimeUs / 1000);
+    }
 
     /// <summary>1 until the player reaches its end (all sources played, or stopped); also 1 right after
     /// sceAvPlayerInit, before the first source: Killzone: Mercenary starts its briefing movie, checks IsActive and
@@ -413,7 +438,19 @@ public sealed partial class AvPlayer : HleModule
     {
         var p = Get(handle);
         if (p == null || frameInfo == 0 || p.Media is not { HasVideo: true } m || !p.Started || p.Paused) return 0;
-        var frame = m.TakeVideo(ClockUs(p));
+        long clockUs = ClockUs(p);
+        VideoFrame? frame;
+        if (MediaPlayerBase.NewestPicturePacing)
+        {
+            frame = m.TakeVideo(clockUs);
+        }
+        else
+        {
+            frame = NextPictureDue(p, m, clockUs) ? m.TakeNextVideo(clockUs) : null;
+        }
+
+        p.VideoCalls++;
+        LogDelivery(p, m, clockUs);
         if (frame != null)
         {
             uint size = (uint)frame.Nv12.Length;
@@ -430,6 +467,7 @@ public sealed partial class AvPlayer : HleModule
             p.LastFrame = frame;
             p.LastFrameBuffer = buf;
             p.LastTimeUs = frame.TimeUs;
+            p.ShownAtUs = clockUs;
         }
         if (p.LastFrame == null) return 0;
         GuestMemory.Fill(frameInfo, 0, 32);
@@ -437,6 +475,58 @@ public sealed partial class AvPlayer : HleModule
         GuestMemory.Write(frameInfo + 8, (ulong)(p.LastFrame.TimeUs / 1000));
         WriteVideoDetails(frameInfo + 16, p.LastFrame.Width, p.LastFrame.Height);
         return 1;
+    }
+
+    /// <summary>The firmware's pacing (pictures closer together than this are not handed out): 20 ms.</summary>
+    const long MinPictureSpacingUs = 20_000;
+
+    /// <summary>
+    /// libsceavplayer 3.74's choice in GetVideoData (its sync check on the stream clock): the next picture is due when
+    /// the time since the last one was handed out plus how far the clock is past that picture comes to 20 ms or more;
+    /// the clock is the audio's when the movie has sound and, without sound, the video's own, set from the picture on
+    /// screen at each call (so only the time since the last picture counts). Before the first picture (start, jump,
+    /// next source) the next one is due at once. A late picture is still handed out in order, one per call.
+    /// </summary>
+    static bool NextPictureDue(Player p, MediaPlayerBase m, long clockUs)
+    {
+        if (p.LastFrame == null || p.ShownAtUs < 0 || p.ShownAtUs > clockUs)
+        {
+            return true;
+        }
+
+        long sinceShownUs = clockUs - p.ShownAtUs;
+        long clockPastPictureUs = m.HasAudio ? clockUs - p.LastTimeUs : 0;
+        return sinceShownUs + clockPastPictureUs >= MinPictureSpacingUs;
+    }
+
+    /// <summary>Every 10 s of host time: the pictures handed out and dropped as late, and how late, so a movie whose
+    /// picture changes less often than the game presents shows in the log (Killzone: Mercenary's campaign intro on the
+    /// phone changed 3-6 times a second at 30 fps, 14/11/2026).</summary>
+    static void LogDelivery(Player p, MediaPlayerBase m, long clockUs)
+    {
+        long now = Stopwatch.GetTimestamp();
+        if (p.DeliveryLogTicks == 0)
+        {
+            p.DeliveryLogTicks = now;
+            return;
+        }
+
+        if (now - p.DeliveryLogTicks < Stopwatch.Frequency * 10)
+        {
+            return;
+        }
+
+        double seconds = (now - p.DeliveryLogTicks) / (double)Stopwatch.Frequency;
+        long taken = m.PicturesTaken - p.LoggedTaken, dropped = m.PicturesDroppedLate - p.LoggedDropped;
+        long lateness = m.LatenessUs - p.LoggedLatenessUs, calls = p.VideoCalls - p.LoggedCalls;
+        Log.Info($"AvPlayer: pictures {Path.GetFileName(p.SourcePath)}: {taken / seconds:F1}/s handed out, {dropped / seconds:F1}/s dropped as late, "
+            + $"{(taken > 0 ? lateness / taken / 1000.0 : 0):F1} ms late on average, {calls / seconds:F0} GetVideoData/s, {m.QueuedPictures} queued, "
+            + $"clock {clockUs / 1000} ms, last picture {p.LastTimeUs / 1000} ms");
+        p.DeliveryLogTicks = now;
+        p.LoggedTaken = m.PicturesTaken;
+        p.LoggedDropped = m.PicturesDroppedLate;
+        p.LoggedLatenessUs = m.LatenessUs;
+        p.LoggedCalls = p.VideoCalls;
     }
 
     /// <summary>Audio is handed out as soon as it is decoded: the game's sceAudioOut calls provide the pacing.</summary>

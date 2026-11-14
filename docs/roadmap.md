@@ -803,6 +803,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   unidades puladas, cenário do jogo que sincroniza pelo próprio áudio com decodificador lento) falham sem a correção.
   Falta: a confirmação no celular (APK com as duas chaves; A = JUMP=old com o log dos pulos, B = padrão, C = padrão +
   REORDER=refs; abertura, campanha inteira, M02 ~70 s), pausada pelo usuário em 14/11
+  Cadência (fix/android-bugs-14): com o laço do scanner certo, a imagem do filme mudava só 3-6x/s a 30 fps. O jogo lê
+  CurrentTime todo quadro e só chama GetVideoData quando ela está >200 ms atrás do tempo dele; nosso GetVideoData
+  entregava a imagem mais nova vencida e descartava as outras, a CurrentTime pulava para o relógio e o jogo pedia
+  de novo ~7 quadros depois (re-run da captura B2: 3 GetVideoData/s, 2,7 imagens/s, 27/s descartadas). No
+  libsceavplayer 3.74: uma imagem por chamada, a próxima na ordem mesmo atrasada, quando o tempo desde a anterior
+  mais o atraso do relógio sobre ela chega a 20 ms; sem som o relógio é o próprio vídeo e CurrentTime = a última
+  imagem entregue. Feito assim (`MediaPlayerBase.TakeNextVideo`, `AvPlayer.NextPictureDue`), chave A/B
+  `VITASHARP_AVPLAYER_PACING=newest`, log "AvPlayer: pictures ..." a cada 10 s; testes em `AvPlayerJumpTests`.
+  Falta: confirmação no celular (imagens distintas/s, A/B). Diferença que ficou: com som, o firmware responde em
+  CurrentTime o tempo do último áudio entregue; aqui ainda é o da última imagem
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:

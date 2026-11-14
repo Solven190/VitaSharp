@@ -68,6 +68,9 @@ public static class EnvVars
     /// <summary>A/B: =old makes sceAvPlayerJumpToTime hand out the pictures before the jump time and accept a jump
     /// while another is in progress (the code before Media/MediaPlayerBase.JumpTargetUs). Default: unset.</summary>
     public const string AvPlayerJump = "VITASHARP_AVPLAYER_JUMP";
+    /// <summary>A/B: =newest makes sceAvPlayerGetVideoData hand out the newest picture due on the player's clock and drop
+    /// the older ones (the code before the firmware's one-picture-per-call pacing). Default: unset.</summary>
+    public const string AvPlayerPacing = "VITASHARP_AVPLAYER_PACING";
     /// <summary>Tests: path of a media parity trace pulled from an Android device or emulator
     /// (build/android-media-parity.sh); MediaParityTests compares it with the desktop's (skipped when unset).</summary>
     public const string AndroidMediaTrace = "VITASHARP_ANDROID_MEDIA_TRACE";

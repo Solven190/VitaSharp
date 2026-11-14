@@ -44,16 +44,61 @@ public abstract class MediaPlayerBase : IDisposable
                 if (videoFrame != null)
                 {
                     ReturnBuffer(FreeNv12, videoFrame.Nv12); // dropped late frame
+                    PicturesDroppedLate++;
                 }
 
                 videoFrame = VideoQueue.Dequeue();
             }
             if (videoFrame != null)
             {
+                PicturesTaken++;
+                LatenessUs += clockUs - videoFrame.TimeUs;
                 Monitor.PulseAll(SyncRoot);
             }
 
             return videoFrame;
+        }
+    }
+
+    /// <summary>
+    /// The next picture in decode order, or null when none is decoded yet: libsceavplayer (FW 3.74) hands out one
+    /// picture per sceAvPlayerGetVideoData call, the next one in its queue, also when it is late (it never skips to the
+    /// newest), so a movie whose pictures come out of the decoder in bursts still shows every one of them.
+    /// </summary>
+    public VideoFrame? TakeNextVideo(long clockUs)
+    {
+        lock (SyncRoot)
+        {
+            if (VideoQueue.Count == 0)
+            {
+                return null;
+            }
+
+            VideoFrame videoFrame = VideoQueue.Dequeue();
+            PicturesTaken++;
+            LatenessUs += Math.Max(0, clockUs - videoFrame.TimeUs);
+            Monitor.PulseAll(SyncRoot);
+            return videoFrame;
+        }
+    }
+
+    /// <summary>VITASHARP_AVPLAYER_PACING=newest (A/B on a device): each GetVideoData hands out the newest picture due on
+    /// the player's clock and drops the older ones, as before the firmware's pacing was followed. Tests set it.</summary>
+    internal static bool NewestPicturePacing { get; set; } = Environment.GetEnvironmentVariable(Util.EnvVars.AvPlayerPacing) == "newest";
+
+    /// <summary>Statistics (the AvPlayer's delivery line): pictures handed out, pictures dropped because a later one
+    /// was already due, and the sum of how late the handed-out ones were (microseconds); guarded by SyncRoot.</summary>
+    public long PicturesTaken, PicturesDroppedLate, LatenessUs;
+
+    /// <summary>Pictures decoded and waiting (statistics).</summary>
+    public int QueuedPictures
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return VideoQueue.Count;
+            }
         }
     }
 
