@@ -439,7 +439,101 @@ public static class TextureDecoder
     }
 
     /// <summary>swizzle: bit 0 = YVU order (V before U), bit 1 = CSC1 (full range).</summary>
-    private static Texels Yuv420(uint addr, uint w, uint h, uint pitch, bool threePlane, uint swizzle)
+    public static Texels Yuv420(uint addr, uint w, uint h, uint pitch, bool threePlane, uint swizzle)
+    {
+        return Yuv420Fast(addr, w, h, pitch, threePlane, swizzle) ?? Yuv420Texel(addr, w, h, pitch, threePlane, swizzle);
+    }
+
+    /// <summary>Per-channel terms of the BT.601 conversion (<see cref="YuvToRgb"/>), by sample value: studio range
+    /// (CSC0) and full range (CSC1).</summary>
+    private static readonly int[] s_lumaStudio = Table(v => 298 * (v - 16) + 128), s_lumaFull = Table(v => 256 * v + 128);
+    private static readonly int[] s_rFromVStudio = Table(v => 409 * (v - 128)), s_gFromUStudio = Table(v => -100 * (v - 128));
+    private static readonly int[] s_gFromVStudio = Table(v => -208 * (v - 128)), s_bFromUStudio = Table(v => 516 * (v - 128));
+    private static readonly int[] s_rFromVFull = Table(v => 359 * (v - 128)), s_gFromUFull = Table(v => -88 * (v - 128));
+    private static readonly int[] s_gFromVFull = Table(v => -183 * (v - 128)), s_bFromUFull = Table(v => 454 * (v - 128));
+
+    private static int[] Table(Func<int, int> term)
+    {
+        var table = new int[256];
+        for (int v = 0; v < 256; v++)
+        {
+            table[v] = term(v);
+        }
+
+        return table;
+    }
+
+    private static byte ClampByte(int scaled) => (byte)Math.Clamp(scaled >> 8, 0, 255);
+
+    /// <summary>
+    /// <see cref="Yuv420Texel"/> by rows over one read of the planes, with the conversion's terms from tables: the same
+    /// bytes. A video texture is converted every frame (F1 2011's 94 s intro movie, a 960x544 YUV420P2 texture per
+    /// frame, cost the Android GPU worker ~38 ms per frame with a guest memory read per sample, and the movie showed 17
+    /// pictures a second where the Vita shows ~25). Null when the planes cannot be read as one span (a decoder picture
+    /// covering only part of them): the per-texel path reads each sample from wherever it lies.
+    /// </summary>
+    private static Texels? Yuv420Fast(uint addr, uint w, uint h, uint pitch, bool threePlane, uint swizzle)
+    {
+        if (w == 0 || h == 0)
+        {
+            return null;
+        }
+
+        bool yvu = (swizzle & 1) != 0, full = (swizzle & 2) != 0;
+        ulong ySize = (ulong)pitch * h;
+        uint chromaPitch = threePlane ? pitch / 2 : pitch;
+        ulong chromaPlane = (ulong)(pitch / 2) * (h / 2);
+        // the last byte the per-texel path reads: the last chroma sample of the last row
+        ulong lastChroma = threePlane
+            ? ySize + chromaPlane + (ulong)((h - 1) / 2) * chromaPitch + (w - 1) / 2
+            : ySize + (ulong)((h - 1) / 2) * pitch + ((w - 1) & ~1u) + 1;
+        ulong length = Math.Max(lastChroma + 1, ySize);
+        if (length > int.MaxValue || addr + length > 0x1_0000_0000UL)
+        {
+            return null;
+        }
+
+        if (t_srcData is { } d)
+        {
+            ulong lo = addr, hi = addr + length, dLo = t_srcAddr, dHi = t_srcAddr + (ulong)d.Length;
+            if (!(lo >= dLo && hi <= dHi) && !(hi <= dLo || lo >= dHi))
+            {
+                return null;
+            }
+        }
+
+        ReadOnlySpan<byte> src = Mem(addr, (int)length);
+        int[] luma = full ? s_lumaFull : s_lumaStudio;
+        int[] rFromV = full ? s_rFromVFull : s_rFromVStudio, gFromU = full ? s_gFromUFull : s_gFromUStudio;
+        int[] gFromV = full ? s_gFromVFull : s_gFromVStudio, bFromU = full ? s_bFromUFull : s_bFromUStudio;
+        var result = Texels.Rent(w * h * 4L);
+        Span<byte> dst = result.Span;
+        for (uint y = 0; y < h; y++)
+        {
+            ReadOnlySpan<byte> lumaRow = src.Slice((int)(y * pitch), (int)w);
+            int chromaRow = (int)(ySize + (y / 2) * chromaPitch);
+            int uBase = threePlane ? chromaRow + (yvu ? (int)chromaPlane : 0) : chromaRow + (yvu ? 1 : 0);
+            int vBase = threePlane ? chromaRow + (yvu ? 0 : (int)chromaPlane) : chromaRow + (yvu ? 0 : 1);
+            Span<byte> outRow = dst.Slice((int)(y * w * 4), (int)(w * 4));
+            for (int x = 0; x < (int)w; x++)
+            {
+                int chroma = threePlane ? x / 2 : x & ~1;
+                int u = src[uBase + chroma], v = src[vBase + chroma];
+                int c = luma[lumaRow[x]];
+                int o = x * 4;
+                outRow[o] = ClampByte(c + rFromV[v]);
+                outRow[o + 1] = ClampByte(c + gFromU[u] + gFromV[v]);
+                outRow[o + 2] = ClampByte(c + bFromU[u]);
+                outRow[o + 3] = 255;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>The per-texel conversion (one guest memory read per sample): the reference of <see cref="Yuv420Fast"/>,
+    /// and the path for planes a decoder picture covers only in part.</summary>
+    public static Texels Yuv420Texel(uint addr, uint w, uint h, uint pitch, bool threePlane, uint swizzle)
     {
         bool yvu = (swizzle & 1) != 0, full = (swizzle & 2) != 0;
         var result = Texels.Rent(w * h * 4L);

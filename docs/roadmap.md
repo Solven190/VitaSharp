@@ -832,6 +832,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   recomeçado respondia as primeiras chamadas com a última picture da volta anterior (o fim escuro do filme); agora a
   primeira chamada de cada volta sai com a picture do IDR. Na tela de título (150 s, 1 execução de cada) o detector não
   marcou nada nem no código novo nem no antigo; falta conferir ao vivo
+- [ ] F1 2011 no celular: engasgo nos filmes do boot (relato do usuário, 13/11/2026). Comparação com o boot de um Vita
+  de verdade (vídeo `INf_kf6wGFY`, captura direta): as paradas entre os filmes não são defeito, o Vita também as tem
+  (Codemasters -> preto ~1,4 s -> Sumo Digital -> preto ~1,6 s -> aviso legal parado ~3,5 s -> preto ~2,5 s; no
+  celular 1,1-1,4 s, 1,2 s e 3,5 s nos mesmos pontos, com o decodificador de software e com o de hardware iguais). A
+  diferença é o filme longo da abertura (94 s): ~17 imagens únicas/s no celular contra ~25 no Vita. Causa no log: o
+  worker da GPU gasta ~38-42 ms por quadro com 1 desenho só, convertendo na CPU a textura YUV420P2 960x544 do filme
+  a cada quadro (uma leitura de memória do guest por amostra); o jogo espera ~38 ms/quadro em notificações. Feito
+  (perf/android-frame-13): conversão por linhas, uma leitura dos planos e termos em tabela, os mesmos bytes
+  (`YuvTextureTests`); falta medir no celular. Também visto: durante o filme o planejador de núcleos troca a thread
+  principal do jogo pela "avPlayer VideoDec" (a mais ocupada) e manda a principal para os A55
 - [ ] F1 2011 no celular: quadros pretos nos filmes, porque o player do jogo pula o desenho do quadro quando o
   decodificador atrasa (CPU lenta: ~20 fps; reproduz no PC com `--cpu-mhz=120`); some com a velocidade nativa (item
   abaixo), conferir depois
