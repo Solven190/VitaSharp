@@ -676,6 +676,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   ao vivo no UC: 30 fps nos dois (limite do jogo), GPU igual. Conclusão: a maior parte da espera de notificação do KZ é
   tempo real da GPU e do worker na cadeia serial (o jogo espera o resultado da própria cena), não publicação atrasada;
   as chaves ficam desligadas. A alavanca que sobra é o tempo de GPU/worker da cena que o jogo espera
+  Onde parou (thread principal do KZ, ~235 sceKernelDelayThread por quadro = ~17,5 ms de polling): falta descobrir o
+  que ela checa entre os polls. Plano: rota do kz_trace.txt no desktop com `--trace-hle-only=sceKernelDelayThread
+  --trace-hle-threads=killzone_vita --trace-hle-frames=A:B` para o LR do laço, ler o código em volta (o endereço que
+  ele lê) e `--watch=ADDR:4` para quem escreve e quando (job, callback de GPU ou fiber)
   Opções para o EARLY (decisão do usuário): (b, preferida, genérica) adaptativo: liberar o callback no submit só
   quando o quadro está preso na GPU (o jogo esperou a fila de display enquanto o worker ficou ocioso), e voltar ao
   callback na conclusão quando a CPU (worker + jogo nos dois A76) é o limite, como no F1; (a, alternativa) opção por
