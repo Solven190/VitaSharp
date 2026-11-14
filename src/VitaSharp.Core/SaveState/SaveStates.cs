@@ -692,6 +692,7 @@ public static class SaveStates
                     busy = $"thread '{scene.Name}' is finishing a GPU scene";
                 }
 
+                busy ??= ModulesBusyForLoad(emu);
                 if (busy == null)
                 {
                     return;
@@ -717,6 +718,21 @@ public static class SaveStates
             held.Clear();
             Thread.Sleep(5);
         }
+    }
+
+    /// <summary>The first module whose running-session work a load would cut off (<see cref="ISnapshotState.CheckLoad"/>),
+    /// with the reason, or null.</summary>
+    internal static string? ModulesBusyForLoad(Emulator emu)
+    {
+        foreach (HleModule hleModule in emu.Hle.Modules)
+        {
+            if (hleModule is ISnapshotState state && state.CheckLoad() is { } why)
+            {
+                return $"module {hleModule.GetType().Name}: {why}";
+            }
+        }
+
+        return null;
     }
 
     private static void StopThreads(Emulator emu)

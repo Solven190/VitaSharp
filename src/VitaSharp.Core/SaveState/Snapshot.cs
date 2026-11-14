@@ -16,6 +16,11 @@ public interface ISnapshotState
     /// <summary>Why the current state cannot be saved (a host resource the module cannot recreate yet), or null. The
     /// message names the resource: "host resource Y not supported yet".</summary>
     string? CheckSnapshot() => null;
+
+    /// <summary>Why a load cannot replace the module's state now (work of the running session still in flight on a
+    /// thread the load keeps, which would finish on the loaded state), or null. A load holds the guest threads and waits,
+    /// with the emulation running, until every module answers null.</summary>
+    string? CheckLoad() => null;
 }
 
 /// <summary>
