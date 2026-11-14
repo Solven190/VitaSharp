@@ -387,7 +387,9 @@ public static class EnvVars
     /// <summary>1: a display queue entry's flip callback runs once the GPU worker recorded and submitted the frame, not
     /// once the GPU finished it (the callback only flips; presents stay in GPU order). auto: chosen from measured frame
     /// times (Gpu/AdaptiveEarlySignal.cs: tried while the game misses its cadence and waits on the display queue, kept
-    /// only when frames got faster). Default 0.</summary>
+    /// only when frames got faster; in the native frame rate mode a flip is never sooner than the median interval the
+    /// completion signal gave, so early cannot make a game faster than the console). =1 has no such hold: A/B only.
+    /// Default 0.</summary>
     public const string DisplayEarlySignal = "VITASHARP_DISPLAY_EARLY_SIGNAL";
     /// <summary>0 (A/B) turns off the wait of a scene's GPU work until the display released its colour buffer (fragment
     /// sync object), as on the hardware; trace also logs the waits. Default on.</summary>

@@ -69,6 +69,7 @@ public sealed partial class Gxm : HleModule
         _displayMaxInFlight = (int)Math.Clamp(pendingMax, 1u, 3u);
         int capacity = Math.Max(_displayMaxInFlight - 1, 1);
         _displayQueue = new BoundedQueue<(uint, GpuQueue.Fence, GxmSyncObject?, long)>(capacity);
+        FrameRate.EarlyHold = 0; // a new display queue: no early hold measured yet
         if (UbLate) GpuQueue.LateUniformCopy = CopyLateUniforms;
         var t = K.CreateThread("SceGxmDisplayQueue", 0, 64, 0x4000, 0, 0);
         t.HostBody = DisplayQueueThread;
@@ -776,6 +777,8 @@ public sealed partial class Gxm : HleModule
             _lastDisplayEntry = now;
             if (last == 0) return;
             _earlyAuto.OnFrame((now - last) * tick, (now - tq) * tick, out bool changed);
+            // early must not make the game flip faster than the completion signal did (AdaptiveEarlySignal.HoldVblanks)
+            FrameRate.EarlyHold = _earlyAuto.HoldVblanks;
             if (changed) Log.Info($"[early-auto] {_earlyAuto.State}: {_earlyAuto.LastDecision}");
         }
     }
