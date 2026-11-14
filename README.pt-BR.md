@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=947994a3e75e81f1ca29aadc727cc0b9374149cc4375da2af41ee59b3ee49314 -->
+<!-- pair: README.md sha256=b71c621fb08768ed3365bca007957125ff7c1401d820b9f28252a1de25a0bbcc -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -305,6 +305,12 @@ Os scripts shell seguem o Google Shell Style Guide e precisam passar no ShellChe
   `vulkan-validation-layers`); no macOS o SDK também traz o MoltenVK. Captura de quadros:
   [RenderDoc](https://renderdoc.org) (Windows, Linux) e os dumps da GPU (`replay-gpu`,
   [`docs/notes/gpu-dump.md`](docs/notes/gpu-dump.md)) em todos os sistemas.
+- Bibliotecas de pipeline gráfico (desligadas por padrão, mais lentas nas medições com caches frios):
+  `VITASHARP_PIPELINE_LIBRARY=1` liga pipelines de primeiro uso ligados a partir de bibliotecas de shader e otimizados
+  em segundo plano, onde o driver tem `VK_EXT_graphics_pipeline_library` com ligação rápida (NVIDIA/AMD/Intel de
+  desktop, Mesa); sem ela (MoltenVK, Dozen, drivers de celular) os pipelines são compilados inteiros de qualquer jeito.
+  A linha `[shadercache] session` do log conta o que a thread da GPU compilou; ver
+  [`docs/notes/pipeline-skip.md`](docs/notes/pipeline-skip.md).
 - Perfil: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, todos os sistemas); no Windows
   também o PerfView e o WPR/WPA (Windows Performance Toolkit).
 
@@ -322,6 +328,8 @@ O que o `dotnet test tests/VitaSharp.Tests` precisa em cada sistema; um teste se
 
 - Qualquer sistema: `VK_DRIVER_FILES` (ou `VK_ICD_FILENAMES`) com o manifesto ICD de um SwiftShader ou Mesa baixado é
   usado no lugar.
+- O `RendererPipelineLibraryTests` confere os pipelines ligados onde o dispositivo por software tem a extensão com
+  ligação rápida (SwiftShader, Mesa lavapipe) e a compilação inteira em todos os outros.
 - Firmware: sem ele os testes dos módulos reais do firmware (`libSceJson`, `libSceXml`, `libpaf`, a instalação do
   arquivo de atualização) são pulados. `VITASHARP_FIRMWARE_PUP` aponta um `PSVUPDAT.PUP`, `VITASHARP_FIRMWARE_DIR` uma
   pasta `vs0` ou de dados do Vita3K; os testes do compilador do Piglet precisam do `libshacccg.suprx` em `ur0:data`.

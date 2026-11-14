@@ -347,6 +347,29 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   frio: Killzone 21-22 s -> 11 s; 5ca2e0a) e o renderizador trocado (F1/F3/load state) passa a abrir os caches do jogo
   (7d73f91). O que sobra no cache frio é o custo do driver por pipeline novo; só cai pulando desenho (descartado) ou
   com menos SPIR-V por shader (gerar GLSL menor: o `-O` mostrou ~30% a menos no driver)
+  Segunda tentativa em 13/11/2026 (perf/desktop-26), no estilo do DXVK: quatro bibliotecas, ligadas sem LTO, inclusive
+  nos passes MSAA; o pipeline otimizado é compilado por último nos workers e trocado depois. Exige
+  `graphicsPipelineLibraryFastLinking`; fica desligada nos blobs de celular (`GpuQuirk.AvoidPipelineLibrary`) e nos
+  perfis mobile. Ficou no código desligada (`VITASHARP_PIPELINE_LIBRARY=1` liga), com o contador
+  `PipelineStats.CriticalPath` e o teste `RendererPipelineLibraryTests`. Medido no Killzone (GTX 1650, 4 CPUs):
+  no replay do dump F8, 488 compilações de estágio viram 346 bibliotecas (-29%), mas uma biblioteca custa ~metade de
+  um pipeline (pior quadro 31,3 -> 28,8 s; quadros idênticos). Em gameplay com os caches frios, piorou: 80 quadros
+  >= 16,7 ms contra 62 e 25,6 s parados contra 14,4 s, porque as bibliotecas tiram tempo dos 2 workers. O prewarm por
+  bibliotecas com o driver frio levou 51,5 s contra 19,7 s (removido). Já a segunda sessão com o prewarm normal cai
+  para 16 quadros (pior 116 ms). Próximo passo, se voltar: mais workers fora da fixação em 4 CPUs, ou medir a GPL em
+  AMD/Intel/Mesa, onde a biblioteca pode custar bem menos que o pipeline. Ver `docs/notes/pipeline-skip.md`
+  Pendente antes de ligar as bibliotecas: VUID-VkGraphicsPipelineCreateInfo-renderPass-09652 só com elas (replay do
+  dump do Killzone com `--validation`: 0 com `VITASHARP_PIPELINE_LIBRARY=0`). Ponto: shader de fragmento com
+  `last_frag_in` (input attachment 0, variantes fetch-input do `ShaderGenerator`) numa biblioteca de fragmento ou na
+  ligação com renderização dinâmica e `colorAttachmentCount` 0. Pôr os anexos de cor da chave na biblioteca e na
+  ligação não resolveu; a chamada exata ainda não foi identificada (quadros idênticos)
+- [ ] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
+  frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
+  e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
+  Causa provável: o processo BelowNormal ficou sem CPU (as threads AboveNormal dele continuam abaixo de trabalho
+  Normal); vista em duas corridas, sem pilha capturada durante uma parada. Próximo passo, se voltar: o relatório do
+  watchdog dizer o tempo de CPU que o processo e a thread da GPU receberam durante a parada, para separar falta de
+  CPU de espera (fence, lock, driver). Ver `docs/notes/pipeline-skip.md`
 - [ ] Prioridade das threads em CPU híbrida (núcleos E) e na bateria: medir `SetThreadSelectedCpuSets` e o
   power throttling num Intel de 12ª geração ou mais novo (as threads da CPU emulada e da GPU já sobem para acima do
   normal, `--host-prio`; ver `docs/notes/thread-priority.md`)

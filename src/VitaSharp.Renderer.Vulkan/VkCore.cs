@@ -362,7 +362,7 @@ public sealed unsafe class VkCore : IDisposable
 
     /// <summary>The driver's identity and what it supports, for <see cref="GpuQuirkTable.Select"/>.</summary>
     private GpuDeviceInfo DescribeDevice(in PhysicalDeviceFeatures physicalDeviceFeatures, in PhysicalDeviceVulkan11Features physicalDeviceVulkan11Features, in PhysicalDeviceVulkan12Features physicalDeviceVulkan12Features,
-        HashSet<string> exts, bool roaa, uint timestampBits, bool bcPatched, bool dynamicRendering)
+        HashSet<string> exts, bool roaa, uint timestampBits, bool bcPatched, bool dynamicRendering, bool pipelineLibrary)
     {
         uint driverId = 0;
         string driverName = "", driverInfo = "";
@@ -408,6 +408,7 @@ public sealed unsafe class VkCore : IDisposable
         Set(dynamicRendering, GpuFeature.DynamicRendering);
         Set(Properties.ApiVersion >= Vk.Version13, GpuFeature.ExtendedDynamicState);
         Set(physicalDeviceFeatures.ShaderClipDistance, GpuFeature.ShaderClipDistance);
+        Set(pipelineLibrary, GpuFeature.GraphicsPipelineLibrary);
         PhysicalDeviceLimits physicalDeviceLimits = Properties.Limits;
         bool unified = true;
         for (int i = 0; i < MemoryProperties.MemoryTypeCount; i++)
@@ -515,6 +516,7 @@ public sealed unsafe class VkCore : IDisposable
             has12.SamplerMirrorClampToEdge = devExts.Contains(MirrorClampExtension);
         }
         bool dynamicRendering = api >= Vk.Version13 && has13.DynamicRendering && has13.Synchronization2;
+        bool pipelineLibrary = api >= Vk.Version13 && QueryPipelineLibrary(devExts);
         // the raw device capabilities, before anything can fail (phones have no vulkaninfo)
         foreach (string line in VulkanCapabilityReport.Lines(Properties, supported2.Features, has11, has12, has13, api, devExts, FormatSupport, SupportsVertexFormat))
         {
@@ -541,7 +543,7 @@ public sealed unsafe class VkCore : IDisposable
             }
         }
         Caps = GpuQuirkTable.Select(DescribeDevice(supported2.Features, has11, has12, devExts, roaaName != null && hasRoaa.RasterizationOrderColorAttachmentAccess,
-            families[QueueFamily].TimestampValidBits, bcPatched, dynamicRendering), profile, Environment.GetEnvironmentVariable(EnvVars.GpuQuirks));
+            families[QueueFamily].TimestampValidBits, bcPatched, dynamicRendering, pipelineLibrary), profile, Environment.GetEnvironmentVariable(EnvVars.GpuQuirks));
         bool Has(GpuFeature gpuFeature) => Caps.Has(gpuFeature);
         // the sample counts every multisampling check reads: the profile's (e.g. Mali: no 2x)
         var counts = (SampleCountFlags)Caps.Limits.FramebufferSampleCounts;
@@ -671,11 +673,29 @@ public sealed unsafe class VkCore : IDisposable
             Log.Info($"[afbc] {CompressionControlExtension} not supported: compression cannot be queried");
         }
 
+        // graphics pipeline libraries (VulkanRenderer.PipelineLibrary.cs): with dynamic rendering and the extended
+        // dynamic state only, where no quirk keeps whole pipelines
+        void* deviceChain = portability ? &fPortability : featureChain;
+        GraphicsPipelineLibrary = chain13 && Has(GpuFeature.GraphicsPipelineLibrary) && Has(GpuFeature.ExtendedDynamicState)
+            && !Caps.Has(GpuQuirk.AvoidPipelineLibrary) && !Caps.Has(GpuQuirk.StaticExtendedDynamicState) && !Caps.Has(GpuQuirk.StaticDepthBiasEnable);
+        var fGpl = new PhysicalDeviceGraphicsPipelineLibraryFeaturesEXT
+        {
+            SType = StructureType.PhysicalDeviceGraphicsPipelineLibraryFeaturesExt,
+            GraphicsPipelineLibrary = true,
+            PNext = deviceChain,
+        };
+        if (GraphicsPipelineLibrary)
+        {
+            exts.Add(PipelineLibraryExtension);
+            exts.Add(GraphicsPipelineLibraryExtension);
+            deviceChain = &fGpl;
+        }
+
         byte** extPtrs = (byte**)SilkMarshal.StringArrayToPtr(exts);
         var dci = new DeviceCreateInfo
         {
             SType = StructureType.DeviceCreateInfo,
-            PNext = portability ? &fPortability : featureChain,
+            PNext = deviceChain,
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &qci,
             PEnabledFeatures = &feats,
@@ -985,6 +1005,32 @@ public sealed unsafe class VkCore : IDisposable
     // =================================================================== memory accounting and budget
 
     private const string MemoryBudgetExtension = "VK_EXT_memory_budget";
+    private const string GraphicsPipelineLibraryExtension = "VK_EXT_graphics_pipeline_library";
+    private const string PipelineLibraryExtension = "VK_KHR_pipeline_library";
+
+    /// <summary>VK_EXT_graphics_pipeline_library is enabled: first-use pipelines are linked from shader libraries
+    /// (VulkanRenderer.PipelineLibrary.cs). Needs the device to report graphicsPipelineLibraryFastLinking, dynamic
+    /// rendering and the extended dynamic state; false on drivers without the extension (MoltenVK, Dozen, most phone
+    /// drivers) and where <see cref="GpuQuirk.AvoidPipelineLibrary"/> applies.</summary>
+    public bool GraphicsPipelineLibrary;
+
+    /// <summary>The device has VK_EXT_graphics_pipeline_library (and VK_KHR_pipeline_library) with the feature and
+    /// fast linking (DXVK uses the extension only then: without fast linking a link may compile the whole pipeline).</summary>
+    private bool QueryPipelineLibrary(HashSet<string> devExts)
+    {
+        if (!devExts.Contains(GraphicsPipelineLibraryExtension) || !devExts.Contains(PipelineLibraryExtension))
+        {
+            return false;
+        }
+
+        var features = new PhysicalDeviceGraphicsPipelineLibraryFeaturesEXT { SType = StructureType.PhysicalDeviceGraphicsPipelineLibraryFeaturesExt };
+        var features2 = new PhysicalDeviceFeatures2 { SType = StructureType.PhysicalDeviceFeatures2, PNext = &features };
+        Vk.GetPhysicalDeviceFeatures2(Physical, &features2);
+        var properties = new PhysicalDeviceGraphicsPipelineLibraryPropertiesEXT { SType = StructureType.PhysicalDeviceGraphicsPipelineLibraryPropertiesExt };
+        var properties2 = new PhysicalDeviceProperties2 { SType = StructureType.PhysicalDeviceProperties2, PNext = &properties };
+        Vk.GetPhysicalDeviceProperties2(Physical, &properties2);
+        return features.GraphicsPipelineLibrary && properties.GraphicsPipelineLibraryFastLinking;
+    }
     private const string CompressionControlExtension = "VK_EXT_image_compression_control";
 
     /// <summary>VK_KHR/EXT_load_store_op_none is enabled (AttachmentLoadOp/StoreOp NONE).</summary>

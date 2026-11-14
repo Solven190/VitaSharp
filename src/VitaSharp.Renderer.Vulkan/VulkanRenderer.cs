@@ -34,6 +34,11 @@ public sealed class VulkanRendererOptions
     /// <summary>Also build predicted pipelines in the background (needs <see cref="AsyncShaders"/>;
     /// VITASHARP_ASYNC_PIPELINES=0|1 overrides it).</summary>
     public bool AsyncPipelines = true;
+    /// <summary>Link first-use pipelines from VK_EXT_graphics_pipeline_library shader libraries where the driver
+    /// supports fast linking (VulkanRenderer.PipelineLibrary.cs); false (the default: with cold caches on the GTX 1650
+    /// it stalled more than whole pipelines, docs/notes/pipeline-skip.md) compiles every pipeline whole.
+    /// VITASHARP_PIPELINE_LIBRARY=0|1 overrides it.</summary>
+    public bool PipelineLibrary;
     /// <summary>Shader worker threads, 0 = automatic (half the logical processors, 1-6). VITASHARP_SHADER_WORKERS overrides it.</summary>
     public int ShaderWorkers;
     /// <summary>Presents counted before this renderer's first one (GPU dump replay: frames keep the recorded numbers).</summary>
@@ -225,6 +230,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         // VITASHARP_DEBUG_NAN=draws: the instrumented SPIR-V stays out of the on-disk cache
         _compiler = new ShaderCompiler(Core.Gxm.Shader.ShaderGenerator.NanDraws ? null : options.ShaderCacheDir, ShaderCompiler.ResolveOptLevel(options.ShaderOptimization));
         ConfigureAsyncShaders(options);
+        InitPipelineLibrary(options.PipelineLibrary);
         ShaderCompiler.WarmProcessInBackground(); // glslang's one-time initialisation off the first new shader's frame
         InitTrace();
         // programmable blending in multisampled scenes reads per sample only where sample-rate shading exists

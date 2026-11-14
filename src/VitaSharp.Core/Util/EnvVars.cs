@@ -421,6 +421,10 @@ public static class EnvVars
     /// <summary>Frame rate mode: native (default), 30, 60 or unlimited (Hle/Modules/Display.cs FrameRate; desktop
     /// --frame-rate=, the launcher's "Taxa de quadros" per game).</summary>
     public const string FrameRate = "VITASHARP_FRAME_RATE";
+    /// <summary>1: first-use pipelines are linked from VK_EXT_graphics_pipeline_library shader libraries where the driver
+    /// supports fast linking, and optimised in the background (Renderer.Vulkan VulkanRenderer.PipelineLibrary.cs);
+    /// 0 (the default, VulkanRendererOptions.PipelineLibrary): every pipeline is compiled whole.</summary>
+    public const string PipelineLibrary = "VITASHARP_PIPELINE_LIBRARY";
     /// <summary>Storage read speed in MB/s (Util/IoTiming.cs): "vita" (the memory card's 7 MB/s, the default), "fast"
     /// or 0 (no speed limit: the launchers' "Carregamento rapido", desktop --fast-loading), or a number (desktop
     /// --io-speed=).</summary>
