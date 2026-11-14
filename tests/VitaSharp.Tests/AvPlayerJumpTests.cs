@@ -190,6 +190,23 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
     }
 
     /// <summary>
+    /// CurrentTime answers a jump's time right after it (the sync clock is set to it), not the last picture's: Killzone:
+    /// Mercenary holds its title movie on a loop by jumping to 14.5 s whenever CurrentTime passes 15 s, and with the
+    /// last picture's 15.05 s still answered it jumped on every frame and the movie never moved.
+    /// </summary>
+    [Fact]
+    public void CurrentTimeIsTheJumpsTimeRightAfterIt()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        Assert.Equal(0UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerJumpToTime", handle, 14_500UL)!);
+        Assert.Equal(14_500UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>
     /// The campaign intro's pattern over a time model, without threads or the host clock: a 30 fps movie with a sync
     /// sample every 150 pictures and a non-reference B picture every other one, a decoder that does 0.9 pictures per
     /// picture time (the phone's software decoder with the game's threads on the other cores), and a game that plays its

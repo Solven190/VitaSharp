@@ -304,6 +304,15 @@ public sealed partial class AvPlayer : HleModule
         }
 
         p.Media?.Seek(us);
+        if (!MediaPlayerBase.LegacyJumps)
+        {
+            // CurrentTime reads the player's sync clock, which a jump sets to its time: Killzone: Mercenary holds its
+            // title and campaign movies on a short loop by jumping back whenever CurrentTime passes the loop's end;
+            // still answering the last picture's time, it jumped again on every frame (1500 jumps in 50 s on the
+            // phone) and the decoder was flushed 30 times a second
+            p.LastTimeUs = us;
+        }
+
         p.ClockOffsetUs = us;
         bool running = p.Clock.IsRunning;
         p.Clock.Reset();
