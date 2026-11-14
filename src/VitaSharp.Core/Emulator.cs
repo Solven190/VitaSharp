@@ -46,6 +46,17 @@ public sealed class EmulatorOptions
     public GuestMemory? Memory { get; init; }
 }
 
+/// <summary>Which PlayStation Mobile runtime a process is (<see cref="Emulator.PsmRuntime"/>).</summary>
+public enum PsmRuntimeKind
+{
+    /// <summary>Not a PSM runtime.</summary>
+    None,
+    /// <summary>The PSM runtime package (PCSI00011, the Mono runtime of PSM titles).</summary>
+    Mono,
+    /// <summary>A runtime a PSM title carries itself (Unity for PSM, ux0:psm/&lt;id&gt;/runtime).</summary>
+    OwnRuntime,
+}
+
 /// <summary>
 /// The platform-independent emulator: memory, CPU translation cache, kernel, HLE modules and loader.
 /// Front-ends (desktop now, Android later) supply the host services in <see cref="Host"/>.
@@ -94,7 +105,7 @@ public sealed class Emulator : IDisposable
     public string Title { get; private set; } = "";
     public Sfo? ParamSfo { get; private set; }
     public byte[]? Klicensee { get; private set; }
-    public string AppPath { get; private set; } = "";
+    public string AppPath { get; internal set; } = "";
     public LoadedModule? MainModule { get; private set; }
     /// <summary>Local PSN services (TUS, rankings) of the emulated account, stored under <see cref="EmulatorOptions.NpRoot"/>.</summary>
     public global::VitaSharp.Core.Hle.Np.LocalPsn LocalPsn { get; }
@@ -762,6 +773,13 @@ public sealed class Emulator : IDisposable
             byte[] head = new byte[Math.Min(fs.Length, 0x1000)];
             fs.ReadExactly(head);
             ProgramAuthorityId = SelfDecryptor.ProgramAuthorityId(head);
+            // the capability of the auth info comes from the secure processor, which is not emulated: the access
+            // follows what the program is
+            Access = ProgramAccess.Of(ProgramAuthorityId, IsSystemProgram, SelfDecryptor.RequiresKlicensee(head));
+        }
+        else
+        {
+            Access = ProgramAccess.Of(0, IsSystemProgram, retailApplication: false);
         }
         MainModule = LoadModule("app0:" + self);
         if (IsSystemProgram)
@@ -914,12 +932,32 @@ public sealed class Emulator : IDisposable
     /// sections): <see cref="ShellProcessTitleId"/> for the shell, the application's own otherwise.</summary>
     public string ProcessTitleId => RunsOnSystemCore ? ShellProcessTitleId : TitleId;
 
+    /// <summary>What SceSblACMgr answers about the main executable (system, non-game, PSM program).</summary>
+    public ProgramAccess Access { get; internal set; } = ProgramAccess.None;
+
     /// <summary>Program authority ID of the main executable's SELF (0 for a plain ELF).</summary>
     public ulong ProgramAuthorityId { get; private set; }
 
     /// <summary>SceSblACMgr's "game program" class: games (authority 0x2F...) and plain/homebrew executables; the
     /// system software (shell, NPXS apps) is not.</summary>
     public bool IsGameProgram => !IsSystemProgram || ProgramAuthorityId >> 56 == 0x2F;
+
+    /// <summary>The process runs a PlayStation Mobile runtime: a PSM program for SceSblACMgr (the PSM runtime package,
+    /// by its authority ID: <see cref="ProgramAccess.IsPsmProgram"/>) or the runtime a PSM title carries itself (Unity
+    /// for PSM, ux0:psm/&lt;id&gt;/runtime; its SELF stays encrypted in its PFS, so it is recognised by where the system
+    /// starts it from).</summary>
+    public PsmRuntimeKind PsmRuntime
+    {
+        get
+        {
+            if (Access.IsPsmProgram)
+            {
+                return PsmRuntimeKind.Mono;
+            }
+
+            return Io.FirmwareLayout.PsmTitleOfOwnRuntime(Options.FsRoot, AppPath) != null ? PsmRuntimeKind.OwnRuntime : PsmRuntimeKind.None;
+        }
+    }
 
     /// <summary>Modules loaded with the process, started before the others (each after the modules it imports from).</summary>
     private readonly List<LoadedModule> _startFirst = new();

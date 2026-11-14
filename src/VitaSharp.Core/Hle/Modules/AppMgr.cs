@@ -102,7 +102,7 @@ public sealed partial class AppMgr : HleModule
     int sceAppMgrWorkDirMountById(int id, string titleId, uint mountPoint)
     {
         if (titleId.Length != 9) return ERR_PARAM;
-        string? rel = id switch { 205 => $"ux0/cache/{titleId}", 207 => $"ux0/temp/app_work/{titleId}/rec", _ => null };
+        string? rel = id switch { 205 => Io.FirmwareLayout.ApplicationCache.Relative(titleId), 207 => $"ux0/temp/app_work/{titleId}/rec", _ => null };
         if (rel == null) return ERR_PARAM;
         return MountAlias($"am{id}", rel, mountPoint);
     }
@@ -187,17 +187,23 @@ public sealed partial class AppMgr : HleModule
     /// <summary>psp2/appmgr.h: <c>int (int id, const char *titleid, char *mount_point)</c>; the syscall adds an ignored
     /// opt. FW 3.60 accepts 104 (exact <c>ABCD12345_67</c> id), 106/107 (<c>ux0:psm/&lt;id&gt;/RO</c>, <c>/RW</c>) and
     /// 110 (<c>ux0:appmeta/&lt;id&gt;</c>, mounted by the shell's database rebuild for each folder it lists there); the
-    /// target of 104 is not documented, so it is rejected like an unknown id.</summary>
+    /// target of 104 is not documented, so it is rejected like an unknown id. FW 3.74 appmgr for the PSM mounts
+    /// 106/107: the title ID must be a PSM one (four capitals, five digits) and the mount point given, else 0x80800001
+    /// (the PSM runtime 1.00 asks with an empty ID on FW 3.74, see NID_9D6D8058); the folder is created when missing
+    /// (the kernel makes the path before it mounts it).</summary>
     [Hle]
     [Hle("_sceAppMgrAppDataMountById")]
     int sceAppMgrAppDataMountById(int id, uint titleId, uint mountPoint)
     {
+        if (id is 106 or 107)
+        {
+            return PsmDataMount(id, titleId, mountPoint);
+        }
+
         if (titleId == 0 || mountPoint == 0) return ERR_NULL_POINTER;
         string tid = GuestMemory.ReadCString(titleId, 32);
         string? rel = id switch
         {
-            106 when tid.Length > 0 => Io.FirmwareLayout.PsmTitles.Relative(tid, Io.FirmwareLayout.PsmReadOnly),
-            107 when tid.Length > 0 => Io.FirmwareLayout.PsmTitles.Relative(tid, Io.FirmwareLayout.PsmWritable),
             // an installed application's metadata copy (param.sfo, icon, LiveArea) that the shell's database rebuild
             // (dbrecovery_plugin) reads for every entry of ux0:appmeta
             110 when tid.Length == 9 => Io.FirmwareLayout.ApplicationMetadata.Relative(tid),
@@ -210,6 +216,26 @@ public sealed partial class AppMgr : HleModule
         }
         if (!Directory.Exists(Path.Combine(Emu.Options.FsRoot, rel.Replace('/', Path.DirectorySeparatorChar)))) return ERR_NOT_FOUND;
         return MountAlias($"am{id}", rel, mountPoint);
+    }
+
+    /// <summary>The PSM data mounts of sceAppMgrAppDataMountById: 106 the title's read-only content
+    /// (ux0:psm/&lt;id&gt;/RO), 107 its writable data (ux0:psm/&lt;id&gt;/RW).</summary>
+    int PsmDataMount(int id, uint titleId, uint mountPoint)
+    {
+        if (titleId == 0 || mountPoint == 0)
+        {
+            return ERR_NULL;
+        }
+
+        string tid = GuestMemory.ReadCString(titleId, 0x40);
+        if (!IsPsmTitleId(tid))
+        {
+            return ERR_NULL;
+        }
+
+        string part = id == 106 ? Io.FirmwareLayout.PsmReadOnly : Io.FirmwareLayout.PsmWritable;
+        Directory.CreateDirectory(Io.FirmwareLayout.PsmTitles.Host(Emu.Options.FsRoot, tid, part));
+        return MountAlias($"am{id}", Io.FirmwareLayout.PsmTitles.Relative(tid, part), mountPoint);
     }
 
     int _gameDataMounts;
@@ -477,7 +503,7 @@ public sealed partial class AppMgr : HleModule
     /// kernel side of sceAppUtilLoad/SaveSafeMemory and the same storage. Never written: zeros. The Browser restores its
     /// tabs from it at start; unimplemented, the buffer kept whatever was in it and the Browser freed garbage pointers.</summary>
     [Hle] int sceAppMgrLoadSafeMemory(uint buf, uint size, long offset) => AppUtil.LoadSafeMemoryKernel(buf, size, offset);
-    [Hle] int sceAppMgrSaveSafeMemory(uint buf, uint size, long offset) => AppUtil.sceAppUtilSaveSafeMemory(buf, size, offset);
+    [Hle] int sceAppMgrSaveSafeMemory(uint buf, uint size, long offset) => AppUtil.SaveSafeMemoryKernel(buf, size, offset);
 
     /// <summary>(SceAppMgrEvent *event, 0x40 bytes): takes the first pending application event.</summary>
     [Hle]

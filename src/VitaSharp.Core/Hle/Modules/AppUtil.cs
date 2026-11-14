@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -9,7 +10,7 @@ public sealed partial class AppUtil : HleModule
     internal const int ERR_PARAMETER = unchecked((int)0x80100600), ERR_NOT_INITIALIZED = unchecked((int)0x80100601),
         ERR_NOT_MOUNTED = unchecked((int)0x80100604), ERR_APPEVENT_PARSE_INVALID_DATA = unchecked((int)0x80100620),
         ERR_SLOT_NOT_FOUND = unchecked((int)0x80100641);
-    const int ERRNO_ENOENT = unchecked((int)0x80010002);
+    const int ERRNO_ENOENT = unchecked((int)0x80010002), ERR_SAFE_MEMORY_IO = unchecked((int)0x80800014);
     const int SafeMemorySize = 64 * 1024;
     /// <summary>SceAppUtilSaveDataSlotParam: status, title[64], subTitle[128], detail[512], iconPath[64], userParam,
     /// sizeKiB, modifiedTime (SceDateTime), reserved[48].</summary>
@@ -174,32 +175,75 @@ public sealed partial class AppUtil : HleModule
     string? _safeMemPath;
     readonly object _safeMemLock = new();
 
+    /// <summary>The file the kernel bound the process's safe memory to with sceAppMgrInitSafeMemoryById (a PSM
+    /// title's pm.dat); null: the application's own, savedata0:sce_sys/safemem.dat.</summary>
+    [SnapshotMissing] // states of builds before it: the safe memory was always the application's own
+    string? _safeMemoryFile;
+
     byte[] SafeMemory(out string path)
     {
-        path = SavePath("sce_sys/safemem.dat");
-        if (_safeMem != null && _safeMemPath == path) return _safeMem;
+        path = _safeMemoryFile ?? SavePath("sce_sys/safemem.dat");
+        if (_safeMem != null && _safeMemPath == path)
+        {
+            return _safeMem;
+        }
+
         var data = new byte[SafeMemorySize];
-        if (File.Exists(path)) File.ReadAllBytes(path).AsSpan(0, Math.Min(SafeMemorySize, (int)new FileInfo(path).Length)).CopyTo(data);
+        if (File.Exists(path))
+        {
+            File.ReadAllBytes(path).AsSpan(0, Math.Min(SafeMemorySize, (int)new FileInfo(path).Length)).CopyTo(data);
+        }
+
         _safeMemPath = path;
         return _safeMem = data;
     }
 
-    /// <summary>A fresh (all zero) safe memory area (sceAppMgrInitSafeMemoryById).</summary>
-    internal void ClearSafeMemory()
+    /// <summary>
+    /// The kernel's binding of the process's safe memory to <paramref name="file"/> (FW 3.74 appmgr, what
+    /// sceAppMgrInitSafeMemoryById does after its checks): a file of the area's size is read into the area; otherwise
+    /// (missing, another size) the file is created from the area as it is. A short read or write is 0x80800014. Later
+    /// saves and loads use that file.
+    /// </summary>
+    internal int BindSafeMemoryFile(string file)
     {
         lock (_safeMemLock)
         {
-            var data = SafeMemory(out var p);
-            Array.Clear(data);
-            if (File.Exists(p)) File.WriteAllBytes(p, data);
+            byte[] area = SafeMemory(out _);
+            try
+            {
+                if (File.Exists(file) && new FileInfo(file).Length == SafeMemorySize)
+                {
+                    using FileStream stream = File.OpenRead(file);
+                    stream.ReadExactly(area);
+                }
+                else
+                {
+                    File.WriteAllBytes(file, area);
+                }
+            }
+            catch (IOException)
+            {
+                return ERR_SAFE_MEMORY_IO;
+            }
+
+            _safeMemoryFile = file;
+            _safeMemPath = file;
+            _safeMem = area;
         }
+
+        return 0;
     }
 
-    /// <summary>apputil.suprx 3.74 maps the kernel's 0x80801000 (outside the area) and 0x80801001 (NULL buffer) to
-    /// SCE_APPUTIL_ERROR_PARAMETER.</summary>
+    /// <summary>apputil.suprx 3.74: 0x80100601 before sceAppUtilInit; the kernel's 0x80801000 (outside the area) and
+    /// 0x80801001 (NULL buffer) become SCE_APPUTIL_ERROR_PARAMETER.</summary>
     [Hle]
     internal int sceAppUtilLoadSafeMemory(uint buf, uint size, long offset)
     {
+        if (!_initialized)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
         int r = LoadSafeMemoryKernel(buf, size, offset);
         return r == unchecked((int)0x80801000) || r == unchecked((int)0x80801001) ? ERR_PARAMETER : r;
     }
@@ -220,13 +264,36 @@ public sealed partial class AppUtil : HleModule
         return (int)size;
     }
 
-    /// <summary>Writes the file only when the content changes: Friends (NPXS10006) clears its 64 KiB 4 bytes at a time
-    /// at its first start (16384 calls), and a file rewrite per call (~11 ms each) kept it on a black screen for
-    /// minutes.</summary>
+    /// <summary>apputil.suprx 3.74: 0x80100601 before sceAppUtilInit; the kernel's 0x80801000 (outside the area) and
+    /// 0x80801001 (NULL buffer) become SCE_APPUTIL_ERROR_PARAMETER.</summary>
     [Hle]
     internal int sceAppUtilSaveSafeMemory(uint buf, uint size, long offset)
     {
-        if (buf == 0 || offset + size > SafeMemorySize) return ERR_PARAMETER;
+        if (!_initialized)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
+        int r = SaveSafeMemoryKernel(buf, size, offset);
+        return r == unchecked((int)0x80801000) || r == unchecked((int)0x80801001) ? ERR_PARAMETER : r;
+    }
+
+    /// <summary>The kernel side (SceAppMgr 0xD366AA44, what sceAppMgrSaveSafeMemory returns): NULL buffer 0x80801001,
+    /// outside the area 0x80801000, else the size written. Writes the file only when the content changes: Friends
+    /// (NPXS10006) clears its 64 KiB 4 bytes at a time at its first start (16384 calls), and a file rewrite per call
+    /// (~11 ms each) kept it on a black screen for minutes.</summary>
+    internal int SaveSafeMemoryKernel(uint buf, uint size, long offset)
+    {
+        if (buf == 0)
+        {
+            return unchecked((int)0x80801001);
+        }
+
+        if (offset < 0 || offset + size > SafeMemorySize)
+        {
+            return unchecked((int)0x80801000);
+        }
+
         lock (_safeMemLock)
         {
             var data = SafeMemory(out var p);
@@ -504,7 +571,7 @@ public sealed partial class AppUtil : HleModule
     int sceAppUtilCacheMount()
     {
         if (!_initialized) return ERR_NOT_INITIALIZED;
-        string dir = Path.Combine(Emu.Options.FsRoot, "ux0", "cache", Emu.TitleId);
+        string dir = Io.FirmwareLayout.ApplicationCache.Host(Emu.Options.FsRoot, Emu.TitleId);
         Directory.CreateDirectory(dir);
         Emu.Vfs.Mount("cache0", dir);
         _cacheMounted = true;

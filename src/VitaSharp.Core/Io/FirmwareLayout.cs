@@ -81,6 +81,10 @@ public enum ContentKind
 
     /// <summary>The shell's databases (app.db: what the home screen shows).</summary>
     ShellDatabase,
+
+    /// <summary>An application's work folder, &lt;title id&gt; (cache0:, sceAppMgrWorkDirMountById 205; a runtime a PSM
+    /// title carries keeps its safe memory there).</summary>
+    ApplicationCache,
 }
 
 /// <summary>A folder of the firmware's layout: a device and the folder on it.</summary>
@@ -143,6 +147,7 @@ public static class FirmwareLayout
     public static readonly FirmwareFolder Video = new(ContentKind.Video, "ux0", "video");
     public static readonly FirmwareFolder Picture = new(ContentKind.Picture, "ux0", "picture");
     public static readonly FirmwareFolder ShellDatabase = new(ContentKind.ShellDatabase, "ur0", "shell/db");
+    public static readonly FirmwareFolder ApplicationCache = new(ContentKind.ApplicationCache, "ux0", "cache");
 
     /// <summary>Every folder of the layout.</summary>
     public static readonly IReadOnlyList<FirmwareFolder> All =
@@ -150,7 +155,7 @@ public static class FirmwareLayout
         Applications, SystemApplications, GameCardApplications, PspEmulator, PspGames, PspSaveData, PspLicenses, PspThemes,
         PsmTitles, Patches, GameCardPatches, AddCont, GameCardAddCont, Themes, Licenses, ApplicationLicenses,
         AddContLicenses, ThemeLicenses, ApplicationMetadata, SystemMetadata, SaveData, SystemSaveData, Music, Video,
-        Picture, ShellDatabase,
+        Picture, ShellDatabase, ApplicationCache,
     ];
 
     /// <summary>
@@ -214,6 +219,11 @@ public static class FirmwareLayout
     /// one: that application's licence is the one the promote stored for the PSM title.</summary>
     public static string? PsmTitleOfOwnRuntime(string fsRoot, string appHostPath)
     {
+        if (string.IsNullOrEmpty(appHostPath))
+        {
+            return null;
+        }
+
         string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(appHostPath));
         if (!Path.GetFileName(full).Equals(PsmOwnRuntime, StringComparison.OrdinalIgnoreCase))
         {
@@ -261,6 +271,19 @@ public static class FirmwareLayout
             }
         }
         return null;
+    }
+
+    /// <summary>The folder of the title <paramref name="titleId"/> one can start (<see cref="Titles"/>, first match): an
+    /// application with its eboot.bin (<see cref="FindApplication(Func{string, string?}, string)"/>), else a PSM title,
+    /// which the system starts through its runtime; null when none is installed.</summary>
+    public static string? FindStartableTitle(Func<string, string?> resolve, string titleId)
+    {
+        if (FindApplication(resolve, titleId) is { } application)
+        {
+            return application;
+        }
+
+        return resolve(PsmTitles.Guest(titleId)) is { } psm && Directory.Exists(psm) ? psm : null;
     }
 
     /// <summary>The installed title <paramref name="titleId"/> (a folder of one of <see cref="Titles"/>, first match),

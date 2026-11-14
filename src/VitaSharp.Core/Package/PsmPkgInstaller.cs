@@ -31,6 +31,9 @@ public static class PsmPkgInstaller
     // works on "ux0:temp/promote" + "/contents"); pkg2zip skips the first 8 characters of every item, which takes
     // "content/" and leaves "/Application/..." of "contents/", so both spellings go to RO
     private static readonly string[] s_contentFolders = ["contents", "content"];
+
+    /// <summary>The package folders whose items go to RO ("contents", "content").</summary>
+    internal static IReadOnlyList<string> ContentFolders => s_contentFolders;
     private const int PmDatSize = 1 << 16;
 
     /// <summary>The content ID a PSM license is for, or "" when <paramref name="rif"/> is not one.</summary>

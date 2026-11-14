@@ -30,6 +30,7 @@ Fonte da comparação (2026-10-18):
 | [F-devices-media.md](F-devices-media.md) | Touch, Ctrl, Motion, Audio, AudioIn, Audiodec, Videodec, Camera, Power, Face, Smart, Ngs |
 | [G1-media-libs.md](G1-media-libs.md) | P2: Atrac, Sas, Voice, G729, Audioenc, Jpeg*, Videoenc, Mp4Recorder, Pgf, Pvf, Ime, Handwriting |
 | [G2-support-libs.md](G2-support-libs.md) | P2: Ult, Json, Xml, Sqlite, utilitários de sistema, debug/perf |
+| [H-psm.md](H-psm.md) | PlayStation Mobile: censo dos imports dos runtimes (PCSI00011) e quem fornece cada função |
 | [data/](data/) | TSVs brutos: funções do VitaSDK com status, implementadas no VitaSharp, faltantes por jogo |
 
 ## Comece por aqui: achados que atravessam pacotes

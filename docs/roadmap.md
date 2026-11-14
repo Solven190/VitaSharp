@@ -1205,7 +1205,21 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `sceKernelAllocUnmapMemBlock` ("ScePsmDummyMemBlock", 0x2800000) e `SceAppMgrUser` NID `0x9D6D8058` (args -2,
   buffer, -4: devolve o ID do jogo de PSM a abrir?); sem ele o `sceAppMgrAppDataMountById(106, "")` falha
   (0x80802012), o runtime descarrega os módulos e aborta (`sceKernelCallAbortHandler`) antes de iniciar o Mono.
-  Falta também como o shell inicia o runtime com o jogo (parâmetro/ID) e o registro de `ux0:psm` no app.db. 3) Validar com jogos de PSM do usuário e as licenças da conta dele. Nada de
+  Em andamento (feat/psm-runtime-14, PSM-A, 14/11/2026): o runtime 2.01 (a atualização em ux0:patch sobre o 1.00)
+  com o Merum (NPPA00120, cópia dos dados) chega, sem janela, até a checagem da licença: o shell (ou `run <id>`) roda
+  `ux0:app/PCSI00011/eboot.bin` com o parâmetro "ux0:psm/<id>"; o eboot (autoridade 0x2800C0101CD2000B, um programa PSM
+  para o SceSblACMgr) carrega libc/libfios2, os sysmodules públicos, libmono_bridge/libmono/libpsm/libshacccg e o
+  psmkdc do firmware (sceSysmoduleLoadModuleInternal é privilegiado: qualquer chamador carrega um módulo interno),
+  inicia o GXM, lê o parâmetro (sceAppMgrGetAppParam), monta 106/107 (ux0:psm/<id>/RO e RW, criados se faltarem), lê
+  am107:System/content_id e chama scePsmDrmGetActInfo; sem ativação de PSM o runtime mostra o erro 0x808F04FF e aborta.
+  Daí em diante é a licença/ativação (PSM-B: ScePsmDrm, NoPsmDrm). Feito aqui: sceKernelAllocUnmapMemBlock, a tabela de
+  permissões do SceSysmodule (público/interno, desenvolvimento, não-jogo, PSM) com o `ProgramAccess` (o capability do
+  auth info vem do processador seguro, não emulado: sistema = vs0, aplicativo NPDRM = classe de jogo, homebrew como o
+  HENkaku: "unsafe" = sistema, "safe" = jogo), sceAppMgrInitSafeMemoryById/SceAppUtilPsm (pm.dat do título),
+  montagens 106/107 do FW 3.74, NID 0x9D6D8058 e SceLibTargetTransport como o stub não resolvido, a migração dos
+  "contents/" deixados fora do RO pelo primeiro instalador, `--launch-app` também para títulos de PSM. Falta: rodar
+  depois da licença (Mono, libpsm, Piglet) quando o PSM-B entregar a ativação; o 1.00 sozinho não roda no 3.74
+  (0x9D6D8058 não exportado: o shell pede a atualização, como no console). Falta também como o shell inicia o runtime com o jogo (parâmetro/ID) e o registro de `ux0:psm` no app.db. 3) Validar com jogos de PSM do usuário e as licenças da conta dele. Nada de
   assinatura da Sony gerada, licença gerada ou remoção da proteção (PSSE): só a licença real do usuário.
 - [ ] Plugins de usuário: hooks e injeção completos (pedido do usuário, 11/11/2026). Hoje os plugins `.suprx` do
   arquivo de configuração de plugins carregam no processo, e parte dos hooks/injeções já existe (ver Dead Space e
