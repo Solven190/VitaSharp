@@ -138,6 +138,23 @@ public static class H264ReorderLimit
         return false;
     }
 
+    /// <summary>True when the access unit's picture is not a reference picture: its first slice has nal_ref_idc 0
+    /// (H.264 7.4.1: when one slice of a picture has 0, all of them do), so no other picture predicts from it. False
+    /// for a unit without a slice.</summary>
+    public static bool IsNonReference(ReadOnlySpan<byte> accessUnit)
+    {
+        foreach ((int start, int _) in NalUnits(accessUnit, stopAtSlice: true))
+        {
+            int type = accessUnit[start] & 0x1F;
+            if (type is 1 or 5)
+            {
+                return (accessUnit[start] & 0x60) == 0;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>The NAL units of an Annex B access unit: (first byte = NAL header, end), start codes excluded.
     /// <paramref name="stopAtSlice"/>: up to the first slice (its end is then the end of the data, its contents are not
     /// scanned): parameter sets come before it.</summary>

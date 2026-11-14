@@ -785,6 +785,24 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
   ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
   depois do primeiro travamento
+- [ ] Vídeo da campanha do KZ lento no Android (24 -> 0,7 fps, só a imagem; o som do jogo segue normal), em andamento
+  na branch fix/android-bugs-14 (WIP, sem teste ainda). Causa provável: sceAvPlayerJumpToTime em espiral. O KZ
+  importa JumpToTime (e não SetLooping) e manda 2-3x mais unidades que os quadros do filme (captura
+  `PCSC00045_20261114_164447_tudo`: 6022 unidades em 70 s de filme; o M02, sem lentidão, é 1:1). Nosso JumpToTime
+  põe o relógio no alvo, volta o vídeo ao IDR anterior (até 5 s) e entrega esses quadros, então CurrentTime fica
+  para trás e o jogo pula de novo. No libsceavplayer 3.74 (decompilado, só estudo): JumpToTime devolve 0x806a0002
+  enquanto o player ainda está no estado de pulo ("Jump attempted while still in jump State"), e o demux descarta
+  as unidades até o "New PTS start" (DiscardAU); CurrentTime = relógio de sincronia (áudio, se houver, senão o
+  vídeo). No PC (FFmpeg rápido) o re-run da captura não pula nenhuma vez: o pulo só vem com o vídeo atrasado.
+  Feito (não commitado como correção, só WIP): MediaPlayerBase descarta quadros/áudio antes do alvo do pulo e expõe
+  `JumpInProgress`; unidades não-referência (nal_ref_idc 0) antes do alvo nem vão ao decodificador
+  (`H264ReorderLimit.IsNonReference`); log "AvPlayer: jump N to X ms" no JumpToTime; o save state reabre o filme
+  num outro aparelho pelo caminho sob `fs/` (`HostPathOnThisDevice`: o re-run no PC de uma captura do celular não
+  reabria o filme); chave A/B `VITASHARP_MEDIACODEC_REORDER=refs`. Parou em: falta o JumpToTime devolver 0x806a0002
+  com `JumpInProgress`, os testes (unitário do descarte/recusa falhando antes; cenário com jogo que sincroniza pelo
+  áudio e decodificador lento: sem espiral, nenhum quadro antes do alvo entregue; IsNonReference; HostPathOnThisDevice),
+  build/prepush-check, e a confirmação no celular (log "AvPlayer: jump" do APK cd791d15 + o APK da correção:
+  campanha inteira sem lentidão, M02, pulo)
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:
