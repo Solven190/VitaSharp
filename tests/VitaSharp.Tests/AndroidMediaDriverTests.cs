@@ -311,6 +311,226 @@ public sealed class AndroidMediaDriverTests : IDisposable
         Assert.Empty(r.TakeReplay().Units);
     }
 
+    // ---------------------------------------------------------------- FFmpeg missing
+
+    [Fact]
+    public void FFmpegMissingWarningNamesOnlyWhatIsReallyOff()
+    {
+        // desktop without FFmpeg: no replacement, everything that uses it is off
+        string desktop = FFmpegLoader.MissingMessage(false, false, false, false, false);
+        Assert.Equal("FFmpeg libraries not found: videos (SceAvPlayer), H.264 decoding (SceAvcdec), MP4 reading (SceMp4), AAC decoding (SceAudiodec), "
+            + "MP3 decoding (SceAudiodec), G.729 decoding (SceG729), H.264 encoding (camera videos) disabled", desktop);
+
+        // Android installs MediaExtractor/MediaCodec replacements: movies and AAC are not off (Uncharted's log said
+        // they were while its movie played through MediaCodec)
+        string android = FFmpegLoader.MissingMessage(true, true, true, true, true);
+        Assert.Equal("FFmpeg libraries not found: G.729 decoding (SceG729), H.264 encoding (camera videos) disabled; videos (SceAvPlayer), "
+            + "H.264 decoding (SceAvcdec), MP4 reading (SceMp4), AAC decoding (SceAudiodec), MP3 decoding (SceAudiodec) through this platform's own decoders", android);
+        Assert.DoesNotContain("SceAvPlayer)", android.Split(';')[0]);
+    }
+
+    // ---------------------------------------------------------------- MediaCodec input stalls
+
+    [Fact]
+    public void InputStallReopensTheDecoderThenTriesTheNextOne()
+    {
+        var stall = new InputStallRecovery();
+        Assert.Equal(InputStallRecovery.Action.ReopenSameDecoder, stall.OnInputStall());
+        // the reopened decoder stalled before any picture: the next decoder of the list
+        Assert.Equal(InputStallRecovery.Action.NextDecoder, stall.OnInputStall());
+        Assert.Equal(InputStallRecovery.Action.ReopenSameDecoder, stall.OnInputStall());
+        stall.OnPicture();
+        // it worked for a while: a later stall reopens it again
+        Assert.Equal(InputStallRecovery.Action.ReopenSameDecoder, stall.OnInputStall());
+        Assert.Equal(4, stall.Recoveries);
+    }
+
+    /// <summary>
+    /// A MediaCodec stand-in with a fixed number of input buffers: a queued unit holds one until the decoder gives its
+    /// picture out, and a stalled decoder never does (Android's software H.264 decoder in Killzone: Mercenary's movies,
+    /// 13/11/2026: no input buffer came back and every later unit was dropped).
+    /// </summary>
+    private sealed class StallingCodec(int inputBuffers, int stallAfterUnits)
+    {
+        private readonly Queue<long> _held = new();
+        private int _queued;
+
+        public bool TryQueue(long pts)
+        {
+            if (_held.Count >= inputBuffers)
+            {
+                return false;
+            }
+
+            _held.Enqueue(pts);
+            _queued++;
+            return true;
+        }
+
+        /// <summary>The pictures the decoder gives out (none once it stalled).</summary>
+        public IEnumerable<long> Drain()
+        {
+            while (_held.Count > 0 && _queued <= stallAfterUnits)
+            {
+                yield return _held.Dequeue();
+            }
+        }
+    }
+
+    /// <summary>MediaCodecVideoDecoder's input path (SendCore → Queue → RecoverInputStall → FallBack's replay) over
+    /// <see cref="StallingCodec"/>: <paramref name="recover"/> false is the path before the recovery (the unit dropped,
+    /// the same decoder kept).</summary>
+    private static List<long> DecodeWithStalls(int units, Func<StallingCodec> openDecoder, bool recover)
+    {
+        var replay = new DecoderReplay();
+        var stall = new InputStallRecovery();
+        var pictures = new List<long>();
+        StallingCodec codec = openDecoder();
+        int skip = 0;
+
+        void Send(byte[] unit, long pts)
+        {
+            replay.Add(unit, pts);
+            bool queued = false;
+            for (int attempt = 0; attempt < 20 && !queued; attempt++)
+            {
+                queued = codec.TryQueue(pts);
+                Drain();
+            }
+
+            if (!queued && recover)
+            {
+                stall.OnInputStall();
+                codec = openDecoder();
+                (IReadOnlyList<(byte[] Data, long Pts)> again, int produced) = replay.TakeReplay();
+                skip = produced;
+                foreach ((byte[] data, long unitPts) in again)
+                {
+                    Send(data, unitPts);
+                }
+            }
+        }
+
+        void Drain()
+        {
+            foreach (long pts in codec.Drain())
+            {
+                replay.Produced();
+                if (skip > 0)
+                {
+                    skip--;
+                    continue;
+                }
+
+                pictures.Add(pts);
+                stall.OnPicture();
+            }
+        }
+
+        for (int i = 0; i < units; i++)
+        {
+            Send(i % 30 == 0 ? s_idr : s_pSlice, i);
+        }
+
+        Drain();
+        return pictures;
+    }
+
+    [Fact]
+    public void StalledDecoderIsReplacedAndNoPictureIsLost()
+    {
+        // the first decoder stalls after 100 units, its replacement never does: 300 units, 300 pictures in order
+        int opened = 0;
+        List<long> pictures = DecodeWithStalls(300, () => new StallingCodec(4, opened++ == 0 ? 100 : int.MaxValue), recover: true);
+        Assert.Equal(Enumerable.Range(0, 300).Select(i => (long)i), pictures);
+        Assert.Equal(2, opened);
+
+        // without the recovery the movie freezes at the stall: the game polls for a picture that never comes
+        opened = 0;
+        List<long> frozen = DecodeWithStalls(300, () => new StallingCodec(4, opened++ == 0 ? 100 : int.MaxValue), recover: false);
+        Assert.True(frozen.Count < 110, $"{frozen.Count} pictures");
+    }
+
+    /// <summary>
+    /// A decoder that stalls for good once its input ring holds <c>stallAt</c> units (the c2.android.avc.decoder stalls
+    /// seen in Killzone: Mercenary's movies, each with 14 units in flight), and otherwise gives one picture per poll
+    /// (it decodes more slowly than the movie player feeds it).
+    /// </summary>
+    private sealed class RingStallCodec(int stallAt)
+    {
+        private readonly Queue<long> _ring = new();
+        public bool Stalled { get; private set; }
+        public List<long> Pictures { get; } = new();
+        public long InFlight => _ring.Count;
+
+        public void Queue(long pts)
+        {
+            _ring.Enqueue(pts);
+            if (_ring.Count >= stallAt)
+            {
+                Stalled = true;
+            }
+        }
+
+        public void Poll(long timeoutUs)
+        {
+            if (!Stalled && _ring.Count > 0)
+            {
+                Pictures.Add(_ring.Dequeue());
+            }
+        }
+    }
+
+    private static RingStallCodec FeedRingStallCodec(int maxInFlight)
+    {
+        var codec = new RingStallCodec(stallAt: 14);
+        long clockUs = 0;
+        for (int unit = 0; unit < 200; unit++)
+        {
+            Assert.True(InputPacing.WaitForRoom(maxInFlight, () => codec.InFlight, timeoutUs =>
+            {
+                clockUs += timeoutUs;
+                codec.Poll(timeoutUs);
+            }, () => clockUs));
+            codec.Queue(unit);
+            if (unit % 2 == 1)
+            {
+                codec.Poll(0); // the decoder keeps up with every other unit only
+            }
+        }
+
+        while (codec.InFlight > 0 && !codec.Stalled)
+        {
+            codec.Poll(0);
+        }
+
+        return codec;
+    }
+
+    [Fact]
+    public void InputPacingKeepsTheDecoderRingFromFillingUp()
+    {
+        // fed as fast as the player's queue allows, the ring fills to 14 and the decoder stalls
+        RingStallCodec unpaced = FeedRingStallCodec(maxInFlight: 0);
+        Assert.True(unpaced.Stalled);
+        Assert.True(unpaced.Pictures.Count < 200);
+
+        // at most 8 in flight: the next unit waits for a picture, the decoder never stalls, every picture in order
+        RingStallCodec paced = FeedRingStallCodec(maxInFlight: 8);
+        Assert.False(paced.Stalled);
+        Assert.Equal(Enumerable.Range(0, 200).Select(i => (long)i), paced.Pictures);
+    }
+
+    [Fact]
+    public void InputPacingGivesUpAfterItsLongestWait()
+    {
+        // a decoder that gives nothing back: the wait ends after MaxWaitUs and the unit is queued anyway
+        long clockUs = 0;
+        bool roomFound = InputPacing.WaitForRoom(4, () => 4, timeoutUs => clockUs += timeoutUs, () => clockUs);
+        Assert.False(roomFound);
+        Assert.InRange(clockUs, InputPacing.MaxWaitUs, InputPacing.MaxWaitUs + 10_000);
+    }
+
     // ---------------------------------------------------------------- MediaCodec output timing (sceAvcdecDecode contract)
 
     /// <summary>

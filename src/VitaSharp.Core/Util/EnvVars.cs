@@ -53,6 +53,10 @@ public static class EnvVars
     /// <summary>Android: =all drains the first picture of every MediaCodec H.264 stream out early (default: only of a
     /// stream that does not reorder; a reordering one gets its first picture after its reorder depth, as on the Vita).</summary>
     public const string MediaCodecPrime = "VITASHARP_MEDIACODEC_PRIME";
+    /// <summary>Android, A/B: =N keeps at most N access units in flight in a MediaCodec H.264 decoder (their pictures not
+    /// out yet): the next unit waits, draining the output, up to 100 ms (Mobile.Core/Media/MediaCodecSupport.cs,
+    /// InputPacing). Set it above the streams' reorder depth (Vita movies: 4 or fewer). Default 0: no pacing.</summary>
+    public const string MediaCodecMaxInFlight = "VITASHARP_MEDIACODEC_MAX_IN_FLIGHT";
     /// <summary>Tests: path of a media parity trace pulled from an Android device or emulator
     /// (build/android-media-parity.sh); MediaParityTests compares it with the desktop's (skipped when unset).</summary>
     public const string AndroidMediaTrace = "VITASHARP_ANDROID_MEDIA_TRACE";

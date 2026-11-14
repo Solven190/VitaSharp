@@ -73,6 +73,11 @@ Divisão do trabalho: os jogos são testados pelo usuário; um erro que ele enco
 teria pegado; todo o resto do comportamento é garantido pela suíte do repositório, que qualquer pessoa roda sem nenhum
 jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança é validada rodando jogos.
 
+- [ ] **Checagens do TestGame que dependem do relógio do host:** `system/display_vblank_30` (30 vblanks contra o tempo
+  de parede) e `perf/heavy_scene_avg_fps`, `heavy_scene_worst_frame`, `heavy_scene_slow_frames` dão FAIL ou OK conforme
+  a carga do PC (13/11, 3 rodadas headless alternadas da base 5d2597ec e de fix/kz-avplayer-end na mesma vaga: falharam
+  em 1-2 de 3 nas duas, nenhuma diferença entre elas). Medir no relógio emulado (vcount, tempo de guest) ou reportar
+  como medida sem decidir aprovação, para que um FAIL do TestGame no emulador seja sempre um erro de verdade
 - [ ] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
@@ -653,6 +658,27 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
 
+- [ ] Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
+  no meio de um filme ele para de devolver buffers de entrada (200 ms sem nenhum, com a saída drenada a cada
+  tentativa). Visto no Killzone (vídeo da campanha, 3:20 de reprodução contínua; M02_Intro, 4 s depois de o jogo
+  começar a ler). Desde fix/kz-avplayer-end o decodificador é reaberto e continua do último IDR (o filme não congela
+  mais), e o aviso "gave no input buffer back" dá unidades em voo, imagens presas, ms desde a última imagem e desde a
+  unidade anterior: juntar esses números de algumas ocorrências e achar o gatilho (carga dos núcleos, quantidade de
+  unidades em voo, B frames, tempo de reprodução)
+  Primeiras ocorrências (13/11, KZ no celular, APK com a recuperação; os dois filmes tocaram até o fim e o jogo chegou
+  ao gameplay): vídeo da campanha, 2.375 unidades enviadas: 14 unidades em voo, 0 imagens presas, última imagem 254 ms
+  antes, unidade anterior 53 ms antes; M02_Intro, 1.806 unidades: 14 em voo, 0 presas, última imagem 200 ms antes,
+  unidade anterior 13 ms antes. Uma vez por filme; a reabertura voltou a dar imagens em ~90-160 ms. Pista: 14 unidades
+  em voo sem nenhuma imagem saindo há 200+ ms, ou seja, enviamos bem mais entradas do que o decodificador devolve
+  (capacidade de entrada do c2, ordem dos quadros B). Próximo: limitar as unidades em voo (esperar uma imagem antes de
+  passar de N) e ver se o travamento some
+  14/11: o travamento é determinístico no fluxo: o M02_Intro trava sempre em 1.804 unidades enviadas (duas execuções
+  14/11, 1.804/1.806 em 13/11), junto de um IDR (pacote 1.801 de 2.652; IDR a cada 150 quadros, só esse trava).
+  Preparado e desligado por padrão: `VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N` (no máximo N unidades em voo, espera
+  até 100 ms por uma imagem; teste com codec simulado que trava com 14 em voo) e o aviso do travamento com pts, tamanho
+  e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
+  ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
+  depois do primeiro travamento
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do

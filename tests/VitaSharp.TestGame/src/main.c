@@ -26,6 +26,7 @@ typedef enum MenuAction
     MENU_INPUT_LIVE,
     MENU_INPUT_CHECKS,
     MENU_AUDIO,
+    MENU_VIDEO,
     MENU_FILES,
     MENU_THREADS,
     MENU_SYSTEM,
@@ -41,6 +42,7 @@ static const char *MENU_LABELS[MENU_COUNT] = {
     "Input: live values",
     "Input: checks",
     "Audio (sceAudioOut)",
+    "Video (sceAvPlayer)",
     "Files and saves",
     "Threads and sync",
     "System and dialogs",
@@ -50,7 +52,7 @@ static const char *MENU_LABELS[MENU_COUNT] = {
 };
 
 static const char *MENU_AREAS[MENU_COUNT] = {
-    NULL, "gfx", NULL, "input", "audio", "files", "threads", "system", "perf", NULL, NULL,
+    NULL, "gfx", NULL, "input", "audio", "video", "files", "threads", "system", "perf", NULL, NULL,
 };
 
 static void init_system(void)
@@ -87,6 +89,8 @@ static void run_all(void)
     results_write_file(false);
     test_audio_run();
     results_write_file(false);
+    test_video_run();
+    results_write_file(false);
     test_system_run(true);
     results_write_file(false);
     test_input_run(20);
@@ -120,6 +124,10 @@ static void run_menu_action(MenuAction action)
     else if (action == MENU_AUDIO)
     {
         test_audio_run();
+    }
+    else if (action == MENU_VIDEO)
+    {
+        test_video_run();
     }
     else if (action == MENU_FILES)
     {

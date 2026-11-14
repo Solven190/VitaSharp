@@ -48,8 +48,30 @@ public static class FFmpegLoader
             return true;
         }
 
-        Log.Warn("FFmpeg libraries not found: videos (SceAvPlayer) and MP3/AAC decoding (SceAudiodec) are disabled");
+        Log.Warn(MissingMessage(MediaPlayers.Backend != null, VideoDecoders.Backend is not FFmpegVideoBackend, Mp4Demuxers.Backend != null,
+            AudioFrameDecoders.AacBackend != null, AudioFrameDecoders.Mp3Backend != null));
         return false;
+    }
+
+    /// <summary>
+    /// The warning when FFmpeg is missing: what is really off, given the front-end's own decoders (Android installs
+    /// MediaExtractor/MediaCodec ones for every FFmpeg user but G.729 and the H.264 encoder, and carries no FFmpeg on
+    /// purpose: it said "videos (SceAvPlayer) ... are disabled" while the movies played through MediaCodec).
+    /// </summary>
+    public static string MissingMessage(bool moviePlayer, bool h264Decoder, bool mp4Demuxer, bool aacDecoder, bool mp3Decoder)
+    {
+        var off = new List<string>();
+        var replaced = new List<string>();
+        void Feature(bool hasReplacement, string name) => (hasReplacement ? replaced : off).Add(name);
+        Feature(moviePlayer, "videos (SceAvPlayer)");
+        Feature(h264Decoder, "H.264 decoding (SceAvcdec)");
+        Feature(mp4Demuxer, "MP4 reading (SceMp4)");
+        Feature(aacDecoder, "AAC decoding (SceAudiodec)");
+        Feature(mp3Decoder, "MP3 decoding (SceAudiodec)");
+        off.Add("G.729 decoding (SceG729)");
+        off.Add("H.264 encoding (camera videos)");
+        string message = $"FFmpeg libraries not found: {string.Join(", ", off)} disabled";
+        return replaced.Count == 0 ? message : $"{message}; {string.Join(", ", replaced)} through this platform's own decoders";
     }
 
     /// <summary>Whether <paramref name="dir"/> holds an avcodec library. A folder the process may not list counts as none:
