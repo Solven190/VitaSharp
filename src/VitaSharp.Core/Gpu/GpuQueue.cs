@@ -638,16 +638,29 @@ public sealed class GpuQueue : IDisposable
         Interlocked.Increment(ref s_guestWaitCount[(int)site]);
     }
 
-    /// <summary>PERF guest waits: blocked guest time per site, in ms per presented frame.</summary>
+    private static long s_displayHoldTicks, s_displayHoldCount;
+
+    /// <summary>The worker held the GPU from <paramref name="t0"/> until the display released the buffer the next scene
+    /// renders into (Gxm's fragment sync object wait, <see cref="WorkerWait"/>): counted in the PERF guest waits line.</summary>
+    public static void CountDisplayHold(long t0)
+    {
+        Interlocked.Add(ref s_displayHoldTicks, System.Diagnostics.Stopwatch.GetTimestamp() - t0);
+        Interlocked.Increment(ref s_displayHoldCount);
+    }
+
+    /// <summary>PERF guest waits: blocked guest time per site, in ms per presented frame, and the GPU worker's holds for
+    /// the display (<see cref="CountDisplayHold"/>).</summary>
     public static string GuestWaitReport(long frames)
     {
         frames = Math.Max(1, frames);
+        double tickMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         var sb = new System.Text.StringBuilder("PERF guest waits on the GPU (ms/frame, waits/frame):");
         for (int i = 0; i < s_guestWaitTicks.Length; i++)
         {
-            sb.Append($" {(GuestWait)i} {Interlocked.Read(ref s_guestWaitTicks[i]) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / frames:F2} ({Interlocked.Read(ref s_guestWaitCount[i]) / (double)frames:F2});");
+            sb.Append($" {(GuestWait)i} {Interlocked.Read(ref s_guestWaitTicks[i]) * tickMs / frames:F2} ({Interlocked.Read(ref s_guestWaitCount[i]) / (double)frames:F2});");
         }
 
+        sb.Append($" GPU worker held for the display (sync objects) {Interlocked.Read(ref s_displayHoldTicks) * tickMs / frames:F2} ({Interlocked.Read(ref s_displayHoldCount) / (double)frames:F2});");
         return sb.ToString();
     }
 

@@ -12,6 +12,13 @@ namespace VitaSharp.Core.Gpu;
 /// while early it re-checks the completion signal every <see cref="RecheckFrames"/> frames and goes back when that is
 /// no slower. A failed try backs off (doubling, up to <see cref="BackoffMax"/> frames). A game locked to a vblank
 /// multiple (nothing to gain) is never tried. Not thread-safe: the caller serializes <see cref="OnFrame"/>.
+/// <para>Early may only take away waits the console would not have, never make a game faster than the console: with
+/// the completion signal the flip interval is what the GPU allows, and early must not shorten it (F1 2011's race has no
+/// frame limiter of its own: with early it presented at 36-39 fps where the Vita shows 30). So every window measured
+/// with the completion signal (before a try and at each re-check, so a new scene is measured again) records its median
+/// interval in vblanks (<see cref="BaseVblanks"/>), and while early is on the display holds each flip to at least that
+/// interval (<see cref="HoldVblanks"/>, FrameRate.EarlyHold in the native frame rate mode). Killzone keeps its gain: its
+/// median stays 2 vblanks and early only removes its long frames.</para>
 /// </summary>
 public sealed class AdaptiveEarlySignal
 {
@@ -27,6 +34,17 @@ public sealed class AdaptiveEarlySignal
     /// <summary>A window is locked when this fraction of its frame intervals is within <see cref="LockedTolMs"/> of the
     /// median (the game already presents at a steady cadence).</summary>
     public const double LockedFraction = 0.9, LockedTolMs = 3;
+
+    /// <summary>The length of a vblank in milliseconds (59.94 Hz).</summary>
+    public const double VblankMs = 1000 / 59.94;
+
+    /// <summary>Median flip interval, in vblanks, of the last window measured with the completion signal (0 before the
+    /// first one).</summary>
+    public int BaseVblanks { get; private set; }
+
+    /// <summary>The shortest flip interval, in vblanks, early may give: <see cref="BaseVblanks"/> while early is on, 0
+    /// (no hold) otherwise.</summary>
+    public int HoldVblanks => Early ? BaseVblanks : 0;
 
     public enum Phase
     {
@@ -69,6 +87,13 @@ public sealed class AdaptiveEarlySignal
 
         double mean = _sum / Window, wait = _waitSum / Window;
         bool locked = Locked();
+        if (State is Phase.Off or Phase.ProbeOff)
+        {
+            // a window with the completion signal: the cadence early must not beat
+            // the lower median: a game alternating 2 and 3 vblanks keeps 2 (the shorter of its usual intervals)
+            BaseVblanks = Math.Max(1, (int)Math.Round(_sorted[(Window - 1) / 2] / VblankMs));
+        }
+
         _count = 0;
         _sum = _waitSum = 0;
         Phase before = State;

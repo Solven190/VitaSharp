@@ -33,6 +33,66 @@ public sealed class AdaptiveEarlySignalTests
         Assert.True(a.Early);
     }
 
+    // ---------------------------------------------------------------- early never beats the console's pace
+
+    /// <summary>A game with no frame limiter (F1 2011's race): with the completion signal it flips every 2 vblanks with
+    /// some long frames and waits on the display queue; early would let it flip every vblank.</summary>
+    private static (double, double) Uncapped(bool early, int i) => early ? (AdaptiveEarlySignal.VblankMs, 1) : (i % 4 == 0 ? 50 : 33.3, 6);
+
+    [Fact]
+    public void EarlyHoldsTheFlipToTheCompletionSignalsMedianInterval()
+    {
+        var a = new AdaptiveEarlySignal();
+        int earlyFrames = 0;
+        Run(a, 300, (e, i) =>
+        {
+            if (e)
+            {
+                earlyFrames++;
+                // the hold is on whenever early is: never a flip interval below the 2 vblanks of the completion signal
+                Assert.Equal(2, a.HoldVblanks);
+            }
+
+            return Uncapped(e, i);
+        });
+        Assert.True(earlyFrames > 0, "early was never tried");
+        Assert.Equal(2, a.BaseVblanks);
+        Assert.Equal(0, new AdaptiveEarlySignal().HoldVblanks); // nothing measured, early off: no hold
+    }
+
+    [Fact]
+    public void GpuLatencyBoundGameKeepsItsGainUnderTheHold()
+    {
+        // Killzone: median 2 vblanks with the completion signal; early only removes long frames, so the 2-vblank hold
+        // leaves its gain (its early frames are 2 vblanks or more)
+        var a = new AdaptiveEarlySignal();
+        Run(a, 600, Kz);
+        Assert.True(a.Early);
+        Assert.Equal(2, a.HoldVblanks);
+    }
+
+    [Fact]
+    public void TheBaseIntervalIsMeasuredAgainWhenTheSceneChanges()
+    {
+        // menu at 2 vblanks, then a heavier scene at 3 vblanks with the completion signal: the re-check measures it again
+        var a = new AdaptiveEarlySignal();
+        Run(a, 600, Kz);
+        Assert.Equal(2, a.BaseVblanks);
+        Run(a, AdaptiveEarlySignal.RecheckFrames + 400, (e, i) => e ? (50, 8) : (i % 4 == 0 ? 66.7 : 50, 8.5));
+        Assert.Equal(3, a.BaseVblanks);
+    }
+
+    [Theory]
+    [InlineData(VitaSharp.Core.Hle.Modules.FrameRateMode.Native, 2, 2)]   // native: the early hold
+    [InlineData(VitaSharp.Core.Hle.Modules.FrameRateMode.Native, 0, 0)]   // native, early off: the game's own pace
+    [InlineData(VitaSharp.Core.Hle.Modules.FrameRateMode.Unlimited, 2, 0)] // unlimited: no hold, faster than the console is the point
+    [InlineData(VitaSharp.Core.Hle.Modules.FrameRateMode.Fixed30, 0, 2)]
+    [InlineData(VitaSharp.Core.Hle.Modules.FrameRateMode.Fixed60, 2, 1)]  // the user's fixed rate wins over the hold
+    public void FlipIntervalByFrameRateMode(VitaSharp.Core.Hle.Modules.FrameRateMode mode, int earlyHold, int expected)
+    {
+        Assert.Equal(expected, VitaSharp.Core.Hle.Modules.FrameRate.FlipIntervalFor(mode, earlyHold));
+    }
+
     [Fact]
     public void LockedGameIsNeverTried()
     {

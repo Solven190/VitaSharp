@@ -106,6 +106,23 @@ public static class FrameRate
 
     /// <summary>Flips held to the fixed interval (they came sooner than the mode allows).</summary>
     public static long FlipsHeld;
+
+    /// <summary>The shortest flip interval (vblanks) the early display signal may give in the native mode
+    /// (Gpu/AdaptiveEarlySignal.HoldVblanks, set by Gxm for each display queue entry; 0 = none).</summary>
+    public static volatile int EarlyHold;
+
+    /// <summary>The shortest interval between two flips (vblanks, 0 = none): the fixed modes' interval; in the native mode
+    /// the early display signal's hold (it must not make a game faster than with the completion signal: the console's
+    /// pace); unlimited none.</summary>
+    internal static int FlipInterval => FlipIntervalFor(Mode, EarlyHold);
+
+    internal static int FlipIntervalFor(FrameRateMode mode, int earlyHold) => mode switch
+    {
+        FrameRateMode.Fixed30 => 2,
+        FrameRateMode.Fixed60 => 1,
+        FrameRateMode.Native => Math.Max(0, earlyHold),
+        _ => 0,
+    };
 }
 
 public sealed partial class Display : HleModule
@@ -154,8 +171,9 @@ public sealed partial class Display : HleModule
             ImmediateFlipsPaced++;
             using (FrameLedger.Time(FrameLedger.Cat.GuestGpuWait)) VBlank.WaitFor(_lastFlipVcount + 1);
         }
-        // fixed frame rate: a flip sooner than the interval waits for it (a 60 fps game held to 30)
-        if (FrameRate.Interval is var k and > 0 && _lastFlipVcount >= 0 && VBlank.Count < _lastFlipVcount + k)
+        // fixed frame rate: a flip sooner than the interval waits for it (a 60 fps game held to 30); in the native mode
+        // the early display signal's hold, so early never makes a game flip faster than the completion signal did
+        if (FrameRate.FlipInterval is var k and > 0 && _lastFlipVcount >= 0 && VBlank.Count < _lastFlipVcount + k)
         {
             FrameRate.FlipsHeld++;
             using (FrameLedger.Time(FrameLedger.Cat.GuestGpuWait)) VBlank.WaitFor(_lastFlipVcount + k);

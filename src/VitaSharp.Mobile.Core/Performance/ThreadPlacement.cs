@@ -48,6 +48,10 @@ public sealed record PlacementPlan(IReadOnlyDictionary<int, Placement> Placement
 /// core while they leave at least half a fast core idle (the GPU thread waiting for a shader, a loading screen): a
 /// compile the frame waits for then runs at full speed, and one in the background does not slow the game;</item>
 /// <item>any other thread (the UI thread, the driver's and the runtime's) is left alone.</item>
+/// <item>with <see cref="SpareFastCoresForGuests"/> (<c>VITASHARP_ANDROID_HELPERS=spare</c>, A/B) the other guest
+/// threads follow the shader workers' rule: every core while the hot threads leave at least half a fast core idle, so
+/// a game's job threads the main thread waits for may use the fast cores' idle time (the system scheduler places them,
+/// as Skyline and the yuzu forks leave guest threads to it); the slow cores again once the hot threads fill them.</item>
 /// </list>
 /// The main thread changes only when another guest thread is clearly busier (hysteresis), so the pinning does not flap
 /// between two similar threads. One planner per process; <see cref="Plan"/> is called about once a second.
@@ -61,10 +65,14 @@ public sealed class ThreadPlacementPlanner
     private int _main;
     private bool _shadersOnBig;
 
-    public ThreadPlacementPlanner(CpuTopology topology)
+    public ThreadPlacementPlanner(CpuTopology topology, bool spareFastCoresForGuests = false)
     {
         _topology = topology;
+        SpareFastCoresForGuests = spareFastCoresForGuests;
     }
+
+    /// <summary>The guest threads that are not hot may use idle fast-core time (see the class summary).</summary>
+    public bool SpareFastCoresForGuests { get; }
 
     public CpuTopology Topology => _topology;
 
@@ -116,6 +124,7 @@ public sealed class ThreadPlacementPlanner
             hot.Add(gpu.Tid);
             placements[gpu.Tid] = hot.Count <= slots ? Placement.Big : Placement.Mid;
         }
+        var others = new List<int>();
         foreach (ThreadSample g in guests.Where(g => g.Tid != _main).OrderByDescending(g => g.Load).ThenBy(g => g.Order))
         {
             if (g.Load >= HotLoad && hot.Count < slots)
@@ -126,10 +135,12 @@ public sealed class ThreadPlacementPlanner
             else
             {
                 placements[g.Tid] = Placement.NotBig;
+                others.Add(g.Tid);
             }
         }
 
-        // idle fast-core time over the window decides where the shader workers may run (with hysteresis)
+        // idle fast-core time over the window decides where the shader workers (and, with SpareFastCoresForGuests, the
+        // other guest threads) may run, with hysteresis
         double hotLoad = threads.Where(t => placements.TryGetValue(t.Tid, out Placement p) && p == Placement.Big).Sum(t => t.Load);
         if (_shadersOnBig && hotLoad > slots - 0.25)
         {
@@ -138,6 +149,14 @@ public sealed class ThreadPlacementPlanner
         else if (!_shadersOnBig && hotLoad < slots - 0.5)
         {
             _shadersOnBig = true;
+        }
+
+        if (SpareFastCoresForGuests && _shadersOnBig)
+        {
+            foreach (int tid in others)
+            {
+                placements[tid] = Placement.All;
+            }
         }
 
         foreach (ThreadSample t in threads)

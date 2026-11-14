@@ -152,6 +152,7 @@ public static class SessionReport
         Add(CpuBackendLines);
         Add(() => CycleLines(emu, window: true));
         Add(() => [HleCallsLine(emu)]);
+        Add(() => HleTimeReport.Lines(emu));
         Add(() => GpuLines(emu));
         Add(AudioDiagnostics.SummaryLines);
         Add(VitaSharp.Core.Hle.Modules.Ngs.PerfLines);

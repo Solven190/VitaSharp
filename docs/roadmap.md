@@ -665,6 +665,24 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   auto 26,1/25,5 (+3-5%), p90 66,6 nos três, fila de display ~7,5 ms/quadro igual; o auto ficou em EARLY quase todo o
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
+  Releitura das medidas de 09/11 (13/11, perf/android-frame-13): as linhas PERF são acumuladas desde o boot; na
+  janela de 30 s do gameplay o KZ espera só 0,2-1,5 ms/quadro na fila de display (os ~8,5 ms vinham das telas de
+  carga) e ~10 ms em notificações, e ~20 ms/quadro da thread do jogo ficam fora da CPU sem ser espera da GPU. No F1
+  corrida o EARLY não deixa o worker mais lento por disputa de CPU: o custo por draw é o mesmo (18,2-19,5 us), mas o
+  jogo manda 14-30% mais draws por quadro (1.651 contra 1.270-1.449) e 5-10% mais ciclos de guest quando o callback
+  da fila de display chega antes da GPU terminar. Próximo: medir onde a thread do jogo fica nesses ~20 ms
+  (`VITASHARP_PERF_HLE_TIME=1`: tempo de parede por função HLE e por thread; a linha "PERF guest waits" passou a dar o
+  tempo em que o worker segurou cenas esperando o display liberar o buffer) e só então atacar a espera certa
+  Perfetto do KZ (13/11): os ~20 ms/quadro são a thread do jogo consultando os jobs com `sceKernelDelayThread`
+  (~235 chamadas/quadro de ~33 us pedidos, 43% do tempo dela), notificações ~8 ms/quadro, núcleos A76 37-39% ociosos.
+  Testado sem ganho: `VITASHARP_ANDROID_HELPERS=spare` (JobSched nos A76 ociosos: CPU dos JobSched 26 -> 22 ms/quadro,
+  fps 22,0-22,8 contra 22,5-24,7, 3 pares) e o atraso de ~35 us de cada DelayThread curto (o timer slack já é 1 us;
+  só a última consulta de cada espera custa, ~0,5 ms/quadro). Próximo: com as linhas "PERF hle time" (agora pelas
+  threads mais ocupadas) ver o que a thread do jogo espera entre as consultas
+  O EARLY no modo nativo nunca deixa o jogo apresentar mais rápido que o sinal de conclusão (mediana da janela base):
+  o F1 na corrida não tem limitador próprio (1 `sceDisplayWaitVblankStart` por quadro, o do callback) e com EARLY
+  passava de 30 para 36-39 fps no celular. No PC, sem EARLY, o F1 já roda a corrida a 60 fps: manter jogos sem
+  limitador no ritmo do Vita num host rápido é outra decisão (modo nativo = ritmo do jogo; fixo 30 existe)
 
 - [ ] Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
   no meio de um filme ele para de devolver buffers de entrada (200 ms sem nenhum, com a saída drenada a cada
@@ -865,6 +883,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   recomeçado respondia as primeiras chamadas com a última picture da volta anterior (o fim escuro do filme); agora a
   primeira chamada de cada volta sai com a picture do IDR. Na tela de título (150 s, 1 execução de cada) o detector não
   marcou nada nem no código novo nem no antigo; falta conferir ao vivo
+- [ ] F1 2011 no celular: engasgo nos filmes do boot (relato do usuário, 13/11/2026). Comparação com o boot de um Vita
+  de verdade (vídeo `INf_kf6wGFY`, captura direta): as paradas entre os filmes não são defeito, o Vita também as tem
+  (Codemasters -> preto ~1,4 s -> Sumo Digital -> preto ~1,6 s -> aviso legal parado ~3,5 s -> preto ~2,5 s; no
+  celular 1,1-1,4 s, 1,2 s e 3,5 s nos mesmos pontos, com o decodificador de software e com o de hardware iguais). A
+  diferença é o filme longo da abertura (94 s): ~17 imagens únicas/s no celular contra ~25 no Vita. Causa no log: o
+  worker da GPU gasta ~38-42 ms por quadro com 1 desenho só, convertendo na CPU a textura YUV420P2 960x544 do filme
+  a cada quadro (uma leitura de memória do guest por amostra); o jogo espera ~38 ms/quadro em notificações. Feito
+  (perf/android-frame-13): conversão por linhas, uma leitura dos planos e termos em tabela, os mesmos bytes
+  (`YuvTextureTests`); falta medir no celular. Também visto: durante o filme o planejador de núcleos troca a thread
+  principal do jogo pela "avPlayer VideoDec" (a mais ocupada) e manda a principal para os A55
 - [ ] F1 2011 no celular: quadros pretos nos filmes, porque o player do jogo pula o desenho do quadro quando o
   decodificador atrasa (CPU lenta: ~20 fps; reproduz no PC com `--cpu-mhz=120`); some com a velocidade nativa (item
   abaixo), conferir depois

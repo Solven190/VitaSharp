@@ -156,6 +156,14 @@ The game process places its hot threads itself (`Platforms/Android/Game/GamePerf
   level the phone can keep for hours, which is below its peak, while ADPF already asks for what each frame needs.
   `VITASHARP_ANDROID_SUSTAINED=1` turns it on where `PowerManager.isSustainedPerformanceModeSupported` (for long
   sessions on a phone that throttles hard; the log says whether it is supported).
+- **Spare fast cores for guest threads** (A/B, off by default): `VITASHARP_ANDROID_HELPERS=spare` lets the guest threads
+  that are not hot (a game's job, audio and file threads) run on every core while the hot threads leave at least half a
+  fast core idle (the shader workers' rule), and sends them back to the slow cores once the hot threads fill the fast
+  ones. For games whose main thread waits for its job threads.
+- **Where the guest threads wait** (any platform): `VITASHARP_PERF_HLE_TIME=1` times every HLE call (wall clock, two
+  timestamps per call) and adds `PERF hle time` lines to each periodic summary: per busy guest thread, its time in HLE
+  calls per frame since the previous summary and the functions it went to (notification, display queue, lwcond,
+  semaphore, event flag waits, delays).
 - **Off switch**: `VITASHARP_ANDROID_AFFINITY=off` in `config/env.txt` disables both the placement and ADPF (timer slack,
   no spinning and the display rate stay), to compare.
 - **Log** (also in logcat during gameplay), once the main thread is known, e.g.

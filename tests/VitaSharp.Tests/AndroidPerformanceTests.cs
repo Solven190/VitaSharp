@@ -102,6 +102,29 @@ public sealed class AndroidPerformanceTests : IDisposable
     }
 
     [Fact]
+    public void SpareFastCoresLetQuietGuestThreadsUseIdleFastCores()
+    {
+        // VITASHARP_ANDROID_HELPERS=spare: main 0.4 + GPU 0.5 of two fast cores leave more than half a core idle
+        var p = new ThreadPlacementPlanner(HelioG99(), spareFastCoresForGuests: true);
+        ThreadSample gpu = new(20, ThreadKind.Gpu, "GPU worker", 0.5, 20);
+        PlacementPlan plan = p.Plan([Guest(10, 0.4), Guest(11, 0.2), Guest(12, 0.25), gpu, new(30, ThreadKind.JitWorker, "JIT worker", 0.2, 30)]);
+        Assert.Equal(Placement.Big, plan.Placements[10]);
+        Assert.Equal(Placement.Big, plan.Placements[20]);
+        Assert.Equal(Placement.All, plan.Placements[11]);
+        Assert.Equal(Placement.All, plan.Placements[12]);
+        Assert.Equal(Placement.NotBig, plan.Placements[30]); // the JIT workers stay off the fast cores
+
+        // the hot threads fill the fast cores: back to the slow ones (hysteresis as for the shader workers)
+        plan = p.Plan([Guest(10, 0.9), Guest(11, 0.2), Guest(12, 0.25), gpu with { Load = 0.9 }]);
+        Assert.Equal(Placement.NotBig, plan.Placements[11]);
+        Assert.Equal(Placement.NotBig, plan.Placements[12]);
+
+        // off (the default): the slow cores whatever the load
+        PlacementPlan off = new ThreadPlacementPlanner(HelioG99()).Plan([Guest(10, 0.4), Guest(11, 0.2), gpu]);
+        Assert.Equal(Placement.NotBig, off.Placements[11]);
+    }
+
+    [Fact]
     public void FirstGuestThreadIsMainUntilThereAreLoads()
     {
         var p = new ThreadPlacementPlanner(HelioG99());

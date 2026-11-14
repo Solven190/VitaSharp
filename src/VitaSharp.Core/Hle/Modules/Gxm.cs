@@ -74,6 +74,7 @@ public sealed partial class Gxm : HleModule
         _displayMaxInFlight = (int)Math.Clamp(pendingMax, 1u, 3u);
         int capacity = Math.Max(_displayMaxInFlight - 1, 1);
         _displayQueue = new BoundedQueue<(uint, GpuQueue.Fence, GxmSyncObject?, long)>(capacity);
+        FrameRate.EarlyHold = 0; // a new display queue: no early hold measured yet
         if (UbLate) GpuQueue.LateUniformCopy = CopyLateUniforms;
         var t = K.CreateThread("SceGxmDisplayQueue", 0, 64, 0x4000, 0, 0);
         t.HostBody = DisplayQueueThread;
@@ -714,6 +715,7 @@ public sealed partial class Gxm : HleModule
                 // a flip takes a few vblanks; a buffer that never leaves the screen must not hang the GPU
                 long w0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 bool ok = Gpu.WorkerWait(() => s.Released >= target || !Emu.Running, s, 250);
+                GpuQueue.CountDisplayHold(w0);
                 if (TraceDisplaySync && ++_syncWaits % 30 == 1) Log.Info($"[display-sync] wait {_syncWaits}: sync 0x{s.Handle:X8} {System.Diagnostics.Stopwatch.GetElapsedTime(w0).TotalMilliseconds:F1} ms");
                 if (!ok)
                     Log.WarnOnce("gxm-sync-timeout", $"sceGxmBeginScene: sync object 0x{s.Handle:X8} still displayed after 250 ms (display {s.Released}/{target}); rendering anyway");
@@ -781,6 +783,8 @@ public sealed partial class Gxm : HleModule
             _lastDisplayEntry = now;
             if (last == 0) return;
             _earlyAuto.OnFrame((now - last) * tick, (now - tq) * tick, out bool changed);
+            // early must not make the game flip faster than the completion signal did (AdaptiveEarlySignal.HoldVblanks)
+            FrameRate.EarlyHold = _earlyAuto.HoldVblanks;
             if (changed) Log.Info($"[early-auto] {_earlyAuto.State}: {_earlyAuto.LastDecision}");
         }
     }

@@ -140,7 +140,8 @@ sealed class Sampler
 
                 _baseSleep = (VitaSharp.Core.Cpu.CpuCore.SleepStat[])VitaSharp.Core.Cpu.CpuCore.SleepStats.Clone();
                 HleFunction.Track = true;
-                HleFunction.Profile = _hostHle;
+                HleFunction.Profile = _hostHle || HleFunction.TimeFromEnv;
+                HleFunction.ProfileWallOnly = !_hostHle && HleFunction.TimeFromEnv;
                 _baseCpu = HostThreadCpu();
             }
             _endFrame = VitaSharp.Core.Hle.Modules.Display.FramesPresented;

@@ -32,6 +32,10 @@ public static class EnvVars
     public const string RetireDeferred = "VITASHARP_RETIRE_DEFERRED";
     /// <summary>Developer builds: presented frame from which VITASHARP_WORKER_PROF measures (default 30).</summary>
     public const string WorkerProfFrom = "VITASHARP_WORKER_PROF_FROM";
+    /// <summary>=1: every HLE call is timed (wall clock, blocking included) per guest thread, and each periodic summary
+    /// adds "PERF hle time" lines: where the busiest guest threads spend the time since the previous summary, per HLE
+    /// function (Util/HleTimeReport.cs). Two timestamps per call; works on every platform (Android included).</summary>
+    public const string PerfHleTime = "VITASHARP_PERF_HLE_TIME";
     /// <summary>A/B switch: =old scans draw indices for their min/max one at a time; default new (128-bit vectors).</summary>
     public const string MinMaxScan = "VITASHARP_MINMAX";
     /// <summary>A/B switch: =1 records the hot vkCmd* calls through device-level function pointers loaded once with
@@ -362,6 +366,10 @@ public static class EnvVars
     /// <summary>Android: =off turns off both the pinning of the hot threads (guest main thread, GPU worker) to the
     /// fast cores and the Performance Hint (ADPF) session, to compare with them on (docs/android/README.md).</summary>
     public const string AndroidAffinity = "VITASHARP_ANDROID_AFFINITY";
+    /// <summary>Android, A/B: =spare lets the guest threads that are not hot (job, audio, file threads) run on every core
+    /// while the hot threads leave at least half a fast core idle, as the shader workers do; default: the slow cores
+    /// (Mobile.Core Performance/ThreadPlacement.cs).</summary>
+    public const string AndroidHelpers = "VITASHARP_ANDROID_HELPERS";
     /// <summary>Android: =info, =debug or =all keeps forwarding info/debug lines to logcat while a game runs (by
     /// default only warnings and errors reach logcat once the first frame is shown; the log file keeps everything).</summary>
     public const string AndroidLogcat = "VITASHARP_ANDROID_LOGCAT";
@@ -390,7 +398,9 @@ public static class EnvVars
     /// <summary>1: a display queue entry's flip callback runs once the GPU worker recorded and submitted the frame, not
     /// once the GPU finished it (the callback only flips; presents stay in GPU order). auto: chosen from measured frame
     /// times (Gpu/AdaptiveEarlySignal.cs: tried while the game misses its cadence and waits on the display queue, kept
-    /// only when frames got faster). Default 0.</summary>
+    /// only when frames got faster; in the native frame rate mode a flip is never sooner than the median interval the
+    /// completion signal gave, so early cannot make a game faster than the console). =1 has no such hold: A/B only.
+    /// Default 0.</summary>
     public const string DisplayEarlySignal = "VITASHARP_DISPLAY_EARLY_SIGNAL";
     /// <summary>0 (A/B) turns off the wait of a scene's GPU work until the display released its colour buffer (fragment
     /// sync object), as on the hardware; trace also logs the waits. Default on.</summary>
