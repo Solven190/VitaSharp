@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=745d7ad7e7163da7e3bf8b2f366b8ce55ec0587ce39be78154dbef03bf8313b9 -->
+<!-- pair: README.md sha256=947994a3e75e81f1ca29aadc727cc0b9374149cc4375da2af41ee59b3ee49314 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -196,14 +196,20 @@ VSync e FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da 
 desempenho. Os textos do app estão em português por enquanto. Telas e design:
 [`docs/android/README.md`](docs/android/README.md#screens).
 
-**Instalar o APK.** Ainda não há APK na página de Releases: compile num PC (o workload .NET MAUI Android, o Android
-SDK e um JDK 17; o compilador de shaders do aparelho uma vez com `build/build-android-shaderc.ps1` / `.sh`) e instale
-o `io.github.vitasharp-Signed.apk` com `adb install` ou abrindo-o no celular. Passos e opções:
+**Instalar o APK.** Ainda não há APK na página de Releases. Toda execução do CI gera um para celulares arm64: na
+página da execução em **Actions**, o artefato **VitaSharp-android-arm64-nativeaot** traz o
+`VitaSharp-<versão>-android-arm64.apk` (Release, Native AOT, com o compilador de shaders do aparelho e o
+libadrenotools; assinado com uma chave de debug descartável, então um APK de outra execução ou de outro PC só instala
+depois de desinstalar o anterior, o que apaga os dados do app). Instale com `adb install` ou abrindo-o no celular.
+Para compilar num PC: o SDK do .NET 10 com o workload MAUI Android (`dotnet workload install maui-android`), um JDK
+17, o Android SDK (plataforma 36) e o NDK (r30: `sdkmanager "ndk;30.0.16248370"`), e então
+`build/build-android-apk.ps1` / `.sh`, o mesmo script do CI (compila as bibliotecas nativas na primeira vez, depois o
+APK em `artifacts/android/packages`, e o confere). Passos e opções:
 [`docs/android/README.md`](docs/android/README.md#building).
 
 ```sh
-dotnet build src/VitaSharp.Android -c Release -m:2
-adb install -r src/VitaSharp.Android/bin/Release/net10.0-android/io.github.vitasharp-Signed.apk
+build/build-android-apk.sh          # Windows: build/build-android-apk.ps1
+adb install -r artifacts/android/packages/VitaSharp-dev-android-arm64.apk
 ```
 
 **Jogos e firmware.** O app não pede permissão de armazenamento: os arquivos entram pelo seletor de arquivos do
