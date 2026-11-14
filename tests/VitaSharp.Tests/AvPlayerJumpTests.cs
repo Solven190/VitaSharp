@@ -159,6 +159,7 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
         File.WriteAllBytes(Path.Combine(_root, "movie.mp4"), [0]);
         var emu = (Emulator)RuntimeHelpers.GetUninitializedObject(typeof(Emulator));
         SetBacking(emu, "Vfs", new Vfs(_root));
+        SetBacking(emu, "Memory", fixture.Memory);
         emu.Vfs.Mount("app0", _root);
         MediaPlayers.Backend = _ => media;
         var module = new AvPlayer { Emu = emu };
@@ -203,6 +204,31 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(0UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
         Assert.Equal(0, (int)Invoke(module, "sceAvPlayerJumpToTime", handle, 14_500UL)!);
         Assert.Equal(14_500UL, (ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!);
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>
+    /// sceAvPlayerGetVideoData gives no picture between a jump and its first picture (libsceavplayer answers 0 outside
+    /// its play states): Killzone: Mercenary reads the picture's timestamp, and the picture from before the jump (past
+    /// the loop's end) made it jump again on the next frame, so its scanner screen stood still.
+    /// </summary>
+    [Fact]
+    public void NoPictureIsGivenBetweenAJumpAndItsFirstPicture()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        media.Deliver(0);
+        Assert.Equal(1, (int)Invoke(module, "sceAvPlayerGetVideoData", handle, frameInfo)!);
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerJumpToTime", handle, 5_000UL)!);
+        media.TakeSeek();
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerGetVideoData", handle, frameInfo)!);
+        media.Deliver(4_000_000); // on the way: discarded
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerGetVideoData", handle, frameInfo)!);
+        media.Deliver(5_000_000); // the jump's first picture
+        Assert.Equal(1, (int)Invoke(module, "sceAvPlayerGetVideoData", handle, frameInfo)!);
+        Assert.Equal(5_000UL, GuestMemory.Read<ulong>(frameInfo + 8)); // its timestamp (ms)
         Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
     }
 

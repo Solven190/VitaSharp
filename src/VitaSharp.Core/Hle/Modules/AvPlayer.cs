@@ -311,6 +311,10 @@ public sealed partial class AvPlayer : HleModule
             // still answering the last picture's time, it jumped again on every frame (1500 jumps in 50 s on the
             // phone) and the decoder was flushed 30 times a second
             p.LastTimeUs = us;
+            // and sceAvPlayerGetVideoData gives no picture while the player is in its jump state (libsceavplayer
+            // answers 0 outside its play states): the picture from before the jump, with its old timestamp, made the
+            // game see the loop's end again and jump on the next frame
+            p.LastFrame = null;
         }
 
         p.ClockOffsetUs = us;
