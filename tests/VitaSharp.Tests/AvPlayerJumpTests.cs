@@ -272,11 +272,11 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
     }
 
     /// <summary>
-    /// The firmware's pacing without sound: the next picture comes 20 ms or more after the last one was handed out;
-    /// a call sooner answers the picture already out.
+    /// A picture is not handed out before the player's clock reaches it: a call sooner answers the picture already out
+    /// (a game calling every 16 ms plays a 30 fps movie at its speed).
     /// </summary>
     [Fact]
-    public void PicturesComeAtLeast20MsApart()
+    public void APictureIsNotHandedOutBeforeItsTime()
     {
         MediaPlayerBase.LegacyJumps = false;
         MediaPlayerBase.NewestPicturePacing = false;
@@ -287,10 +287,44 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
         media.Deliver(FrameUs);
         FreezePlaybackClock(module, handle, 0);
         Assert.Equal(0, PictureNow(module, handle, frameInfo)); // the first picture is due at once
-        FreezePlaybackClock(module, handle, 10_000);
-        Assert.Equal(0, PictureNow(module, handle, frameInfo)); // 10 ms later: still the first
-        FreezePlaybackClock(module, handle, 20_000);
-        Assert.Equal(FrameUs / 1000, PictureNow(module, handle, frameInfo)); // 20 ms: the next
+        FreezePlaybackClock(module, handle, 16_000);
+        Assert.Equal(0, PictureNow(module, handle, frameInfo)); // the next is not due yet: still the first
+        FreezePlaybackClock(module, handle, FrameUs);
+        Assert.Equal(FrameUs / 1000, PictureNow(module, handle, frameInfo));
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+    }
+
+    /// <summary>
+    /// A game that calls GetVideoData in a loop until CurrentTime is close to its own time (Killzone: Mercenary after a
+    /// slow frame) catches up within the frame: each call hands out the next due picture, none is skipped.
+    /// </summary>
+    [Fact]
+    public void AGameLoopingUntilCaughtUpCatchesUpAtOnce()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        MediaPlayerBase.NewestPicturePacing = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        for (int i = 0; i < 12; i++)
+        {
+            media.Deliver(i * FrameUs);
+        }
+
+        FreezePlaybackClock(module, handle, 0);
+        Assert.Equal(0, PictureNow(module, handle, frameInfo));
+        FreezePlaybackClock(module, handle, 500_000); // a slow frame: the game is 500 ms ahead
+        int calls = 0;
+        long shown = 0;
+        while (500 - (long)(ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)! > 200 && calls < 100)
+        {
+            long picture = PictureNow(module, handle, frameInfo);
+            Assert.True(picture == shown + FrameUs / 1000 || picture == shown + FrameUs / 1000 + 1, $"picture {picture} after {shown}");
+            shown = picture;
+            calls++;
+        }
+
+        Assert.True(calls < 12, $"{calls} calls to catch up");
         Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
     }
 

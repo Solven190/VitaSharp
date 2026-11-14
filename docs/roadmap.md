@@ -807,9 +807,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   CurrentTime todo quadro e só chama GetVideoData quando ela está >200 ms atrás do tempo dele; nosso GetVideoData
   entregava a imagem mais nova vencida e descartava as outras, a CurrentTime pulava para o relógio e o jogo pedia
   de novo ~7 quadros depois (re-run da captura B2: 3 GetVideoData/s, 2,7 imagens/s, 27/s descartadas). No
-  libsceavplayer 3.74: uma imagem por chamada, a próxima na ordem mesmo atrasada, quando o tempo desde a anterior
-  mais o atraso do relógio sobre ela chega a 20 ms; sem som o relógio é o próprio vídeo e CurrentTime = a última
-  imagem entregue. Feito assim (`MediaPlayerBase.TakeNextVideo`, `AvPlayer.NextPictureDue`), chave A/B
+  libsceavplayer 3.74: uma imagem por chamada, a próxima na ordem mesmo atrasada, quando o relógio do stream chega
+  nela; sem som o relógio é o próprio vídeo e CurrentTime = a última imagem entregue. Aqui a próxima vale quando o
+  relógio do player passa o tempo dela (o jogo chama GetVideoData em laço quando fica >200 ms atrás; um portão de
+  20 ms desde a imagem anterior fazia esse laço girar milhares de vezes por segundo). Feito assim (`MediaPlayerBase.TakeNextVideo`, `AvPlayer.NextPictureDue`), chave A/B
   `VITASHARP_AVPLAYER_PACING=newest`, log "AvPlayer: pictures ..." a cada 10 s; testes em `AvPlayerJumpTests`.
   Falta: confirmação no celular (imagens distintas/s, A/B). Diferença que ficou: com som, o firmware responde em
   CurrentTime o tempo do último áudio entregue; aqui ainda é o da última imagem

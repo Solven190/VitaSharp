@@ -477,15 +477,13 @@ public sealed partial class AvPlayer : HleModule
         return 1;
     }
 
-    /// <summary>The firmware's pacing (pictures closer together than this are not handed out): 20 ms.</summary>
-    const long MinPictureSpacingUs = 20_000;
-
     /// <summary>
-    /// libsceavplayer 3.74's choice in GetVideoData (its sync check on the stream clock): the next picture is due when
-    /// the time since the last one was handed out plus how far the clock is past that picture comes to 20 ms or more;
-    /// the clock is the audio's when the movie has sound and, without sound, the video's own, set from the picture on
-    /// screen at each call (so only the time since the last picture counts). Before the first picture (start, jump,
-    /// next source) the next one is due at once. A late picture is still handed out in order, one per call.
+    /// libsceavplayer 3.74's choice in GetVideoData: one picture per call, the next one in its queue, also when it is
+    /// late (it never skips to the newest); it is due once the stream clock has reached it (the firmware's sync check;
+    /// here the picture's time against the player's clock). Before the first picture (start, jump, next source) the
+    /// next one is due at once. Killzone: Mercenary calls GetVideoData in a loop while CurrentTime is more than ~200 ms
+    /// behind its own time: a gate of 20 ms since the last picture made that loop spin thousands of times a second
+    /// after a slow frame (desktop re-run of the campaign intro, 14/11/2026), the picture's time lets it catch up.
     /// </summary>
     static bool NextPictureDue(Player p, MediaPlayerBase m, long clockUs)
     {
@@ -494,9 +492,8 @@ public sealed partial class AvPlayer : HleModule
             return true;
         }
 
-        long sinceShownUs = clockUs - p.ShownAtUs;
-        long clockPastPictureUs = m.HasAudio ? clockUs - p.LastTimeUs : 0;
-        return sinceShownUs + clockPastPictureUs >= MinPictureSpacingUs;
+        long nextUs = m.PeekVideoTime();
+        return nextUs >= 0 && nextUs <= clockUs;
     }
 
     /// <summary>Every 10 s of host time: the pictures handed out and dropped as late, and how late, so a movie whose
