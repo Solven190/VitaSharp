@@ -286,7 +286,7 @@ public sealed class SessionCaptureTests : IDisposable
         File.WriteAllText(Path.Combine(dir, "session.txt"), "title-id: TEST00000\ntitle: Test\nstart-ns: 0\n");
         const long Frame = 33_333_333;
         long ns = 0;
-        var presents = new long[120];
+        long[] presents = new long[120];
         for (int i = 0; i < presents.Length; i++)
         {
             ns += i == 40 ? 2_770_000_000 : i == 80 ? 400_000_000 : Frame; // a 2.77 s pause menu, a 400 ms stall
