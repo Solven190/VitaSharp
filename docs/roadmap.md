@@ -838,6 +838,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   comparando as células 0,1 de quadros vizinhos (2543-2547): se piscar nos dois caminhos, o dado errado está na
   memória gravada no celular (writeback lido pela CPU fora de hora); se só no mali, é o caminho de render do Mali
   (região/fetch); bisseção com `--draw-limit=N@F --trace-draws=F`.
+  Feito no PC (14/11): o replay do dump não pisca no caminho do desktop, com `--gpu-profile=mali`, com
+  `VITASHARP_GPU_POISON=1`, com `VITASHARP_FRAMES_IN_FLIGHT=8` (o padrão do Android) nem no SwiftShader; a validação de
+  sincronização (`VITASHARP_VK_VALIDATION=sync`, perfil mali) não acusa hazard. A escolha "render target x memória por
+  páginas sujas" (`OverwrittenSinceRendered`) está descartada: o dump não tem nenhuma leitura de memória do guest na
+  faixa dos render targets (0x60600000-0x61100000) em todos os presents, ou seja, no celular as texturas da névoa
+  vieram sempre das imagens da GPU. Os quadros piscados (2532, 2544, 2546, 2562-2563; névoa +9 a +30 de luma) são os
+  presents com contagem de draws fora do normal (347, 521, 256, 270, 471 contra 352) e o PERF gpu do celular conta
+  "mid-scene breaks: Present" no mesmo ritmo dos [flash] (~3,7/s). Falta, no celular (o defeito só aparece lá), um A/B
+  no ponto da captura: padrão x `VITASHARP_GPU_QUIRKS=-TileBased` (tira DONT_CARE/NONE do tiler) x
+  `VITASHARP_DISPLAY_FLIP_ORDER=queue` (flip só na ordem da fila) x `VITASHARP_DEPTH_OPS_NONE=0`.
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo
