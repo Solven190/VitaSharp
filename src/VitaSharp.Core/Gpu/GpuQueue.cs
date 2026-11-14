@@ -116,6 +116,11 @@ public sealed class GpuQueue : IDisposable
             using (AddressSpace.Use(space ?? AddressSpace.Current))
             {
                 GuestMemory.W32(address, value);
+                // --watch: the GPU's writes too (a guest that polls a notification value instead of waiting for it)
+                if (Cpu.WriteWatch.Enabled)
+                {
+                    Cpu.WriteWatch.HitRange(address, 4);
+                }
             }
 
             SignalCount++;

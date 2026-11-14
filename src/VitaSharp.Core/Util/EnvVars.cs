@@ -462,6 +462,11 @@ public static class EnvVars
     /// before them, not once the GPU finished it; writebacks and visibility results reach memory when their frame
     /// retires (the guest may read them a frame late). Default 0.</summary>
     public const string RelaxedGpuSync = "VITASHARP_GPU_RELAXED_SYNC";
+    /// <summary>=1 (A/B): a scene whose notifications wait for GPU results (visibility tests, writebacks) is submitted
+    /// to the GPU at its end, so they arrive when that scene finished instead of when the whole batch (often the rest
+    /// of the frame) did. For games that poll notification memory from guest code instead of sceGxmNotificationWait
+    /// (Killzone Mercenary's render job waits for the previous frame's first scene). Renderer.Vulkan EndScene.</summary>
+    public const string GpuSubmitAtNotification = "VITASHARP_GPU_SUBMIT_AT_NOTIFICATION";
     /// <summary>half (A/B): the generated shaders declare the GXP's half-register values, F16 varyings and F16/U8/C10
     /// colour outputs mediump (RelaxedPrecision), as Vita3K does. Default off (everything highp).</summary>
     public const string ShaderFp16 = "VITASHARP_SHADER_FP16";
