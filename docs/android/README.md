@@ -460,7 +460,9 @@ functions, threads, `PERF cycles`, the renderer's report with `PERF gpu` and `PE
 `PERF cpu`/`PERF thread`/`PERF allocated`). Android kills the game process more often than it lets it stop, so the
 performance part (`SessionReport.PeriodicLines`, headed `PERF periodic summary: frame N`) also goes to the log file
 every 30 s while the game runs and whenever it pauses (pause menu, home), through `Log.InfoFileOnly`: the file only,
-not logcat. `VITASHARP_SESSION_REPORT_SECONDS` (in `config/env.txt`) changes the period, 0 turns it off. This is
+not logcat. `VITASHARP_SESSION_REPORT_SECONDS` (in `config/env.txt`) changes the period, 0 turns it off;
+`VITASHARP_THREAD_STATES=1` adds "PERF states" lines (what each guest thread did in the period, sampled every 5 ms) and a
+"PERF stall" list of the guest threads when no frame was presented in a period. This is
 what phone performance is measured from: `logs/last.log` (or the kept `<time>_<TITLEID>.log`). The short `[perf]`
 lines `GameActivity` logs every 30 s (fps, JIT, audio) stay as they are; this report is the detailed one.
 

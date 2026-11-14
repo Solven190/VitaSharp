@@ -2,6 +2,7 @@ using System.Xml;
 using VitaSharp.Core.Io;
 using VitaSharp.Core.Memory;
 using VitaSharp.Core.Util;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -145,6 +146,7 @@ public sealed partial class LiveArea : HleModule
     [Hle("sceLiveAreaEnableBgAppMode", Library = "SceLiveAreaUtilBgApp")]
     int sceLiveAreaEnableBgAppMode() { BgAppMode = true; return 0; }
 
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     internal bool BgAppMode { get; private set; }
 
     // ------------------------------------------------------------------ status

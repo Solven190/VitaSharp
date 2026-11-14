@@ -3,6 +3,7 @@ using VitaSharp.Core.Memory;
 using VitaSharp.Core.Util;
 using Mutex = VitaSharp.Core.Kernel.Mutex;
 using Semaphore = VitaSharp.Core.Kernel.Semaphore;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -889,6 +890,7 @@ public sealed partial class ThreadMgr : HleModule
     internal const int ErrorLaterTransfersFull = unchecked((int)0x80028225);
 
     /// <summary>The DONT_WAIT transfers of this process still queued.</summary>
+    [SnapshotMissing] // states of builds before it: no transfer was left for later
     int _laterTransfers;
 
     /// <summary>

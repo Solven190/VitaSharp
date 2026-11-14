@@ -61,12 +61,36 @@ public sealed class VulkanRendererOptions
     /// <summary>MSAA scenes: "native" (real multisampling), "ss" (2x supersampling) or "off"; null = VITASHARP_MSAA, else
     /// native (VulkanRenderer.MsaaNative.cs). The F3 hotkey sets it and replaces the renderer.</summary>
     public string? Msaa;
-    /// <summary>A renderer disposed to be replaced on the same surface (state load, LoadExec) hands its Vulkan instance,
-    /// device, surface and swapchain to the next one instead of destroying them; the next one recreates the swapchain
-    /// from it like a resize. Destroying and recreating all of it for the window each load crashed the process on the
-    /// NVIDIA driver (native heap corruption, an access violation in vkQueuePresentKHR, then a TDR as it died).</summary>
-    public bool KeepDevice;
+    /// <summary>
+    /// A renderer disposed to be replaced on the same surface (state load, LoadExec, a graphics option) hands its Vulkan
+    /// instance, device, surface and swapchain to the next one instead of destroying them; the next one recreates the
+    /// swapchain from it like a resize. On by default, for every front-end: the device belongs to the window for as long
+    /// as it lives, as in other emulators (a state load never recreates it). Destroying and recreating all of it for the
+    /// window crashed the process on the NVIDIA driver (native heap corruption, then a TDR, 06/11/2026) and lost the
+    /// device on Mali at the second recreation (Killzone loading a state twice, Uncharted loading one after its LoadExec:
+    /// VK_ERROR_DEVICE_LOST in the first frame's fence, 0 fps, 13/11/2026). <see cref="ReleaseKeptDevice"/> destroys what
+    /// the last renderer kept.
+    /// </summary>
+    public bool KeepDevice = true;
     internal DeviceHandoff? _handoff;
+
+    /// <summary>Destroys the device, surface and swapchain the last disposed renderer kept for a next one (the session
+    /// ends): call it once no renderer of these options will be made again.</summary>
+    public unsafe void ReleaseKeptDevice()
+    {
+        if (_handoff is not { } h)
+        {
+            return;
+        }
+
+        _handoff = null;
+        if (h.Swapchain.Handle != 0)
+        {
+            h.Core.SwapchainExt?.DestroySwapchain(h.Core.Device, h.Swapchain, null);
+        }
+
+        h.Core.Dispose();
+    }
 
     internal sealed record DeviceHandoff(VkCore Core, Silk.NET.Vulkan.SwapchainKHR Swapchain, IPresentationSurface Surface);
 }
@@ -172,6 +196,9 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
     }
     public long FrameCount { get; private set; }
 
+    /// <summary>This renderer took the Vulkan device of the one it replaced (<see cref="VulkanRendererOptions.KeepDevice"/>).</summary>
+    public bool DeviceKept { get; }
+
     public VulkanRenderer(VulkanRendererOptions options)
     {
         _options = options;
@@ -182,6 +209,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         {
             _core = h.Core;
             _swapchain = h.Swapchain; // the old swapchain of CreateSwapchain
+            DeviceKept = true;
             Log.Info("Vulkan device kept from the previous renderer");
         }
         else

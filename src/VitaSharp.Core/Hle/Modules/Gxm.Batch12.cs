@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -10,6 +11,7 @@ public sealed partial class Gxm
 {
     const uint InternalVersion = 0x10005;
     const int ERR_MEMORY_NOT_MAPPED = unchecked((int)0x805B0017);
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     uint _callbackVersion, _initParamVersion;
 
     [Hle(Cost = HleCost.KernelEntry)]

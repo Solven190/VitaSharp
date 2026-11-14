@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -22,6 +23,7 @@ public sealed partial class SystemServicesVsh
     // notifications are accepted, and the operations that would verify, unpack or write an update package report the
     // operation unsupported.
 
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     byte _updateMode;
 
     /// <summary>(uint8_t *mode): the update mode, 0 (normal) unless set.</summary>
@@ -133,6 +135,7 @@ public sealed partial class SystemServicesVsh
     [Hle(Default = true)] int sceUsbstorVStorStop() => 0;
 
     // ------------------------------------------------------------------ registrations for devices nothing reports
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     int _wlanCallbacks;
     /// <summary>(SceUID cb): Wi-Fi events; returns the registration id. No Wi-Fi chip raises them.</summary>
     [Hle] int sceWlanRegisterCallback(int cb) => ++_wlanCallbacks;
@@ -159,6 +162,7 @@ public sealed partial class SystemServicesVsh
     [Hle] int sceDebugLedInvokeHandle1(uint a, uint b, uint c) => 0;
 
     // ------------------------------------------------------------------ SceDipsw (sysmem): the debug switches
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     readonly uint[] _dipsw = new uint[4];
     [Hle] int sceKernelSetDipsw(uint bit) { if (bit < 128) _dipsw[bit >> 5] |= 1u << (int)(bit & 31); return 0; }
     [Hle] int sceKernelClearDipsw(uint bit) { if (bit < 128) _dipsw[bit >> 5] &= ~(1u << (int)(bit & 31)); return 0; }

@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Hle\Data\nids.txt" LogicalName="nids.txt" />
+    <!-- layouts of the builds that saved format 1 states (SnapshotLayouts.Legacy) -->
+    <EmbeddedResource Include="SaveState\Legacy\*.txt" LogicalName="legacy-layouts/%(Filename).txt" />
     <InternalsVisibleTo Include="VitaSharp.Tests" />
     <InternalsVisibleTo Include="VitaSharp.Benchmarks" />
   </ItemGroup>

@@ -16,6 +16,11 @@ public interface ISnapshotState
     /// <summary>Why the current state cannot be saved (a host resource the module cannot recreate yet), or null. The
     /// message names the resource: "host resource Y not supported yet".</summary>
     string? CheckSnapshot() => null;
+
+    /// <summary>Why a load cannot replace the module's state now (work of the running session still in flight on a
+    /// thread the load keeps, which would finish on the loaded state), or null. A load holds the guest threads and waits,
+    /// with the emulation running, until every module answers null.</summary>
+    string? CheckLoad() => null;
 }
 
 /// <summary>
@@ -152,6 +157,15 @@ public sealed class SnapshotWriter
     public void EndBlock(int at) => BinaryPrimitives.WriteInt32LittleEndian(_buf.AsSpan(at), _len - at - 4);
 
     public void WriteKernelObject(Kernel.KernelObject? o) => Write(o?.Uid ?? 0);
+
+    /// <summary>The [GenerateSnapshot] types written so far (their layouts go into the state), when collected.</summary>
+    public HashSet<string>? UsedLayouts { get; set; }
+
+    /// <summary>Called by the generated SaveState of each [GenerateSnapshot] type.</summary>
+    public void UseLayout(string key)
+    {
+        UsedLayouts?.Add(key);
+    }
 }
 
 /// <summary>Reader matching <see cref="SnapshotWriter"/>. Reading past the end throws <see cref="SnapshotException"/>.</summary>
@@ -163,6 +177,27 @@ public sealed class SnapshotReader(byte[] data, int offset = 0, int length = -1)
 
     /// <summary>Resolves kernel object UIDs while loading (the restored object table).</summary>
     public Kernel.ObjectTable? Objects { get; init; }
+
+    /// <summary>The layouts the state was saved with (<see cref="SnapshotLayouts"/>); null: this build's.</summary>
+    public IReadOnlyDictionary<string, SnapshotLayout>? Layouts { get; init; }
+
+    /// <summary>Data of format 1 (before 13/11/2026): the fields of [GenerateSnapshot] types one after the other, without
+    /// the length prefix of each (<see cref="FieldReader"/>).</summary>
+    public bool Positional { get; init; }
+
+    /// <summary>The reader of the next field of a [GenerateSnapshot] type: its length-prefixed block, or this reader for
+    /// positional data.</summary>
+    public SnapshotReader FieldReader()
+    {
+        return Positional ? this : ReadBlock();
+    }
+
+    /// <summary>The field names of the [GenerateSnapshot] type <paramref name="key"/> in the order the data has them:
+    /// the saved layout's, else <paramref name="current"/> (data of this build).</summary>
+    public string[] SavedFields(string key, string[] current)
+    {
+        return Layouts != null && Layouts.TryGetValue(key, out SnapshotLayout? layout) ? layout.FieldNames : current;
+    }
 
     public bool AtEnd => _pos >= _end;
     public int Remaining => _end - _pos;
@@ -261,7 +296,7 @@ public sealed class SnapshotReader(byte[] data, int offset = 0, int length = -1)
             throw new SnapshotException("the save state is truncated or corrupt");
         }
 
-        var r = new SnapshotReader(_buf, _pos, n) { Objects = Objects };
+        var r = new SnapshotReader(_buf, _pos, n) { Objects = Objects, Layouts = Layouts, Positional = Positional };
         _pos += n;
         return r;
     }

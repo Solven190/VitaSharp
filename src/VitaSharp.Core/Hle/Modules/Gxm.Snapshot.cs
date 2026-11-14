@@ -14,6 +14,22 @@ namespace VitaSharp.Core.Hle.Modules;
     "_syncObjects", "_displayQueue", "_commandLists")]
 public sealed partial class Gxm : ISnapshotState
 {
+    /// <summary>
+    /// A load waits for the display queue to drain, as a save does: the display queue thread is kept across a load,
+    /// and an entry of the running session it holds (waiting for its frame's GPU fence, or in the game's callback)
+    /// would run the callback after the load with the old session's data pointer on the loaded memory, free that
+    /// address in the loaded heap and leave the pending count at -1. Uncharted loaded on its title screen waited for
+    /// good in sceDisplayWaitSetFrameBufMulti inside that callback, its main thread in sceGxmDisplayQueueAddEntry
+    /// (0 fps, 13/11/2026).
+    /// </summary>
+    string? ISnapshotState.CheckLoad()
+    {
+        lock (_displayLock)
+        {
+            return _displayPending != 0 || (_displayQueue?.Count ?? 0) != 0 ? "a frame is in the GXM display queue" : null;
+        }
+    }
+
     void SaveExtra(SnapshotWriter w)
     {
         lock (_displayLock)

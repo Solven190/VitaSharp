@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -43,6 +44,7 @@ public sealed partial class SystemFallback
 public sealed partial class Ngs
 {
     const int NGS_DBG_INVALID = unchecked((int)0x804A0001);
+    [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     uint _sulphaSynthCallback, _sulphaSynthArg;
 
     [Hle(Default = true)]

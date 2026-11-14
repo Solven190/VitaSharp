@@ -101,6 +101,21 @@ public sealed class SaveStateFormatTests
         Assert.Equal(big, got["big"]);
     }
 
+    /// <summary>The headers of states the phone keeps (13/11/2026): Killzone slot 5 by c41f7846 and Uncharted slot 3 by
+    /// 5d2597ec, both format 1. Every field added between them declares the value the older build had, so they are
+    /// not refused for being of another build (before: any added field changed one hash and refused them all).</summary>
+    [Theory]
+    [InlineData("1.0.0+c41f784604d6838cfb9612451e5b4f6444f596e2", "3-5562ab7937189cf5", "PCSC00045")]
+    [InlineData("1.0.0+5d2597ecf41175f445f38bb515d34525b09a800f", "3-c92fb0fbc64b2619", "PCSA00029")]
+    public void StatesOfOlderBuildsOnThePhoneAreAccepted(string version, string schema, string title)
+    {
+        SaveStateHeader h = Header(title);
+        h.FormatVersion = 1;
+        h.EmulatorVersion = version;
+        h.Schema = schema;
+        Assert.Null(SaveStateFile.Incompatibility(h, title));
+    }
+
     [Fact]
     public void IncompatibleStatesAreRefusedWithAMessage()
     {
@@ -216,7 +231,7 @@ public sealed class SaveStateFormatTests
     [Fact]
     public void SchemaHashIsStable()
     {
-        Assert.StartsWith($"{SnapshotSchema.ManualVersion}-", SnapshotSchema.Hash);
+        Assert.Equal($"{SnapshotSchema.ManualVersion}", SnapshotSchema.Hash);
         Assert.Equal(SnapshotSchema.Hash, SnapshotSchema.Hash);
     }
 }

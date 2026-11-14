@@ -1959,6 +1959,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Bugs em aberto
 
+- [ ] Minecraft (PCSE00491) no Android fica mais lento com o tempo: na captura de 10/11 (APK c41f784) o fps por janela
+  de 30 s cai de 45 para ~2 em 8 min; a GPU fica em ~11-13 ms/quadro e o custo de CPU por quadro das threads do jogo
+  (main, Chunk update, Server) sobe sem parar (no fim ~90 ms/quadro cada). O state gravado nesse ponto (a 1,9 fps) roda a
+  ~59 fps estáveis por 4 min no desktop logo após o load: o que cresce é do host, não do estado do jogo. Falta: carregar
+  esse state no celular (fica rápido logo após o load?), achar a estrutura que cresce (contadores por estrutura do JIT
+  arm64, filas, timers, waits com timeout: sceKernelWaitSema 0x80028005 x5025 na captura) e o teste que a reproduz.
+  Também a ver: no desktop o UC passou 18 s em sceAvcdecDeleteDecoder na tela de título com o main num PC só (f1567).
+- [ ] `AppUtil._appMgr` (um cache do módulo AppMgr) é salvo como state aninhado: o load cria um AppMgr solto em vez de
+  achar o do emulador. Marcar como `[SnapshotIgnore]` (com a recusa de formato 1 tratada) e testar.
+
 - [ ] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
   congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer

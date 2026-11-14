@@ -972,4 +972,88 @@ public sealed class GxmFlowTests : IDisposable
         Assert.True(heldIdles >= 1, "the worker never idled inside the sync object wait");
         Assert.True(order.SequenceEqual(new[] { "begin " + a, "begin " + b, "present " + a, "present " + b, "begin " + a, "present " + a }), "GPU order: " + string.Join(", ", order));
     }
+
+    /// <summary>
+    /// A load waits for the display queue to drain, as a save does. The display queue thread is kept across a load:
+    /// an entry of the running session still in its callback (here blocked as for a vblank wait) would finish on the
+    /// loaded state, with the old session's callback data on the loaded memory, freeing that address in the loaded heap
+    /// and leaving the pending count at -1. Uncharted loaded on its title screen then waited for good in
+    /// sceDisplayWaitSetFrameBufMulti inside the callback, its main thread in sceGxmDisplayQueueAddEntry (0 fps on the
+    /// phone, 13/11/2026). Without the check the load sees no module busy while the entry is in flight.
+    /// </summary>
+    [Fact]
+    public void LoadWaitsForTheDisplayQueueToDrain()
+    {
+        using var inCallback = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        TwoBuffers d = TwoBufferDisplay(_ =>
+        {
+            inCallback.Set();
+            Assert.True(release.Wait(10_000), "the test did not release the callback");
+        }, _ => { });
+        Assert.Null(VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu));
+        uint entryA = _harness.Word(d.DataA);
+        string? busyInFlight = null;
+        _harness.OnGuest(_ =>
+        {
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.True(inCallback.Wait(10_000), "the display queue did not call back");
+            // the entry is in the game's callback on the display queue thread: a load must wait
+            busyInFlight = VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu);
+            release.Set();
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueFinish"));
+        });
+        _harness.Emu.Running = false;
+        Assert.Equal("module Gxm: a frame is in the GXM display queue", busyInFlight);
+        // drained: the load may go on
+        Assert.Null(VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu));
+    }
+
+    /// <summary>
+    /// The neighbours of <see cref="LoadWaitsForTheDisplayQueueToDrain"/>: the entry waiting for its frame's GPU fence
+    /// (the display thread blocked outside any callback, which the load counted as a safe point: the phone's case, a
+    /// slow GPU), and an entry still queued behind it (the queue full). Load and save both wait while either is there,
+    /// and both go on once the queue drained; a load before any entry was never held.
+    /// </summary>
+    [Fact]
+    public void LoadAndSaveWaitWhileAnEntryWaitsForItsFrameOrIsQueued()
+    {
+        using var gpuHeld = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        TwoBuffers d = TwoBufferDisplay(_ => { }, _ => { });
+        Assert.Null(VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu));
+        uint entryA = _harness.Word(d.DataA), entryB = _harness.Word(d.DataB);
+        string? busyWaitingForFrame = null, busyQueued = null;
+        Exception? saveWhileBusy = null;
+        _harness.OnGuest(_ =>
+        {
+            // the GPU worker is held: the frames' fences stay pending
+            _harness.Emu.Gpu.Submit(new CallbackCommand
+            {
+                Action = () =>
+                {
+                    gpuHeld.Set();
+                    Assert.True(release.Wait(10_000), "the test did not release the GPU");
+                },
+            });
+            Assert.True(gpuHeld.Wait(10_000), "the GPU worker did not run the held command");
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            // the display thread takes the entry and waits for its fence, blocked in the host outside any callback (the
+            // entry counts from the call on, whether the thread has taken it yet or not)
+            busyWaitingForFrame = VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu);
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncA, d.SyncB, entryB));
+            busyQueued = VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu);
+            saveWhileBusy = Record.Exception(() => ((VitaSharp.Core.SaveState.ISnapshotState)Gxm).SaveState(new VitaSharp.Core.SaveState.SnapshotWriter()));
+            release.Set();
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueFinish"));
+        });
+        _harness.Emu.Running = false;
+        Assert.Equal("module Gxm: a frame is in the GXM display queue", busyWaitingForFrame);
+        Assert.Equal("module Gxm: a frame is in the GXM display queue", busyQueued);
+        Assert.IsType<VitaSharp.Core.SaveState.SnapshotRetryException>(saveWhileBusy);
+        Assert.Null(VitaSharp.Core.SaveState.SaveStates.ModulesBusyForLoad(_harness.Emu));
+        ((VitaSharp.Core.SaveState.ISnapshotState)Gxm).SaveState(new VitaSharp.Core.SaveState.SnapshotWriter());
+    }
 }
