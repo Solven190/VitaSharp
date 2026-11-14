@@ -276,6 +276,52 @@ public sealed class SessionCaptureTests : IDisposable
         Assert.True(File.Exists(Path.Combine(dir, "report.txt")));
     }
 
+    /// <summary>A long present interval spent with the emulation paused (the pause menu that started the recording, a
+    /// save state) is the emulator's, not a stall of the game; a stall next to a short pause is still a stall.</summary>
+    [Fact]
+    public void Analyzer_tells_a_paused_interval_from_a_stall()
+    {
+        string dir = Path.Combine(_dir, "paused");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "session.txt"), "title-id: TEST00000\ntitle: Test\nstart-ns: 0\n");
+        const long Frame = 33_333_333;
+        long ns = 0;
+        long[] presents = new long[120];
+        for (int i = 0; i < presents.Length; i++)
+        {
+            ns += i == 40 ? 2_770_000_000 : i == 80 ? 400_000_000 : Frame; // a 2.77 s pause menu, a 400 ms stall
+            presents[i] = ns;
+        }
+        File.WriteAllLines(Path.Combine(dir, "input.tsv"),
+        [
+            InputEvent.Header,
+            new InputEvent("mark", presents[39] + 10_000_000, 1, 39, CaptureMarks.Paused).ToString(),
+            new InputEvent("mark", presents[40] - 20_000_000, 2, 39, CaptureMarks.Resumed).ToString(),
+            new InputEvent("mark", presents[79] + 10_000_000, 3, 79, CaptureMarks.PausedInternal).ToString(),
+            new InputEvent("mark", presents[79] + 60_000_000, 4, 79, CaptureMarks.Resumed).ToString(),
+        ]);
+        using (FileStream fs = File.Create(Path.Combine(dir, "frames.vsfr")))
+        {
+            FramesFile.WriteHeader(fs);
+            var enc = new FramesFile.Encoder();
+            for (int i = 0; i < presents.Length; i++)
+            {
+                (byte[]? data, byte flags) = enc.Encode(Picture(i / 8), Width, Height);
+                bool waited = i is 40 or 80;
+                FramesFile.WriteRecord(fs, new PresentInfo { Present = i + 1, Flip = i, PresentNs = presents[i], IntervalMs = 33.3f, Hitch = waited ? "guestGpuWait" : "", HitchMs = i == 40 ? 2751.6f : i == 80 ? 380 : 0 }, flags, data);
+            }
+        }
+        string report = CaptureAnalyzer.Analyze(dir, quiet: true);
+        Assert.DoesNotContain("[stall] present 41", report);
+        Assert.Contains("[paused] present 41", report);
+        Assert.Contains("[stall] present 81", report); // 50 ms of a save state do not explain 400 ms
+        Assert.Equal(0, CaptureAnalyzer.PausedNs([], 0, long.MaxValue));
+        // a resume with no pause before it: paused since before the input starts
+        Assert.Equal(5, CaptureAnalyzer.PausedNs([new InputEvent("mark", 15, 0, 0, CaptureMarks.Resumed)], 10, 20));
+        // a pause still open at the end of the interval
+        Assert.Equal(8, CaptureAnalyzer.PausedNs([new InputEvent("mark", 12, 0, 0, CaptureMarks.Paused)], 10, 20));
+    }
+
     /// <summary>The report says where the player is (context.txt and the ctx events of input.tsv), draws a contact
     /// sheet, lists the input before the recording, names each port's owner and says whether music was playing.</summary>
     [Fact]

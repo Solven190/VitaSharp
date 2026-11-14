@@ -67,11 +67,17 @@ public static class FrameLedger
 
     public static void AddSince(Cat c, long t0) => Interlocked.Add(ref s_totals[(int)c], Stopwatch.GetTimestamp() - t0);
 
+    /// <summary>A timed site. Guest waits on the GPU count only the time the emulation ran: a wait that spans a pause
+    /// (pause menu, save state) is not the GPU's, and charged whole it made the capture blame the GPU for the pause.</summary>
     public readonly struct Scope(Cat c) : IDisposable
     {
-        private readonly long _start = Stopwatch.GetTimestamp();
-        public void Dispose() => Interlocked.Add(ref s_totals[(int)c], Stopwatch.GetTimestamp() - _start);
+        private readonly long _start = Stamp(c);
+        public void Dispose() => Interlocked.Add(ref s_totals[(int)c], Stamp(c) - _start);
     }
+
+    /// <summary>Host ticks for <paramref name="c"/>: <see cref="EmulationPause.ActiveHostTicks"/> (standing still while
+    /// paused) for guest waits, the plain timestamp for the host-side work.</summary>
+    private static long Stamp(Cat c) => c == Cat.GuestGpuWait ? EmulationPause.ActiveHostTicks : Stopwatch.GetTimestamp();
 
     public static Scope Time(Cat c) => new(c);
 

@@ -82,6 +82,22 @@ public sealed class CallbackCommand : GpuCommand
     public uint ReadAddress, ReadSize;
     /// <summary>Set by the backend when it runs the action later itself (<see cref="IGpuBackend.DeferCallback"/>).</summary>
     public bool Deferred;
+    /// <summary>What the action does when it is a GXM transfer the GPU can also do (a plain copy or a 2x2 downscale of
+    /// linear pixels): a backend that runs the action late can produce the result on the GPU in command order, so draws
+    /// recorded before the action ran read the right data.</summary>
+    public GpuTransfer? Transfer;
+}
+
+/// <summary>A sceGxmTransferCopy (no colour key) or sceGxmTransferDownscale: <see cref="Width"/> x <see cref="Height"/>
+/// source pixels at (<see cref="SrcX"/>, <see cref="SrcY"/>) into the destination at (<see cref="DstX"/>,
+/// <see cref="DstY"/>), half as large each way for a downscale. Strides in bytes; formats and types as GXM gives
+/// them (SceGxmTransferFormat, SceGxmTransferType).</summary>
+public readonly record struct GpuTransfer(bool Downscale, uint Format, uint BytesPerPixel, uint Width, uint Height,
+    uint SrcAddress, uint SrcType, uint SrcX, uint SrcY, uint SrcStride,
+    uint DstAddress, uint DstType, uint DstX, uint DstY, uint DstStride)
+{
+    public uint DstWidth => Downscale ? Width / 2 : Width;
+    public uint DstHeight => Downscale ? Height / 2 : Height;
 }
 
 public struct StencilState

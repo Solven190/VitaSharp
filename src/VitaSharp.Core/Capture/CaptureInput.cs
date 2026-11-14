@@ -38,6 +38,18 @@ public readonly record struct InputEvent(string Kind, long Ns, long GuestUs, lon
         new(kind, CaptureClock.NowNs, GuestClock.Microseconds, Hle.Modules.Display.FramesPresented, data);
 }
 
+/// <summary>The "mark" events the capture writes for pauses of the whole emulation (<see cref="EmulationPause"/>).</summary>
+public static class CaptureMarks
+{
+    /// <summary>The player paused (pause key, pause menu).</summary>
+    public const string Paused = "emulation paused";
+    /// <summary>The emulator paused for itself (a save state taken or loaded).</summary>
+    public const string PausedInternal = "emulation paused (save state)";
+    public const string Resumed = "emulation resumed";
+
+    public static bool IsPause(string data) => data is Paused or PausedInternal;
+}
+
 /// <summary>
 /// Wraps the front-end's input and motion sources while a session capture is armed or recording: every change the
 /// guest reads (buttons, sticks, touches) and every motion sample it receives goes to the capture. The values pass

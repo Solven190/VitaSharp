@@ -2630,6 +2630,9 @@ public sealed partial class Gxm : HleModule
         {
             WriteAddress = dstAddr, WriteSize = (uint)Math.Abs(dstStride) * (dstY + height),
             ReadAddress = srcAddr, ReadSize = (uint)Math.Abs(srcStride) * (srcY + height),
+            Transfer = keyMode == 0 && srcFormat == dstFormat && srcStride > 0 && dstStride > 0
+                ? new GpuTransfer(false, srcFormat, (uint)bpp, width, height, srcAddr, srcType, srcX, srcY, (uint)srcStride, dstAddr, dstType, dstX, dstY, (uint)dstStride)
+                : null,
             Action = () =>
             {
                 for (uint y = 0; y < height; y++)
@@ -2698,6 +2701,9 @@ public sealed partial class Gxm : HleModule
         {
             WriteAddress = dstAddr, WriteSize = (uint)Math.Abs(dstStride) * (dstY + srcHeight / 2),
             ReadAddress = srcAddr, ReadSize = (uint)Math.Abs(srcStride) * (srcY + srcHeight),
+            Transfer = srcFormat == dstFormat && srcStride > 0 && dstStride > 0
+                ? new GpuTransfer(true, srcFormat, (uint)bpp, srcWidth, srcHeight, srcAddr, 0, srcX, srcY, (uint)srcStride, dstAddr, 0, dstX, dstY, (uint)dstStride)
+                : null,
             Action = () =>
             {
                 uint ss = (uint)Math.Abs(srcStride), ds = (uint)Math.Abs(dstStride);

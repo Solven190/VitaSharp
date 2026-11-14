@@ -873,7 +873,14 @@ public sealed unsafe partial class VulkanRenderer
         var key = new TexKey(addr, gxmTextureDesc.Format, w, h, gxmTextureDesc.TextureType | (asCube ? 1u : 0u), gxmTextureDesc.MipCount | (gxmTextureDesc.LodMin << 8), gxmTextureDesc.TextureType == GxmTextureDesc.TypeLinearStrided ? gxmTextureDesc.StrideBytes : 0, gxmTextureDesc.PaletteAddress, gamma);
         if (_xferPendingDst.Count > 0)
         {
-            WaitPendingTransferInto(addr, Math.Max(w * h * 4, 1)); // VITASHARP_TRANSFER_DEFER
+            // VITASHARP_TRANSFER_DEFER: the transfer's result as the GPU produced it in command order, when it did
+            if (TransferImageFor(gxmTextureDesc, addr, w, h, gamma, asCube) is { } transferView)
+            {
+                _texSrc = TexSource.Transfer;
+                return (transferView, ImageLayout.General);
+            }
+
+            WaitPendingTransferInto(addr, Math.Max(w * h * 4, 1));
         }
 
         _textures.TryGetValue(key, out Texture? tex);
@@ -1171,9 +1178,13 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>Field comparison (ComponentMapping.Equals(object) boxes both values on every texture lookup).</summary>
     private static bool SameSwizzle(in ComponentMapping a, in ComponentMapping b) => a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A;
 
-    private static ComponentMapping RtSwizzle(RenderTarget rt, uint texFormat)
+    private static ComponentMapping RtSwizzle(RenderTarget rt, uint texFormat) => RtSwizzle(rt.Format, rt.ColorFormat, texFormat);
+
+    /// <summary><see cref="RtSwizzle(RenderTarget, uint)"/> for pixels that came from a surface of host format
+    /// <paramref name="hostFormat"/> and guest colour format <paramref name="colorFormat"/>.</summary>
+    private static ComponentMapping RtSwizzle(Format hostFormat, uint colorFormat, uint texFormat)
     {
-        bool is8888 = rt.Format is Format.R8G8B8A8Unorm or Format.B8G8R8A8Unorm && (rt.ColorFormat & 0xF1800000) == 0;
+        bool is8888 = hostFormat is Format.R8G8B8A8Unorm or Format.B8G8R8A8Unorm && (colorFormat & 0xF1800000) == 0;
         if (!is8888 || GxmFormats.BaseOf(texFormat) != TexBase.U8U8U8U8)
         {
             return default;
@@ -1182,7 +1193,7 @@ public sealed unsafe partial class VulkanRenderer
         // order first (Gal Gunvolt renders its playfield into RGBA surfaces, samples them as RGBA textures and alpha
         // tests .w: read reversed, the alpha test discarded the whole background)
         ComponentMapping tex = Formats.TextureSwizzle(texFormat);
-        return Formats.LogicalOrderSwizzle(rt.ColorFormat) != 0 ? Formats.Compose(Formats.SurfaceMemoryOrder(rt.ColorFormat), tex) : tex;
+        return Formats.LogicalOrderSwizzle(colorFormat) != 0 ? Formats.Compose(Formats.SurfaceMemoryOrder(colorFormat), tex) : tex;
     }
 
     private sealed class RtRegion
