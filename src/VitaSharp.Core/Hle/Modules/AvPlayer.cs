@@ -53,6 +53,9 @@ public sealed partial class AvPlayer : HleModule
         public uint[] AudioBufferSizes = new uint[4];
         public int AudioIndex;
         public long LastTimeUs;
+        /// <summary>sceAvPlayerJumpToTime calls (diagnostics); not saved.</summary>
+        [SnapshotIgnore]
+        public int Jumps;
 
         public readonly List<string> TempFiles = new();
     }
@@ -282,6 +285,13 @@ public sealed partial class AvPlayer : HleModule
         var p = Get(handle);
         if (p == null) return ERR_INVALID_ARGUMENT;
         long us = (long)timeMs * 1000;
+        p.Jumps++;
+        if (p.Jumps <= 30 || p.Jumps % 100 == 0)
+        {
+            // games keep a movie in step with its own audio by jumping: how often and how far behind the video was
+            Log.Info($"AvPlayer: jump {p.Jumps} to {timeMs} ms in {Path.GetFileName(p.SourcePath)} (clock {ClockUs(p) / 1000} ms, last picture {p.LastTimeUs / 1000} ms)");
+        }
+
         p.Media?.Seek(us);
         p.ClockOffsetUs = us;
         bool running = p.Clock.IsRunning;
