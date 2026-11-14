@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=4ace22531d2bb2cc330122fc0f621045969f071f1869dd768c36d4a7899e3696 -->
+<!-- pair: README.md sha256=21d629f172873af6991c76ab6abc40bf3609257a7252e3dded16d9a6f7a0234b -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -55,6 +55,15 @@ LiveArea e jogos abertos por elas. É um projeto de pesquisa em desenvolvimento 
 <td><img src="docs/assets/screenshots/god-of-war.webp" alt="God of War Collection" width="300"><br><sub><b>God of War Collection</b>, combate</sub></td>
 <td><img src="docs/assets/screenshots/persona-4-golden.webp" alt="Persona 4 Golden" width="300"><br><sub><b>Persona 4 Golden</b>, abertura</sub></td>
 <td><img src="docs/assets/screenshots/shell-livearea.webp" alt="LiveArea do Uncharted" width="300"><br><sub><b>Sistema do Vita</b>, LiveArea de um jogo</sub></td>
+</tr>
+</table>
+
+<p><b>No Android</b> (Redmi Note 14, Mali-G57; veja <a href="#android">Android</a>):</p>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary num celular com os controles na tela" width="420"><br><sub><b>Killzone: Mercenary</b>, campanha, controles na tela</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss num celular" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, o Prólogo, 30 fps</sub></td>
 </tr>
 </table>
 

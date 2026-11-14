@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=de209979965b9bfaf11e15ed7365210b525592652b4a283d300fc9cd0e41bccf -->
+<!-- pair: README.pt-BR.md sha256=d04bb88f7e1cd0e36c56cb9da14e1b76ebb84f7acdb6b7efb85bde44458bd708 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -55,6 +55,15 @@ started from them. It is a research project under active development, all in C#.
 <td><img src="docs/assets/screenshots/god-of-war.webp" alt="God of War Collection" width="300"><br><sub><b>God of War Collection</b>, combat</sub></td>
 <td><img src="docs/assets/screenshots/persona-4-golden.webp" alt="Persona 4 Golden" width="300"><br><sub><b>Persona 4 Golden</b>, opening</sub></td>
 <td><img src="docs/assets/screenshots/shell-livearea.webp" alt="Uncharted's LiveArea" width="300"><br><sub><b>Vita System</b>, a game's LiveArea</sub></td>
+</tr>
+</table>
+
+<p><b>On Android</b> (Redmi Note 14, Mali-G57; see <a href="#android">Android</a>):</p>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/android-killzone-mercenary.webp" alt="Killzone: Mercenary on a phone with the on-screen controls" width="420"><br><sub><b>Killzone: Mercenary</b>, campaign, on-screen controls</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/android-uncharted.webp" alt="Uncharted: Golden Abyss on a phone" width="420"><br><sub><b>Uncharted: Golden Abyss</b>, the Prologue, 30 fps</sub></td>
 </tr>
 </table>
 
