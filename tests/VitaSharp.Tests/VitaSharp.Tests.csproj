@@ -25,6 +25,11 @@
     <Compile Include="..\..\build\FormatTool\SourceLayout.cs" Link="Style\SourceLayout.cs" />
   </ItemGroup>
 
+  <!-- the CI's arm64 APK check, shared with build/AndroidApkCheck (AndroidApkContentsTests) -->
+  <ItemGroup>
+    <Compile Include="..\..\build\AndroidApkCheck\ApkContents.cs" Link="Build\ApkContents.cs" />
+  </ItemGroup>
+
   <!-- MediaParityTests: tiny generated sine-tone clips (AAC ADTS, MP3), also pushed to the device by
        build/android-media-parity.sh/.ps1 -->
   <ItemGroup>

@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=4ed6554f5dced099936f986b1763b1338546606c850ebde88e21136f1cbb8afb -->
+<!-- pair: README.pt-BR.md sha256=94b4f032d01c87a2b3540ecd08dc763e2662b46ff77368db7a16164b07a27c70 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -191,14 +191,19 @@ newer, Vulkan), with its own screens: game library, game details (CPU backend, c
 game, saves), trophies, controls, settings, firmware, GPU driver, PSN account and network, and a performance page.
 The app's texts are in Portuguese for now. Screens and design: [`docs/android/README.md`](docs/android/README.md#screens).
 
-**Install the APK.** There is no APK on the Releases page yet: build it on a PC (the .NET MAUI Android workload, the
-Android SDK and a JDK 17; the device's shader compiler once with `build/build-android-shaderc.ps1` / `.sh`), then
-install `io.github.vitasharp-Signed.apk` with `adb install` or by opening it on the phone. Steps and options:
-[`docs/android/README.md`](docs/android/README.md#building).
+**Install the APK.** There is no APK on the Releases page yet. Every CI run builds one for arm64 phones: on the
+run's page in **Actions**, the artifact **VitaSharp-android-arm64-nativeaot** holds
+`VitaSharp-<version>-android-arm64.apk` (Release, Native AOT, with the device shader compiler and libadrenotools;
+signed with a throwaway debug key, so a later APK from another run or PC installs only after uninstalling the old one,
+which deletes the app's data). Install it with `adb install` or by opening it on the phone. To build it on a PC: the
+.NET 10 SDK with the MAUI Android workload (`dotnet workload install maui-android`), a JDK 17, the Android SDK
+(platform 36) and the NDK (r30: `sdkmanager "ndk;30.0.16248370"`), then `build/build-android-apk.ps1` / `.sh`, the
+CI's own script (it builds the native libraries the first time, then the APK into `artifacts/android/packages`, and
+checks it). Steps and options: [`docs/android/README.md`](docs/android/README.md#building).
 
 ```sh
-dotnet build src/VitaSharp.Android -c Release -m:2
-adb install -r src/VitaSharp.Android/bin/Release/net10.0-android/io.github.vitasharp-Signed.apk
+build/build-android-apk.sh          # Windows: build/build-android-apk.ps1
+adb install -r artifacts/android/packages/VitaSharp-dev-android-arm64.apk
 ```
 
 **Games and firmware.** The app asks for no storage permission: files come in through Android's file picker. In

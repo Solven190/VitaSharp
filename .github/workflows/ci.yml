@@ -261,7 +261,96 @@ jobs:
           path: artifacts/publish/${{ matrix.rid }}-symbols
           if-no-files-found: ignore
 
-  # TODO android-arm64: an APK job (`dotnet build src/VitaSharp.Android -c Release -r android-arm64` after
-  # `dotnet workload install maui-android`, plus the Android SDK/NDK and build/build-android-shaderc.sh), uploading
-  # VitaSharp-android-arm64-packages holding VitaSharp-<version>-android-arm64.apk, which release.yml then collects
-  # like the others.
+  # The Android app (src/VitaSharp.Android): the Release APK for arm64 phones, Native AOT (the project's Release
+  # default), built and checked by build/build-android-apk.sh, the script developers run locally too (the check fails
+  # without lib/arm64-v8a/libshaderc_shared.so, libadrenotools and its hooks, or with a Mono/CoreCLR runtime inside).
+  # ubuntu-latest: the image has the Android SDK (sdkmanager, ANDROID_HOME writable by the runner) and bash for the
+  # ndk-build scripts, its runners are the fastest, and .NET for Android builds Native AOT from a Linux host. The APK
+  # is signed with the debug keystore .NET makes on the fly (no secret, nothing kept): installable with adb, not a
+  # store release. Caches: NuGet packages, the NDK (about 2 GB) and the compiled libshaderc/libadrenotools
+  # (third_party, keyed on their build files and the NDK version: the shaderc compile is the longest step). About
+  # 15-20 min with warm caches, 25-35 min on a cold run.
+  android-arm64:
+    name: Android APK (android-arm64, Native AOT)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      # the NDK the project uses (docs/android/README.md, "Building")
+      NDK_VERSION: '30.0.16248370'
+    steps:
+      - uses: actions/checkout@v4
+
+      # .NET in the home folder: the workload install below then needs no sudo (the image's /usr/share/dotnet does)
+      - name: Install .NET into the home folder
+        run: echo "DOTNET_INSTALL_DIR=$HOME/.dotnet" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-android-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+          restore-keys: nuget-android-${{ runner.os }}-
+
+      - name: Install the .NET Android workload
+        run: dotnet workload install maui-android
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/android-ndk
+          key: android-ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
+
+      # the SDK platform and build tools of the app (android-36), and the NDK when the cache did not have it; the
+      # runner's own ANDROID_NDK_* point at another NDK, so both are set to this one
+      - name: Install the Android SDK packages and the NDK
+        shell: bash
+        run: |
+          sdkmanager="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "${sdkmanager}" --licenses > /dev/null || true
+          "${sdkmanager}" --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          ndk="${RUNNER_TEMP}/android-ndk/${NDK_VERSION}"
+          if [[ ! -d "${ndk}/toolchains" ]]; then
+            "${sdkmanager}" --install "ndk;${NDK_VERSION}" > /dev/null
+            mkdir -p "${RUNNER_TEMP}/android-ndk"
+            mv "${ANDROID_HOME}/ndk/${NDK_VERSION}" "${ndk}"
+          fi
+          echo "ANDROID_NDK_HOME=${ndk}" >> "${GITHUB_ENV}"
+          echo "ANDROID_NDK_ROOT=${ndk}" >> "${GITHUB_ENV}"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            third_party/android-shaderc/libs
+            third_party/android-adrenotools/libs
+          key: android-native-${{ env.NDK_VERSION }}-${{ hashFiles('build/android-shaderc/**', 'build/android-adrenotools/**', 'build/build-android-shaderc.sh', 'build/build-android-adrenotools.sh') }}
+
+      - name: Build and check the APK
+        shell: bash
+        run: OUT=artifacts/android VERSION="$PACKAGE_VERSION" JOBS=4 bash build/build-android-apk.sh
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "### Android APK (android-arm64, Native AOT)"
+            echo
+            for f in artifacts/android/packages/*.apk; do
+              echo "- \`$(basename "$f")\`: $(wc -c < "$f" | tr -d ' ') bytes, runtime nativeaot, NDK ${NDK_VERSION}, debug-keystore signed"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # the runtime is in the name (the other runtimes, mono-aot-llvm or coreclr, are local builds only); not a
+      # *-packages artifact, so release.yml does not publish it yet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VitaSharp-android-arm64-nativeaot
+          path: artifacts/android/packages
+          compression-level: 0
+          if-no-files-found: error

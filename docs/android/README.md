@@ -42,6 +42,22 @@ builds and libadrenotools: 44,136,042. A Release rebuild of both ABIs takes abou
 full AOT default (30/10/2026, [Runtime and AOT choice](#runtime-and-aot-choice-vitasharpandroidruntime)): 66,860,650
 bytes and about 5 minutes; since the LLVM default (31/10/2026): about 17 minutes for `-r android-arm64` (82 MB APK);
 `-p:VitaSharpAndroidRuntime=mono-aot` builds in 5, `mono-jit` gives the old build.
+**CI and the one-command build.** `build/build-android-apk.sh` (or `.ps1`) builds what the CI publishes: libshaderc
+for arm64-v8a and libadrenotools when `third_party` has not got them, then `dotnet publish -c Release -r android-arm64
+-p:VitaSharpAndroidRuntime=nativeaot` into `artifacts/android/publish` (`OUT` / `-Out` changes the folder), copies
+the signed APK to `artifacts/android/packages/VitaSharp-<version>-android-arm64.apk` (`VERSION` / `-Version`, default
+`dev`) and checks it: `build/AndroidApkCheck` fails without `lib/arm64-v8a/libVitaSharp.Android.so` (the Native AOT
+app), `libshaderc_shared.so`, `libadrenotools.so` and its four hooks, or with a Mono/CoreCLR runtime library or another
+ABI inside (`AndroidApkContentsTests`), and `build/check-dev-gating` fails with developer tooling inside. `--check
+<apk>` / `-Check <apk>` only checks. Requirements: the .NET 10 SDK with `maui-android`, a JDK 17, the Android SDK
+(`platforms;android-36`, `build-tools;36.0.0`) and the NDK r30 (`ndk;30.0.16248370`; `ANDROID_NDK_HOME` or
+`ANDROID_NDK_ROOT` picks it, else the newest under the SDK), git. The CI job **Android APK (android-arm64, Native
+AOT)** (`.github/workflows/ci.yml`, ubuntu-latest, every push and pull request) runs it and uploads the artifact
+**VitaSharp-android-arm64-nativeaot**; it caches NuGet, the NDK and the compiled native libraries (about 15-20
+minutes warm, 25-35 cold). The APK is signed with the debug keystore .NET creates on the fly (no secret): APKs of
+different runs or machines have different keys, so replacing one with another needs an uninstall first. Only arm64
+for now (no x86_64 artifact); the Releases page does not carry the APK yet.
+
 `-r android-arm64` (phones) or `-r android-x64` (the emulator) builds and AOT-compiles one ABI (the csproj narrows
 `RuntimeIdentifiers` to it; before 09/11/2026 the other ABI was still LLVM-compiled, doubling the time), into `bin/Release/net10.0-android/<rid>/`
 (about 2 minutes, for iterating).
