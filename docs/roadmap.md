@@ -689,6 +689,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   tempo (uma reconferência voltou à conclusão e retentou). A 1ª tentativa compara com quadros de carga (63 ms): ganho
   inflado no começo. Faltam a 2ª corrida base e o F1 corrida (precisa de estado do mesmo build) antes de virar padrão
 
+- [ ] Killzone no celular: o feixe de luz que entra pelo canto superior direito da escada muda de forma/intensidade
+  entre quadros (forte, quase some; captura parada no slot 6 da escada, APK a00b4b9b sem chaves de perf: screen20s.mp4,
+  cap_*.png e last.log em <scratchpad>\lab13\kzflicker). O log mostra a cadeia de downscale por transferências de CPU
+  0x66362000 -> 0x66382000 -> 0x6638A000 -> 0x6638C000 -> 0x6638C800 adiada para a aposentadoria do quadro
+  (`VITASHARP_TRANSFER_DEFER`, padrão no Android) e texturas lendo esses destinos antes da transferência rodar ("reads
+  transfer destination ... before its deferred transfer ran: read as it is now"), ou seja, um quadro atrasadas.
+  Suspeita (não confirmada): os raios de luz leem essa cadeia de mips. Próximo: A/B no slot 6 com TRANSFER_DEFER=0 e
+  com o padrão (20 s gravados cada); se for o adiamento, dar ao jogo o resultado do quadro certo sem a espera (rodar
+  o downscale na ordem certa na GPU em vez de adiar o dado), com teste de exatidão por replay
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do
