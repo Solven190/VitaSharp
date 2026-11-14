@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=415340fb7db76a918fc3e4effae7094d01342c0e1381a074d26d24521fe52a6b -->
+<!-- pair: README.md sha256=6f9c52fbaa96db7ba56a1176cd23f8f64ea25be0d9312758e1a7d82a34fcc3cf -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -316,7 +316,7 @@ sistema, veja as especificações em [`docs/hle`](docs/hle/README.md).
 O estilo do C# é o do Ryujinx/Ryubing, e o [`.editorconfig`](.editorconfig) é a regra (o que é cobrado, o que está
 desligado e por quê). `build/format-check.ps1` (Windows) / `build/format-check.sh` (Linux, macOS) roda
 `dotnet format whitespace` e `dotnet format style --severity warn` com `--verify-no-changes` só nos arquivos `.cs`
-versionados (`git ls-files`: nunca a `.claude/` com as worktrees dos agentes, nem arquivos fora do git), como o job
+versionados (`git ls-files`: nunca arquivos fora do git nem ignorados por ele), como o job
 "Code style" do CI (esse job está comentado no `.github/workflows/ci.yml` por enquanto: rode localmente), com o mesmo código de saída (2 quando algo difere); `-Fix` / `--fix` reescreve os arquivos em
 vez de conferir (rodando também o `build/NamingTool`, que renomeia os símbolos fora das regras de nomes junto com
 todas as referências, já que o `dotnet format` aponta o IDE1006 mas não sabe corrigi-lo, e o `build/FormatTool`, que

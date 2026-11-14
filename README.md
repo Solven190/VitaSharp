@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=aeea02a3ef9746139c3ba2c90d5ea13ae8e64449e24035920e52a6cc5209a65c -->
+<!-- pair: README.pt-BR.md sha256=2c621c0e5d19652a4f881a227b93e8b6d8bee021c503324deb16150d942a6a12 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -311,7 +311,7 @@ see the specifications in [`docs/hle`](docs/hle/README.md).
 The C# style is the Ryujinx/Ryubing one, and [`.editorconfig`](.editorconfig) is the rule (what is enforced, what is
 off and why). `build/format-check.ps1` (Windows) / `build/format-check.sh` (Linux, macOS) runs
 `dotnet format whitespace` and `dotnet format style --severity warn` with `--verify-no-changes` over the tracked `.cs`
-files only (`git ls-files`: never `.claude/` with the agents' worktrees, nor untracked files), as the CI job
+files only (`git ls-files`: never untracked or git-ignored files), as the CI job
 "Code style" does (that job is commented out in `.github/workflows/ci.yml` for now: run it locally), with the same exit code (2 when something differs); `-Fix` / `--fix` rewrites the files instead
 (also running `build/NamingTool`, which renames the symbols that break the naming rules with all their references,
 since `dotnet format` reports IDE1006 but cannot fix it, and `build/FormatTool`, which splits the blocks written on

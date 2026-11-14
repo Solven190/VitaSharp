@@ -1,6 +1,6 @@
 # Checks the C# code style of .editorconfig (the Ryujinx/Ryubing style): `dotnet format whitespace` (layout) and
 # `dotnet format style` (the rules set to :warning, through VitaSharp.sln), both with --verify-no-changes, over the
-# repository's tracked .cs files only (git ls-files: never .claude/ with the agents' worktrees, nor untracked files).
+# repository's tracked .cs files only (git ls-files: never untracked or git-ignored files).
 # The folders listed in build/format-pending.txt are skipped until they are converted.
 # Usage: build/format-check.ps1 [-Fix] [-WhitespaceOnly] [-Help]   (same as build/format-check.sh)
 #   -Fix             rewrite the files instead of verifying (dotnet format, build/NamingTool: names renamed to the
@@ -18,11 +18,9 @@ if ($Help) {
 $root = Split-Path $PSScriptRoot -Parent
 $pending = @(Get-Content (Join-Path $root 'build/format-pending.txt') |
     ForEach-Object { ($_ -replace '#.*$', '').Trim().TrimEnd('/') } | Where-Object { $_ })
-# .claude/ holds the agents' worktrees (whole other checkouts): never part of this checkout's check
-$skipped = @($pending) + '.claude'
 $files = @(git -C $root ls-files -- '*.cs' | Where-Object {
         $file = $_
-        -not ($skipped | Where-Object { $file.StartsWith("$_/", [StringComparison]::Ordinal) })
+        -not ($pending | Where-Object { $file.StartsWith("$_/", [StringComparison]::Ordinal) })
     })
 if ($LASTEXITCODE -ne 0 -or $files.Count -eq 0) {
     Write-Error 'format-check: git ls-files found no .cs files (run it from a git checkout)'

@@ -2,7 +2,7 @@
 #
 # Checks the C# code style of .editorconfig (the Ryujinx/Ryubing style): `dotnet format whitespace` (layout) and
 # `dotnet format style` (the rules set to :warning, through VitaSharp.sln), both with --verify-no-changes, over the
-# repository's tracked .cs files only (git ls-files: never .claude/ with the agents' worktrees, nor untracked files).
+# repository's tracked .cs files only (git ls-files: never untracked or git-ignored files).
 # The folders listed in build/format-pending.txt are skipped until they are converted.
 # Same as build/format-check.ps1.
 
@@ -25,7 +25,7 @@ Usage: build/format-check.sh [--fix] [--whitespace-only] [--help]
                      the naming rules, build/FormatTool: one-line blocks split, accessor lists on one line);
                      review the diff before committing
   --whitespace-only  only the layout check (no project load, no restore needed)
-Only the tracked .cs files (git ls-files; never .claude/); folders in build/format-pending.txt are skipped.
+Only the tracked .cs files (git ls-files; never untracked or git-ignored files); folders in build/format-pending.txt are skipped.
 Same as build/format-check.ps1.
 EOF
 }
@@ -110,13 +110,12 @@ main() {
     esac
   done
 
+  # bash 3.2 (macOS) treats "${pending[@]}" of an empty array as unset under set -u: hence the ${x[@]+...} below
   local -a pending=()
   local folder
   while IFS= read -r folder; do
     pending+=("${folder%/}")
   done < <(pending_folders)
-  # .claude/ holds the agents' worktrees (whole other checkouts): never part of this checkout's check
-  pending+=(".claude")
 
   cd "${ROOT}"
   format_command
@@ -127,7 +126,7 @@ main() {
   echo "--include" >"${include_file}"
   local file count=0
   while IFS= read -r file; do
-    if ! is_pending "${file}" "${pending[@]}"; then
+    if ! is_pending "${file}" ${pending[@]+"${pending[@]}"}; then
       echo "${file}" >>"${include_file}"
       count=$((count + 1))
     fi
@@ -138,7 +137,7 @@ main() {
   fi
   local include="@${include_file}"
 
-  echo "format-check: whitespace (${count} tracked files, $((${#pending[@]} - 1)) folders pending)"
+  echo "format-check: whitespace (${count} tracked files, ${#pending[@]} folders pending)"
   # ${verify} is either empty or one option
   # shellcheck disable=SC2086
   dotnet "${FORMAT[@]}" whitespace --folder ${verify} "${include}"

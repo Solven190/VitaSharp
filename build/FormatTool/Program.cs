@@ -3,7 +3,7 @@ using VitaSharp.FormatTool;
 // build/format-check.ps1 -Fix / build/format-check.sh --fix: after `dotnet format`, splits the statement blocks
 // written on one line and folds the accessor lists back to one line (SourceLayout). Usage: FormatTool <repo root>
 // <file list>: the list is the scripts' dotnet format response file (--include, then one repository-relative path per
-// line: the tracked .cs files outside build/format-pending.txt and .claude/), so nothing else is ever rewritten.
+// line: the tracked .cs files outside build/format-pending.txt), so nothing else is ever rewritten.
 if (args.Length != 2 || !Directory.Exists(args[0]) || !File.Exists(args[1]))
 {
     Console.Error.WriteLine("usage: FormatTool <repository root> <file list>");
