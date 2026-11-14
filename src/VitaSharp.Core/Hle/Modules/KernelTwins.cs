@@ -762,7 +762,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceDisplayWaitSetFrameBuf(HleContext context) => Forward(context, 0x9423560C);
 
     /// <summary>ksceDisplayWaitSetFrameBufCB (SceDisplayForDriver 0x9D7F203C): sceDisplayWaitSetFrameBufCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceDisplayWaitSetFrameBufCB(HleContext context) => Forward(context, 0x814C90AF);
 
     /// <summary>ksceDisplayWaitSetFrameBufMulti (SceDisplayForDriver 0xE6D27E0A): sceDisplayWaitSetFrameBufMulti.</summary>
@@ -770,7 +770,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceDisplayWaitSetFrameBufMulti(HleContext context) => Forward(context, 0x7D9864A8);
 
     /// <summary>ksceDisplayWaitSetFrameBufMultiCB (SceDisplayForDriver 0x863EACBE): sceDisplayWaitSetFrameBufMultiCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceDisplayWaitSetFrameBufMultiCB(HleContext context) => Forward(context, 0x3E796EF5);
 
     /// <summary>ksceDisplayWaitVblankStart (SceDisplayForDriver 0x984C27E7): sceDisplayWaitVblankStart.</summary>
@@ -778,7 +778,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceDisplayWaitVblankStart(HleContext context) => Forward(context, 0x5795E898);
 
     /// <summary>ksceDisplayWaitVblankStartCB (SceDisplayForDriver 0x46F186C3): sceDisplayWaitVblankStartCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceDisplayWaitVblankStartCB(HleContext context) => Forward(context, 0x78B41B92);
 
     /// <summary>ksceDisplayWaitVblankStartMulti (SceDisplayForDriver 0x40F1469C): sceDisplayWaitVblankStartMulti.</summary>
@@ -786,7 +786,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceDisplayWaitVblankStartMulti(HleContext context) => Forward(context, 0xDD0A13B8);
 
     /// <summary>ksceDisplayWaitVblankStartMultiCB (SceDisplayForDriver 0x77ED8B3A): sceDisplayWaitVblankStartMultiCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceDisplayWaitVblankStartMultiCB(HleContext context) => Forward(context, 0x05F27764);
 
     // ------------------------------------------------------------------ SceDmacmgrForDriver
@@ -1490,7 +1490,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceKernelReceiveMsgPipeVector(HleContext context) => Forward(context, 0x9F899087);
 
     /// <summary>ksceKernelReceiveMsgPipeVectorCB (SceThreadmgrForDriver 0xDA5C9AC6): sceKernelReceiveMsgPipeVectorCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceKernelReceiveMsgPipeVectorCB(HleContext context) => Forward(context, 0xBE5B3E27);
 
     /// <summary>ksceKernelRegisterCallbackToEvent (SceThreadmgrForDriver 0x832A7E0C): sceKernelRegisterCallbackToEvent.</summary>
@@ -1578,7 +1578,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceKernelWaitEvent(HleContext context) => Forward(context, 0x120F03AF);
 
     /// <summary>ksceKernelWaitEventCB (SceThreadmgrForDriver 0x360C655C): sceKernelWaitEventCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceKernelWaitEventCB(HleContext context) => Forward(context, 0xA0490795);
 
     /// <summary>ksceKernelWaitEventFlag (SceThreadmgrForDriver 0x0C1D3F20): sceKernelWaitEventFlag.</summary>
@@ -1586,7 +1586,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceKernelWaitEventFlag(HleContext context) => Forward(context, 0x83C0E2AF);
 
     /// <summary>ksceKernelWaitEventFlagCB (SceThreadmgrForDriver 0x8A35F714): sceKernelWaitEventFlagCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceKernelWaitEventFlagCB(HleContext context) => Forward(context, 0xE737B1DF);
 
     /// <summary>ksceKernelWaitSema (SceThreadmgrForDriver 0x3C8B55A9): sceKernelWaitSema.</summary>
@@ -1594,7 +1594,7 @@ public sealed partial class KernelTwins : HleModule
     void ksceKernelWaitSema(HleContext context) => Forward(context, 0x0C7B834B);
 
     /// <summary>ksceKernelWaitThreadEndCB (SceThreadmgrForDriver 0x9EF4F62C): sceKernelWaitThreadEndCB.</summary>
-    [Hle]
+    [Hle(Cost = HleCost.SchedulerWait, CallbackWait = true)]
     void ksceKernelWaitThreadEndCB(HleContext context) => Forward(context, 0xC54941ED);
 
     // ------------------------------------------------------------------ SceTouchForDriver
