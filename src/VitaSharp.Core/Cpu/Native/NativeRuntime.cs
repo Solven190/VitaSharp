@@ -241,10 +241,30 @@ public sealed unsafe partial class NativeRuntime
     /// on at the pc it set. What the dispatcher must handle (the return trap, callback waits, no handler) is left to it
     /// by raising the SVC exit, which the block's indirect exit sees. A throwing call is caught by the caller.
     /// </summary>
-    private static int HleCall(CpuState* s)
+    internal static int HleCall(CpuState* s)
     {
         HleCallouts++;
-        if (CpuCore.CurrentSvcHandler is not { } h || !h.TryHandleSvcNative(s))
+        CpuCore? core = CpuCore.CurrentCore;
+        if (core?.SvcHandler is not { } h)
+        {
+            s->Exit = ExitReason.Svc;
+            return 0;
+        }
+
+        bool handled;
+        if (core.TimingNative)
+        {
+            // a timed native entry (profiling): its HLE time, blocking waits included, is reported apart
+            long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+            handled = h.TryHandleSvcNative(s);
+            core.CalloutHleTicks += System.Diagnostics.Stopwatch.GetTimestamp() - t0;
+        }
+        else
+        {
+            handled = h.TryHandleSvcNative(s);
+        }
+
+        if (!handled)
         {
             s->Exit = ExitReason.Svc;
         }

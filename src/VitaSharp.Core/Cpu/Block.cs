@@ -331,6 +331,81 @@ public sealed unsafe class BlockCache
         }
     }
 
+    /// <summary>
+    /// Keeps the blocks whose guest code is still what they were decoded from and drops the others (a save state was
+    /// loaded: its memory replaced the process's). A block is kept when decoding its start again gives the same
+    /// instructions, and when every range its compiled code depends on (<see cref="Block._deps"/>: superblock
+    /// continuations, successors whose dead state it relied on) is itself an unchanged block. Dropped blocks leave the
+    /// cache like an instruction-cache invalidation drops them (their links and dispatch entries are undone). Returns the
+    /// numbers kept and dropped.
+    /// </summary>
+    public (int Kept, int Dropped) Revalidate()
+    {
+        using AddressSpace.Activation activation = AddressSpace.Use(Space ?? AddressSpace.Current);
+        var unchanged = new HashSet<(uint Start, uint End)>();
+        var changed = new List<KeyValuePair<ulong, Block>>();
+        var withDeps = new List<KeyValuePair<ulong, Block>>();
+        foreach (KeyValuePair<ulong, Block> kv in _blocks)
+        {
+            if (!kv.Value.Invalidated && CodeUnchanged(kv.Value))
+            {
+                unchanged.Add((kv.Value.Start, kv.Value.End));
+                if (kv.Value._deps != null)
+                {
+                    withDeps.Add(kv);
+                }
+            }
+            else
+            {
+                changed.Add(kv);
+            }
+        }
+        foreach (KeyValuePair<ulong, Block> kv in withDeps)
+        {
+            uint[] deps = kv.Value._deps!;
+            for (int i = 0; i + 1 < deps.Length; i += 2)
+            {
+                if (!unchanged.Contains((deps[i], deps[i + 1])))
+                {
+                    changed.Add(kv);
+                    break;
+                }
+            }
+        }
+        int dropped = 0;
+        foreach (KeyValuePair<ulong, Block> kv in changed)
+        {
+            if (_blocks.TryRemove(kv.Key, out _))
+            {
+                Retire(kv.Value);
+                dropped++;
+            }
+        }
+        return (_blocks.Count, dropped);
+    }
+
+    /// <summary>Whether decoding the guest memory at the block's start again gives the same instructions (decoding is a
+    /// function of the bytes, so equal instructions mean the block's translation is still right).</summary>
+    private static bool CodeUnchanged(Block b)
+    {
+        Block now = BlockBuilder.Build(b.Start, b.Thumb);
+        if (now.End != b.End || now.Insts.Length != b.Insts.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < now.Insts.Length; i++)
+        {
+            ref readonly DecodedInst x = ref now.Insts[i];
+            ref readonly DecodedInst y = ref b.Insts[i];
+            if (x.Raw != y.Raw || x.Op != y.Op || x.Size != y.Size || x.Cond != y.Cond || x.Flags != y.Flags || x.Address != y.Address)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void Clear()
     {
         foreach (KeyValuePair<ulong, Block> kv in _blocks)

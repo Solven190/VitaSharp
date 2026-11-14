@@ -872,7 +872,43 @@ public static class SaveStates
         }
 
         Log.Info($"Load state: GPU backend replaced in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
-        emu.Code.Clear();
+        if (!s_keepCodeOnLoad)
+        {
+            emu.Code.Clear();
+        }
+
+        try
+        {
+            List<GuestThread> restored = LoadSections(emu, list);
+            RevalidateCode(emu.Code);
+            return restored;
+        }
+        catch
+        {
+            emu.Code.Clear(); // a half-restored memory: no translation can be trusted
+            throw;
+        }
+    }
+
+    /// <summary><see cref="EnvVars.LoadKeepCode"/>: keep the translations of unchanged guest code across a load.</summary>
+    private static readonly bool s_keepCodeOnLoad = Environment.GetEnvironmentVariable(EnvVars.LoadKeepCode) == "1";
+
+    /// <summary>After the state's memory and the HLE routines are in place: with <see cref="s_keepCodeOnLoad"/>, drops only
+    /// the blocks whose guest code changed (the whole cache was dropped before the load otherwise).</summary>
+    internal static void RevalidateCode(Cpu.BlockCache code)
+    {
+        if (!s_keepCodeOnLoad)
+        {
+            return;
+        }
+
+        long t0 = Stopwatch.GetTimestamp();
+        (int kept, int dropped) = code.Revalidate();
+        Log.Info($"Load state: kept {kept} translated blocks, dropped {dropped} whose code changed ({Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms)");
+    }
+
+    private static List<GuestThread> LoadSections(Emulator emu, List<(string Name, byte[] Data)> list)
+    {
         AudioDiagnostics.ProcessEnded();
 
         var sections = new Dictionary<string, byte[]>(StringComparer.Ordinal);

@@ -87,6 +87,185 @@ public sealed unsafe class CpuCore : IDisposable
     public void FlushFastCache() => Array.Clear(_fast);
 
     /// <summary>A native static exit returned through an empty link slot: point the slot at the next block if it is native.</summary>
+    /// <summary>Classifies the native run that just returned (<see cref="NativeReturns"/>); an indirect miss is
+    /// classified on the next loop turn, when its target block is looked up.</summary>
+    private void CountNativeReturn(CpuState* s)
+    {
+        NativeReturn reason;
+        if (s->Exit == ExitReason.Svc)
+        {
+            reason = NativeReturn.Svc;
+        }
+        else if (s->Exit != ExitReason.None)
+        {
+            reason = NativeReturn.OtherExit;
+        }
+        else if (s->TierUpRequest != 0)
+        {
+            reason = NativeReturn.TierUp;
+        }
+        else if (s->CycleAcc >= s->CheckWindow)
+        {
+            reason = NativeReturn.Window;
+        }
+        else if (s->LinkBreak != 0)
+        {
+            reason = NativeReturn.LinkBreak;
+        }
+        else if (s->LastExitSlot != 0)
+        {
+            if (*(nint*)s->LastExitSlot != 0)
+            {
+                // linked meanwhile by another thread of the process (the slot is shared): it went on unlinked
+                reason = NativeReturn.StaticLinked;
+            }
+            else
+            {
+                reason = Lookup(s->R[15], s->Thumb != 0).NativeEntry != 0 ? NativeReturn.StaticLinked : NativeReturn.StaticNoCode;
+            }
+        }
+        else
+        {
+            _pendingIndirect = true;
+            return;
+        }
+
+        NativeReturns[(int)reason]++;
+        if (CountReturnSites)
+        {
+            CountReturnSite(reason, s);
+        }
+    }
+
+    /// <summary>Profiling (<see cref="EnvVars.NativeCounters"/>=1): returns to the dispatcher by reason and guest target,
+    /// for the busiest ones on the PERF cycles line.</summary>
+    public static bool CountReturnSites = Environment.GetEnvironmentVariable(EnvVars.NativeCounters) == "1";
+    private Dictionary<ulong, long>? _returnSites;
+
+    private void CountReturnSite(NativeReturn reason, CpuState* s)
+    {
+        if (reason is NativeReturn.Window or NativeReturn.LinkBreak)
+        {
+            return; // pacing: not tied to a target
+        }
+
+        Dictionary<ulong, long> sites = _returnSites ??= new Dictionary<ulong, long>();
+        ulong key = (ulong)reason << 33 | (ulong)s->R[15] << 1 | (s->Thumb != 0 ? 1u : 0u);
+        lock (sites) // the session report reads it from another thread
+        {
+            sites[key] = sites.GetValueOrDefault(key) + 1;
+        }
+    }
+
+    /// <summary>Clears the return counts and sites (profiling windows, tests).</summary>
+    public void ResetNativeReturns()
+    {
+        Array.Clear(NativeReturns);
+        Array.Clear(_returnsAtReport);
+        _framesAtReport = _framesAtSitesReport = _entriesAtReport = 0;
+        NativeEntries = 0;
+        if (_returnSites is { } sites)
+        {
+            lock (sites)
+            {
+                sites.Clear();
+            }
+        }
+    }
+
+    /// <summary>The <paramref name="count"/> busiest return sites since the previous call, "reason target[:T] n/frame"
+    /// (<paramref name="frames"/>: the frames presented so far), or "" when not counted. Windowed like
+    /// <see cref="NativeReturnReport"/>.</summary>
+    public string NativeReturnSitesReport(long frames, int count = 6)
+    {
+        long window = Math.Max(1, frames - _framesAtSitesReport);
+        _framesAtSitesReport = frames;
+        if (_returnSites is not { Count: > 0 } sites)
+        {
+            return "";
+        }
+
+        KeyValuePair<ulong, long>[] busiest;
+        lock (sites)
+        {
+            busiest = sites.OrderByDescending(kv => kv.Value).Take(count).ToArray();
+            sites.Clear();
+        }
+        return string.Join(", ", busiest.Select(kv =>
+            $"{(NativeReturn)(kv.Key >> 33)} {(uint)(kv.Key >> 1):X8}{((kv.Key & 1) != 0 ? ":T" : "")} {kv.Value / (double)window:F1}"));
+    }
+
+    /// <summary>The profiling counters of the PERF cycles line at one moment (<see cref="TakePerfWindow"/>).</summary>
+    public readonly record struct PerfSample(long Frames, long BlockCycles, long BlocksExecuted, long ChargedCycles, long NativeTicks,
+        long NativeHleTicks, long NativeEntries, long NativeReturnsUnlinked, long SimdOps, long CondBranches)
+    {
+        public static PerfSample operator -(PerfSample a, PerfSample b) => new(a.Frames - b.Frames, a.BlockCycles - b.BlockCycles,
+            a.BlocksExecuted - b.BlocksExecuted, a.ChargedCycles - b.ChargedCycles, a.NativeTicks - b.NativeTicks,
+            a.NativeHleTicks - b.NativeHleTicks, a.NativeEntries - b.NativeEntries, a.NativeReturnsUnlinked - b.NativeReturnsUnlinked,
+            a.SimdOps - b.SimdOps, a.CondBranches - b.CondBranches);
+    }
+
+    private PerfSample _perfAtReport;
+
+    /// <summary>The counters now, totals since the thread started (<paramref name="frames"/>: frames presented so far).</summary>
+    public PerfSample PerfTotals(long frames) => new(frames, BlockCycles, BlocksExecuted, ChargedCycles, NativeTicks, NativeHleTicks,
+        NativeEntries, NativeReturnsUnlinked, SimdOps, CondBranches);
+
+    /// <summary>
+    /// The counters since the previous call (the first call: since the thread started). The periodic PERF cycles lines
+    /// report these windows: averages since boot are dominated by the JIT warm-up after a load (Killzone's "1,521 native
+    /// entries per frame" were 240 in steady state). Read racily from the report thread (statistics).
+    /// </summary>
+    public PerfSample TakePerfWindow(long frames)
+    {
+        PerfSample now = PerfTotals(frames);
+        PerfSample window = now - _perfAtReport;
+        _perfAtReport = now;
+        return window;
+    }
+
+    private readonly long[] _returnsAtReport = new long[(int)NativeReturn.Count];
+    private long _framesAtReport, _framesAtSitesReport, _entriesAtReport;
+
+    /// <summary>
+    /// Native entries and returns by reason per frame since the previous call (<paramref name="frames"/>: the frames
+    /// presented so far): "entries 240, Window 19, StaticNoCode 132, ...". Windowed on purpose: averages since boot are
+    /// dominated by the JIT warm-up after a load (Killzone's "1,521 entries per frame" were 240 in steady state).
+    /// </summary>
+    public string NativeReturnReport(long frames)
+    {
+        double window = Math.Max(1, frames - _framesAtReport);
+        _framesAtReport = frames;
+        long entries = NativeEntries;
+        var parts = new List<string> { $"entries {(entries - _entriesAtReport) / window:F1}" };
+        _entriesAtReport = entries;
+        for (int i = 0; i < (int)NativeReturn.Count; i++)
+        {
+            long now = NativeReturns[i];
+            if (now != _returnsAtReport[i])
+            {
+                parts.Add($"{(NativeReturn)i} {(now - _returnsAtReport[i]) / window:F1}");
+                _returnsAtReport[i] = now;
+            }
+        }
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>Native entries and returns by reason per frame over the whole run (the end-of-run summary).</summary>
+    public string NativeReturnTotals(long frames)
+    {
+        double all = Math.Max(1, frames);
+        var parts = new List<string> { $"entries {NativeEntries / all:F1}" };
+        for (int i = 0; i < (int)NativeReturn.Count; i++)
+        {
+            if (NativeReturns[i] != 0)
+            {
+                parts.Add($"{(NativeReturn)i} {NativeReturns[i] / all:F1}");
+            }
+        }
+        return string.Join(", ", parts);
+    }
+
     private void LinkExit(CpuState* s)
     {
         nint slot = s->LastExitSlot;
@@ -333,9 +512,49 @@ public sealed unsafe class CpuCore : IDisposable
     public long BlockCycles, ChargedCycles;
     /// <summary>Profiling: host time (Stopwatch ticks) spent inside native-backend code, its callouts included.</summary>
     public long NativeTicks;
+    /// <summary>Profiling: the part of <see cref="NativeTicks"/> spent in HLE calls made from native code (SVC callouts),
+    /// blocking waits included: worker threads that wait on semaphores and event flags from native code showed ~35 ms per
+    /// frame of "native time" for 0.3 M guest cycles, most of it asleep in the wait.</summary>
+    public long NativeHleTicks;
+    /// <summary>True while a timed native entry runs (<see cref="NativeTimingSample"/>): the SVC handler then adds the
+    /// wall time of its HLE calls to <see cref="CalloutHleTicks"/>.</summary>
+    public bool TimingNative;
+    /// <summary>Wall ticks of HLE calls made from native code during the timed entry.</summary>
+    public long CalloutHleTicks;
     /// <summary>Profiling: entries into native code, and returns with no exit slot and no exit reason (an indirect exit
     /// whose target was not in the dispatch table, or the pacing window / a link break at an indirect exit).</summary>
     public long NativeEntries, NativeReturnsUnlinked;
+
+    /// <summary>Why native code returned to the dispatcher (profiling: the PERF cycles line), indexed by
+    /// <see cref="NativeReturn"/>. A few compares per native entry, against hundreds of guest instructions run per entry.</summary>
+    public readonly long[] NativeReturns = new long[(int)NativeReturn.Count];
+
+    /// <summary>Reasons a native run ends (<see cref="NativeReturns"/>), in the order the dispatcher tells them apart.</summary>
+    public enum NativeReturn
+    {
+        /// <summary>The guest raised an exit: an SVC the native callout left to the dispatcher (callback, return trap).</summary>
+        Svc,
+        /// <summary>Any other exit (undefined instruction, breakpoint, VFP vector mode, yield).</summary>
+        OtherExit,
+        /// <summary>The block asked for its IL tier-up or another FPSCR mode (the block is interpreted once).</summary>
+        TierUp,
+        /// <summary>The pacing window was full (guest cycles since the last pacing check).</summary>
+        Window,
+        /// <summary>An interrupt or stop was flagged (LinkBreak).</summary>
+        LinkBreak,
+        /// <summary>A static exit with an empty link slot whose target had native code: linked now.</summary>
+        StaticLinked,
+        /// <summary>A static exit with an empty link slot whose target has no native code yet (cold or compiling).</summary>
+        StaticNoCode,
+        /// <summary>An indirect exit missed the dispatch table and its target has native code (collision or eviction).</summary>
+        IndirectTableMiss,
+        /// <summary>An indirect exit whose target has no native code yet.</summary>
+        IndirectNoCode,
+        Count,
+    }
+
+    /// <summary>The reason of a native return whose target is looked up on the next loop turn (indirect exits).</summary>
+    private bool _pendingIndirect;
     /// <summary>Profiling (VITASHARP_NATIVE_COUNTERS=1): VFP/NEON ops and conditional branches run in native code.</summary>
     public long SimdOps, CondBranches;
     /// <summary>Guest instructions this thread ran per execution tier: native code (its interpreter callouts
@@ -396,8 +615,8 @@ public sealed unsafe class CpuCore : IDisposable
     /// <summary>See <see cref="ISvcHandler"/>; null: every SVC leaves <see cref="Run"/>.</summary>
     public ISvcHandler? SvcHandler;
 
-    /// <summary>The SVC handler of the thread running native code (HLE callouts find it here).</summary>
-    [ThreadStatic] public static ISvcHandler? CurrentSvcHandler;
+    /// <summary>The core the thread is running (HLE callouts from native code find its <see cref="SvcHandler"/> here).</summary>
+    [ThreadStatic] public static CpuCore? CurrentCore;
 
     /// <summary>Profiling: one native entry in <see cref="NativeTimingSample"/> is timed (twice a clock read per entry
     /// was a few percent of a phone core when HLE calls enter and leave native code hundreds of thousands of times a
@@ -429,7 +648,7 @@ public sealed unsafe class CpuCore : IDisposable
         PendingInstructions = 0;
         // read once per Run: static reads cost a class-initialisation check each under Mono's AOT
         bool verify = Native.NativeVerifier.Enabled;
-        CurrentSvcHandler = SvcHandler;
+        CurrentCore = this;
         Native.NativeRuntime? native = null;
         bool resume = false; // an HLE call returned: native code continues through the dispatch table
         bool republish = false; // an indirect exit missed the dispatch table: the block found next takes its entry back
@@ -471,6 +690,17 @@ public sealed unsafe class CpuCore : IDisposable
                 }
 
                 interpretNext = false;
+                if (_pendingIndirect)
+                {
+                    _pendingIndirect = false;
+                    NativeReturn indirect = b.NativeEntry != 0 ? NativeReturn.IndirectTableMiss : NativeReturn.IndirectNoCode;
+                    NativeReturns[(int)indirect]++;
+                    if (CountReturnSites)
+                    {
+                        CountReturnSite(indirect, s);
+                    }
+                }
+
                 if (republish)
                 {
                     republish = false;
@@ -509,9 +739,20 @@ public sealed unsafe class CpuCore : IDisposable
                 if (++_nativeEntries >= NativeTimingSample)
                 {
                     _nativeEntries = 0;
+                    TimingNative = true;
+                    CalloutHleTicks = 0;
                     long n0 = System.Diagnostics.Stopwatch.GetTimestamp();
-                    native.Run(s, entry);
+                    try
+                    {
+                        native.Run(s, entry);
+                    }
+                    finally
+                    {
+                        TimingNative = false; // also when an HLE call throws out of native code (thread exit)
+                    }
+
                     NativeTicks += (System.Diagnostics.Stopwatch.GetTimestamp() - n0) * NativeTimingSample;
+                    NativeHleTicks += CalloutHleTicks * NativeTimingSample;
                 }
                 else
                 {
@@ -519,6 +760,7 @@ public sealed unsafe class CpuCore : IDisposable
                 }
 
                 NativeEntries++;
+                CountNativeReturn(s);
                 if (s->LastExitSlot == 0 && s->Exit == ExitReason.None)
                 {
                     NativeReturnsUnlinked++;

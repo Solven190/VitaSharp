@@ -183,6 +183,9 @@ public static class EnvVars
     /// register pinning / compare-branch fusion; reported on the PERF cycles lines). ARM64 native blocks count the
     /// executed blocks and guest instructions (the PERF cycles line's "K blocks") only with it (Arm64Emitter.A64Opt.NoBlockCounts).</summary>
     public const string NativeCounters = "VITASHARP_NATIVE_COUNTERS";
+    /// <summary>=1: loading a save state keeps the translated blocks whose guest code the state did not change
+    /// (BlockCache.Revalidate) instead of dropping the whole translation cache (off until measured on the phone).</summary>
+    public const string LoadKeepCode = "VITASHARP_LOAD_KEEP_CODE";
     public const string NativeDump = "VITASHARP_NATIVE_DUMP";
     /// <summary>=0: VCVT between floating-point and fixed-point stays an interpreter callout in native code (A/B
     /// switch of the inline form, ArmFrontend.VfpOther).</summary>
@@ -214,7 +217,8 @@ public static class EnvVars
     /// the C library's memmove for copies of 128 bytes or more.</summary>
     public const string NativeMemmove = "VITASHARP_NATIVE_MEMMOVE";
     /// <summary>ARM64 backend: comma-separated optimisations to turn off for bisection on a device (all, or any of
-    /// pin, backedge, fuse, pair, vcache, fpcr, fpcheck, dirty, lit, patch, cond, stub; see Arm64Emitter.A64Opt and docs/notes/native-jit.md).</summary>
+    /// pin, backedge, fuse, pair, vcache, fpcr, fpcheck, dirty, lit, patch, cond, stub, succ, count, fence, group, fpentry,
+    /// packed, chain, vlazy, assoc, scache; see Arm64Emitter.A64Opt and docs/notes/native-jit.md).</summary>
     public const string NativeA64NoOpt = "VITASHARP_NATIVE_A64_NOOPT";
     public const string NativeNoinline = "VITASHARP_NATIVE_NOINLINE";
     public const string NativeNolink = "VITASHARP_NATIVE_NOLINK";

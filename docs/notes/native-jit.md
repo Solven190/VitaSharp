@@ -18,6 +18,65 @@ Branch `feat/native-jit` (from main ff80a08). Not merged, not pushed.
 | Media instructions, VLD2-4/VST2-4, VSHL.reg.64, VMULL, VCLS, VQMOVN inline on both backends; cheaper compilation (branch perf/jit-complete) | done, see "perf/jit-complete" below |
 | ARM64 code quality: pinned block counters, compare + branch fusion, STP/LDP state flushes, SIMD register cache, lazy FPCR (branch perf/arm64-jit) | done in the sandbox, falta medir no aparelho; see "perf/arm64-jit" below |
 
+## perf/android-jit-13 (2026-11-13): worker time, dispatcher returns, single precision in the SIMD cache
+
+Branch `perf/android-jit-13` (from main 5d2597ec). Not merged, not pushed. x64 output unchanged.
+
+**The workers' "native time" was mostly waiting.** The PERF cycles line's "host time in native code" is wall time,
+and it included HLE calls made from native code (SVC callouts, `NativeRuntime.HleCall`) with their blocking waits.
+The all-threads simpleperf of 09/11 (`kz_all.data`, cpu-clock per tid, ~12 fps) shows the real cost: each Havok worker
+uses 6.5% of a core (~5 ms/frame, ~3.3 ms of it in generated code) against 32-41 ms/frame of "native time". Each
+JobSched thread uses 26-29% (~23 ms/frame: generated code ~12, VitaSharp.Core ~5, Mono + libc ~4). Timed entries now
+measure their HLE callouts apart (`CpuCore.NativeHleTicks`, `CpuCore.CurrentCore` replaces `CurrentSvcHandler`), and the
+line reads "host time in native code X (generated code Y, HLE calls from it Z, waits included)". Worker targets are
+measured as CPU per thread (simpleperf), not as native time.
+
+**Why native code returns to the dispatcher** (`CpuCore.NativeReturns`, "returns/frame" on the same line): Svc (left to
+the dispatcher), OtherExit, TierUp (also the FPSCR-mode return), Window (pacing), LinkBreak, StaticLinked (empty link
+slot, target compiled: linked now), StaticNoCode (target not compiled yet), IndirectTableMiss (target compiled, not in
+the dispatch table), IndirectNoCode. This gives the cause of the game thread's ~900 returns per frame. Test:
+`NativeReturnReasonTests` (every entry has exactly one reason; on a loop through linked and indirect exits only the window,
+the exit to a cold block and at most one miss per indirect target come back).
+
+**`scache` (A64Opt.SingleCache).** Before, single-precision VFP went through the register file in memory at every
+operation. The result was `str s`, the containing D entry was invalidated, the next op reloaded it, odd S registers
+were never cached, and VMOV Sn/Rt and VLDR/VSTR S flushed every dirty cache entry. Now:
+- S registers get their own 4-byte cache entries (lane 0 of v18-v31). Odd S registers of a cached D/Q register are read
+  with one `mov s, v.s[k]` (DUP). Single results are cached like double ones (write-back with `vlazy`).
+- StoreState into the register file (VMOV Sn, Rt; VLDR Sn) becomes `fmov s, w` into a cached entry. LoadState from it
+  (VMOV Rt, Sn; VSTR Sn) reads the cache register (`fmov w, s` / `umov w, v.s[k]`). Neither flushes the cache any more.
+- VLDR Dd loads straight from guest memory into a cache register (`ldr d, [x20, w, uxtw]`), and VSTR Dd stores from
+  the cache register when Dd is cached. Before, both went through x0 and the register file, and flushed the cache.
+  VLD1/VST1 of whole registers are LoadD/StoreD in the ARM64 frontend, and the lane and interleaved forms are register
+  file words, so NEON structure loads and stores use the cache too.
+
+This is the reference approach: Dynarmic's A32 register allocator keeps ExtReg (S/D) values in host vector registers
+and writes them back at block end, and ARMeilleure maps A32 S/D registers onto V registers with lane insert/extract.
+`Arm64CodeQualityTable`, all on vs all minus `scache`: "vfp single" (2 VLDR S, VMUL/VMLA/VADD/VMUL on odd and even S)
+56.0 -> 52.0 host instructions per iteration, 92 -> 88 static words; "vfp dot" 43.0 -> 42.0, 80 -> 76. Inside long blocks
+the saving per op is a store plus a reload (and no store-to-load forwarding stall on the narrow store and wide reload).
+Tests: `Arm64SingleCacheMatchesInterpreter` (500 random blocks of mostly single-precision VFP over S0-S15, VMOV S/R both
+ways, VLDR/VSTR S and D, NEON on the same D registers, FPSCR in and out of the Vita mode; `scache` x `vlazy` on/off
+against the interpreter: 0 differences in 2,000 runs), `Arm64SimdCacheMatchesInterpreter`, two new encodings in
+`Arm64AssemblerTests` (checked with the NDK's clang + llvm-objdump). Device A/B: `VITASHARP_NATIVE_A64_NOOPT=scache`.
+
+**Undone links are a save-state load, not ongoing invalidation.** In the KZ run (kz_jitnaot A_0) all 6,746 undone
+links appear between two report lines, then the count stays flat; UC shows the same pattern (15,937 at once). The cause is
+`SaveStates` dropping the whole translation cache (`Code.Clear()`). Guest code is otherwise dropped only by cache
+maintenance (ICIMVAU/ICIALLU), module load/unload and HLE stubs. Gameplay has no invalidation churn.
+
+**Keeping the JIT across a state load** (`VITASHARP_LOAD_KEEP_CODE=1`, off until measured). `BlockCache.Revalidate`
+runs after the state's memory and this build's HLE routines are in place. It decodes every cached block's start
+again and keeps the block when the instructions are identical and every range its translation depends on (`_deps`:
+superblock continuations, successors whose dead state it used) is an unchanged block. The rest is retired as an
+instruction-cache invalidation would retire it (links and dispatch entries undone). A failed load still clears
+everything. The references clear their whole cache on a state load: Dolphin clears the JIT when PowerPC state is
+read, and PCSX2 resets the recompilers. Keeping unchanged code is the same range-exact invalidation they apply at run
+time (Dolphin's per-range `InvalidateICache`, PCSX2's per-page protection), applied once at load by content
+comparison. Tests: `CodeRevalidateTests` (unchanged blocks are the same objects after a load with the same code;
+changed ARM and Thumb-32 code and a dependent block are dropped; a compiled x64 loop keeps its entry and runs again,
+and after a load with another loop body the new code runs, not the old translation).
+
 ## perf/android-jit (2026-11-09): hot-code size on the phone
 
 Branch `perf/android-jit` (from main 9f21653). Not merged, not pushed. x64 output unchanged (ARM64 compiler only).

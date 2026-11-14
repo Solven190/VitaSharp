@@ -622,6 +622,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   guest; (2) ~800-900 voltas por quadro ao despachante na thread do jogo continuam com a tabela de 2 vias: ver se são
   saídas indiretas para blocos ainda não compilados ou destinos ausentes (contador por motivo); (3) cache de escrita
   para S ímpares (hoje só D e S pares vêm do cache); (4) VecLdSt pelo cache SIMD (hoje esvazia o cache)
+  13/11/2026 (perf/android-jit-13): (1) o "host time in native code" dos workers era quase todo espera (chamadas HLE
+  feitas de dentro do código nativo): pela CPU por thread, Havok usa ~5 ms por quadro (~3,3 no JIT) e JobSched ~23 (~12
+  no JIT). A linha PERF agora separa o tempo HLE do tempo do código gerado. (2) A linha PERF mostra as voltas ao
+  despachante por motivo (Window, Svc, StaticNoCode, IndirectTableMiss...); falta ler no celular. (3) Feito o `scache`:
+  VFP de precisão simples (S pares e ímpares), VMOV S/R e VLDR/VSTR S e D pelo cache SIMD (`VITASHARP_NATIVE_A64_NOOPT=scache`
+  desliga). O (4) também ficou coberto: no ARM64, VLD1/VST1 de registros inteiros viram LoadD/StoreD, e as formas
+  de lane e as intercaladas viram palavras do banco de registros, e as duas passam agora pelo cache. Falta a série A/B
+  no celular.
   09/11/2026 (perf/android-gpu): **regressão desde 06/11 corrigida (23811d9)**: a 240a8de (Jak 1) fazia um `Finish` de
   todos os quadros a cada transferência de CPU sobre um writeback "em voo" e casava quadros que não estavam mais em
   voo; na main eram ~2.400 esperas por sessão (26-29 s) no Killzone. Agora só o quadro do writeback (gravando ou
@@ -761,6 +769,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   overlay ("Pausado", "● REC") com os acentos certos (`and7_tools/shots/lib3.png`, `app_ajustes.png`, `app3.jpg`, `app3b.jpg`,
   `pm_main.png`). Texto dos jogos (PVF) não conferido
   Validado no celular (06/11/2026, perf/android-7): acentos certos em todas as telas do app
+- [ ] Invalidação de código no load de módulo: `Emulator.LoadModule` descarta o código traduzido do processo inteiro
+  (0..4 GB) a cada módulo carregado. Basta descartar o intervalo dos segmentos novos e os stubs de import religados
+  (o `Linker` já invalida os que reescreve), conferido por teste.
+- [ ] Load de save state sem descartar todo o JIT: `SaveStates` chama `Code.Clear()` e todo o código traduzido é
+  recompilado (vários segundos no celular depois de cada load). Manter os blocos cujo código do convidado não mudou
+  (comparando as páginas de código do state com as atuais) e descartar só o resto, conferido por teste.
+  Feito atrás de `VITASHARP_LOAD_KEEP_CODE=1` (perf/android-jit-13, `BlockCache.Revalidate`: redecodifica cada bloco
+  e mantém os iguais e com as dependências iguais; testes em `CodeRevalidateTests`). Falta medir no celular o tempo
+  até o fps estabilizar depois do load, com e sem a chave, e então decidir o padrão.
 - [ ] Reescrita do JIT para ARM64 (pedido do usuário, 04/11/2026): o código gerado ainda tem ~6-12 palavras por
   instrução do Vita no caminho quente e os cortes pequenos (perf/jit-a64: juntar marcações de página suja, PC só nas
   saídas frias, ponto flutuante fora do caminho, contagem simplificada) não deram ganho mensurável no Devious Dungeon.

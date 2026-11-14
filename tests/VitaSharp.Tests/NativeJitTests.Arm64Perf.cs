@@ -34,6 +34,9 @@ public sealed unsafe partial class NativeJitTests
         ("arm 2 callouts", false, "F2220411,F2253414,E2522001,1AFFFFFB"),
         // vldr s0,[r0]; vmul.f32 s1,s0,s2; vadd.f32 s3,s3,s1; add r0,r0,#4; subs r2,r2,#1; bne loop
         ("vfp dot", false, "ED900A00,EE600A01,EE711AA0,E2800004,E2522001,1AFFFFF9"),
+        // vldr s0,[r0]; vldr s1,[r0,#4]; vmul.f32 s2,s0,s4; vmla.f32 s2,s1,s5; vadd.f32 s3,s3,s2; vmul.f32 s7,s3,s6;
+        // add r0,r0,#8; subs r2,r2,#1; bne loop (single precision through odd and even S registers)
+        ("vfp single", false, "ED900A00,EDD00A01,EE201A02,EE001AA2,EE711A81,EE613A83,E2800008,E2522001,1AFFFFF6"),
     ];
 
     private static byte[] GuestBytes(bool thumb, string words)
@@ -376,6 +379,120 @@ public sealed unsafe partial class NativeJitTests
         }
         output.WriteLine($"compared {compared} runs ({insts} instructions, {withCallouts} blocks with callouts); failing kinds {failures.Count}");
         Assert.True(withCallouts > iterations / 10, "too few blocks with callouts");
+        foreach ((string? k, (int count, string? ex)) in failures.OrderByDescending(f => f.Value.Item1).Take(40))
+        {
+            output.WriteLine($"{k,-40} x{count,-5} {ex}");
+        }
+
+        Assert.True(failures.Count == 0, $"{failures.Count} kinds of differences (see output)");
+    }
+
+    /// <summary>
+    /// Single-precision VFP in the SIMD register cache (<see cref="Arm64Emitter.A64Opt.SingleCache"/>): long ARM blocks
+    /// of scalar VFP over S0-S15 (odd and even halves of D0-D7, mostly single precision, some doubles), VMOV Sn/Rt both
+    /// ways, VLDR/VSTR of S and D registers, NEON ops on the same D registers and VMRS/VMSR-free FPSCR modes, against the
+    /// interpreter with the single cache and the write-back cache each on and off.
+    /// </summary>
+    [Arm64SandboxTheory]
+    [InlineData(500, 4202)]
+    public void Arm64SingleCacheMatchesInterpreter(int iterations, int seed)
+    {
+        EnsureGuestPages();
+        using var arena = new ArenaScope();
+        using IArm64Runner sb = Arm64Runner.Create();
+        if (int.TryParse(Environment.GetEnvironmentVariable(EnvVars.FuzzIter), out int itOverride))
+        {
+            iterations = itOverride;
+        }
+
+        var rng = new Random(seed);
+        Arm64Emitter.A64Opt old = Arm64Emitter.Opts;
+        CpuState* s = CpuState.Allocate();
+        var failures = new Dictionary<string, (int, string)>();
+        int compared = 0, insts = 0, detailed = 0;
+        const uint LowRegs = ~(0x00400000u | 0x00088000u | 0x000000A8u); // D0-D7, S0-S15
+        try
+        {
+            for (int it = 0; it < iterations; it++)
+            {
+                var code = new List<byte>();
+                int n = rng.Next(6, 20);
+                for (int k = 0, attempts = 0; k < n && attempts < 400; attempts++)
+                {
+                    uint r = (uint)rng.NextInt64();
+                    uint ins = rng.Next(16) switch
+                    {
+                        // VFP data processing, single precision (sz = 0) most of the time
+                        < 7 => 0xEE000A00u | (r & 0x00FFF0EF & LowRegs),
+                        7 => 0xEE000A00u | (r & 0x00FFF1EF & LowRegs),
+                        // VMOV Sn <-> r1/r3/r5/r7
+                        8 or 9 => 0xEE000A10u | (r & 0x00106000) | 0x1000 | (r & 0x00070080),
+                        // VLDR/VSTR S0-S15, [r0, #0-60]
+                        10 => 0xED900A00u | (r & 0x0040700F),
+                        11 => 0xED800A00u | (r & 0x0040700F),
+                        // VLDR/VSTR D0-D7
+                        12 => 0xED900B00u | (r & 0x0000700F),
+                        13 => 0xED800B00u | (r & 0x0000700F),
+                        _ => RandomNeon(rng, s_neonNoMemory[rng.Next(s_neonNoMemory.Length)]) & LowRegs,
+                    };
+                    DecodedInst d = Decoder.DecodeArm(ins, CodeBase);
+                    if (d.EndsBlock || CpuFuzzTests.IsUnpredictable(d, false))
+                    {
+                        continue;
+                    }
+
+                    if (d.Op.ToString().StartsWith("Neon_") && !SimdDefined(ins, false))
+                    {
+                        continue;
+                    }
+
+                    code.AddRange(BitConverter.GetBytes(ins));
+                    k++;
+                }
+                if (code.Count == 0)
+                {
+                    continue;
+                }
+
+                code.AddRange([0xFE, 0xFF, 0xFF, 0xEA]);
+                code.ToArray().CopyTo(GuestMemory.Span(CodeBase, 0x1000));
+                Block b = BlockBuilder.Build(CodeBase, false);
+                var st = new RandomState(rng);
+                NeonState(rng, st);
+                st.Regs[0] = DataBase + 0x400;
+                // mostly the Vita mode (inline VFP), sometimes another one (the block interprets or takes handlers)
+                st.Fpscr = rng.Next(6) != 0 ? (uint)rng.Next(16) << 28 | 0x0300_0000 : (uint)rng.Next(16) << 28 | (uint)rng.Next(16) << 22;
+                st.Apply(s, false);
+                Snapshot interp = Take(s, Guard(() => CpuCore.Interpret(s, b)));
+                for (int mode = 0; mode < 4; mode++)
+                {
+                    bool single = (mode & 1) != 0, lazy = (mode & 2) != 0;
+                    Arm64Emitter.A64Opt o = old & ~(Arm64Emitter.A64Opt.SingleCache | Arm64Emitter.A64Opt.LazyVec);
+                    Arm64Emitter.Opts = o | (single ? Arm64Emitter.A64Opt.SingleCache : 0) | (lazy ? Arm64Emitter.A64Opt.LazyVec : 0);
+                    CompiledBlock cb = NativeArm64Compiler.Instance.Compile(b, sb.Stubs)!;
+                    st.Apply(s, false);
+                    Snapshot native = Take(s, Guard(() => RunArm64(sb, s, cb.NativeEntry)));
+                    compared++;
+                    insts += b.Insts.Length;
+                    string diff = Diff(interp, native);
+                    if (diff.Length > 0)
+                    {
+                        if (detailed++ < 4)
+                        {
+                            output.WriteLine($"--- single {single} lazy {lazy} fpscr {st.Fpscr:X8}{diff}\n{DescribeArm64(b, cb)}");
+                        }
+
+                        Record(failures, $"single {single} lazy {lazy}", b, diff);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            Arm64Emitter.Opts = old;
+            CpuState.Free(s);
+        }
+        output.WriteLine($"compared {compared} runs ({insts} instructions); failing kinds {failures.Count}");
         foreach ((string? k, (int count, string? ex)) in failures.OrderByDescending(f => f.Value.Item1).Take(40))
         {
             output.WriteLine($"{k,-40} x{count,-5} {ex}");
@@ -1125,6 +1242,7 @@ public sealed unsafe partial class NativeJitTests
         }
 
         configs.Add(("all", Arm64Emitter.A64Opt.All));
+        configs.Add(("all -scache", Arm64Emitter.A64Opt.All & ~Arm64Emitter.A64Opt.SingleCache));
         var results = new Dictionary<(string, string), (double, int)>();
         var diffs = new List<string>();
         const int Iterations = 40;
@@ -1172,5 +1290,8 @@ public sealed unsafe partial class NativeJitTests
         {
             Assert.True(results[("all", name)].Item1 <= results[("none", name)].Item1, $"{name}: optimised code executes more instructions");
         }
+
+        // A64Opt.SingleCache: the single-precision loops keep their S operands and results in registers
+        Assert.True(results[("all", "vfp single")].Item1 < results[("all -scache", "vfp single")].Item1, "vfp single: scache saves nothing");
     }
 }

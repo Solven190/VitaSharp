@@ -19,12 +19,20 @@ public sealed unsafe partial class Arm64Emitter
     // ------------------------------------------------------------------ operand helpers
 
     /// <summary>Loads Vr from the register file at byte offset <paramref name="off"/> from D0 (Q: 16 bytes, else 8).</summary>
-    private void LdV(int r, int off, bool q)
+    private void LdV(int r, int off, bool q) => LdV(r, off, q ? 16 : 8);
+
+    /// <summary>Loads Vr (Q, D or S: <paramref name="len"/> 16, 8 or 4 bytes) from the register file.</summary>
+    private void LdV(int r, int off, int len)
     {
-        VcFlushOverlap(off, q ? 16 : 8);
-        VMem(q ? LsKind.LdrQ : LsKind.LdrD, r, s_offD + off);
+        VcFlushOverlap(off, len);
+        VMem(LoadKind(len), r, s_offD + off);
     }
-    private void StV(int off, int r, bool q) => VMem(q ? LsKind.StrQ : LsKind.StrD, r, s_offD + off);
+
+    private void StV(int off, int r, int len) => VMem(StoreKind(len), r, s_offD + off);
+
+    private static LsKind LoadKind(int len) => len == 16 ? LsKind.LdrQ : len == 8 ? LsKind.LdrD : LsKind.LdrS;
+
+    private static LsKind StoreKind(int len) => len == 16 ? LsKind.StrQ : len == 8 ? LsKind.StrD : LsKind.StrS;
 
     private void VMem(LsKind k, int r, int off)
     {
@@ -70,14 +78,14 @@ public sealed unsafe partial class Arm64Emitter
 
     // ------------------------------------------------------------------ SIMD register cache (A64Opt.VecCache)
 
-    // Guest D/Q registers loaded or produced by VecOps stay in v18-v31 (caller-saved, used by nothing else) for the rest
+    // Guest D/Q registers (and S registers of scalar VFP: 4-byte entries in lane 0) loaded or produced by VecOps stay in v18-v31 (caller-saved, used by nothing else) for the rest
     // of a straight-line region. Write-through: every result is still stored to the register file, so memory is always
     // current and only reloads disappear; an entry dies when anything else writes its bytes (StoreState of an S
     // register, LoadD), at labels (merge points) and at call sites (callouts and FpOp, whose handler path clobbers
     // v16-v31). With the cache off, Src/Dst/Acc/Put emit exactly the old load/op/store sequences.
     private const int VcFirst = 18, VcCount = 14;
     private readonly int[] _vcOff = new int[VcCount];   // byte offset from D0 of the cached register, -1 = free
-    private readonly bool[] _vcQ = new bool[VcCount];   // 16 bytes (Q) or 8 (D)
+    private readonly int[] _vcLen = new int[VcCount];   // 16 bytes (Q), 8 (D) or 4 (S, in lane 0)
     private readonly long[] _vcUse = new long[VcCount];
     private long _vcClock;
     private int _vcBusy;                                // cache registers the current VecOp reads or writes
@@ -87,6 +95,8 @@ public sealed unsafe partial class Arm64Emitter
     // eviction, or a narrower/wider rewrite. Write-through without it.
     private readonly bool[] _vcDirty = new bool[VcCount];
     private bool _vlazy, _vcAnyDirty;
+    /// <summary><see cref="A64Opt.SingleCache"/> for the block being compiled.</summary>
+    private bool _scache;
 
     private void VcForget()
     {
@@ -106,7 +116,7 @@ public sealed unsafe partial class Arm64Emitter
         }
 
         _vcDirty[i] = false;
-        VMem(_vcQ[i] ? LsKind.StrQ : LsKind.StrD, VcFirst + i, s_offD + _vcOff[i]);
+        VMem(StoreKind(_vcLen[i]), VcFirst + i, s_offD + _vcOff[i]);
     }
 
     /// <summary>Stores every dirty cached register (they stay cached, clean).</summary>
@@ -138,7 +148,7 @@ public sealed unsafe partial class Arm64Emitter
 
         for (int i = 0; i < VcCount; i++)
         {
-            if (_vcOff[i] >= 0 && _vcDirty[i] && _vcOff[i] < off + len && off < _vcOff[i] + (_vcQ[i] ? 16 : 8))
+            if (_vcOff[i] >= 0 && _vcDirty[i] && _vcOff[i] < off + len && off < _vcOff[i] + _vcLen[i])
             {
                 VcFlushEntry(i);
             }
@@ -157,7 +167,7 @@ public sealed unsafe partial class Arm64Emitter
         {
             if (_vcOff[i] >= 0)
             {
-                LdV(VcFirst + i, _vcOff[i], _vcQ[i]);
+                LdV(VcFirst + i, _vcOff[i], _vcLen[i]);
             }
         }
     }
@@ -172,7 +182,7 @@ public sealed unsafe partial class Arm64Emitter
 
         for (int i = 0; i < VcCount; i++)
         {
-            if (_vcOff[i] >= 0 && _vcOff[i] < off + len && off < _vcOff[i] + (_vcQ[i] ? 16 : 8))
+            if (_vcOff[i] >= 0 && _vcOff[i] < off + len && off < _vcOff[i] + _vcLen[i])
             {
                 _vcOff[i] = -1;
                 _vcDirty[i] = false;
@@ -182,20 +192,24 @@ public sealed unsafe partial class Arm64Emitter
 
     /// <summary>Ops during which dirty cached registers may stay unwritten (<see cref="A64Opt.LazyVec"/>): they never read
     /// or write the register file in memory except through the cache helpers.</summary>
-    private static bool KeepsDirtyVec(in IrInst x) => x.Op switch
+    private bool KeepsDirtyVec(in IrInst x) => x.Op switch
     {
         IrOp.VecOp => (x.Imm & (uint)VecFlags.SlowPath) == 0,
         IrOp.FpOp => (x.Imm & (uint)FpFlags.Checked) != 0,
-        IrOp.LoadState or IrOp.StoreState or IrOp.LoadD or IrOp.StoreD or IrOp.VecLdSt or IrOp.Label or IrOp.CondBranch
+        // A64Opt.SingleCache: state words of the register file go through the cache (VMOV S, VLDR/VSTR S), the
+        // others do not touch it
+        IrOp.LoadState or IrOp.StoreState or IrOp.LoadD or IrOp.StoreD => _scache,
+        IrOp.VecLdSt or IrOp.Label or IrOp.CondBranch
             or IrOp.BranchIf or IrOp.Callout or IrOp.ExitStatic or IrOp.ExitDynamic => false,
         _ => true, // guest state words, integer ALU, guest memory, barriers, exclusives
     };
 
-    private int VcFind(int off, bool q)
+    /// <summary>A cached register whose lane 0 holds at least <paramref name="len"/> bytes at <paramref name="off"/>.</summary>
+    private int VcFind(int off, int len)
     {
         for (int i = 0; i < VcCount; i++)
         {
-            if (_vcOff[i] == off && (_vcQ[i] || !q))
+            if (_vcOff[i] == off && _vcLen[i] >= len)
             {
                 return i;
             }
@@ -237,25 +251,99 @@ public sealed unsafe partial class Arm64Emitter
 
     /// <summary>A register holding guest bytes [off, off + 8 or 16): a cached one, else loaded (into a new cache
     /// register, or into <paramref name="scratch"/> with the cache off).</summary>
-    private int Src(int scratch, int off, bool q)
+    private int Src(int scratch, int off, bool q) => Src(scratch, off, q ? 16 : 8);
+
+    private int Src(int scratch, int off, int len)
     {
         if (!_vcache)
         {
-            LdV(scratch, off, q);
+            LdV(scratch, off, len);
             return scratch;
         }
-        int i = VcFind(off, q);
+        int i = VcFind(off, len);
         if (i < 0)
         {
             i = VcAlloc();
-            LdV(VcFirst + i, off, q);
+            LdV(VcFirst + i, off, len);
             _vcOff[i] = off;
-            _vcQ[i] = q;
+            _vcLen[i] = len;
             _vcAny = true;
         }
         _vcBusy |= 1 << i;
         _vcUse[i] = ++_vcClock;
         return VcFirst + i;
+    }
+
+    /// <summary>
+    /// A register whose lane 0 holds the S register at <paramref name="off"/> (<see cref="A64Opt.SingleCache"/>): a cached
+    /// entry starting there (S, D or Q), a lane of a cached D/Q register copied to <paramref name="scratch"/> (one DUP
+    /// instead of a store and a reload), else a new 4-byte entry loaded from the register file.
+    /// </summary>
+    private int SrcSingle(int scratch, int off)
+    {
+        int i = VcFind(off, 4);
+        if (i < 0)
+        {
+            for (int k = 0; k < VcCount; k++)
+            {
+                if (_vcOff[k] >= 0 && _vcOff[k] < off && off < _vcOff[k] + _vcLen[k])
+                {
+                    _vcUse[k] = ++_vcClock;
+                    _assembler.DupScalarS(scratch, VcFirst + k, (off - _vcOff[k]) >> 2);
+                    return scratch;
+                }
+            }
+
+            return Src(scratch, off, 4);
+        }
+        _vcBusy |= 1 << i;
+        _vcUse[i] = ++_vcClock;
+        return VcFirst + i;
+    }
+
+    /// <summary>True when state offset <paramref name="off"/> is a word of the guest SIMD register file (D0-D31).</summary>
+    private static bool InRegisterFile(int off) => off >= s_offD && off < s_offD + 256;
+
+    /// <summary>
+    /// <see cref="A64Opt.SingleCache"/>: a 32-bit read of the register file (VMOV Rt, Sn; VSTR Sn) from the cache
+    /// register holding it (FMOV or UMOV), else from memory once the overlapping dirty entries are stored.
+    /// </summary>
+    private void LoadRegisterFileWord(int d, int off)
+    {
+        int rel = off - s_offD;
+        for (int k = 0; k < VcCount; k++)
+        {
+            if (_vcOff[k] >= 0 && _vcOff[k] <= rel && rel < _vcOff[k] + _vcLen[k])
+            {
+                int lane = (rel - _vcOff[k]) >> 2;
+                _vcUse[k] = ++_vcClock;
+                if (lane == 0)
+                {
+                    _assembler.FmovToGp(d, VcFirst + k);
+                }
+                else
+                {
+                    _assembler.Umov(2, d, VcFirst + k, lane);
+                }
+
+                return;
+            }
+        }
+        VcFlushOverlap(rel, 4);
+        LdState(d, off);
+    }
+
+    /// <summary>
+    /// <see cref="A64Opt.SingleCache"/>: a 32-bit write of the register file (VMOV Sn, Rt; VLDR Sn) becomes a cached S
+    /// entry (FMOV into a cache register; dirty with <see cref="A64Opt.LazyVec"/>), so the VFP ops that read it next take
+    /// it from there.
+    /// </summary>
+    private void StoreRegisterFileWord(int value, int off)
+    {
+        _vcBusy = 0;
+        int r = Dst(0);
+        _assembler.FmovFromGp(r, value);
+        Put(off - s_offD, r, 4);
     }
 
     /// <summary>A register for a result that does not read the destination (distinct from this op's sources).</summary>
@@ -270,11 +358,11 @@ public sealed unsafe partial class Arm64Emitter
             LdV(scratch, off, q);
             return scratch;
         }
-        int i = VcFind(off, q);
+        int i = VcFind(off, q ? 16 : 8);
         if (i >= 0 && (_vcBusy >> i & 1) == 0)
         {
             _vcBusy |= 1 << i;
-            if (_vcQ[i] != q)
+            if (_vcLen[i] != (q ? 16 : 8))
             {
                 VcFlushEntry(i); // a Q register rewritten as D: its other half must reach memory
             }
@@ -298,7 +386,11 @@ public sealed unsafe partial class Arm64Emitter
 
     /// <summary>Stores result register <paramref name="r"/> to bytes [off, off + 8 or 16) and records it as their
     /// cached copy (stale overlapping entries dropped first).</summary>
-    private void Put(int off, int r, bool q)
+    private void Put(int off, int r, bool q) => Put(off, r, q ? 16 : 8);
+
+    /// <summary>Stores result register <paramref name="r"/> to bytes [off, off + len) (lane 0) and records it as their
+    /// cached copy.</summary>
+    private void Put(int off, int r, int len)
     {
         bool lazy = _vlazy && _vcache && r >= VcFirst;
         if (lazy)
@@ -306,9 +398,9 @@ public sealed unsafe partial class Arm64Emitter
             // entries this result overlaps: an exact one is superseded, a partial one must reach memory first
             for (int k = 0; k < VcCount; k++)
             {
-                if (_vcOff[k] >= 0 && VcFirst + k != r && _vcOff[k] < off + (q ? 16 : 8) && off < _vcOff[k] + (_vcQ[k] ? 16 : 8))
+                if (_vcOff[k] >= 0 && VcFirst + k != r && _vcOff[k] < off + len && off < _vcOff[k] + _vcLen[k])
                 {
-                    if (!(_vcOff[k] == off && _vcQ[k] == q))
+                    if (!(_vcOff[k] == off && _vcLen[k] == len))
                     {
                         VcFlushEntry(k);
                     }
@@ -320,15 +412,15 @@ public sealed unsafe partial class Arm64Emitter
         }
         else
         {
-            VcFlushOverlap(off, q ? 16 : 8);
-            StV(off, r, q);
-            VcInvalidate(off, q ? 16 : 8);
+            VcFlushOverlap(off, len);
+            StV(off, r, len);
+            VcInvalidate(off, len);
         }
         if (_vcache && r >= VcFirst)
         {
             int i = r - VcFirst;
             _vcOff[i] = off;
-            _vcQ[i] = q;
+            _vcLen[i] = len;
             _vcUse[i] = ++_vcClock;
             _vcAny = true;
             _vcDirty[i] = lazy;
