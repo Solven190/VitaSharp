@@ -17,8 +17,17 @@ namespace VitaSharp.Core.Media;
 public static class H264ReorderLimit
 {
     /// <summary>
+    /// For <see cref="Apply"/>: max_num_reorder_frames = the SPS's max_num_ref_frames. The pictures a decoder holds to
+    /// reorder are the ones decoded ahead of their display, which later pictures predict from, so they are reference
+    /// pictures and never more than max_num_ref_frames: a bound that is right for a stream with B frames from its first
+    /// unit (a Killzone: Mercenary movie: 2, where its whole DPB is 8).
+    /// </summary>
+    public const int ReorderUpToRefFrames = -1;
+
+    /// <summary>
     /// <paramref name="accessUnit"/> with every SPS NAL unit lacking a reorder limit rewritten to state
-    /// <paramref name="maxReorderFrames"/>; the same array when nothing changed.
+    /// <paramref name="maxReorderFrames"/> (<see cref="ReorderUpToRefFrames"/>: each SPS's own max_num_ref_frames); the
+    /// same array when nothing changed.
     /// </summary>
     public static byte[] Apply(byte[] accessUnit, int maxReorderFrames)
     {
@@ -246,8 +255,9 @@ public static class H264ReorderLimit
         writer.Ue(1);                               // max_bits_per_mb_denom (the default)
         writer.Ue(16);                              // log2_max_mv_length_horizontal (the default)
         writer.Ue(16);                              // log2_max_mv_length_vertical (the default)
-        writer.Ue((uint)maxReorderFrames);          // max_num_reorder_frames
-        writer.Ue(Math.Max(maxRefFrames, (uint)maxReorderFrames)); // max_dec_frame_buffering
+        uint reorderFrames = maxReorderFrames == ReorderUpToRefFrames ? maxRefFrames : (uint)maxReorderFrames;
+        writer.Ue(reorderFrames);                   // max_num_reorder_frames
+        writer.Ue(Math.Max(maxRefFrames, reorderFrames)); // max_dec_frame_buffering
         writer.Bit(1);                              // rbsp_stop_one_bit
         writer.Align();
         return ToEscaped(nal[0], writer.ToArray());

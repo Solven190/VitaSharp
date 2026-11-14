@@ -61,6 +61,10 @@ public static class EnvVars
     /// out yet): the next unit waits, draining the output, up to 100 ms (Mobile.Core/Media/MediaCodecSupport.cs,
     /// InputPacing). Set it above the streams' reorder depth (Vita movies: 4 or fewer). Default 0: no pacing.</summary>
     public const string MediaCodecMaxInFlight = "VITASHARP_MEDIACODEC_MAX_IN_FLIGHT";
+    /// <summary>Android, A/B: =refs gives an H.264 SPS without a reorder limit max_num_reorder_frames = its
+    /// max_num_ref_frames from the first unit (H264ReorderLimit.ReorderUpToRefFrames), instead of 0 until a B slice
+    /// restarts the decoder with the stream's own SPS (the whole DPB). Default: unset.</summary>
+    public const string MediaCodecReorder = "VITASHARP_MEDIACODEC_REORDER";
     /// <summary>Tests: path of a media parity trace pulled from an Android device or emulator
     /// (build/android-media-parity.sh); MediaParityTests compares it with the desktop's (skipped when unset).</summary>
     public const string AndroidMediaTrace = "VITASHARP_ANDROID_MEDIA_TRACE";

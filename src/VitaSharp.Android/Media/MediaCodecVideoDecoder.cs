@@ -82,7 +82,10 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
     int _statedReorderFrames = -1;
     static readonly bool s_primeEveryStream = System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecPrime) == "all";
     // VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N (A/B): at most N units in flight before the next one is queued (InputPacing)
-    static readonly int s_maxInFlight = int.TryParse(System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecMaxInFlight), out int maxInFlight) ? Math.Max(0, maxInFlight) : 0;
+    // VITASHARP_MEDIACODEC_REORDER=refs (A/B): SPSs without a reorder limit get max_num_reorder_frames = their
+    // max_num_ref_frames from the first unit (H264ReorderLimit.ReorderUpToRefFrames) instead of 0 and a restart
+    static readonly bool s_reorderUpToRefFrames = System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecReorder) == "refs";
+    static readonly int s_maxInFlight =int.TryParse(System.Environment.GetEnvironmentVariable(EnvVars.MediaCodecMaxInFlight), out int maxInFlight) ? Math.Max(0, maxInFlight) : 0;
     long _lastOutputPts = long.MinValue, _skipThroughPts = long.MinValue;
     // output format (raw-buffer path and crop)
     int _width, _height, _stride, _sliceHeight, _colorFormat, _cropX, _cropY;
@@ -295,7 +298,23 @@ public sealed unsafe class MediaCodecVideoDecoder : IVideoDecoder
                 _statedReorderFrames = H264ReorderLimit.StatedReorderFrames(accessUnit) ?? 0;
             }
 
-            if (!s_legacyOutputTiming && !_streamReorders && H264ReorderLimit.ContainsSps(accessUnit))
+            if (s_reorderUpToRefFrames && !s_legacyOutputTiming && H264ReorderLimit.ContainsSps(accessUnit))
+            {
+                // A/B: a bound that holds for B frames too, so no restart when the first B slice comes
+                byte[] bounded = H264ReorderLimit.Apply(accessUnit.ToArray(), H264ReorderLimit.ReorderUpToRefFrames);
+                if (bounded.Length != accessUnit.Length)
+                {
+                    _statedReorderFrames = H264ReorderLimit.StatedReorderFrames(bounded) ?? 0;
+                    if (!_reorderLimitLogged)
+                    {
+                        _reorderLimitLogged = true;
+                        Log.Info($"MediaCodec: {_codecName}: the stream's SPS has no reorder limit: max_num_reorder_frames = {_statedReorderFrames} (its reference frames) given to the decoder");
+                    }
+
+                    unitToQueue = bounded;
+                }
+            }
+            else if (!s_legacyOutputTiming && !_streamReorders && H264ReorderLimit.ContainsSps(accessUnit))
             {
                 byte[] limited = H264ReorderLimit.Apply(accessUnit.ToArray(), 0);
                 _reorderLimitGiven |= limited.Length != accessUnit.Length;
