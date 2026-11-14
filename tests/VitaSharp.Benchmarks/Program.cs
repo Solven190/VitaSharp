@@ -34,7 +34,7 @@ public static class Program
 
 /// <summary>The configuration of every run: allocations, two levels of disassembly, one joined GitHub Markdown table
 /// (the default config's exporters). BenchmarkDotNet builds a generated project per run: its build uses two MSBuild nodes
-/// and no shared compiler server (the server ignores -m and takes ~7 cores; docs/agents/regras.md). The machine's power
+/// and no shared compiler server (the server ignores -m and takes ~7 cores). The machine's power
 /// plan is left as it is (BenchmarkDotNet switches Windows to "High performance" by default).</summary>
 public static class BenchConfig
 {

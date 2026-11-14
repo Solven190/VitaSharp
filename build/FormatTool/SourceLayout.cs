@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace VitaSharp.FormatTool;
 
 /// <summary>
-/// The layout rules `dotnet format` cannot apply by itself (docs/agents/regras.md, "Código legível"): no statement
+/// The layout rules `dotnet format` cannot apply by itself (README, "Code style"; .editorconfig): no statement
 /// block written on one line (`if (x) { a; }`, `catch (E) { Log(); }`, `void M() { a; b; }`), while auto-property
 /// accessor lists stay on one line (`{ get; set; }`). Shared by build/FormatTool (format-check --fix) and
 /// tests/VitaSharp.Tests/OneLineBlockTests (the check).

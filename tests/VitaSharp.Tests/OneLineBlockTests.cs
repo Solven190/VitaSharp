@@ -4,7 +4,7 @@ using VitaSharp.FormatTool;
 namespace VitaSharp.Tests;
 
 /// <summary>
-/// "Código legível" (docs/agents/regras.md): no block with statements on a single line (`if (x) { a; }`,
+/// Readable code (README, "Code style"; .editorconfig): no block with statements on a single line (`if (x) { a; }`,
 /// `catch (E) { Log(); }`, `void M() { a; b; }`). The formatter keeps one-line blocks (it has to, for auto-property
 /// accessor lists), so this test is the check; build/format-check --fix applies the same rules (SourceLayout).
 /// Accessor lists (`{ get; set; }`) and lambda bodies (`=> { ...; }`) are allowed, strings and comments ignored; the
@@ -101,6 +101,6 @@ public partial class OneLineBlockTests
             }
         }
 
-        Assert.True(bad.Count == 0, $"{bad.Count} one-line blocks (build/format-check --fix splits them; docs/agents/regras.md \"Código legível\"):\n" + string.Join("\n", bad.Take(40)));
+        Assert.True(bad.Count == 0, $"{bad.Count} one-line blocks (build/format-check --fix splits them; README \"Code style\"):\n" + string.Join("\n", bad.Take(40)));
     }
 }

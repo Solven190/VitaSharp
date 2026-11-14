@@ -8,7 +8,7 @@ namespace VitaSharp.Tests;
 
 /// <summary>
 /// Where the firmware keeps what is installed is described once (<see cref="FirmwareLayout"/>) and every part of
-/// VitaSharp goes through it (docs/agents/regras.md, "Sem listas soltas de pastas ou caminhos do sistema"): one item of
+/// VitaSharp goes through it (the project rule: no loose lists of system folders or paths): one item of
 /// each kind is listed and opened by the same path, and no code outside the layout names those folders. Synthetic
 /// content only.
 /// </summary>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    The layout rules dotnet format cannot apply (docs/agents/regras.md, "Código legível"): splits statement blocks
+    The layout rules dotnet format cannot apply (README, "Code style"; .editorconfig): splits statement blocks
     written on one line and keeps auto-property accessor lists on one line (SourceLayout.cs, shared with
     tests/VitaSharp.Tests/OneLineBlockTests). Run by build/format-check.ps1 / build/format-check.sh with the fix option. Not part
     of VitaSharp.sln: a developer tool.

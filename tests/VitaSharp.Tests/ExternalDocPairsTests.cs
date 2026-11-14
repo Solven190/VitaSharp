@@ -9,7 +9,7 @@ namespace VitaSharp.Tests;
 /// Portuguese, side by side (<c>README.md</c> + <c>README.pt-BR.md</c>). Each file starts with
 /// <c>&lt;!-- pair: &lt;other file&gt; sha256=&lt;hash of the other file&gt; --&gt;</c>, so a change to one of them without its
 /// pair fails here: update the other language, then the two hash lines (the failure prints them). Internal docs
-/// (roadmap, docs/agents, docs/notes, docs/hle) stay in one language.
+/// (roadmap, docs/notes, docs/hle) stay in one language.
 /// </summary>
 public class ExternalDocPairsTests
 {

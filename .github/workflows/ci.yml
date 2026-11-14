@@ -51,7 +51,7 @@ jobs:
   #     - name: dotnet format --verify-no-changes
   #       run: bash build/format-check.sh
 
-  # Shell scripts: ShellCheck clean (Google Shell Style Guide, docs/agents/regras.md), and every build/*.sh at least
+  # Shell scripts: ShellCheck clean (Google Shell Style Guide), and every build/*.sh at least
   # parses and answers --help on macOS (bash 3.2 and the BSD tools, the platform most likely to break them).
   shellcheck:
     name: ShellCheck

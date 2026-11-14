@@ -4,8 +4,8 @@
 # Enforcement: build/format-check.ps1 / build/format-check.sh (CI job "Code style") run
 #   dotnet format whitespace --verify-no-changes            (layout: Allman braces, 4 spaces, spacing, indentation)
 #   dotnet format style --severity warn --verify-no-changes (the code-style rules below set to :warning)
-# and tests/VitaSharp.Tests/OneLineBlockTests rejects statement blocks written on one line (docs/agents/regras.md,
-# "Código legível"; the formatter itself has to keep one-line blocks for `{ get; set; }`).
+# and tests/VitaSharp.Tests/OneLineBlockTests rejects statement blocks written on one line (README, "Code style":
+# the readable-code rule; the formatter itself has to keep one-line blocks for `{ get; set; }`).
 # Severities: ":warning" = the code already follows the rule, CI fails if it comes back; ":suggestion" = the rule of the
 # guide, shown by the IDE, raised to :warning folder by folder as the code is converted; ":silent"/"none" = deliberately
 # not applied (reason next to it). A place where a rule would hurt performance keeps its code and gets a targeted
@@ -140,8 +140,8 @@ csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_readonly_struct = true:silent
 csharp_style_prefer_readonly_struct_member = true:silent
 
-# Code-block preferences: braces on every if/else/for/foreach/while/using/lock body (docs/agents/regras.md, "Código
-# legível": stricter than Ryubing rule 18; braces never change the generated code)
+# Code-block preferences: braces on every if/else/for/foreach/while/using/lock body (README, "Code style":
+# the readable-code rule, stricter than Ryubing rule 18; braces never change the generated code)
 csharp_prefer_braces = true:warning
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_prefer_system_threading_lock = true:suggestion
@@ -205,7 +205,7 @@ csharp_space_between_parentheses = false
 csharp_space_between_square_brackets = false
 
 # Wrapping
-# one statement per line and every block on its own lines (docs/agents/regras.md, "Código legível")
+# one statement per line and every block on its own lines (README, "Code style": the readable-code rule)
 # one-line blocks are kept only where the formatter cannot tell them apart: auto-property accessor lists
 # (`{ get; set; }`), short lambdas and initializers. Bodies of if/else/loops/methods are expanded (prefer_braces +
 # preserve_single_line_statements = false); OneLineBlockTests rejects one-line statement blocks.

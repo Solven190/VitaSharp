@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace VitaSharp.Tests;
 
 /// <summary>
-/// The emulator is generic (docs/agents/regras.md, "O emulador é genérico"): nothing in src/ compares a program with a
+/// The emulator is generic (the project rule): nothing in src/ compares a program with a
 /// literal title ID or title-ID prefix to change what it does ("NPXS10008", "PCSB00123", "NPXS", "PCSE"...). What
 /// the firmware decides by data comes from that data (param.sfo, the vs0: origin, app.db). Comments may name the
 /// program where a bug showed up; tests may use any ID.

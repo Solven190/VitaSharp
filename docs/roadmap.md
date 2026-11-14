@@ -1798,7 +1798,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
   `%LOCALAPPDATA%\VitaSharpTools`), o mesmo driver que o CI do Linux usa. Antes de trocar: conferir se ele expõe
   `VK_EXT_rasterization_order_attachment_access` (caminho de fetch passes da Mali no replay), rodar os mesmos
-  replays/testes do renderizador nos dois (exatidão, extensões, tempo) e só então mudar a regra do `regras.md`, o CI do
+  replays/testes do renderizador nos dois (exatidão, extensões, tempo) e só então mudar a regra do projeto, o CI do
   Windows e o README.
 - [ ] **PRIORIDADE (11/11/2026)** Builds do GitHub Actions quebrando na main (relato do usuário, 11/11/2026, página de
   commits da main). Ver em cada workflow (ci.yml: Windows/Ubuntu/macOS, publish, "Coverage gate" novo de 11/11;
@@ -1820,7 +1820,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (exit 139) logo depois de "Readback buffers" / o primeiro present; o runner ubuntu não tem lavapipe e pula. A
   investigar (driver lavapipe ou leitura de volta do renderizador).
 - [ ] **PRIORIDADE (11/11/2026, dia de refatoração)** O emulador é genérico (regra do usuário: nada específico a
-  não ser a camada Vulkan; ver `docs/agents/regras.md`). (1) Auditoria arquivo por arquivo de src/ procurando qualquer
+  não ser a camada Vulkan; ver `tests/VitaSharp.Tests/GenericCodeTests.cs`). (1) Auditoria arquivo por arquivo de src/ procurando qualquer
   comportamento por jogo, app, homebrew ou módulo de terceiro (comparação de ID/nome, listas fixas, caminhos fixos,
   HLE de módulo que não é do firmware) e lista com o arquivo:linha de cada um. (2) Trocar cada um pelo caminho
   genérico, já encontrados: `Hle/Modules/Taihen.cs` e `Hle/Modules/Kubridge.cs` (módulos de kernel de homebrew em
@@ -1943,7 +1943,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (7 quadros) 0,6-0,8 s com 137 MB alocados por replay (a maior parte é o leitor do dump, que copia cada registro).
 - [x] Scripts `.sh` no Google Shell Style Guide (pedido do usuário, 10/11/2026):
   https://google.github.io/styleguide/shellguide.html, junto com a regra de que todo `.sh` roda em Linux e macOS
-  (bash 3.2, sem ferramentas só do GNU sem alternativa; ver `docs/agents/regras.md`). Passos: (1) adequar os 17
+  (bash 3.2, sem ferramentas só do GNU sem alternativa). Passos: (1) adequar os 17
   scripts de `build/`: `#!/usr/bin/env bash` + `set -euo pipefail` onde couber, cabeçalho com o que o script faz,
   funções com comentário e `local`, `main "$@"` no fim dos scripts com funções, variáveis entre aspas e com `${}`,
   `[[ ]]` e `$(...)`, nomes em minúsculas_com_sublinhado, constantes em MAIÚSCULAS com `readonly`, erros no stderr,
@@ -2032,7 +2032,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] README e documentação externa em dois idiomas (pedido do usuário, 07/11/2026): inglês como padrão
   (`README.md`, `docs/compatibility.md` e o que for para quem usa o emulador: instalação, firmware, controles,
   releases) e uma cópia em português do Brasil ao lado (`README.pt-BR.md`, `docs/compatibility.pt-BR.md`...), com um
-  link "English | Português" no topo de cada um. Só o que é externo: coisas internas (este roadmap, `docs/agents/`,
+  link "English | Português" no topo de cada um. Só o que é externo: coisas internas (este roadmap,
   `docs/notes/`, `docs/hle/`) continuam num idioma só, como estão. Manter os dois em dia a cada mudança (um teste que
   avisa quando um arquivo externo muda sem o par)
   Feito (08/11/2026, feat/product-1): `README.md` em inglês e `README.pt-BR.md`, `docs/compatibility.md` e
