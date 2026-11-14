@@ -373,6 +373,9 @@ public static class EnvVars
     public const string AndroidGameState = "VITASHARP_ANDROID_GAME_STATE";
     /// <summary>Android: seconds between the periodic session statistics in the log file (default 30, 0 = off).</summary>
     public const string SessionReportSeconds = "VITASHARP_SESSION_REPORT_SECONDS";
+    /// <summary>=1: the periodic summary adds "PERF states" lines, each guest thread's states since the previous one
+    /// (waiting on what, running which call, waiting for a core, paced), sampled every 5 ms (Util/ThreadStateSampler).</summary>
+    public const string ThreadStates = "VITASHARP_THREAD_STATES";
     /// <summary>Developer builds: the GPU worker spends FACTOR times its real time on each command (busy wait), to
     /// reproduce a phone's worker cost on a PC (default 1).</summary>
     public const string GpuWorkerSlowdown = "VITASHARP_GPU_WORKER_SLOWDOWN";

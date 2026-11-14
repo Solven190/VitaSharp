@@ -157,6 +157,7 @@ public static class SessionReport
         Add(VitaSharp.Core.Hle.Modules.Ngs.PerfLines);
         Add(ProcessLines);
         Add(() => StallLines(emu));
+        Add(() => ThreadStateSampler.Lines(emu));
         return lines;
     }
 
