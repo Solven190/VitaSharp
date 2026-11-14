@@ -67,6 +67,9 @@ main() {
   local out="${OUT:-${ROOT}/artifacts/android}"
   local version="${VERSION:-dev}"
   local jobs="${JOBS:-2}"
+  # MSBuild reads environment variables as properties: VERSION would become $(Version) (ci-<n> is no valid package
+  # version, restore fails)
+  unset VERSION
   local ndk
   ndk="$(find_ndk)"
   if [[ -z "${ndk}" || ! -d "${ndk}/toolchains" ]]; then
