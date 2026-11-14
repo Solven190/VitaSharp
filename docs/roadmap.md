@@ -652,6 +652,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   da fila de display chega antes da GPU terminar. Próximo: medir onde a thread do jogo fica nesses ~20 ms
   (`VITASHARP_PERF_HLE_TIME=1`: tempo de parede por função HLE e por thread; a linha "PERF guest waits" passou a dar o
   tempo em que o worker segurou cenas esperando o display liberar o buffer) e só então atacar a espera certa
+  Perfetto do KZ (13/11): os ~20 ms/quadro são a thread do jogo consultando os jobs com `sceKernelDelayThread`
+  (~235 chamadas/quadro de ~33 us pedidos, 43% do tempo dela), notificações ~8 ms/quadro, núcleos A76 37-39% ociosos.
+  Testado sem ganho: `VITASHARP_ANDROID_HELPERS=spare` (JobSched nos A76 ociosos: CPU dos JobSched 26 -> 22 ms/quadro,
+  fps 22,0-22,8 contra 22,5-24,7, 3 pares) e o atraso de ~35 us de cada DelayThread curto (o timer slack já é 1 us;
+  só a última consulta de cada espera custa, ~0,5 ms/quadro). Próximo: com as linhas "PERF hle time" (agora pelas
+  threads mais ocupadas) ver o que a thread do jogo espera entre as consultas
+  O EARLY no modo nativo nunca deixa o jogo apresentar mais rápido que o sinal de conclusão (mediana da janela base):
+  o F1 na corrida não tem limitador próprio (1 `sceDisplayWaitVblankStart` por quadro, o do callback) e com EARLY
+  passava de 30 para 36-39 fps no celular. No PC, sem EARLY, o F1 já roda a corrida a 60 fps: manter jogos sem
+  limitador no ritmo do Vita num host rápido é outra decisão (modo nativo = ritmo do jogo; fixo 30 existe)
 
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
