@@ -62,7 +62,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
   firmware) e os `_chk`/`__stack_chk_fail` que param o sistema (BKPT 0x81). Teste `KernelSysclibTests`.
 - Censo regenerado por `VitaSharp.Desktop kernel-census` (a tabela abaixo e o `.tsv`).
 
-## Por biblioteca (gerado por `VitaSharp.Desktop kernel-census` em 14/11/2026; "antes" é o censo anterior)
+## Por biblioteca (gerado por `VitaSharp.Desktop kernel-census`; "antes" é o censo anterior)
 
 | Biblioteca | Módulo (NID da biblioteca) | Funções | HLE+default antes | HLE | default | faltam | faltam e são importadas | sem nome |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -158,14 +158,14 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceSblSsMgrForDriver | SceSblSsMgr (0x61E9428D) | 40 | 0 | 0 | 0 | 40 | 33 | 3 |
 | SceSblSsMgrForKernel | SceSblSsMgr (0x74580D9F) | 5 | 0 | 0 | 0 | 5 | 5 | 1 |
 | SceSdifForDriver | SceSdif (0x96D306FA) | 59 | 0 | 0 | 0 | 59 | 31 | 42 |
-| SceSysclibForDriver | SceSysmem (0x7EE45391) | 51 | 4 | 51 | 0 | 0 | 0 | 0 |
+| SceSysclibForDriver | SceSysmem (0x7EE45391) | 51 | 51 | 51 | 0 | 0 | 0 | 0 |
 | SceSysconForDriver | SceSyscon (0x60A35F64) | 311 | 0 | 0 | 0 | 311 | 198 | 239 |
 | SceSysmemForDriver | SceSysmem (0x6F25E18A) | 114 | 22 | 22 | 0 | 92 | 57 | 14 |
 | SceSysmemForKernel | SceSysmem (0x02451F0F) | 169 | 2 | 2 | 0 | 167 | 75 | 140 |
 | SceSysrootForDriver | SceSysmem (0x2ED7F97A) | 181 | 0 | 0 | 0 | 181 | 111 | 156 |
 | SceSysrootForKernel | SceSysmem (0x3691DA45) | 143 | 2 | 2 | 0 | 141 | 65 | 105 |
 | SceSystimerForDriver | SceSystimer (0xA47EB09A) | 14 | 0 | 0 | 0 | 14 | 8 | 4 |
-| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 89 | 89 | 0 | 159 | 72 | 136 |
+| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 89 | 94 | 0 | 154 | 67 | 136 |
 | SceThreadmgrForKernel | SceKernelThreadMgr (0x7F8593BA) | 64 | 0 | 0 | 0 | 64 | 15 | 63 |
 | SceTouchForDriver | SceTouch (0xA4A7DAFC) | 29 | 15 | 15 | 0 | 14 | 8 | 10 |
 | SceUartForKernel | SceSysmem (0x1CCD9BA3) | 4 | 0 | 0 | 0 | 4 | 1 | 0 |
@@ -180,5 +180,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **561** | **551** | **57** | **3310** | **1807** | **2037** |
+| **Total** | | **3918** | **608** | **556** | **57** | **3305** | **1802** | **2037** |
 
