@@ -345,6 +345,18 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   bibliotecas com o driver frio levou 51,5 s contra 19,7 s (removido). Já a segunda sessão com o prewarm normal cai
   para 16 quadros (pior 116 ms). Próximo passo, se voltar: mais workers fora da fixação em 4 CPUs, ou medir a GPL em
   AMD/Intel/Mesa, onde a biblioteca pode custar bem menos que o pipeline. Ver `docs/notes/pipeline-skip.md`
+  Pendente antes de ligar as bibliotecas: VUID-VkGraphicsPipelineCreateInfo-renderPass-09652 só com elas (replay do
+  dump do Killzone com `--validation`: 0 com `VITASHARP_PIPELINE_LIBRARY=0`). Ponto: shader de fragmento com
+  `last_frag_in` (input attachment 0, variantes fetch-input do `ShaderGenerator`) numa biblioteca de fragmento ou na
+  ligação com renderização dinâmica e `colorAttachmentCount` 0. Pôr os anexos de cor da chave na biblioteca e na
+  ligação não resolveu; a chamada exata ainda não foi identificada (quadros idênticos)
+- [ ] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
+  frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
+  e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
+  Causa provável: o processo BelowNormal ficou sem CPU (as threads AboveNormal dele continuam abaixo de trabalho
+  Normal); vista em duas corridas, sem pilha capturada durante uma parada. Próximo passo, se voltar: o relatório do
+  watchdog dizer o tempo de CPU que o processo e a thread da GPU receberam durante a parada, para separar falta de
+  CPU de espera (fence, lock, driver). Ver `docs/notes/pipeline-skip.md`
 - [ ] Prioridade das threads em CPU híbrida (núcleos E) e na bateria: medir `SetThreadSelectedCpuSets` e o
   power throttling num Intel de 12ª geração ou mais novo (as threads da CPU emulada e da GPU já sobem para acima do
   normal, `--host-prio`; ver `docs/notes/thread-priority.md`)

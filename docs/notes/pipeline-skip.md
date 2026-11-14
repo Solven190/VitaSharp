@@ -233,3 +233,21 @@ briefing to the first level), same machine, pinned to 4 logical CPUs at BelowNor
   pinned CPUs. More workers on the unpinned 8-CPU machine, or shipping the recorded `pipelines.list` as prewarm data,
   are the remaining levers. GPL helps only on drivers where a library is much cheaper than a pipeline (not measured:
   AMD, Intel, Mesa).
+
+GPU-thread stalls of 6-31 s outside shader work (the watchdog's "GPU worker made no progress", 13 November 2026). In
+the "emulator warm, driver cold" Killzone run the watchdog reported the GPU worker idle for 11, 19 and 31 s with
+commands pending. The stalls were not counted as shader/pipeline work (worst 116 ms), and the audio output also had a
+gap of 5.0 s. The same condition, rerun when the machine was quiet (average load 22%), had no watchdog stall and a
+1.2 s worst audio gap. The emulator ran at BelowNormal priority, pinned to 4 CPUs, while other jobs kept the CPU at
+100%. The most likely cause is that the whole process was starved (BelowNormal + AboveNormal threads stay below
+Normal-priority work). That rests on these two runs only: the quiet rerun had no stall, so no stack was taken during
+one. Measurements are only valid with the 75% load rule; at the default Normal priority this does not apply to
+players.
+
+VUID-VkGraphicsPipelineCreateInfo-renderPass-09652 with pipeline libraries only (replay of the Killzone dump with
+`--validation`: 0 with `VITASHARP_PIPELINE_LIBRARY=0`, 2 distinct reports with `=1`). It is raised by a fragment
+shader that reads the framebuffer through `last_frag_in` (input attachment 0, programmable blending,
+`ShaderGenerator` fetch-input variants) when a fragment-shader library or the link is created with dynamic rendering
+and `colorAttachmentCount` 0. Adding the key's colour attachments to the fragment library and to the link did not
+remove it, so the call is not identified yet. The frames stay pixel-identical. This has to be fixed before the
+libraries can be turned on by default.
