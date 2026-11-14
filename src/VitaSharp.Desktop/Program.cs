@@ -180,6 +180,10 @@ public static class Program
                 // hle-implemented [--vitasdk=<vitasdk-user-functions.tsv>]: every NID with an HLE implementation, as
                 // docs/hle/data/vitasharp-implemented.tsv (nid, name, module, library, "vh" when the VitaSDK lists it).
                 return ListHleImplemented(args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..]);
+            case "kernel-census":
+                // kernel-census [--root=<repository>]: the HLE status of every FW 3.74 kernel export in
+                // docs/hle/data/kernel-exports.tsv and the per-library table of docs/hle/kernel-exports.md
+                return KernelCensus(OptValue(args, "--root") ?? Directory.GetCurrentDirectory());
             case "hle-coverage":
                 return HleCoverage(args.Skip(1).FirstOrDefault(a => a.StartsWith("--out="))?["--out=".Length..],
                     args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..],
@@ -765,6 +769,122 @@ public static class Program
         return 0;
     }
 
+    /// <summary>
+    /// kernel-census: updates the census of the FW 3.74 kernel exports from this build's HLE. Each row of
+    /// docs/hle/data/kernel-exports.tsv (library, NID, name, status, VitaSharp method, importers; the rows come from the
+    /// firmware's export tables and stay) gets its status (impl, default, missing) and method again; the per-library
+    /// table of docs/hle/kernel-exports.md (between its "Por biblioteca" heading and the next heading) is written from
+    /// it, with the previous status as the "antes" column.
+    /// </summary>
+    static int KernelCensus(string root)
+    {
+        string tsv = Path.Combine(root, "docs", "hle", "data", "kernel-exports.tsv");
+        string md = Path.Combine(root, "docs", "hle", "kernel-exports.md");
+        if (!File.Exists(tsv) || !File.Exists(md))
+        {
+            Console.Error.WriteLine($"kernel-census: {tsv} or {md} not found (--root=<repository>)");
+            return 1;
+        }
+
+        var methods = new Dictionary<uint, (string Method, bool Default)>();
+        foreach (HleModuleEntry module in HleBindings.Modules)
+        {
+            foreach (HleBinding binding in module.Bindings())
+            {
+                string name = binding.Name ?? binding.Method;
+                uint[] nids = binding.Nid != 0 ? [binding.Nid]
+                    : NidDatabase.LookupName(name).Where(i => binding.Library == null || i.Library == binding.Library).Select(i => i.Nid).ToArray();
+                foreach (uint nid in nids)
+                {
+                    string method = $"{module.Type.Name}.{binding.Method}";
+                    methods[nid] = methods.TryGetValue(nid, out (string Method, bool Default) had) ? (had.Method, had.Default && binding.Default) : (method, binding.Default);
+                }
+            }
+        }
+
+        string[] lines = File.ReadAllLines(tsv);
+        var output = new List<string>();
+        var libraries = new SortedDictionary<string, int[]>(StringComparer.Ordinal);
+        foreach (string line in lines)
+        {
+            string[] cells = line.Split('	');
+            if (line.StartsWith('#') || cells.Length < 6 || !cells[1].StartsWith("0x", StringComparison.Ordinal))
+            {
+                output.Add(line);
+                continue;
+            }
+
+            uint nid = uint.Parse(cells[1].AsSpan(2), System.Globalization.NumberStyles.HexNumber);
+            bool before = cells[3] != "missing";
+            string status = "missing";
+            string implementation = "";
+            if (methods.TryGetValue(nid, out (string Method, bool Default) found))
+            {
+                status = found.Default ? "default" : "impl";
+                implementation = found.Method;
+            }
+
+            cells[3] = status;
+            cells[4] = implementation;
+            output.Add(string.Join('	', cells));
+            // functions, before, impl, default, missing, missing and imported, unnamed
+            int[] counts = libraries.TryGetValue(cells[0], out int[]? c) ? c : libraries[cells[0]] = new int[7];
+            counts[0]++;
+            counts[1] += before ? 1 : 0;
+            counts[2] += status == "impl" ? 1 : 0;
+            counts[3] += status == "default" ? 1 : 0;
+            counts[4] += status == "missing" ? 1 : 0;
+            counts[5] += status == "missing" && cells[5].Length > 0 ? 1 : 0;
+            counts[6] += cells[2].StartsWith("NID_", StringComparison.Ordinal) ? 1 : 0;
+        }
+
+        File.WriteAllLines(tsv, output);
+
+        // the table keeps each library's module column from the previous table
+        string[] page = File.ReadAllLines(md);
+        int heading = Array.FindIndex(page, l => l.StartsWith("## Por biblioteca", StringComparison.Ordinal));
+        if (heading < 0)
+        {
+            Console.Error.WriteLine("kernel-census: no \"## Por biblioteca\" section in kernel-exports.md");
+            return 1;
+        }
+
+        int next = Array.FindIndex(page, heading + 1, l => l.StartsWith("## ", StringComparison.Ordinal));
+        next = next < 0 ? page.Length : next;
+        var moduleOf = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int i = heading + 1; i < next; i++)
+        {
+            string[] cells = page[i].Split('|');
+            if (cells.Length > 3 && cells[1].Trim().StartsWith("Sce", StringComparison.Ordinal))
+            {
+                moduleOf[cells[1].Trim()] = cells[2].Trim();
+            }
+        }
+
+        var table = new List<string>
+        {
+            $"## Por biblioteca (gerado por `VitaSharp.Desktop kernel-census` em {DateTime.Now:dd/MM/yyyy}; \"antes\" é o censo anterior)",
+            "",
+            "| Biblioteca | Módulo (NID da biblioteca) | Funções | HLE+default antes | HLE | default | faltam | faltam e são importadas | sem nome |",
+            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        };
+        int[] total = new int[7];
+        foreach ((string library, int[] counts) in libraries)
+        {
+            table.Add($"| {library} | {moduleOf.GetValueOrDefault(library, "")} | {string.Join(" | ", counts)} |");
+            for (int k = 0; k < total.Length; k++)
+            {
+                total[k] += counts[k];
+            }
+        }
+
+        table.Add($"| **Total** | | {string.Join(" | ", total.Select(t => $"**{t}**"))} |");
+        table.Add("");
+        File.WriteAllLines(md, page[..heading].Concat(table).Concat(page[next..]));
+        Console.WriteLine($"kernel census: {total[0]} functions, {total[2]} HLE + {total[3]} default (before: {total[1]}), {total[4]} missing ({total[5]} imported)");
+        return 0;
+    }
+
     static int ListHleImplemented(string? vitasdkTsv)
     {
         var vitasdk = new HashSet<uint>();
@@ -855,6 +975,7 @@ public static class Program
         Console.WriteLine("  rerun <capture folder> [--from=preroll|start] [--window] [--rerun-gpu-dump]  replay a Gravar tudo capture's input from its save state");
         Console.WriteLine("  run options: --nav=<file> [--nav-live] [--nav-out=<dir>]  screen-driven input script (NavScript: tap/press/stable/shot/quit)");
         Console.WriteLine("  hle-implemented [--vitasdk=<tsv>]   list every NID the HLE implements (docs/hle/data/vitasharp-implemented.tsv)");
+        Console.WriteLine("  kernel-census [--root=<repo>]       HLE status of the FW 3.74 kernel exports (docs/hle/data/kernel-exports.tsv, kernel-exports.md)");
         Console.WriteLine("  audio-devices [--audio-device=<name>]  list the audio outputs and show the one a game opens");
         Console.WriteLine("  hle-coverage [--out=<tsv>] [--vitasdk=<tsv>] [--status=<repo>]  HLE coverage of every function the installed firmware exports (games/system/general)");
         Console.WriteLine("  imports <TITLEID|folder> [x.self]   list the system functions a title (or one of its executables) needs");
