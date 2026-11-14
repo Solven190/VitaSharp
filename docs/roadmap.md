@@ -664,6 +664,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   em voo sem nenhuma imagem saindo há 200+ ms, ou seja, enviamos bem mais entradas do que o decodificador devolve
   (capacidade de entrada do c2, ordem dos quadros B). Próximo: limitar as unidades em voo (esperar uma imagem antes de
   passar de N) e ver se o travamento some
+  14/11: o travamento é determinístico no fluxo: o M02_Intro trava sempre em 1.804 unidades enviadas (duas execuções
+  14/11, 1.804/1.806 em 13/11), junto de um IDR (pacote 1.801 de 2.652; IDR a cada 150 quadros, só esse trava).
+  Preparado e desligado por padrão: `VITASHARP_MEDIACODEC_MAX_IN_FLIGHT=N` (no máximo N unidades em voo, espera
+  até 100 ms por uma imagem; teste com codec simulado que trava com 14 em voo) e o aviso do travamento com pts, tamanho
+  e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
+  ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
+  depois do primeiro travamento
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do
