@@ -1,6 +1,7 @@
 /*
  * System: RTC and calendar helpers, system parameters (language, enter button, time zone, date format), power and
- * battery, display refresh, memory, network presence (no traffic), and the message and IME dialogs.
+ * battery, display refresh, memory, network presence (no traffic), the system-only registry syscalls and shader
+ * compiler module refused to a game, and the message and IME dialogs.
  */
 #include <stdio.h>
 #include <string.h>
@@ -275,6 +276,69 @@ static void check_ime_dialog(void)
     result_check(AREA, "ime_dialog_term", termResult >= 0, "0x%08X", (unsigned int)termResult);
 }
 
+/*
+ * The SceRegMgr registry syscalls (version, callbacks) answer only system programs: a homebrew, a game program for
+ * the access control manager, gets 0x80010058 from each, before its arguments are looked at. The prototypes are the
+ * VitaSDK NID database's names (SceRegistryMgr module, SceRegMgr library).
+ */
+#define REGMGR_NOT_SYSTEM_PROGRAM ((int)0x80010058)
+int sceRegMgrGetRegVersion(void);
+int sceRegMgrRegisterCallback(SceUID callback);
+int sceRegMgrAddRegistryCallback(SceUID callback, const char *category);
+int sceRegMgrStartCallback(SceUID callback);
+int sceRegMgrStopCallback(SceUID callback);
+int sceRegMgrUnregisterCallback(SceUID callback);
+
+static int registry_callback(int notifyId, int notifyCount, int notifyArg, void *common)
+{
+    (void)notifyId;
+    (void)notifyCount;
+    (void)notifyArg;
+    (void)common;
+    return 0;
+}
+
+static void check_registry_system_only(void)
+{
+    int version = sceRegMgrGetRegVersion();
+    result_check(AREA, "regmgr_version_system_only", version == REGMGR_NOT_SYSTEM_PROGRAM, "0x%08X",
+                 (unsigned int)version);
+    SceUID callback = sceKernelCreateCallback("vstest_regmgr", 0, registry_callback, NULL);
+    int registered = sceRegMgrRegisterCallback(callback);
+    int added = sceRegMgrAddRegistryCallback(callback, "/CONFIG/SYSTEM/");
+    int started = sceRegMgrStartCallback(callback);
+    int stopped = sceRegMgrStopCallback(callback);
+    int unregistered = sceRegMgrUnregisterCallback(callback);
+    bool refused = registered == REGMGR_NOT_SYSTEM_PROGRAM && added == REGMGR_NOT_SYSTEM_PROGRAM &&
+                   started == REGMGR_NOT_SYSTEM_PROGRAM && stopped == REGMGR_NOT_SYSTEM_PROGRAM &&
+                   unregistered == REGMGR_NOT_SYSTEM_PROGRAM;
+    result_check(AREA, "regmgr_callbacks_system_only", callback > 0 && refused,
+                 "register 0x%08X add 0x%08X start 0x%08X stop 0x%08X unregister 0x%08X", (unsigned int)registered,
+                 (unsigned int)added, (unsigned int)started, (unsigned int)stopped, (unsigned int)unregistered);
+    if (callback > 0)
+    {
+        sceKernelDeleteCallback(callback);
+    }
+}
+
+/*
+ * The system's shader compiler module (sysmodule 0x3E, libshacccg) is for system and PlayStation Mobile programs:
+ * a game's sceSysmoduleLoadModule is refused (0xC05A1000), which is why homebrew loads its own copy by path. The
+ * PSM runtime passes the same check through its authority ID.
+ */
+#define SYSMODULE_SHACCCG 0x3E
+#define SYSMODULE_NOT_PERMITTED ((int)0xC05A1000)
+
+static void check_psm_only_module(void)
+{
+    int loaded = sceSysmoduleLoadModule(SYSMODULE_SHACCCG);
+    result_check(AREA, "sysmodule_shacccg_refused", loaded == SYSMODULE_NOT_PERMITTED, "0x%08X", (unsigned int)loaded);
+    if (loaded >= 0)
+    {
+        sceSysmoduleUnloadModule(SYSMODULE_SHACCCG);
+    }
+}
+
 void test_system_run(bool withDialogs)
 {
     if (!withDialogs)
@@ -286,6 +350,8 @@ void test_system_run(bool withDialogs)
         check_power();
         check_display_and_memory();
         check_network();
+        check_registry_system_only();
+        check_psm_only_module();
         return;
     }
     app_show_progress("System", "message dialog ...");
