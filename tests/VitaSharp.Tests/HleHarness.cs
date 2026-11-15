@@ -129,13 +129,15 @@ public sealed class HleHarness : IDisposable
         Join(r);
     }
 
-    /// <summary>Polls until <paramref name="cond"/> holds (another guest thread reaching a wait); fails after 10 s.</summary>
+    /// <summary>Polls until <paramref name="cond"/> holds (another guest thread reaching a wait). The limit only guards
+    /// against a hang (2 min): 10 s failed a recording start on a loaded machine (SessionCaptureFlowTests, full suite
+    /// with every core busy), and a test never depends on how fast the host is.</summary>
     public static void Until(Func<bool> cond, string what)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (!cond())
         {
-            if (sw.ElapsedMilliseconds > 10_000)
+            if (sw.ElapsedMilliseconds > 120_000)
             {
                 throw new Xunit.Sdk.XunitException($"timed out waiting for {what}");
             }
