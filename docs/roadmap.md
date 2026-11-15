@@ -1452,18 +1452,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   contornar DRM; os jogos comprados rodam pela licença real do usuário. Validar com uma lista dos plugins públicos mais
   usados (um teste por exportação e cada plugin rodando).
   Parte feita (11/11/2026, kern1): o ambiente de kernel (plugins `*KERNEL` com o código original, exportações de
-  kernel do firmware em HLE, separação kernel/usuário no linker); o taiHEN real carrega e falha sozinho (hooks de DRM),
-  então os plugins que dependem dele (kubridge, fd_fix) não iniciam. Detalhes, limites e o plano do resto no item "O emulador é genérico" abaixo e em `docs/notes/plugins.md`.
+  kernel do firmware em HLE, separação kernel/usuário no linker).
+  Detalhes, limites e o plano do resto no item "O emulador é genérico" abaixo e em `docs/notes/plugins.md`.
   Censo das exportações de kernel do FW 3.74 (12/11/2026, k2, `feat/kernel-complete`): 115 bibliotecas, 3.918
   funções dos `os0:kd` (bootimage embutido incluído); 154 em HLE, 1.957 das que faltam são importadas por algum módulo de
   kernel do firmware. Tabela por biblioteca em `docs/hle/kernel-exports.md`, por função em
   `docs/hle/data/kernel-exports.tsv`. Depois do k2: 504 em HLE + 57 default (nids.txt com todos os NIDs
   de kernel do 3.74, 401 gêmeas de kernel das funções de usuário). Ordem do resto: o que os módulos de kernel e os plugins importam primeiro.
-  Divergente até haver um mapa físico: o VitaSharp não separa endereço físico de virtual, então as traduções do MMU
-  (`ksceKernelMMUVAtoPA`, `ksceKernelVAtoPA`, `ksceKernelVARangeToPARange/PAVector`, feat/kernel-mmu) devolvem o próprio
-  endereço virtual. O `SceSysmemForDriver` NID_0AAA4FDD (classifica a memória pela faixa física: CDRAM 0x20000000,
-  DRAM 0x40000000...) daria valores diferentes do console com esse modelo e não está implementado; falta um mapa
-  virtual -> físico com as faixas do Vita (DRAM 512 MB em 0x40000000, CDRAM 128 MB) para as duas coisas ficarem fiéis.
+  Atualização (15/11/2026): o mapa virtual -> físico está feito (SceCpuForKernel/SceSysmem VA->PA, merge 4d878050, na
+  main). O kernel do FW 3.74 está em 675 HLE + 57 default de 3.918 (badge 732/3,918, 94a59f2b). O índice HLE é único
+  para todos os processos (eb029d20: stubs de kernel chamados de qualquer processo). A opção "Ativar Plugins do Kernel"
+  guarda a config em `ur0:kernel_plugins` (a3ff504b). Dead Space rodou 5 min com kubridge + fd_fix sem crash (lead,
+  procdump sem exceção não tratada). Faltam: o hardware (Bluetooth, SD2Vita) e a lista de plugins públicos validados
+  (um teste por exportação e cada plugin rodando).
 - [ ] [P3][G] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das
@@ -2462,6 +2463,21 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     desenho não tem dados de uniform de vértice, mas programas com todos os slots divididos (9078D650) o declaram;
     agora todo binding de um conjunto novo é escrito (o buffer dummy onde não há dados). Teste `UniformSetWritesTests`.
   Correção: ea4910da + 2f785aca (11/11/2026, tela do PC na frente e fantasma do bloom), 69cc05b5 + 0ba2934c (12/11/2026, cunhas = texturas zuadas) e 3a978652 (12/11/2026, quadros alternados). Teste: MGS2/MGS3 no PC, nas cenas das capturas de 11/11 (PCSE00020_20261111_224104_tudo): monitores atrás da cabeça, sem capacete/texto fantasma, sem cunhas vermelhas/azuis. O escurecimento de 1 quadro só com --msaa=native fica em "Bugs em aberto".
+- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
+  06/11/2026, perf/android-8, APK LLVM dev
+  db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
+  `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
+  11 s depois, "Não foi possível carregar o estado: thread 'PadThread' did not stop (in ); restart the game"; daí em
+  diante 0 fps, o processo vivo (`and8_runs/log_RS75b.txt`, print `and8_tools/shots/kz_RS75b.jpg`). Duas
+  coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
+  falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
+  falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
+  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
+  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
+  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
+  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
+  saber se o 2º load do usuário congela
+  Correção: 90f1ceb8 (merge db7044ef, 15/11/2026): o passo scripted de save/load state roda uma vez mesmo com várias threads lendo o pad. Teste: no celular, carregar um estado e logo em seguida carregar outro; o jogo não deve congelar.
 
 ## Bugs em aberto
 
@@ -2816,6 +2832,11 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   AndroidAppTests.AndroidGamepadMapsToTheStandardLayout (controle que lista LTRIGGER e move BRAKE; falha sem a
   correção). Se o L2 do controle do usuário ainda não funcionar, o log do `Connect` (eixos listados) e um
   `getevent -l` do gatilho mostram o eixo real. A parte (2), o touchpad do DualShock 4, continua aberta
+- [ ] [P2][M] Android, controle de PS4 no celular, o que sobrou do relato de 10/11/2026 (o L2 está em "[x]" acima):
+  o touchpad do DualShock 4 vira mouse no Android e esse ponteiro se mistura com o toque na tela; tratar o touchpad
+  como entrada do controle (SOURCE_TOUCHPAD/MOUSE do dispositivo do controle, separado do SOURCE_TOUCHSCREEN do
+  aparelho; ou capturar o ponteiro) e mapear para o toque frontal/traseiro do Vita sem mexer no toque da tela. Validar
+  com o controle real no celular.
 - [x] Tradutor de shaders: GLSL que não compila em dois casos (agente de testes, 11/11/2026; vai para o dia de melhorias:
   mexe em todo shader, precisa subir a versão do gerador e replay-gpu --compare em todos os dumps). Achado pelo
   ShaderFuzzTests (os 32 opcodes USSE com operandos pseudoaleatórios, vertex e fragment, compilados com shaderc): 35 de
@@ -3274,7 +3295,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   backend replaced não reproduziu em 9 cargas com este build (headless, janela oculta, 6 cargas seguidas); o build
   do agente de produto (desk) recusa o save em f4000 porque um diálogo Msg do sistema está aberto, então o
   estado que travou foi salvo com esse diálogo aberto
-- [ ] [P3][M] FIFA 13 (PCSE00093): "algumas coisas parecem estranhas" (relato do usuário, 07/11/2026, main 90b55bc; três
+- [x] [P3][M] (15/11/2026, usuário: sem problema, nada mais reportado) FIFA 13 (PCSE00093): "algumas coisas parecem estranhas" (relato do usuário, 07/11/2026, main 90b55bc; três
   gravações: `captures\PCSE00093_20261107_030833_tudo` (4,3 s), `..._031028_tudo` (5,2 s) e `..._032507_tudo` (8,4 s),
   todas a 60 fps). O analisador só acha paradas de 112-212 ms (a primeira de cada é o estado salvo do início da gravação)
   e nenhum flash ou tela preta, então o defeito é algo que ele não mede (textura, modelo, animação, cor, som). Analisar
@@ -3692,20 +3713,6 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   andando: nenhuma alternância (o brilho da região só muda com o movimento da câmera). Provas:
   `and8_runs/flick_base.mp4`, `flick_s100.mp4`, `flick_kz_base.mp4`, `flick_kz_walk2.mp4`. Pausado a pedido
   do usuário (desempenho primeiro): falta saber de qual jogo/cena/APK é o relato para bissecar
-- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
-  06/11/2026, perf/android-8, APK LLVM dev
-  db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
-  `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
-  11 s depois, "Não foi possível carregar o estado: thread 'PadThread' did not stop (in ); restart the game"; daí em
-  diante 0 fps, o processo vivo (`and8_runs/log_RS75b.txt`, print `and8_tools/shots/kz_RS75b.jpg`). Duas
-  coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
-  falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
-  falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
-  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
-  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
-  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
-  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
-  saber se o 2º load do usuário congela
 - [ ] [P2][M] Um load state que falha depois de parar as threads ("thread X did not stop", erro no meio da carga)
   deixa o jogo parado ("reinicie o jogo"): guardar um estado em memória antes de carregar e voltar a ele se a carga
   falhar (como o "desfazer carregamento" do Dolphin), no desktop e no Android
