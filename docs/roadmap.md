@@ -75,7 +75,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   velocidade só é impressa) e `RendererDeviceHandoffTests` (acha o repositório pelo caminho do fonte, funciona com
   `-o` fora do repo). Junto: a thread do codificador da captura lia `_queue` depois de um stop logo após o start e
   derrubava o testhost inteiro (NullReferenceException), coberto por `PreRollDisarmedBeforeTheEncoderThreadRunsKeepsItsQueue`.
-- [ ] [P2][M] **Suíte rápida: testhost < 4 GB e `Category!=Slow` < 8 min.** Feito (15/11/2026, bugB): os testes do
+- [x] [P2][M] **Suíte rápida: testhost < 4 GB e `Category!=Slow` < 8 min.** Feito (15/11/2026, bugB): os testes do
   renderer seguravam ~0,5 GB cada (só as 24 classes do renderer chegavam a 11,1 GB): um programa GXP com contagens de
   tabela lixo virava listas de milhões de entradas e o cache estático de programas (`GxmProgramInfo`) segurava todos
   os programas de todas as sessões. Agora as contagens param no tamanho do programa e o cache acaba com o sistema
@@ -85,6 +85,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   a 100%). Falta (< 5 min): a coleção "guest" é serial e é o caminho crítico (366 s); os maiores dela agora são
   NpCommerce2Firmware (cada parser do firmware rodava 2x, corrigido), NativeJit 46 s, Ngs 25 s, ThreadMgr 21 s,
   CpuFuzz 21 s (um Unicorn novo por iteração, como o NEON).
+  Fechado 15/11/2026 (217eb288): as duas metas batidas (pico 1,59 GB, suíte 6 m 09 s); o < 5 min fica como melhoria
 - [ ] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
@@ -632,7 +633,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
-- [ ] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
+- [x] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
   e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
   compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
   dois (conferido no mesmo teste); remapear os botões de cada controle em Controles > Mapeamento, com um toque no
@@ -648,12 +649,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Vita, que dá boot no shell.self ao abrir o app; feat/android-startup-view). Tema, música e sons da Home e o
   "clique no jogo: LiveArea" não vão para o Android: no desktop são da tela inicial recriada, e no Sistema do Vita
   real são ajustes do próprio firmware (Configurações > Tema e plano de fundo, Som)
-- [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
+  Fechado 15/11/2026: remapeamento (aedc5e5e), página do jogo, câmeras, 3x/4x e "Ao abrir o emulador" (e925e19c);
+  os itens 4, 7 e 10 da lista foram retirados pelo usuário
+- [x] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
   "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
   (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua
   em `Android/data`. Roteiros `build/android-*` e docs resolvem o caminho no aparelho. Testes em
   `AndroidDataRootTests`. Falta: confirmar no celular (permissão, migração com os dados reais, reinício na pasta
   nova, Killzone carregando da `.vitasharp` sem perda de velocidade de leitura pelo FUSE)
+  Fechado 15/11/2026 (067166d0): validado no celular pelo usuário
 - [x] Antes de voltar ao Android (08/11/2026): `third_party/android-shaderc` e `third_party/android-adrenotools` da
   checkout principal estão vazias desde 07/11 22:13 (provavelmente apagadas por uma limpeza através de junction); um APK
   compilado agora sai sem `libshaderc*.so`/adrenotools. Refazer com `build/build-android-shaderc.ps1|.sh` e
@@ -916,7 +920,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   outra está rodando; e as três funções devolvem NOT_INITIALIZED sem sceNpInit. Antes, o HLE chamava todos os
   callbacks já registrados, e a segunda thread voltava na hora. Não existe "thread certa" no firmware: quem chama
   primeiro recebe o evento. Uma linha Info por Register/Unregister/entrega mostra a ordem real. Testes:
-  `NpStateCallbackTests` (falham sem a correção). A confirmar no celular (5 boots, andA).- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
+  `NpStateCallbackTests` (falham sem a correção). A confirmar no celular (5 boots, andA).
+  15/11/2026: o preto causado pelo preload do libSceFt2 já tinha sido corrigido antes; o que continua aberto é só
+  o preto com o JIT ARM64 descrito acima
+- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
   (0 fps logo depois de criar 'Toolkit::NP'): alguma combinação das opções desligadas está errada; achar qual
   (desligar uma a uma) e cobrir com teste do backend no sandbox
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
@@ -959,7 +966,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   com TRANSFER_DEFER=0. Também em aberto: na aposentadoria, todos os writebacks do quadro são aplicados antes das
   transferências adiadas, então uma transferência pode ler na memória uma cena posterior no mesmo render target
   (só a memória; a GPU agora tem a ordem certa).
-- [ ] Uncharted (PCSA00029) no Android: alternância de quadros na névoa/neblina de fundo (vale à esquerda, abismo
+- [x] Uncharted (PCSA00029) no Android: alternância de quadros na névoa/neblina de fundo (vale à esquerda, abismo
   embaixo à direita). Captura "Gravar tudo" do celular (APK da release 14/11, sem chaves):
   `<scratchpad>\lab14\captures\PCSA00029_20261114_171006_tudo.zip` (extraída em `<scratchpad>\agfx14\uc`). O analisador
   acusa 245 [flash] (quadro diferente dos dois vizinhos, que são iguais): 206 na célula 0,1 (névoa do vale, o quadro
@@ -1017,6 +1024,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   em vez de `[stall]`, e as esperas do guest na GPU contam só o tempo em que a emulação rodou
   (`EmulationPause.ActiveHostTicks`). Testes: `Analyzer_tells_a_paused_interval_from_a_stall`,
   `GuestGpuWaitLeavesThePausedTimeOut`, `PausesDuringARecordingAreMarked`.
+  Fechado 15/11/2026 (506641b4): flicker da névoa no celular 5,5% -> 0% dos quadros com a barreira de attachment
+  (`VulkanRenderer.AttachmentSync.cs`)
 - [ ] Uncharted (PCSA00029) no Android: plantas piscando no começo do Prologue (Drake parado; APK LLVM perf/uc-cpu, dump
   `and_flicker/PCSA00029_plants075.vsgd`, presents 4000-4150, escala 0,75; pisca em 0,75 e 1,0, nenhuma
   chave do Android muda). Replay do mesmo dump no PC (agente C, 05/11/2026, build da main a19cdbe + a correção do
@@ -1159,6 +1168,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   "blocked in the host" e SceImePredictionJobQueue em host-block. Próximo: comparar o mesmo boot no PC (states e
   núcleos) e conferir se uma thread em espera no host segura o núcleo emulado (no Vita uma thread em espera não ocupa
   núcleo); log em `<scratchpad>/andA/shell/last2.log`
+  15/11/2026: causa achada (uma thread em espera no host continuava ocupando o núcleo emulado); a correção está em
+  `fix/wait-no-core` e ainda NÃO entrou na main: o item fica aberto até ela entrar e o shell chegar à tela inicial
 - [x] App .NET MAUI com interface declarativa em C# (MauiReactor), seguindo os mockups em `docs/android/` (biblioteca
   e troféus, ajustes, firmware, conta PSN e rede, driver e informações da GPU, Sistema do Vita) (30/10/2026: gera o
   APK, `src/VitaSharp.Android`; ainda não rodou num aparelho nem no emulador)
@@ -1213,7 +1224,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   recomeçado respondia as primeiras chamadas com a última picture da volta anterior (o fim escuro do filme); agora a
   primeira chamada de cada volta sai com a picture do IDR. Na tela de título (150 s, 1 execução de cada) o detector não
   marcou nada nem no código novo nem no antigo; falta conferir ao vivo
-- [ ] F1 2011 no celular: engasgo nos filmes do boot (relato do usuário, 13/11/2026). Comparação com o boot de um Vita
+- [x] F1 2011 no celular: engasgo nos filmes do boot (relato do usuário, 13/11/2026). Comparação com o boot de um Vita
   de verdade (vídeo `INf_kf6wGFY`, captura direta): as paradas entre os filmes não são defeito, o Vita também as tem
   (Codemasters -> preto ~1,4 s -> Sumo Digital -> preto ~1,6 s -> aviso legal parado ~3,5 s -> preto ~2,5 s; no
   celular 1,1-1,4 s, 1,2 s e 3,5 s nos mesmos pontos, com o decodificador de software e com o de hardware iguais). A
@@ -1223,6 +1234,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (perf/android-frame-13): conversão por linhas, uma leitura dos planos e termos em tabela, os mesmos bytes
   (`YuvTextureTests`); falta medir no celular. Também visto: durante o filme o planejador de núcleos troca a thread
   principal do jogo pela "avPlayer VideoDec" (a mais ocupada) e manda a principal para os A55
+  Fechado 15/11/2026 (c2c6255b): no celular o filme passou de 20 para 25 fps, como o Vita, e os quadros pretos e as
+  trocas de ordem foram de 15/7 para 0/0. O resto (piscadas no começo do 2º filme) ficou no item "o vídeo de
+  abertura do F1 2011 (PCSE00002) pisca"
 - [x] F1 2011 no celular: quadros pretos nos filmes, porque o player do jogo pula o desenho do quadro quando o
   decodificador atrasa (CPU lenta: ~20 fps; reproduz no PC com `--cpu-mhz=120`); some com a velocidade nativa (item
   abaixo), conferir depois
@@ -3691,6 +3705,9 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
     ordem e 22 piscadas em 8 s, 20 fps). Sobra: no começo do 2º filme (~10,1-10,5 s) um grupo de piscadas de célula
     (3 numa execução, 9 e 1 troca de ordem na outra) e 1-2 quadros pretos em cada troca de filme; falta saber se
     o grupo do 2º filme é do vídeo (comparar com o boot do Vita de verdade, vídeo `INf_kf6wGFY`)
+  - 15/11/2026 (c2c6255b): quadros pretos e trocas de ordem 15/7 -> 0/0 e filme 20 -> 25 fps no celular; fica aberto
+    só o grupo de piscadas no começo do 2º filme (o item "F1 2011 no celular: engasgo nos filmes do boot" foi
+    juntado aqui)
   - O replay da captura no PC reproduz o defeito com qualquer build e qualquer chave do renderizador, inclusive o
     perfil do desktop e a main da manhã de 09/11. As pictures pretas ou velhas já estão na memória do guest quando o
     worker da GPU grava o quadro: o defeito é do lado do guest/HLE, não do renderizador.
