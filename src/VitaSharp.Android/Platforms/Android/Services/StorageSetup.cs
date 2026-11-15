@@ -43,7 +43,7 @@ public static class StorageSetup
     /// <summary>"All files access" (Android 11+) or the storage permission (Android 8-10).</summary>
     public static bool HasAllFilesAccess(Context context)
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
         {
             return global::Android.OS.Environment.IsExternalStorageManager;
         }
@@ -54,7 +54,7 @@ public static class StorageSetup
     /// <summary>Opens the system screen that grants the permission (also from the library's warning card).</summary>
     public static void RequestAllFilesAccess(Activity activity)
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
         {
             try
             {
@@ -133,9 +133,9 @@ public static class StorageSetup
     static void Migrate(Activity activity, DataRootPlan plan)
     {
         _migrating = true;
-        var bar = new ProgressBar(activity, null, global::Android.Resource.Attribute.ProgressBarStyleHorizontal) { Max = 1000 };
+        var bar = new global::Android.Widget.ProgressBar(activity, null, global::Android.Resource.Attribute.ProgressBarStyleHorizontal) { Max = 1000 };
         var text = new TextView(activity);
-        var layout = new LinearLayout(activity) { Orientation = Orientation.Vertical };
+        var layout = new LinearLayout(activity) { Orientation = global::Android.Widget.Orientation.Vertical };
         int padding = (int)(20 * activity.Resources!.DisplayMetrics!.Density);
         layout.SetPadding(padding, padding / 2, padding, 0);
         layout.AddView(bar);
@@ -150,7 +150,7 @@ public static class StorageSetup
         var progress = new Progress<MigrationProgress>(p =>
         {
             bar.Progress = p.BytesTotal > 0 ? (int)(p.BytesDone * 1000 / p.BytesTotal) : 0;
-            text.Text = $"{p.FilesDone} / {p.FilesTotal} · {p.BytesDone >> 20} / {p.BytesTotal >> 20} MB";
+            text.Text = Loc.Format("MStorageMovingProgress", p.FilesDone, p.FilesTotal, p.BytesDone >> 20, p.BytesTotal >> 20);
         });
         string source = plan.MigrateFrom!;
         string target = plan.VisibleRoot!;

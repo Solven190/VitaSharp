@@ -3042,4 +3042,7 @@
   <data name="MStorageMoveRetry" xml:space="preserve">
     <value>Tentar de novo</value>
   </data>
+  <data name="MStorageMovingProgress" xml:space="preserve">
+    <value>{0} de {1} arquivos · {2} de {3} MB</value>
+  </data>
 </root>
