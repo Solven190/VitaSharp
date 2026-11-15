@@ -152,8 +152,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 729 | 672 | 57 | 3,918 | 18.6% |
-| Imported | 319 | - | - | 2,062 | 15.4% |
+| All | 732 | 675 | 57 | 3,918 | 18.6% |
+| Imported | 322 | - | - | 2,062 | 15.6% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -256,7 +256,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSysrootForDriver | 0 / 181 | 0% | - | 0 / 111 |
 | SceSysrootForKernel | 2 / 143 | 1.3% | - | 2 / 67 |
 | SceSystimerForDriver | 0 / 14 | 0% | - | 0 / 8 |
-| SceThreadmgrForDriver | 95 / 248 | 38.3% | - | 69 / 135 |
+| SceThreadmgrForDriver | 98 / 248 | 39.5% | - | 72 / 135 |
 | SceThreadmgrForKernel | 0 / 64 | 0% | - | 0 / 15 |
 | SceTouchForDriver | 15 / 29 | 51.7% | - | 1 / 9 |
 | SceUartForKernel | 0 / 4 | 0% | - | 0 / 1 |
