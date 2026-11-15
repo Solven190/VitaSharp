@@ -587,8 +587,9 @@ public static class SaveStates
     /// Loads the state in <paramref name="path"/> into the running game. Every guest thread is stopped and replaced by
     /// the saved ones; <paramref name="backendFactory"/> (when given) makes the GPU backend that replaces the current
     /// one, whose caches belong to the old state. Incompatible states are refused before anything changes
-    /// (<see cref="SnapshotException"/>); a failure after the threads were stopped leaves the game unusable (the
-    /// message says so).
+    /// (<see cref="SnapshotException"/>); a failure after the threads were stopped restores the session from before the
+    /// load, kept in memory when the threads were held (<see cref="UndoState"/>), and only when that is not possible
+    /// leaves the game unusable (the message says which).
     /// </summary>
     public static void Load(Emulator emu, string path, Func<Gpu.IGpuBackend?>? backendFactory = null)
     {
@@ -644,20 +645,23 @@ public static class SaveStates
 
             HoldForLoad(emu, held);
             EmulationPause.Pause("load state", @internal: true);
+            UndoState? undo = TakeUndoState(emu);
             long t0 = sw.ElapsedMilliseconds;
-            StopThreads(emu);
-            Log.Info($"Load state: threads stopped in {sw.ElapsedMilliseconds - t0} ms");
             try
             {
+                StopThreads(emu, tolerateStuck: false);
+                Log.Info($"Load state: threads stopped in {sw.ElapsedMilliseconds - t0} ms");
                 StartRestored(LoadCore(emu, sections, layouts, positional, backendFactory));
             }
-            catch (Exception e) when (e is not SnapshotException)
+            catch (Exception e)
             {
-                throw new SnapshotException($"loading the state failed ({e.Message}); restart the game");
-            }
-            catch (SnapshotException e)
-            {
-                throw new SnapshotException($"{e.Message}; restart the game");
+                string reason = e is SnapshotException ? e.Message : $"loading the state failed ({e.Message})";
+                if (undo != null && RollBack(emu, undo, backendFactory))
+                {
+                    throw new SnapshotException($"{reason}; the game went back to where it was before the load");
+                }
+
+                throw new SnapshotException($"{reason}; restart the game");
             }
             Log.Info($"Save state: {path} loaded in {sw.ElapsedMilliseconds} ms ({sw.ElapsedMilliseconds - readMs} ms with the game stopped; saved {header.CreatedUtc.ToLocalTime():g}, VitaSharp {header.EmulatorVersion})");
         }
@@ -760,7 +764,10 @@ public static class SaveStates
         return null;
     }
 
-    private static void StopThreads(Emulator emu)
+    /// <summary>Stops every guest thread of the session. <paramref name="tolerateStuck"/> (the rollback of a failed load):
+    /// a thread that does not stop in time keeps its stop request and is left behind with a warning (it exits at its
+    /// next stop check) instead of failing.</summary>
+    private static void StopThreads(Emulator emu, bool tolerateStuck)
     {
         var stopping = emu.Kernel.Threads.Where(t => t.HostBody == null && t.IsLive).ToList();
         foreach (GuestThread? t in stopping)
@@ -771,10 +778,68 @@ public static class SaveStates
         long deadline = Environment.TickCount64 + 5000;
         foreach (GuestThread? t in stopping)
         {
-            if (!t.WaitForExit((int)Math.Max(1, deadline - Environment.TickCount64)))
+            if (t.WaitForExit((int)Math.Max(1, deadline - Environment.TickCount64)))
             {
-                throw new SnapshotException($"thread '{t.Name}' did not stop (in {t.WaitingOn}); restart the game");
+                continue;
             }
+
+            if (!tolerateStuck)
+            {
+                throw new SnapshotException($"thread '{t.Name}' did not stop (in {t.WaitingOn})");
+            }
+
+            Log.Warn($"Load state: thread '{t.Name}' did not stop (in {t.WaitingOn}); the session is restored without it");
+        }
+    }
+
+    /// <summary>The running session as a load found it (taken in memory with its threads held, like a save), to go back
+    /// to when the load fails after the threads were stopped: Dolphin's "undo load state".</summary>
+    private sealed class UndoState(List<(string Name, byte[] Data)> sections, IReadOnlyDictionary<string, SnapshotLayout> layouts)
+    {
+        public List<(string Name, byte[] Data)> Sections { get; } = sections;
+        public IReadOnlyDictionary<string, SnapshotLayout> Layouts { get; } = layouts;
+    }
+
+    /// <summary>Takes the <see cref="UndoState"/> (the emulation is paused and the threads are held for the load), or
+    /// null when the session cannot be taken right now (the load then goes on without a way back, as before).</summary>
+    private static UndoState? TakeUndoState(Emulator emu)
+    {
+        if (SafePointProblems(emu, out Dictionary<GuestThread, GuestThread.SafeKind>? kinds) is { } why)
+        {
+            Log.Warn($"Load state: the running session cannot be kept to go back to ({why})");
+            return null;
+        }
+
+        try
+        {
+            emu.Gpu.WaitIdle();
+            long t0 = Stopwatch.GetTimestamp();
+            (SaveStateHeader header, List<(string Name, byte[] Data)> sections) = Capture(emu, kinds, null);
+            (IReadOnlyDictionary<string, SnapshotLayout> layouts, _) = CheckSections(emu, header, sections);
+            Log.Info($"Load state: running session kept in memory in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
+            return new UndoState(sections, layouts);
+        }
+        catch (Exception e) when (e is SnapshotException or InvalidOperationException or IOException)
+        {
+            Log.Warn($"Load state: the running session cannot be kept to go back to ({e.Message})");
+            return null;
+        }
+    }
+
+    /// <summary>Restores the <see cref="UndoState"/> after a failed load; false when that failed too.</summary>
+    private static bool RollBack(Emulator emu, UndoState undo, Func<Gpu.IGpuBackend?>? backendFactory)
+    {
+        try
+        {
+            StopThreads(emu, tolerateStuck: true);
+            StartRestored(LoadCore(emu, undo.Sections, undo.Layouts, positional: false, backendFactory));
+            Log.Info("Load state: the load failed; the session from before it was restored");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Load state: going back to the session from before the load failed too ({e.Message})");
+            return false;
         }
     }
 
