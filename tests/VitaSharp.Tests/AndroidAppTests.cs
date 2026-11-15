@@ -8,6 +8,8 @@ using VitaSharp.Mobile.Core.Library;
 using VitaSharp.Mobile.Core.Logging;
 using VitaSharp.Mobile.Core.Settings;
 using VitaSharp.Mobile.Core.Storage;
+using FrameRate = VitaSharp.Core.Hle.Modules.FrameRate;
+using FrameRateMode = VitaSharp.Core.Hle.Modules.FrameRateMode;
 
 namespace VitaSharp.Tests;
 
@@ -161,6 +163,53 @@ public sealed class AndroidAppTests : IDisposable
     }
 
     [Fact]
+    public void InternalResolutionOffersHalfToDouble()
+    {
+        var app = new AppPreferences();
+        Assert.Equal(0f, EffectiveSettings.Resolve(app, null).ResScaleValue); // native by default
+        foreach (string scale in new[] { "0.5", "0.75", "2" })
+        {
+            var settings = EffectiveSettings.Resolve(app, new GameSettings { ResScale = scale });
+            Assert.Equal(float.Parse(scale, System.Globalization.CultureInfo.InvariantCulture), settings.ResScaleValue);
+        }
+        // a factor the option does not offer stays native
+        Assert.Equal(0f, EffectiveSettings.Resolve(app, new GameSettings { ResScale = "3" }).ResScaleValue);
+        Assert.Equal(new[] { "", "0.75", "0.5", "2" }, SettingsChoices.ResScales.Select(c => c.Value));
+    }
+
+    [Fact]
+    public void FrameRateIsAPerGameSettingThatStartsEverySession()
+    {
+        var app = new AppPreferences();
+        Assert.Equal("", EffectiveSettings.Resolve(app, null).FrameRate);
+        Assert.Equal("30", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "30" }).FrameRate);
+        Assert.Equal("unlimited", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "unlimited" }).FrameRate);
+        // a value the option does not offer never reaches the display module
+        Assert.Equal("", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "45" }).FrameRate);
+        Assert.True(new GameSettings { FrameRate = "60" }.HasOverrides);
+
+        // the game's choice wins over VITASHARP_FRAME_RATE from env.txt; native falls back to it, then to native, so
+        // a mode set by the game played before never carries over
+        var fixed60 = EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "60" });
+        Assert.Equal(FrameRateMode.Fixed60, fixed60.StartFrameRate("unlimited"));
+        var native = EffectiveSettings.Resolve(app, null);
+        Assert.Equal(FrameRateMode.Unlimited, native.StartFrameRate("unlimited"));
+        Assert.Equal(FrameRateMode.Native, native.StartFrameRate(null));
+
+        // every choice is a value the display module understands, and the pause menu's row cycles through all of them
+        foreach (Choice choice in SettingsChoices.FrameRates)
+        {
+            Assert.Equal(choice.Value.Length > 0 ? choice.Value : "native", FrameRate.Name(FrameRate.Parse(choice.Value)));
+        }
+        Assert.Equal(new[] { "30", "60", "unlimited", "" }, new[] { "", "30", "60", "unlimited" }.Select(SettingsChoices.NextFrameRate));
+        Assert.Equal("", SettingsChoices.NextFrameRate("45"));
+
+        // the FPS overlay shows the mode only when it is not native
+        Assert.Equal("29 FPS", SettingsChoices.FpsText(29, ""));
+        Assert.Equal($"30 FPS · {SettingsChoices.LabelOf(SettingsChoices.FrameRates, "30")}", SettingsChoices.FpsText(30, "30"));
+    }
+
+    [Fact]
     public void SettingsRoundTripThroughJson()
     {
         var data = new DataLayout(_root);
@@ -172,11 +221,11 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal((444, "mali", 0.3f, "PCSC00045", true, "rpcn.example:31313"),
             (back.CpuMhz, back.GpuProfile, back.OnScreenOpacity, back.LastPlayed, back.Network.RealInternet, back.Network.RpcnServer));
 
-        var g = new GameSettings { CpuBackend = "native" };
+        var g = new GameSettings { CpuBackend = "native", FrameRate = "unlimited" };
         g.RecordSession(TimeSpan.FromMinutes(10), 18_000, new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc));
         g.Save(data.GameSettingsFile("PCSC00045"));
         var gb = GameSettings.Load(data.GameSettingsFile("PCSC00045"));
-        Assert.Equal(("native", (int?)null, 600L, 30.0), (gb.CpuBackend, gb.CpuMhz, gb.PlaySeconds, gb.AverageFps));
+        Assert.Equal(("native", (int?)null, 600L, 30.0, "unlimited"), (gb.CpuBackend, gb.CpuMhz, gb.PlaySeconds, gb.AverageFps, gb.FrameRate));
         Assert.True(gb.HasOverrides);
         Assert.DoesNotContain("CpuMhz", File.ReadAllText(data.GameSettingsFile("PCSC00045"))); // nulls are not written
 
@@ -325,6 +374,54 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal(ControllerState.Neutral.Lx, pad.GetController(0).Lx);
     }
 
+    [Fact]
+    public void OnScreenButtonsVibrateWhileTheStickIsHeld()
+    {
+        var pad = new OnScreenPad();
+        var pulses = new List<int>();
+        var haptics = new OnScreenHaptics(pad, pulses.Add);
+        OnScreenControl cross = pad.Layout.Single(c => c.Control == VitaControl.Cross);
+        OnScreenControl square = pad.Layout.Single(c => c.Control == VitaControl.Square);
+        OnScreenControl lstick = pad.Layout.Single(c => c.Control == VitaControl.LStickUp);
+        (int, float, float) thumbOnStick = Finger(lstick, 0.8f, 0.5f, 1)[0];
+
+        // the thumb takes the stick: one pulse
+        Update(pad, thumbOnStick);
+        Assert.Single(pulses);
+        // moving the stick is not a new press
+        Update(pad, Finger(lstick, 0.2f, 0.5f, 1));
+        Assert.Single(pulses);
+        // the other thumb presses buttons while the stick stays held: one pulse per press (the bug: none)
+        Update(pad, thumbOnStick, Finger(cross, id: 2)[0]);
+        Assert.Equal(2, pulses.Count);
+        Update(pad, thumbOnStick, Finger(cross, id: 2)[0]); // still held: no pulse
+        Assert.Equal(2, pulses.Count);
+        Update(pad, thumbOnStick);
+        Update(pad, thumbOnStick, Finger(square, id: 3)[0]);
+        Assert.Equal(3, pulses.Count);
+        // a button held while another one is pressed vibrates too
+        Update(pad, thumbOnStick, Finger(square, id: 3)[0], Finger(cross, id: 4)[0]);
+        Assert.Equal(4, pulses.Count);
+
+        // the strength sets the amplitude; off gives no pulses
+        Assert.All(pulses, p => Assert.Equal(OnScreenHaptics.Amplitude(OnScreenHaptics.Medium), p));
+        pad.Reset();
+        haptics.Strength = OnScreenHaptics.Strong;
+        Update(pad, Finger(cross));
+        Assert.Equal(255, pulses[^1]);
+        Assert.True(OnScreenHaptics.Amplitude(OnScreenHaptics.Weak) < OnScreenHaptics.Amplitude(OnScreenHaptics.Medium));
+        Assert.Equal(OnScreenHaptics.Amplitude(OnScreenHaptics.Medium), OnScreenHaptics.Amplitude(7));
+        pad.Reset();
+        haptics.Enabled = false;
+        int before = pulses.Count;
+        Update(pad, Finger(cross));
+        Assert.Equal(before, pulses.Count);
+
+        // the strength choices are the values the haptics understand
+        Assert.Equal(new[] { "1", "2", "3" }, SettingsChoices.HapticStrengths.Select(c => c.Value));
+        Assert.Equal(2, new AppPreferences().HapticStrength);
+    }
+
     private sealed class FloatPairComparer : IEqualityComparer<(float, float)>
     {
         public bool Equals((float, float) a, (float, float) b) => Math.Abs(a.Item1 - b.Item1) < 1e-4 && Math.Abs(a.Item2 - b.Item2) < 1e-4;
@@ -398,8 +495,28 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal(255, m.Ry);
         Assert.True((m.Buttons & VitaButtons.LTrigger) != 0);
 
-        pads.Disconnect(7);
+        // a pad that lists AXIS_LTRIGGER but moves the left trigger on AXIS_BRAKE (and the right one on AXIS_GAS)
+        pads.OnKey(8, AndroidKeys.ButtonL2, false);
         pads.Disconnect(8);
+        pads.Connect(9, "Bluetooth Gamepad", 0x045E, 0x0B13,
+            [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisZ, AndroidKeys.AxisRz, AndroidKeys.AxisLTrigger, AndroidKeys.AxisRTrigger, AndroidKeys.AxisBrake, AndroidKeys.AxisGas]);
+        pads.Disconnect(7);
+        pads.OnMotion(9, a => a == AndroidKeys.AxisBrake ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.OnMotion(9, a => a == AndroidKeys.AxisGas ? 1f : 0f);
+        m = pads.Map().State;
+        Assert.True((m.Buttons & VitaButtons.RTrigger) != 0);
+        Assert.True((m.Buttons & VitaButtons.LTrigger) == 0);
+        // ... and one with only BRAKE/GAS, or only LTRIGGER/RTRIGGER, still works
+        pads.Disconnect(9);
+        pads.Connect(10, "Brake Gas Pad", 0x0001, 0x0002, [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisBrake, AndroidKeys.AxisGas]);
+        pads.OnMotion(10, a => a == AndroidKeys.AxisBrake ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.Disconnect(10);
+        pads.Connect(11, "Trigger Pad", 0x0001, 0x0003, [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisLTrigger, AndroidKeys.AxisRTrigger]);
+        pads.OnMotion(11, a => a == AndroidKeys.AxisLTrigger ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.Disconnect(11);
         Assert.False(pads.AnyConnected);
         Assert.Equal(ControllerState.Neutral.Lx, pads.Map().State.Lx);
     }

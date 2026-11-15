@@ -2535,6 +2535,18 @@
   <data name="MDebugging" xml:space="preserve">
     <value>Debugging</value>
   </data>
+  <data name="KernelPlugins" xml:space="preserve">
+    <value>Enable Kernel Plugins</value>
+  </data>
+  <data name="KernelPluginsDetail" xml:space="preserve">
+    <value>An emulator option (the Vita has none): loads the plugins of the emulator's kernel_plugins folder (config.txt; else ur0:tai/config.txt), as a console with the homebrew environment set up. Off: the pure firmware, no plugin</value>
+  </data>
+  <data name="MKernelPlugins" xml:space="preserve">
+    <value>Enable Kernel Plugins</value>
+  </data>
+  <data name="MKernelPluginsDetail" xml:space="preserve">
+    <value>Loads the plugins of kernel_plugins/config.txt in the next game. Off: the pure firmware</value>
+  </data>
   <data name="MDebugMode" xml:space="preserve">
     <value>Debug mode</value>
   </data>
@@ -2885,6 +2897,36 @@
   </data>
   <data name="MMsaaOff" xml:space="preserve">
     <value>Off (faster, jagged edges)</value>
+  </data>
+  <data name="MFrameRateDetail" xml:space="preserve">
+    <value>Native runs the game as on the Vita. Locked to 30/60 or Unlimited change only the display waits; games whose logic runs per frame get faster or slower. Applies right away</value>
+  </data>
+  <data name="MHapticsDetail" xml:space="preserve">
+    <value>A short pulse on every control press, also while another finger holds the analog stick</value>
+  </data>
+  <data name="MHapticStrength" xml:space="preserve">
+    <value>Vibration strength</value>
+  </data>
+  <data name="MHapticWeak" xml:space="preserve">
+    <value>Weak</value>
+  </data>
+  <data name="MHapticMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="MHapticStrong" xml:space="preserve">
+    <value>Strong</value>
+  </data>
+  <data name="MRes200" xml:space="preserve">
+    <value>2x (1920x1088, sharper, about 4x the GPU work)</value>
+  </data>
+  <data name="MInternalResolutionDetail" xml:space="preserve">
+    <value>Below native is faster on a busy GPU, and softer; 2x is sharper but costs about four times the GPU work</value>
+  </data>
+  <data name="MFpsCount" xml:space="preserve">
+    <value>{0} FPS</value>
+  </data>
+  <data name="MFpsWithMode" xml:space="preserve">
+    <value>{0} FPS · {1}</value>
   </data>
   <data name="MMsaaDetail" xml:space="preserve">
     <value>Off renders the game with one sample per pixel: less GPU work, edges alias. Applies right away</value>

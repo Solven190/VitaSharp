@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=c21f0bf6b37a2f35b8b724665dd80a24e2dd8ac733616fabcb2e6b94a3aa682e -->
+<!-- pair: README.pt-BR.md sha256=f6cc04891b9f4c7fe3860db876c8931ef324df499e47e1cbf46a5ed110c8c96a -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -156,14 +156,6 @@ runs the firmware's `shell.self`: initial setup the first time, lock screen, hom
 LiveArea. A game opened from the LiveArea runs as a second process; the PS button (Home key) goes back to the system
 and **Continue** resumes the game. Details and what is missing in [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** VitaSharp loads the plugins of `fs/ur0/tai/config.txt` (copied from your Vita to `fs/ur0/tai`, listed as
-on the Vita: `*KERNEL` for `.skprx` kernel plugins, loaded once when the system starts, `*ALL` / `*TITLEID` for `.suprx`
-user plugins, for games and for the system's own programs too: `*main` is the home screen, `*NPXS10015` Settings and so
-on) and runs their own code. taiHEN (`taihen.skprx`) loads too, but it cannot start: its start needs patches to the firmware's signature and
-DRM checks, which VitaSharp does not make work. So everything that needs taiHEN does not run, as on a Vita without
-it: plugins built on it (kubridge, fd_fix) and homebrew that calls it or needs such a plugin, among them **Dead Space**
-(through kubridge) and **Sonic Mania**. Details in [`docs/notes/plugins.md`](docs/notes/plugins.md).
-
 **Android.** See [Android](#android).
 
 **Language.** The launcher and the game window follow the system's language (English or Brazilian Portuguese);
@@ -173,6 +165,30 @@ Data lives in `%APPDATA%\VitaSharp` on Windows (`~/.local/share/VitaSharp` on Li
 `~/Library/Application Support/VitaSharp` on macOS; `--data=<folder>` or `VITASHARP_DATA` change the folder): games in
 `fs/ux0/app`, firmware in `fs/os0`... , `logs/`, `savestates/`, `captures/` (Record everything), `gpudumps/`,
 `diagnostics/`, `shadercache/`.
+
+### Kernel plugins
+
+An emulator option, **Enable Kernel Plugins**, like pausing or recording the screen (the Vita has no such setting).
+**Off by default: the pure firmware runs and no plugin loads.** On, VitaSharp loads the plugins the configuration lists
+and offers them the plugin framework libraries they import (module information, export and import lookups, data
+injections, function hooks), as a console with the homebrew environment set up.
+
+- **Turn it on:** launcher **Settings > Advanced**; Android **Settings > Debugging**; command line
+  `--kernel-plugins=on|off`; environment `VITASHARP_KERNEL_PLUGINS=1` (the switches win over the variable).
+- **Folder:** `kernel_plugins/`, next to `fs/` in the data folder (same on Windows, Linux, macOS and Android), holds
+  `config.txt`. Its lines are Vita paths, as on the Vita (`ur0:tai/kubridge.skprx`): the plugins themselves stay in
+  `fs/ur0/tai` (or `fs/ux0/tai`), where homebrew checks their files. A line without a device (`my.skprx`) names a file
+  you put in `kernel_plugins/`. Sections as on the Vita: `*KERNEL` for kernel plugins, `*ALL` / `*TITLEID` for user
+  plugins, `*main` is the home screen.
+- **Fallback:** without `kernel_plugins/config.txt`, the Vita's `fs/ux0/tai/config.txt` (else `fs/ur0/tai/config.txt`)
+  is read, as copied from a Vita.
+- **Automatic move:** the first time the option is on, the Vita's `config.txt` moves into `kernel_plugins/` unchanged
+  (a copy kept as `kernel_plugins/config.txt.bak`); the plugins, the framework's own file and the plugins' data files
+  stay in `ur0:tai`. The framework's own file is never loaded: the emulator provides its libraries.
+- **Log:** one line per plugin, `kernel plugin <path>: loaded and started (<name>)`, `... not started: no module
+  provides ...` or `... not loaded (...)`.
+
+Details in [`docs/notes/plugins.md`](docs/notes/plugins.md).
 
 ## Keys
 
@@ -205,7 +221,7 @@ gyroscope. Everything can be remapped in **Settings > Controls**, per controller
 The Android app (`src/VitaSharp.Android`) is a .NET MAUI app that runs the same emulator core as the desktop on arm64
 phones: the Release APK is compiled with Native AOT by default, the Vita's ARMv7 code runs on the native ARM64 JIT and
 the picture is drawn with Vulkan. It has its own screens: game library, game details (CPU backend, clock, GPU profile,
-internal resolution, MSAA, VSync and the FPS counter per game, saves), trophies, controls, settings, firmware, GPU driver, PSN
+internal resolution, MSAA, frame rate, VSync and the FPS counter per game, saves), trophies, controls, settings, firmware, GPU driver, PSN
 account and network, and a performance page. The app follows the language setting (**Ajustes > Aparência > Idioma**;
 the menu names below are the Portuguese ones). Screens and design:
 [`docs/android/README.md`](docs/android/README.md#screens).
@@ -257,17 +273,18 @@ given, and on a rooted phone, the data stays in `Android/data/io.github.vitashar
 SELECT/PS/START, a TRÁS toggle for the rear touchpad); touches on the picture are the front touch screen. Bluetooth or
 USB controllers are detected on their own with the desktop's positional layout (the on-screen controls hide while one
 is connected), and a hardware keyboard uses the desktop's keys. **Controles** sets the O/X swap, deadzone, opacity,
-vibration and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
+vibration (on every press, also with the other thumb on the stick; weak, medium or strong) and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
 
 **Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game
 started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear
-touch, on-screen controls, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
+touch, on-screen controls, MSAA, frame rate, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
 tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
 `captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
 
-**Per-game settings.** In the game's details: internal resolution, MSAA, VSync (the frame rate follows the game's own
-30 or 60 fps; there is no separate frame rate choice on Android yet), the FPS counter, CPU backend, clock and GPU
-profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
+**Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
+game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
+the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
+GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
 
 **Known limitations.**
 

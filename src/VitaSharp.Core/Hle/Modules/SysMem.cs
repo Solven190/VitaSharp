@@ -240,7 +240,7 @@ public sealed partial class SysMem : HleModule
     /// 3, and any other thread a stable core from its uid (games index per-core data with it, so it must stay in 0-2).
     /// </summary>
     [Hle]
-    int sceKernelGetCpuId()
+    internal int sceKernelGetCpuId()
     {
         if (GuestThread.Current is not { } t) return 0;
         if (t.OnSystemCore) return 3;

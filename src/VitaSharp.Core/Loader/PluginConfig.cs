@@ -1,16 +1,16 @@
 namespace VitaSharp.Core.Loader;
 
 /// <summary>
-/// The plugin configuration of the homebrew environment (taiHEN's config.txt), read with the rules of taiHEN's own
-/// parser (taihen-parser: lexer.c, parser.c; taiHEN plugin.c, hen.c):
+/// The plugin configuration of the homebrew environment (config.txt), read with the rules of the scene plugin loader's own
+/// parser (its lexer, parser and plugin loader):
 /// <list type="bullet">
-/// <item>taiHEN opens ux0:tai/config.txt and, only when that cannot be opened, ur0:tai/config.txt (its "recovery"
+/// <item>The plugin loader opens ux0:tai/config.txt and, only when that cannot be opened, ur0:tai/config.txt (its "recovery"
 /// config): one file is used, never both.</item>
 /// <item>A line is read up to CR or LF; leading and trailing whitespace (space, tab, LF, VT, FF, CR) is dropped. An
 /// empty line or one starting with '#' is a comment; one starting with '*' starts a section; any other line is a module
 /// path (inner spaces kept).</item>
 /// <item>A section line is '*', optional whitespace, an optional '!' (halt) and optional whitespace, then the name. Names
-/// compare exactly (case-sensitive): KERNEL is loaded into the kernel when taiHEN starts, any other name is a title ID,
+/// compare exactly (case-sensitive): KERNEL is loaded into the kernel when the plugin loader starts, any other name is a title ID,
 /// matched against each process's title ID when its preloaded modules have started ("main" is SceShell), and ALL
 /// matches every process but not KERNEL.</item>
 /// <item>A matching section marked with '!' ends the reading at the next section line: the sections after it are not
@@ -22,10 +22,10 @@ namespace VitaSharp.Core.Loader;
 /// </summary>
 public static class PluginConfig
 {
-    /// <summary>taihen-parser's CONFIG_MAX_LINE_LENGTH: a line of this length or longer makes the file invalid.</summary>
+    /// <summary>The parser's CONFIG_MAX_LINE_LENGTH: a line of this length or longer makes the file invalid.</summary>
     public const int MaxLineLength = 256;
 
-    /// <summary>The configuration files taiHEN tries, in order (TAIHEN_CONFIG_FILE, TAIHEN_RECOVERY_CONFIG_FILE).</summary>
+    /// <summary>The configuration files the plugin loader tries, in order (the configuration, then the recovery one).</summary>
     public static readonly string[] Paths = ["ux0:tai/config.txt", "ur0:tai/config.txt"];
 
     private const string KernelSection = "KERNEL";
@@ -40,7 +40,7 @@ public static class PluginConfig
 
     private readonly record struct Line(LineKind Kind, string Text, bool Halt);
 
-    /// <summary>True when taiHEN accepts <paramref name="text"/> (taihen_config_validate).</summary>
+    /// <summary>True when the plugin loader accepts <paramref name="text"/> (its validation pass).</summary>
     public static bool IsValid(string text)
     {
         return Lex(text) is { } lines && Check(lines);
@@ -48,7 +48,7 @@ public static class PluginConfig
 
     /// <summary>
     /// The module paths for <paramref name="section"/> ("KERNEL", or a process's title ID), in file order; empty when
-    /// the file is not valid (taihen_config_parse after taihen_config_validate).
+    /// the file is not valid (its parse after the validation pass).
     /// </summary>
     public static List<string> ModulesFor(string text, string section)
     {
@@ -109,7 +109,7 @@ public static class PluginConfig
         return character is ' ' or '\t' or '\n' or '\v' or '\f' or '\r';
     }
 
-    /// <summary>The lines of <paramref name="text"/> as taiHEN's lexer classifies them; null when a line is too long.</summary>
+    /// <summary>The lines of <paramref name="text"/> as the plugin loader's lexer classifies them; null when a line is too long.</summary>
     private static List<Line>? Lex(string text)
     {
         List<Line> lines = [];

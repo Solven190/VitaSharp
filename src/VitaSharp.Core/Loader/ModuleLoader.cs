@@ -245,6 +245,33 @@ public sealed class Linker(IImportResolver importResolver)
         return n;
     }
 
+    /// <summary>Binds every import stub of function <paramref name="nid"/> again, as a new import would bind now (to a
+    /// visible export, else to the HLE): a plugin hook that had taken them is gone.</summary>
+    public void RebindFunction(uint nid)
+    {
+        lock (_lock)
+        {
+            foreach ((uint bnid, uint libNid, string libName, uint stub, bool kernel) in _funcBindings)
+            {
+                if (bnid != nid || Kept(stub))
+                {
+                    continue;
+                }
+
+                if (TryFindExport(nid, libNid, kernel, out uint target))
+                {
+                    WriteJumpStub(stub, target);
+                }
+                else
+                {
+                    BindHle(stub, nid, libNid, libName);
+                }
+
+                InvalidateCode?.Invoke(stub, 12);
+            }
+        }
+    }
+
     public static void WriteJumpStub(uint stub, uint target)
     {
         GuestMemory.W32(stub, 0xE300C000 | ((target & 0xF000) << 4) | (target & 0xFFF));                 // movw r12, #lo

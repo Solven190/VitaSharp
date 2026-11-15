@@ -155,13 +155,13 @@ public sealed class KernelModuleLoaderTests(GuestMemoryFixture fixture) : IDispo
         Assert.Equal(0xEFu, GuestMemory.R32(again[0]) >> 24);
     }
 
-    /// <summary>A user module with no imports that only starts (taiHEN loads such plugins into every process).</summary>
+    /// <summary>A user module with no imports that only starts (the plugin loader loads such plugins into every process).</summary>
     private static byte[] UserPlugin(string name) => new SceModuleBuilder(name).Start(0).Build();
 
     [Fact]
     public void TheSystemsProcessesGetTheirPluginsByTheirKernelTitleId()
     {
-        // taiHEN: *KERNEL at boot, then each process's sections in file order: *ALL for all, *main for SceShell, the
+        // the plugin loader: *KERNEL at boot, then each process's sections in file order: *ALL for all, *main for SceShell, the
         // NPXS ID for a system application
         string kernel = Write("k.skprx", Provider());
         string all = Write("all.suprx", UserPlugin("PluginAll"));

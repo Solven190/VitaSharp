@@ -116,6 +116,9 @@ public sealed class SettingsView : Screen<SettingsState>
                     ToggleRow(Loc.Get("MDebugMode"), p.DebugMode, v => Change(x => x.DebugMode = v),
                         detail: Loc.Get("MDebugModeDetail")),
                     Divider(),
+                    ToggleRow(Loc.Get("MKernelPlugins"), p.KernelPlugins, v => Change(x => x.KernelPlugins = v),
+                        detail: Loc.Get("MKernelPluginsDetail")),
+                    Divider(),
                     Row(Loc.Get("MLastGameLog"), null, Copy(System.IO.Path.Combine(AppServices.Data.Logs, "last.log")), detail: "logs/last.log"),
                     Divider(),
                     Row(Loc.Get("MShareLog"), null, ShareLog)

@@ -55,7 +55,7 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
     private sealed class Ctx
     {
         public Compilation C = null!;
-        public INamedTypeSymbol? State, KernelObject, Attr, Ignore, IgnoreFields, Missing, Alias, Writer, Reader;
+        public INamedTypeSymbol? State, KernelObject, Attr, Ignore, IgnoreFields, Missing, Alias, Writer, Reader, Module;
         /// <summary>Unique local variable numbers of the generated readers.</summary>
         public int N;
     }
@@ -134,6 +134,7 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
             Alias = compilation.GetTypeByMetadataName(AliasName),
             Writer = compilation.GetTypeByMetadataName(WriterName),
             Reader = compilation.GetTypeByMetadataName(ReaderName),
+            Module = compilation.GetTypeByMetadataName(HleModuleName),
         };
         if (c.State == null || c.Attr == null)
         {
@@ -273,8 +274,21 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
             string hasMissing = missingAttr != null ? "true" : "false";
             fieldEntries.Add($"new global::VitaSharp.Core.SaveState.SnapshotField(\"{Escape(name)}\", \"{Escape(TypeSignature(type, c, 0))}\", {hasMissing}, {aliasList})");
 
+            // a reference to an HLE module (a cache such as AppUtil's AppMgr) is no state: the modules are the
+            // emulator's, one of each, and a load restores into them. Read as a nested state, a load made a detached
+            // copy of the referenced module. It keeps its place in the layout (states of older builds have it, and
+            // format 1 cannot skip a field), written empty and skipped on load.
+            bool moduleReference = IsModuleReference(type, c);
             save.AppendLine("        at = w.BeginBlock();");
-            EmitWrite(save, type, e, 0, c, "        ");
+            if (moduleReference)
+            {
+                save.AppendLine("        w.Write(false); // an absent state, as SnapshotWriter.Write(null) writes it");
+            }
+            else
+            {
+                EmitWrite(save, type, e, 0, c, "        ");
+            }
+
             save.AppendLine("        w.EndBlock(at);");
 
             cases.AppendLine($"                case \"{Escape(name)}\":");
@@ -284,7 +298,14 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
             }
 
             cases.AppendLine("                {");
-            if (ro)
+            if (moduleReference)
+            {
+                cases.AppendLine("                    if (r.ReadBool())");
+                cases.AppendLine("                    {");
+                cases.AppendLine("                        r.ReadBlock(); // the referenced module's data an older build saved here");
+                cases.AppendLine("                    }");
+            }
+            else if (ro)
             {
                 EmitReadInPlace(cases, type, e, c, "                    ");
             }
@@ -300,7 +321,11 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
 
             missing.AppendLine($"        if (!found[{index}])");
             missing.AppendLine("        {");
-            if (missingAttr == null)
+            if (moduleReference)
+            {
+                missing.AppendLine("            // a module reference: nothing to restore");
+            }
+            else if (missingAttr == null)
             {
                 missing.AppendLine($"            throw new global::VitaSharp.Core.SaveState.SnapshotException(\"{Escape(key)}: the state has no value for {Escape(name)}\");");
             }
@@ -774,6 +799,9 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
         SpecialType.System_Double => "ReadDouble",
         _ => "ReadIntPtr",
     };
+
+    /// <summary>A field holding one of the emulator's HLE modules that is itself saved state (a cached reference).</summary>
+    private static bool IsModuleReference(ITypeSymbol t, Ctx c) => c.Module != null && Derives(t, c.Module) && IsState(t, c);
 
     private static bool IsState(ITypeSymbol t, Ctx c) => t.TypeKind == TypeKind.Class && (Implements(t, c.State) || HasAttr(t, c.Attr));
 

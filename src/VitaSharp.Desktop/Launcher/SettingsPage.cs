@@ -413,6 +413,7 @@ public sealed class SettingsPage : UserControl
         s.Children.Add(_k.Group(
             _k.Row("alert", S.DebugMode, S.DebugModeDetail, _k.Switch(_settings.DebugMode, v => Set(() => _settings.DebugMode = v))),
             _k.Row("camera", S.PreRoll, S.PreRollDetail, _k.Switch(_settings.CapturePreRoll, v => Set(() => _settings.CapturePreRoll = v))),
+            _k.Row("layers", S.KernelPlugins, S.KernelPluginsDetail, _k.Switch(_settings.KernelPlugins, v => Set(() => _settings.KernelPlugins = v))),
             _k.Row("folder", S.DiagnosticsFolder, Diagnostics.Root, _k.Secondary(S.Open, null, () =>
             {
                 try

@@ -75,6 +75,8 @@ public sealed class SessionCapture : IPresentTap, IRandomHook, IDisposable
     private InputRecorder? _input;
     private BlockingCollection<Work>? _queue;
     private Thread? _encoder;
+    /// <summary>Tests: runs first on a new encoder thread (to hold it while the capture stops).</summary>
+    internal Action? EncoderStarting { get; set; }
     private int _busy;
     private Recording? _rec;
     private bool _disposed;
@@ -271,8 +273,15 @@ public sealed class SessionCapture : IPresentTap, IRandomHook, IDisposable
     {
         if (_queue == null)
         {
-            _queue = new BlockingCollection<Work>(new ConcurrentQueue<Work>());
-            _encoder = new Thread(EncoderLoop) { IsBackground = true, Name = "capture encoder" };
+            var queue = new BlockingCollection<Work>(new ConcurrentQueue<Work>());
+            _queue = queue;
+            // the thread gets its queue directly: a stop right after the start clears _queue before the thread runs
+            _encoder = new Thread(() =>
+            {
+                EncoderStarting?.Invoke();
+                EncoderLoop(queue);
+            })
+            { IsBackground = true, Name = "capture encoder" };
             _encoder.Start();
         }
         InstallInput();
@@ -591,9 +600,8 @@ public sealed class SessionCapture : IPresentTap, IRandomHook, IDisposable
         AddInput(InputEvent.Now("rng", Convert.ToHexString(bytes)));
     }
 
-    private void EncoderLoop()
+    private void EncoderLoop(BlockingCollection<Work> q)
     {
-        BlockingCollection<Work> q = _queue!;
         var enc = new FramesFile.Encoder();
         foreach (Work work in q.GetConsumingEnumerable())
         {

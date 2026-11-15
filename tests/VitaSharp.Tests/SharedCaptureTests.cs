@@ -55,19 +55,46 @@ public sealed class SharedCaptureTests
         Assert.Equal(["open a"], _events);
     }
 
+    /// <summary>Only a guard against a hang: the linger itself runs on a manual clock, never on the host's.</summary>
+    private static readonly TimeSpan s_hangGuard = TimeSpan.FromMinutes(2);
+
     [Fact]
     public async Task IdleCaptureStopsAfterTheLinger()
     {
-        using var shared = new SharedCapture(TimeSpan.FromMilliseconds(50));
+        var clock = new ManualTimeProvider();
+        using var shared = new SharedCapture(TimeSpan.FromSeconds(2), clock);
         ICameraStream s = shared.Acquire("m", Factory("a"), out _)!;
         s.Dispose();
-        s.Dispose(); // idempotent
-        await _made[0].Stopped.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        s.Dispose(); // idempotent: one linger timer, not two
+        Assert.Equal(1, clock.PendingTimers);
+        clock.Advance(TimeSpan.FromMilliseconds(1999));
+        Assert.Equal(1, clock.PendingTimers); // still lingering just before the end
+        Assert.False(_made[0].Stopped.Task.IsCompleted);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.Equal(0, clock.PendingTimers);
+        await _made[0].Stopped.Task.WaitAsync(s_hangGuard);
         // the next start opens a new capture, which waits for the previous stop
         ICameraStream s2 = shared.Acquire("m", Factory("b"), out bool reused)!;
         Assert.False(reused);
-        await _made[1].After.WaitAsync(TimeSpan.FromSeconds(5));
+        await _made[1].After.WaitAsync(s_hangGuard);
         s2.Dispose();
+    }
+
+    [Fact]
+    public void StartDuringTheLingerReusesTheCaptureAndCancelsTheStop()
+    {
+        var clock = new ManualTimeProvider();
+        using var shared = new SharedCapture(TimeSpan.FromSeconds(2), clock);
+        shared.Acquire("m", Factory("a"), out _)!.Dispose();
+        clock.Advance(TimeSpan.FromSeconds(1));
+        ICameraStream again = shared.Acquire("m", Factory("b"), out bool reused)!;
+        Assert.True(reused);
+        clock.Advance(TimeSpan.FromSeconds(5)); // the old linger timer fires, but its generation is stale
+        Assert.False(_made[0].Stopped.Task.IsCompleted);
+        Assert.True(shared.WaitStopped(s_hangGuard));
+        Assert.False(_made[0].Stopped.Task.IsCompleted);
+        Assert.Equal(1, shared.Created);
+        again.Dispose();
     }
 
     [Fact]
@@ -80,7 +107,7 @@ public sealed class SharedCaptureTests
         a.Dispose();
         Assert.False(_made[0].Stopped.Task.IsCompleted);
         b.Dispose();
-        await _made[0].Stopped.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await _made[0].Stopped.Task.WaitAsync(s_hangGuard);
     }
 
     [Fact]
@@ -90,7 +117,7 @@ public sealed class SharedCaptureTests
         shared.Acquire("640x480", Factory("a"), out _)!.Dispose();
         ICameraStream s = shared.Acquire("320x240", Factory("b"), out bool reused)!;
         Assert.False(reused);
-        await _made[1].After.WaitAsync(TimeSpan.FromSeconds(5));
+        await _made[1].After.WaitAsync(s_hangGuard);
         Assert.True(_made[0].Stopped.Task.IsCompleted); // opened only after the old capture released the device
         s.Dispose();
     }

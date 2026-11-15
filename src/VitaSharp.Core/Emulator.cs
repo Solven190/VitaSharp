@@ -41,6 +41,13 @@ public sealed class EmulatorOptions
     /// ("libult", "libSceJson", or the short names "ult", "json", ...), and the process preloads a game ships ("libc",
     /// "libfios2"...). Null: VITASHARP_HLE_MODULES.</summary>
     public IReadOnlyCollection<string>? HleModules { get; init; }
+    /// <summary>The emulator option "Enable Kernel Plugins" (the Vita has no such setting, like pausing or recording
+    /// the screen): on, the emulator reads the plugin configuration (ur0:tai / ux0:tai config.txt) and loads the plugins
+    /// it lists; off (the default), the pure firmware runs and no plugin loads. Null: VITASHARP_KERNEL_PLUGINS=1.</summary>
+    public bool? KernelPlugins { get; init; }
+    /// <summary>The emulator's plugin folder (the plugin binaries, apart from the Vita's file system); null:
+    /// &lt;DataRoot&gt;/kernel_plugins, next to <see cref="FsRoot"/>.</summary>
+    public string? KernelPluginsDir { get; init; }
     /// <summary>An existing guest address space to run in (there is one per process: unit tests that boot an
     /// emulator share the test fixture's). Null: the emulator creates it.</summary>
     public GuestMemory? Memory { get; init; }
@@ -848,10 +855,10 @@ public sealed class Emulator : IDisposable
             _startFirst.AddRange(LoadFirmwareDependencies(MainModule, withoutOnRequest: true));
         }
 
-        // the plugins of every process, the system's too (taiHEN hooks sceKernelStartPreloadedModules: each process
-        // gets its plugins after its preloaded modules, the shell those of *main, a system application those of its
-        // NPXS ID); the *KERNEL ones load once, with the first process (the system's boot)
-        LoadPlugins();
+        // with the emulator option "Enable Kernel Plugins" on, the plugins of every process, the system's too (each
+        // process gets its plugins after its preloaded modules, the shell those of *main, a system application those of
+        // its NPXS ID; the *KERNEL ones load once, with the first process); off, the pure firmware: no plugin
+        LoadPluginsIfEnabled();
         // a system program's variable imports from firmware modules it loads itself later through sysmodule (ScePaf*
         // from libpaf, SceCommonGuiDialog's class tables...) are bound when that module loads; only the others are missing
         FirmwareLibraries? firmware = IsSystemProgram ? Firmware.FirmwareLibraries.For(Options.FsRoot) : null;
@@ -951,7 +958,7 @@ public sealed class Emulator : IDisposable
     /// the system keeps for itself, instead of the three application cores (<see cref="Kernel.Scheduler"/>).</summary>
     public bool RunsOnSystemCore { get; internal set; }
 
-    /// <summary>The title ID the kernel gives the shell's process (ksceKernelGetProcessTitleId; taiHEN's "*main").</summary>
+    /// <summary>The title ID the kernel gives the shell's process (ksceKernelGetProcessTitleId; "*main" of the plugin configuration).</summary>
     public const string ShellProcessTitleId = "main";
 
     /// <summary>The process's title ID as the kernel keeps it (sceKernelGetProcessTitleId, the plugin configuration's
@@ -1299,10 +1306,14 @@ public sealed class Emulator : IDisposable
     /// the <c>*KERNEL</c> plugins) goes to the kernel region and belongs to the kernel process
     /// (<see cref="KernelSpace.KernelPid"/>), as on the Vita, where the kernel and its modules outlive every process.
     /// </summary>
-    public LoadedModule LoadModule(string vitaPath, bool kernel)
+    public LoadedModule LoadModule(string vitaPath, bool kernel) => LoadModule(vitaPath, kernel, null);
+
+    /// <summary>Loads a module known by <paramref name="vitaPath"/> from <paramref name="hostFile"/> (null: the file at
+    /// that path of the Vita's file system).</summary>
+    internal LoadedModule LoadModule(string vitaPath, bool kernel, string? hostFile)
     {
         // a missing file or folder is the guest's error (the callers return it), never a host exception that ends the thread
-        string host = Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath);
+        string host = hostFile ?? (Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath));
         byte[] elf = SelfDecryptor.ToElf(File.ReadAllBytes(host), Klicensee);
         if (kernel)
         {
@@ -1372,8 +1383,112 @@ public sealed class Emulator : IDisposable
         Log.Info($"Unloaded module {loadedModule.Name} ({loadedModule.Path}): {rebound} import stub(s) rebound");
     }
 
+    /// <summary>The plugins of this process when the emulator option "Enable Kernel Plugins" is on (<see cref="LoadPlugins"/>);
+    /// nothing with it off, the default: the pure firmware runs.</summary>
+    internal List<string> LoadPluginsIfEnabled()
+    {
+        if (!KernelPluginsEnabled)
+        {
+            return [];
+        }
+
+        MigratePluginConfiguration();
+        return LoadPlugins();
+    }
+
+    /// <summary>The emulator's plugin folder, apart from the Vita's file system: the plugin configuration (config.txt)
+    /// and the plugins' binaries (kernel_plugins next to the fs folder of the data folder, or
+    /// <see cref="EmulatorOptions.KernelPluginsDir"/>).</summary>
+    public string KernelPluginsFolder => Options.KernelPluginsDir
+        ?? Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Options.FsRoot))) ?? Options.FsRoot, "kernel_plugins");
+
+    /// <summary>The configuration in the emulator's plugin folder.</summary>
+    string PluginFolderConfig => Path.Combine(KernelPluginsFolder, "config.txt");
+
+    /// <summary>A configuration line without a device (no ':'): a file of the emulator's plugin folder, relative to it.</summary>
+    static bool InPluginFolder(string path) => !path.Contains(':', StringComparison.Ordinal);
+
     /// <summary>
-    /// The plugins of the system's plugin configuration (taiHEN's config.txt, read with taiHEN's rules:
+    /// With the option on: the first time (no configuration in the emulator's plugin folder yet), moves the Vita's plugin
+    /// configuration (ux0:tai, else ur0:tai) into the folder unchanged, keeping a copy as config.txt.bak; its lines keep
+    /// the Vita paths, and the plugins stay in ur0:tai / ux0:tai (homebrew checks their files there). A plugin an earlier
+    /// version moved into the folder, whose line was rewritten to its file name, goes back to the Vita path config.txt.bak
+    /// lists for it, and its line too. Nothing is deleted except by moving.
+    /// </summary>
+    internal void MigratePluginConfiguration()
+    {
+        if (File.Exists(PluginFolderConfig))
+        {
+            ReturnMovedPlugins();
+            return;
+        }
+
+        string? source = PluginConfig.Paths.Select(p => Vfs.Resolve(p)).FirstOrDefault(h => h != null && File.Exists(h));
+        if (source == null || !PluginConfig.IsValid(File.ReadAllText(source)))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(KernelPluginsFolder);
+        File.Copy(source, PluginFolderConfig + ".bak", overwrite: true);
+        File.Move(source, PluginFolderConfig);
+        Log.Info($"plugins: moved the plugin configuration to the emulator's plugin folder ({PluginFolderConfig}; a copy is config.txt.bak)");
+    }
+
+    /// <summary>The plugins an earlier version moved into the folder go back to the Vita paths of config.txt.bak, and
+    /// their lines name those paths again.</summary>
+    void ReturnMovedPlugins()
+    {
+        string backup = PluginFolderConfig + ".bak";
+        if (!File.Exists(backup))
+        {
+            return;
+        }
+
+        var vitaPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in PluginConfig.ModulesFor(File.ReadAllText(backup), "KERNEL").Where(p => !InPluginFolder(p)))
+        {
+            vitaPaths.TryAdd(path[(path.LastIndexOfAny(['/', ':']) + 1)..], path);
+        }
+
+        string text = File.ReadAllText(PluginFolderConfig);
+        bool changed = false;
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (line.Length == 0 || line[0] is '#' or '*' || !InPluginFolder(line) || !vitaPaths.TryGetValue(line, out string? vitaPath))
+            {
+                continue;
+            }
+
+            string file = Path.Combine(KernelPluginsFolder, line);
+            if (Vfs.Resolve(vitaPath) is { } target && File.Exists(file) && !File.Exists(target))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Move(file, target);
+                Log.Info($"plugins: moved {line} back to {vitaPath}");
+            }
+
+            lines[i] = vitaPath;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            File.WriteAllText(PluginFolderConfig, string.Join("\n", lines));
+        }
+    }
+
+    bool ExportsPluginFramework(LoadedModule module) =>
+        module.Exports.Any(e => e.FuncNids.Any(Hle.Modules.OfType<Hle.Modules.PluginFramework>().First().Provides));
+
+    /// <summary>The emulator option "Enable Kernel Plugins" (<see cref="EmulatorOptions.KernelPlugins"/>, else
+    /// VITASHARP_KERNEL_PLUGINS=1); off by default.</summary>
+    public bool KernelPluginsEnabled => Options.KernelPlugins ?? Environment.GetEnvironmentVariable(EnvVars.KernelPlugins) == "1";
+
+    /// <summary>
+    /// The plugins of the system's plugin configuration (ur0:tai / ux0:tai config.txt, read with the rules of the scene's plugin loader:
     /// <see cref="PluginConfig"/>): the modules of <c>*KERNEL</c> (kernel modules), then those of <c>*ALL</c> and of the
     /// process's title ID (user modules), all through the same path, the module loader, before the process starts;
     /// their module_start runs before the main thread (as Vita3K does for user plugins). Like the firmware's module
@@ -1390,13 +1505,15 @@ public sealed class Emulator : IDisposable
         return results;
     }
 
-    /// <summary>The plugin configuration's text: ux0:tai/config.txt, or ur0:tai/config.txt only when the first does not
-    /// exist (taiHEN's order); null without one or when taiHEN would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
+    /// <summary>The plugin configuration's text: the emulator's plugin folder's config.txt, else ux0:tai/config.txt, or
+    /// ur0:tai/config.txt only when that does not exist (the plugin loader's order); null without one or when the plugin
+    /// loader would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
     private string? ReadPluginConfig()
     {
-        foreach (string path in PluginConfig.Paths)
+        foreach (string path in PluginConfig.Paths.Prepend(PluginFolderConfig))
         {
-            if (Vfs.Resolve(path) is not { } host || !File.Exists(host))
+            string? host = path == PluginFolderConfig ? path : Vfs.Resolve(path);
+            if (host == null || !File.Exists(host))
             {
                 continue;
             }
@@ -1404,7 +1521,7 @@ public sealed class Emulator : IDisposable
             string text = File.ReadAllText(host);
             if (!PluginConfig.IsValid(text))
             {
-                Log.Warn($"plugin configuration {path} is not valid (taiHEN loads no plugin from it)");
+                Log.Warn($"plugin configuration {path} is not valid (no plugin loads from it)");
                 return null;
             }
 
@@ -1472,11 +1589,20 @@ public sealed class Emulator : IDisposable
         LoadedModule loadedModule;
         try
         {
-            loadedModule = LoadModule(path, kernel);
+            loadedModule = LoadModule(path, kernel, InPluginFolder(path) ? Path.Combine(KernelPluginsFolder, path) : null);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
+            Log.Warn($"plugin {path}: not loaded, it is neither in the emulator's plugin folder nor at its path ({e.Message})");
             return $"not loaded ({e.Message})";
+        }
+
+        // the emulator offers the plugin framework libraries itself: a listed module that exports them (the user's copy of
+        // the framework) is not loaded
+        if (ExportsPluginFramework(loadedModule))
+        {
+            UnloadModule(loadedModule);
+            return "not loaded (the emulator provides its libraries)";
         }
 
         var missing = loadedModule.Imports

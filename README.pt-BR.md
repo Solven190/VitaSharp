@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=28e0c9a3a9b632c562758104885ac8c86993a0a652aca2075b709508da373ae6 -->
+<!-- pair: README.md sha256=adc0b05c36f742117729c6d0a3b18989ced5fefa98bf64859ef8fc22eb9fec74 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -159,15 +159,6 @@ de comando: `install-firmware <PSVUPDAT.PUP>`.
 instalados e LiveArea. Um jogo aberto pela LiveArea roda como um segundo processo; o botão PS (tecla Home) volta ao
 sistema e **Continuar** retoma o jogo. Detalhes e o que falta em [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** O VitaSharp carrega os plugins do `fs/ur0/tai/config.txt` (copiados do seu Vita para `fs/ur0/tai`,
-listados como no Vita: `*KERNEL` para os plugins de kernel `.skprx`, carregados uma vez quando o sistema inicia, `*ALL` /
-`*TITLEID` para os de usuário `.suprx`, nos jogos e também nos programas do próprio sistema: `*main` é a tela inicial,
-`*NPXS10015` as Configurações e assim por diante) e roda o código deles. O taiHEN (`taihen.skprx`) também carrega, mas não consegue iniciar: o início dele precisa de
-patches nas checagens de assinatura e de DRM do firmware, que o VitaSharp não faz funcionar. Por isso nada que precise
-do taiHEN roda, como num Vita sem ele: os plugins feitos sobre ele (kubridge, fd_fix) e os homebrews que o chamam ou
-precisam de um desses plugins, entre eles o **Dead Space** (pelo kubridge) e o **Sonic Mania**. Detalhes em
-[`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
-
 **Android.** Veja [Android](#android).
 
 **Idioma.** O launcher e a janela do jogo seguem o idioma do sistema (inglês ou português do Brasil);
@@ -177,6 +168,31 @@ Os dados ficam em `%APPDATA%\VitaSharp` no Windows (`~/.local/share/VitaSharp` n
 `~/Library/Application Support/VitaSharp` no macOS; `--data=<pasta>` ou `VITASHARP_DATA` trocam a pasta): jogos em
 `fs/ux0/app`, firmware em `fs/os0`... , `logs/`, `savestates/`, `captures/` (Gravar tudo), `gpudumps/`,
 `diagnostics/`, `shadercache/`.
+
+### Plugins do kernel
+
+Uma opção do emulador, **Ativar Plugins do Kernel**, como pausar ou gravar a tela (o Vita não tem essa configuração).
+**Desligada por padrão: roda o firmware puro e nenhum plugin carrega.** Ligada, o VitaSharp carrega os plugins que a
+configuração lista e oferece a eles as bibliotecas do framework de plugins que eles importam (informação de módulo,
+busca de exports e imports, injeção de dados, hooks de função), como um console com o ambiente homebrew instalado.
+
+- **Como ligar:** launcher **Configurações > Avançado**; Android **Configurações > Depuração**; linha de comando
+  `--kernel-plugins=on|off`; ambiente `VITASHARP_KERNEL_PLUGINS=1` (as chaves valem sobre a variável).
+- **Pasta:** `kernel_plugins/`, ao lado de `fs/` na pasta de dados (igual no Windows, Linux, macOS e Android), guarda o
+  `config.txt`. As linhas dele são caminhos do Vita, como no Vita (`ur0:tai/kubridge.skprx`): os plugins ficam em
+  `fs/ur0/tai` (ou `fs/ux0/tai`), onde os homebrews conferem os arquivos. Uma linha sem dispositivo (`meu.skprx`) é um
+  arquivo que você coloca em `kernel_plugins/`. Seções como no Vita: `*KERNEL` para os plugins de kernel, `*ALL` /
+  `*TITLEID` para os de usuário, `*main` é a tela inicial.
+- **Alternativa:** sem `kernel_plugins/config.txt`, é lido o `fs/ux0/tai/config.txt` do Vita (senão
+  `fs/ur0/tai/config.txt`), como copiado de um Vita.
+- **Mudança automática:** na primeira vez com a opção ligada, o `config.txt` do Vita vai para `kernel_plugins/` sem
+  mudanças (uma cópia fica como `kernel_plugins/config.txt.bak`); os plugins, o arquivo do próprio framework e os
+  arquivos de dados dos plugins ficam em `ur0:tai`. O arquivo do próprio framework nunca é carregado: o emulador
+  oferece as bibliotecas dele.
+- **Log:** uma linha por plugin, `kernel plugin <caminho>: loaded and started (<nome>)`, `... not started: no module
+  provides ...` ou `... not loaded (...)`.
+
+Detalhes em [`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
 
 ## Teclas
 
@@ -209,7 +225,7 @@ pode ser remapeado em **Configurações > Controles**, por controle ([`docs/note
 O app Android (`src/VitaSharp.Android`) é um app .NET MAUI que roda o mesmo núcleo do emulador do desktop em celulares
 arm64: o APK Release é compilado com Native AOT por padrão, o código ARMv7 do Vita roda no JIT nativo ARM64 e a imagem é
 desenhada com Vulkan. Tem telas próprias: biblioteca de jogos, detalhes do jogo (backend de CPU, clock, perfil de GPU,
-resolução interna, MSAA, VSync e contador de FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU,
+resolução interna, MSAA, taxa de quadros, VSync e contador de FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU,
 conta PSN e rede, e uma página de desempenho. O app segue o idioma escolhido (**Ajustes > Aparência > Idioma**; os
 nomes de menu abaixo são os em português). Telas e design:
 [`docs/android/README.md`](docs/android/README.md#screens).
@@ -262,17 +278,18 @@ permissão não é dada, e num celular com root, os dados ficam em `Android/data
 L/R, SELECT/PS/START, um botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque frontal. Controles
 Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os controles na tela somem enquanto um está
 conectado), e um teclado físico usa as teclas do desktop. **Controles** ajusta a troca O/X, zona morta, opacidade,
-vibração e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
+vibração (a cada toque, também com o outro dedo no analógico; fraca, média ou forte) e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
 
 **Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:
 **Continuar**, **Salvar estado** / **Carregar estado** (6 slots com imagem), **Ajustes** (toque traseiro, controles na
-tela, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
+tela, MSAA, taxa de quadros, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
 relatório de bug do F8 do desktop (save state, entrada, GPU dump, quadros, áudio e log) em `captures/` até **Parar
 gravação**; envie o `.zip` como em [Relatar um bug](#relatar-um-bug).
 
-**Ajustes por jogo.** Nos detalhes do jogo: resolução interna, MSAA, VSync (a taxa de quadros segue os 30 ou 60 fps do
-próprio jogo; ainda não há escolha separada de taxa de quadros no Android), o contador de FPS, backend de CPU, clock e
-perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
+**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa ou 2x), MSAA, taxa de quadros
+(**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`
+do desktop; também no menu de pausa, vale na hora, e aparece ao lado do contador de FPS), VSync, o contador de FPS,
+backend de CPU, clock e perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
 
 **Limitações conhecidas.**
 

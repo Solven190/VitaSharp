@@ -164,7 +164,7 @@ The ASTC frames look like the BC ones (no block artefacts, sprites and HUD intac
 banding in smooth gradients (1-3 levels, from the weight quantization) and isolated texels on lit surfaces (Killzone's
 worst 49). The RGBA8 numbers are the existing CPU decode's rounding against Intel's BC decoder.
 
-**Speed.** Unit test (`AstcTests.EncoderSpeed`, one thread, 256x256, i5-11300H): BC1-like blocks
+**Speed.** Unit test (`AstcTests.EncoderAllocatesNothingAndReportsItsSpeed`, one thread, 256x256, i5-11300H): BC1-like blocks
 6.7 M texels/s, smooth RGB 2.4, RGBA with independent alpha 1.5, BC4 16, BC5 2.9 M texels/s. In the replays (2 encoder
 threads: the process is pinned to 4 logical CPUs): Killzone 1655 levels, 67.5 M texels in 5.8 s (11.6 M texels/s);
 LBP 412 levels, 8.5 M texels in 0.65 s (13.1 M texels/s); Skullgirls 7 levels, 3.2 M texels in 0.38 s. The cold

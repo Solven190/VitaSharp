@@ -152,9 +152,11 @@ public sealed class RendererDeviceHandoffTests(GuestMemoryFixture fixture)
         Assert.True(new VulkanRendererOptions().KeepDevice);
     }
 
-    private static string RepoRoot()
+    /// <summary>The checkout this test file was compiled from: found from the source path, not the output folder,
+    /// so a build with -o outside the repository still finds it.</summary>
+    private static string RepoRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
     {
-        for (string? dir = AppContext.BaseDirectory; dir != null; dir = Path.GetDirectoryName(dir))
+        for (string? dir = Path.GetDirectoryName(source); !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
         {
             if (File.Exists(Path.Combine(dir, "VitaSharp.sln")))
             {
@@ -162,6 +164,6 @@ public sealed class RendererDeviceHandoffTests(GuestMemoryFixture fixture)
             }
         }
 
-        throw new InvalidOperationException("repository root not found from " + AppContext.BaseDirectory);
+        throw new InvalidOperationException("repository root not found from " + source);
     }
 }
