@@ -152,8 +152,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 906 | 849 | 57 | 3,918 | 23.1% |
-| Imported | 405 | - | - | 2,062 | 19.6% |
+| All | 913 | 856 | 57 | 3,918 | 23.3% |
+| Imported | 412 | - | - | 2,062 | 19.9% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -199,7 +199,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceIftuForDriver | 0 / 9 | 0% | - | 0 / 9 |
 | SceIntrmgrForDriver | 0 / 23 | 0% | - | 0 / 13 |
 | SceIntrmgrForKernel | 0 / 21 | 0% | - | 0 / 12 |
-| SceIofilemgrForDriver | 47 / 148 | 31.7% | - | 21 / 96 |
+| SceIofilemgrForDriver | 54 / 148 | 36.4% | - | 28 / 96 |
 | SceKernelSuspendForDriver | 4 / 28 | 14.2% | - | 4 / 13 |
 | SceKernelUtilsForDriver | 1 / 57 | 1.7% | - | 0 / 33 |
 | SceLcdForDriver | 0 / 23 | 0% | - | 0 / 13 |
