@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=4ce1f5f8964ea8624f54fd79ef8650e02cb08b3805ba5e0a755f599c6aad1a1f -->
+<!-- pair: README.pt-BR.md sha256=789ee751983a7f7db12deb67a5341ebf117bc5e6812f58d482b191cd4e119796 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -341,6 +341,10 @@ active SDK (`<sdk>/DotnetTools/dotnet-format/`) directly so that it reads that f
 every path on one command line, longer than Windows allows once the whole tree is listed (other SDK layouts fall back
 to `dotnet format`). `OneLineBlockTests` (in the test suite) rejects blocks written on one line (`if (x) { a; }`): every body
 goes on its own lines.
+
+**Options on both apps:** every new user option (settings, per-game settings, pause menu, controls) goes into the
+desktop launcher and the Android app in the same change, with the same name, default and meaning (the texts come from
+the shared `Texts.resx`); a test checks that both map it to the same emulator setting (`AndroidOptionParityTests`).
 
 Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI job "ShellCheck"; the job
 "Scripts on macOS" also runs `build/check-scripts-help.sh` under the system bash 3.2). Install ShellCheck with

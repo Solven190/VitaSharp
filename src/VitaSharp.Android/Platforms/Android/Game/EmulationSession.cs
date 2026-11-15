@@ -163,6 +163,9 @@ public sealed partial class EmulationSession : IDisposable
             GpuProfile = _settings.GpuProfile.Length > 0 ? _settings.GpuProfile : null,
             ResScale = _settings.ResScaleValue, // per-game internal resolution (0: VITASHARP_RES_SCALE in env.txt, else native)
             Msaa = _settings.Msaa == "off" ? "off" : null, // per-game MSAA (null: VITASHARP_MSAA in env.txt, else native)
+            // Ajustes > shaders, as the desktop launcher (VITASHARP_SHADERC_OPT / VITASHARP_ASYNC_SHADERS in env.txt win)
+            ShaderOptimization = prefs.ShaderOptimization,
+            AsyncShaders = prefs.BackgroundShaderCompile,
         };
 #if VITASHARP_DEVELOPER
         // developer APK, VITASHARP_FLICKER_CHECK=1[:threshold] in env.txt: every presented frame is read back small and

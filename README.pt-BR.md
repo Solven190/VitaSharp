@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=ab217b8a5fe152831691bef005a4865c6a2a4f79a61867d709fb8cee64b4e43e -->
+<!-- pair: README.md sha256=ec91bd3cee17800f170fcafbf7122787691edad0f0f3bef6680c62d5e1f04109 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -346,6 +346,11 @@ quebra os blocos escritos numa linha e mantém `{ get; set; }` numa linha; a cor
 `dotnet format` poria todos os caminhos numa linha de comando, maior do que o Windows aceita quando a árvore inteira é
 listada (outros layouts de SDK voltam para o `dotnet format`). O `OneLineBlockTests` (na suíte de testes)
 recusa blocos escritos numa linha só (`if (x) { a; }`): todo corpo vai em linhas próprias.
+
+**Opções nos dois apps:** toda opção nova do usuário (ajustes, ajustes por jogo, menu de pausa, controles) entra no
+launcher do desktop e no app Android na mesma mudança, com o mesmo nome, padrão e significado (os textos vêm do
+`Texts.resx` compartilhado); um teste confere que os dois levam a opção ao mesmo ajuste do emulador
+(`AndroidOptionParityTests`).
 
 Os scripts shell seguem o Google Shell Style Guide e precisam passar no ShellCheck (job "ShellCheck" do CI; o job
 "Scripts on macOS" também roda o `build/check-scripts-help.sh` no bash 3.2 do sistema). Instale o ShellCheck com
