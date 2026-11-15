@@ -785,8 +785,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
   ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
   depois do primeiro travamento
-- [ ] Vídeo da campanha do KZ lento no Android (24 -> 0,7 fps, só a imagem; o som do jogo segue normal), correção
-  feita, não confirmada no celular. Causa provável: sceAvPlayerJumpToTime em espiral. O KZ
+- [x] Vídeo da campanha do KZ lento no Android (24 -> 0,7 fps, só a imagem; o som do jogo segue normal): **corrigido,
+  confirmado pelo usuário no celular em 14/11/2026** (fix/android-bugs-14 11390d36: pulo e entrega de imagens como o
+  libsceavplayer 3.74, fila em ordem de exibição; 25-30 imagens novas/s contra 6-7). Histórico: Causa provável: sceAvPlayerJumpToTime em espiral. O KZ
   importa JumpToTime (e não SetLooping) e manda 2-3x mais unidades que os quadros do filme (captura
   `PCSC00045_20261114_164447_tudo`: 6022 unidades em 70 s de filme; o M02, sem lentidão, é 1:1). Nosso JumpToTime
   põe o relógio no alvo, volta o vídeo ao IDR anterior (até 5 s) e entrega esses quadros, então CurrentTime fica
@@ -836,7 +837,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     c41f784; conferir "state loaded" no log), salvar um state novo no mundo, ~10 min andando, linhas PERF por janela
     (`VITASHARP_SESSION_REPORT_SECONDS=30`), simpleperf no minuto 1 e 9, "Gravar tudo" quando cair abaixo de 20 fps;
     comparar começo x fim por thread (guest ciclos/s, tempo de host, esperas) para achar o que cresce do lado do host
-- [ ] Killzone no celular: o feixe de luz que entra pelo canto superior direito da escada muda de forma/intensidade
+- [x] (**corrigido em 14/11/2026**, fix/android-flicker-14: transferências adiadas também feitas na GPU, em ordem;
+  confirmado no celular sem piscar) Killzone no celular: o feixe de luz que entra pelo canto superior direito da escada muda de forma/intensidade
   entre quadros (forte, quase some; captura parada no slot 6 da escada, APK a00b4b9b sem chaves de perf: screen20s.mp4,
   cap_*.png e last.log em <scratchpad>\lab13\kzflicker). O log mostra a cadeia de downscale por transferências de CPU
   0x66362000 -> 0x66382000 -> 0x6638A000 -> 0x6638C000 -> 0x6638C800 adiada para a aposentadoria do quadro
@@ -1888,7 +1890,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `VK_EXT_rasterization_order_attachment_access` (caminho de fetch passes da Mali no replay), rodar os mesmos
   replays/testes do renderizador nos dois (exatidão, extensões, tempo) e só então mudar a regra do projeto, o CI do
   Windows e o README.
-- [ ] **PRIORIDADE (11/11/2026)** Builds do GitHub Actions quebrando na main (relato do usuário, 11/11/2026, página de
+- [x] (**resolvido em 15/11/2026**: CI e Release verdes na main 7e53fbeb; fix/ci-15 corrigiu o fuso do host no Ubuntu 26.04
+  e o dump agendado no macOS) **PRIORIDADE (11/11/2026)** Builds do GitHub Actions quebrando na main (relato do usuário, 11/11/2026, página de
   commits da main). Ver em cada workflow (ci.yml: Windows/Ubuntu/macOS, publish, "Coverage gate" novo de 11/11;
   release.yml) qual job falha desde quando e por quê (suspeitos do dia: o job de cobertura e o build-coverage-gate.txt,
   testes que dependem de rede ou de GPU de software no runner, o par .ps1/.sh, o build do Desktop no macOS/Linux com o
