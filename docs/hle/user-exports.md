@@ -15,9 +15,15 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
   bibliotecas que um programa chama precisa existir em HLE.
 - Os módulos de usuário de `vs0:` rodam de verdade (LLE) quando o HLE não serve a biblioteca: o carregador
   (`Emulator.LoadFirmwareDependencies`) mantém em HLE uma biblioteca que tenha ao menos uma função HLE fora dos módulos
-  marcados `FirmwareFallbackOnly` (libc, libpaf, sqlite, dbutil...: esses só valem quando o módulo real falta). Então,
-  numa biblioteca servida pelo HLE, cada função sem `[Hle]` é um buraco de verdade: o módulo real não está lá para
-  atendê-la.
+  marcados `FirmwareFallbackOnly` (libc, libpaf, sqlite, dbutil...: esses só valem quando o módulo real falta).
+- Exceção (14/11/2026): software do sistema (um módulo de `vs0:` ou qualquer módulo de um programa do sistema) que
+  importa de uma biblioteca servida pelo HLE uma função que o HLE não tem (as internas sem nome) recebe o módulo real
+  para a biblioteca inteira, públicas incluídas, como o console faz (teste `FirmwareInternalsTests`). Um jogo continua
+  no HLE. Com isso as internas de SceNpUtility, SceNpCommon, SceSslInternal, SceNetInternal, SceCommonDialog... que os
+  apps do sistema chamam vêm do np_utility/np_common/libssl/libnet/libcdlg do firmware.
+- Na contagem do `hle-coverage`, as funções que o HLE só tem como substituto do módulo do firmware
+  (`FirmwareFallbackOnly`) contam como LLE quando o firmware instalado as exporta (`CoverageStatus`, teste
+  `CoverageStatusTests`): antes contavam como HLE.
 
 ## Fonte e método
 
@@ -29,6 +35,14 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
   bibliotecas o HLE serve.
 - Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv) (os buracos: biblioteca, NID, nome, tipo,
   importadores, se está no VitaSDK).
+
+## Depois da regra do carregador (14/11/2026, release 82eec041 + esta branch)
+
+- Cobertas 9.440 de 19.406: HLE de verdade 4.662, default 375, LLE 4.403 (com os substitutos `FirmwareFallbackOnly`
+  agora contados como LLE).
+- O que ainda chega ao HLE sem implementação e é importado: só syscalls e `os0:us`, 98 funções — SceGpuEs4User (41),
+  SceMarlinHci (20), SceMgVideo (20), SceGpuEs4UserForVsh (5), SceRegMgr (3), SceGpuEs4ForUser (3), SceMotion,
+  SceThreadmgr (`_sceKernelExitCallback`), SceUdcd, SceCamera, SceDrmBridge e SceDrmBridgeUser (1 cada).
 
 ## Resultado (14/11/2026, main b8cc636c)
 
@@ -70,10 +84,8 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
    SceCamera, SceUdcd, SceDrmBridge(User), SceMotion, SceGxmInternal*, SceLibKernel.
 2. SceMgVideo, SceMarlinHci, SceKrm, USB (SceUsbSerial, SceUsbDevSerial, SceUsbstor, SceUsbAudioIn).
 3. SceGpuEs4User/ForVsh/ForUser: o cliente dos serviços do driver PowerVR (PVRSRV), que pede um modelo do driver.
-4. As bibliotecas de `vs0:` servidas pelo HLE, na ordem da tabela (SceNpUtility, SceNpCommon, SceSslInternal,
-   SceNetInternal, SceCommonDialog...). Quase todas as que faltam nelas são funções internas sem nome (pools de memória,
-   cliente HTTP/JSON do NP, contextos de SSL) que os apps do sistema chamam junto com as públicas. Antes de reescrevê-las
-   em C#, decidir por biblioteca: HLE das internas, ou o app do sistema receber o módulo real inteiro quando importa
-   internas que o HLE não tem (como o carregador já faz para o liblocation).
+4. As bibliotecas de `vs0:` servidas pelo HLE (SceNpUtility, SceNpCommon, SceSslInternal, SceNetInternal,
+   SceCommonDialog...): feito pela regra do carregador acima (o software do sistema que chama internas recebe o módulo
+   real); falta só o que um jogo chamar e o HLE não tiver (nenhum dos jogos instalados).
 
 Cada lote: funções fiéis ao módulo do FW 3.74 (estudado no Ghidra), testes que falham sem elas e este censo refeito.
