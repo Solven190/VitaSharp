@@ -24,6 +24,10 @@ public sealed class FunctionCensus
     public Dictionary<uint, string> SystemImports { get; } = new();
     /// <summary>NIDs imported by the installed games (eboot.bin and their modules) → one importing title.</summary>
     public Dictionary<uint, string> GameImports { get; } = new();
+    /// <summary>NID → how many system programs and modules import it (each module once).</summary>
+    public Dictionary<uint, int> SystemImporterCount { get; } = new();
+    /// <summary>NID → how many installed games import it (each title once).</summary>
+    public Dictionary<uint, int> GameImporterCount { get; } = new();
     public int FirmwareModules, Games;
     /// <summary>Firmware files that did not decrypt or parse.</summary>
     public List<string> Failed { get; } = new();
@@ -110,13 +114,17 @@ public sealed class FunctionCensus
                     }
                     if (!kernel)
                     {
+                        var moduleImports = new HashSet<uint>();
                         foreach ((string _, uint _, uint[]? funcs) in img.Imports)
                         {
                             foreach (uint nid in funcs)
                             {
                                 c.SystemImports.TryAdd(nid, where);
+                                moduleImports.Add(nid);
                             }
                         }
+
+                        CountImporter(c.SystemImporterCount, moduleImports);
                     }
                 }
             }
@@ -167,9 +175,20 @@ public sealed class FunctionCensus
                 {
                     c.GameImports.TryAdd(nid, title);
                 }
+
+                CountImporter(c.GameImporterCount, new HashSet<uint>(imports));
             }
         }
 
         return c;
+    }
+
+    /// <summary>One more importer for each NID of <paramref name="imports"/> (the distinct NIDs of one importer).</summary>
+    private static void CountImporter(Dictionary<uint, int> counts, HashSet<uint> imports)
+    {
+        foreach (uint nid in imports)
+        {
+            counts[nid] = counts.GetValueOrDefault(nid) + 1;
+        }
     }
 }
