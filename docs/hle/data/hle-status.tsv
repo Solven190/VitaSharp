@@ -1,5 +1,5 @@
 # HLE status per firmware library, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=55 vitasdk=6997/7006 vitasdk_default=385 vitasdk_lle=2124
+# firmware=3.74 games=55 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
 library	module	total	impl	games	games_impl	system	system_impl	default	games_default	system_default	lle
 SceAACPromoter	vs0:vsh/common/mms/AACPromoter.suprx	4	1	0	0	0	0	0	0	0	1
 SceAVConfig	os0:kd/bootimage.skprx/SceAVConfig	34	34	0	0	31	31	0	0	0	0
@@ -142,8 +142,8 @@ SceLsdb	vs0:vsh/shell/livespace_db.suprx	199	199	0	0	162	162	0	0	0	199
 SceMarlin	vs0:sys/external/libmln.suprx	42	42	0	0	29	29	0	0	0	42
 SceMarlinHci	os0:kd/marlin_hci.skprx	44	0	0	0	20	0	0	0	0	0
 SceMetaGen	vs0:vsh/common/mms/meta_gen.suprx	16	0	0	0	12	0	0	0	0	0
-SceMgVideo	os0:kd/mgvideo.skprx	29	0	0	0	20	0	0	0	0	0
-SceMgVideoForMiniApp	os0:kd/mgvideo.skprx	4	0	0	0	0	0	0	0	0	0
+SceMgVideo	os0:kd/mgvideo.skprx	29	29	0	0	20	20	29	0	20	0
+SceMgVideoForMiniApp	os0:kd/mgvideo.skprx	4	4	0	0	0	0	4	0	0	0
 SceModulemgr	os0:kd/modulemgr.skprx	16	16	1	1	15	15	0	0	0	0
 SceMotion	os0:us/driver_us.suprx	41	41	17	17	15	15	0	0	0	0
 SceMotionDev	os0:kd/bootimage.skprx/SceMotionDev	32	32	0	0	26	26	5	0	0	0
@@ -220,7 +220,7 @@ ScePsmDrm	os0:kd/bootimage.skprx/SceNpDrm	6	6	6	6	0	0	6	6	0	0
 ScePsp2Compat	vs0:data/external/webcore/ScePsp2Compat.suprx	1047	160	0	0	537	109	0	0	0	160
 ScePspnetAdhoc	vs0:sys/external/pspnet_adhoc.suprx	32	28	10	10	3	0	0	0	0	0
 ScePvf	vs0:sys/external/libpvf.suprx	43	43	22	22	2	2	0	0	0	0
-SceRegMgr	os0:kd/bootimage.skprx/SceRegistryMgr	22	19	0	0	20	17	0	0	0	0
+SceRegMgr	os0:kd/bootimage.skprx/SceRegistryMgr	22	22	0	0	20	20	0	0	0	0
 SceRegMgrForGame	os0:kd/bootimage.skprx/SceRegistryMgr	7	7	2	2	4	4	0	0	0	0
 SceRegMgrForSDK	os0:kd/bootimage.skprx/SceRegistryMgr	6	6	0	0	3	3	0	0	0	0
 SceRegMgrService	os0:kd/bootimage.skprx/SceRegistryMgr	5	5	0	0	4	4	0	0	0	0

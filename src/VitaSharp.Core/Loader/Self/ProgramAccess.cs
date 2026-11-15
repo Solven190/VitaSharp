@@ -82,5 +82,12 @@ public sealed class ProgramAccess
     /// <summary>The emulated console is a retail unit.</summary>
     public bool IsDevelopmentMode => false;
 
+    /// <summary>
+    /// Capability bit <paramref name="bit"/> of the process (SceSblACMgr's check of one bit, counted from the most
+    /// significant bit of the first byte: ksceSblACMgrIsSystemProgram is bit 1, SceSblACMgrForDriver_A27E47A7 bit 0x81,
+    /// SceSblACMgrForDriver_F5AE24AC bit 0x80). Without the auth info a privileged program has every bit.
+    /// </summary>
+    public bool HasCapabilityBit(int bit) => _capability != null ? (bit >> 3) < _capability.Length && Bit(bit) : _privileged;
+
     private bool Bit(int bit) => ((_capability![bit >> 3] >> (7 - (bit & 7))) & 1) != 0;
 }

@@ -24,7 +24,27 @@ public sealed class Registry
     public sealed record Key(string Category, string Name, KeyType Type, int Size, byte[] Default)
     {
         public string Path => Category + Name;
+
+        /// <summary>The template's fourth field: the key's reset level (0, 0x10, 0x20, 0x30; 0x1000 = never reset,
+        /// the template's 0x80 is stored as 0x1000) with the flags 0x2000 and 0x4000 that the reset levels 0x40 and
+        /// 0x100 select.</summary>
+        public int Level { get; init; }
+
+        /// <summary>The template's fifth field: the kinds of unit the key exists on (bit 1 retail handheld, 4 retail
+        /// PS TV, 2/8 development, 0x10/0x20 test); 0 = every unit.</summary>
+        public byte ModelMask { get; init; }
+
+        /// <summary>The template's seventh field: the backup level of the key (0, 5, 30, 99). A backup of level N
+        /// writes the factory default of a key whose level is below N; a restore keeps the unit's own value of a key
+        /// of level 5.</summary>
+        public byte BackupLevel { get; init; }
     }
+
+    /// <summary>The flags of <see cref="Key.Level"/> that are not the level itself.</summary>
+    public const int LevelFlagsMask = 0x6000;
+
+    /// <summary>The level of a key no reset touches.</summary>
+    public const int LevelNeverReset = 0x1000;
 
     private static readonly byte[] s_xorKey = [0x89, 0xFA, 0x95, 0x48, 0xCB, 0x6D, 0x77, 0x9D, 0xA2, 0x25, 0x34, 0xFD, 0xA9, 0x35, 0x59, 0x6E];
     private const int TemplateHeaderSize = 138;
@@ -148,9 +168,22 @@ public sealed class Registry
                     Encoding.UTF8.GetBytes(def).AsSpan(0, Math.Min(def.Length, init.Length)).CopyTo(init);
                 }
 
+                int level = values.Length > 4 && int.TryParse(values[3], out int lv) ? lv : 0;
+                if ((level & ~LevelFlagsMask) == 0x80)
+                {
+                    level = (level & 0xFF7F) | LevelNeverReset; // as SceRegistryMgr stores the template's 0x80
+                }
+
+                byte modelMask = values.Length > 5 && byte.TryParse(values[4], out byte mm) ? mm : (byte)0;
+                byte backupLevel = values.Length > 7 && byte.TryParse(values[6], out byte bl) ? bl : (byte)0;
                 foreach (string cat in ExpandRange(category))
                 {
-                    _keys.TryAdd(cat + name, new Key(cat, name, (KeyType)type, size, init));
+                    _keys.TryAdd(cat + name, new Key(cat, name, (KeyType)type, size, init)
+                    {
+                        Level = level,
+                        ModelMask = modelMask,
+                        BackupLevel = backupLevel,
+                    });
                 }
             }
         }
@@ -187,12 +220,18 @@ public sealed class Registry
     }
 
     /// <summary>Adds a key the template lacks (no firmware installed) or makes its default follow the emulator.</summary>
-    public void Define(string path, KeyType type, int size, Func<int>? dynamicDefault = null, byte[]? def = null)
+    public void Define(string path, KeyType type, int size, Func<int>? dynamicDefault = null, byte[]? def = null,
+        int level = 0, byte modelMask = 0, byte backupLevel = 0)
     {
         int slash = path.LastIndexOf('/') + 1;
         lock (_lock)
         {
-            _keys.TryAdd(path, new Key(path[..slash], path[slash..], type, size, def ?? new byte[size]));
+            _keys.TryAdd(path, new Key(path[..slash], path[slash..], type, size, def ?? new byte[size])
+            {
+                Level = level,
+                ModelMask = modelMask,
+                BackupLevel = backupLevel,
+            });
             if (dynamicDefault != null)
             {
                 _dynamicDefaults[path] = dynamicDefault;
@@ -285,6 +324,129 @@ public sealed class Registry
     }
 
     public bool SetInt(string category, string name, int value) => Set(category, name, BitConverter.GetBytes(value));
+
+    /// <summary>The keys whose category is <paramref name="category"/> or lies under it (whole path components).</summary>
+    public List<Key> KeysUnder(string category)
+    {
+        string prefix = Normalize(category, "");
+        var found = new List<Key>();
+        lock (_lock)
+        {
+            foreach (Key key in _keys.Values)
+            {
+                if (key.Category.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    found.Add(key);
+                }
+            }
+        }
+
+        found.Sort((a, b) => string.CompareOrdinal(a.Path, b.Path));
+        return found;
+    }
+
+    /// <summary>The values the system software wrote (keys at their default are absent).</summary>
+    public Dictionary<string, byte[]> WrittenValues()
+    {
+        lock (_lock)
+        {
+            return new Dictionary<string, byte[]>(_written, StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the written values of <paramref name="keys"/>: a key present in <paramref name="values"/> takes that
+    /// value, the others go back to their factory default. <see cref="Changed"/> is raised for each key whose value
+    /// changes, after the store is saved once.
+    /// </summary>
+    public void Replace(IReadOnlyList<Key> keys, IReadOnlyDictionary<string, byte[]> values)
+    {
+        var changed = new List<string>();
+        lock (_lock)
+        {
+            foreach (Key key in keys)
+            {
+                byte[]? before = Get(key.Path);
+                if (values.TryGetValue(key.Path, out byte[]? value))
+                {
+                    _written[key.Path] = value;
+                }
+                else
+                {
+                    _written.Remove(key.Path);
+                }
+
+                byte[]? after = Get(key.Path);
+                if (before == null || after == null || !before.AsSpan().SequenceEqual(after))
+                {
+                    changed.Add(key.Path);
+                }
+            }
+
+            Save();
+        }
+
+        foreach (string path in changed)
+        {
+            Changed?.Invoke(path);
+        }
+    }
+
+    /// <summary>Writes <paramref name="values"/> (path to value of known keys) to <paramref name="hostFile"/> in the
+    /// store's line format.</summary>
+    public void WriteValues(string hostFile, IReadOnlyDictionary<string, byte[]> values)
+    {
+        var lines = new List<string>(values.Count);
+        lock (_lock)
+        {
+            foreach (KeyValuePair<string, byte[]> entry in values.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+            {
+                if (_keys.TryGetValue(entry.Key, out Key? key))
+                {
+                    lines.Add(FormatLine(key, entry.Value));
+                }
+            }
+        }
+
+        File.WriteAllLines(hostFile, lines, new UTF8Encoding(false));
+    }
+
+    /// <summary>Reads a file written by <see cref="WriteValues"/>; lines of keys this registry does not define are
+    /// skipped.</summary>
+    public Dictionary<string, byte[]> ReadValues(string hostFile)
+    {
+        var values = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (string line in File.ReadAllLines(hostFile))
+        {
+            if (ParseLine(line) is { } parsed)
+            {
+                values[parsed.Path] = parsed.Value;
+            }
+        }
+
+        return values;
+    }
+
+    private static string FormatLine(Key key, byte[] value) =>
+        $"{key.Path}\t{key.Type}\t{(key.Type == KeyType.Int ? BitConverter.ToInt32(value).ToString() : Convert.ToHexString(value))}";
+
+    private (string Path, byte[] Value)? ParseLine(string line)
+    {
+        string[] fields = line.Split('\t');
+        if (fields.Length != 3 || !_keys.TryGetValue(fields[0], out Key? key))
+        {
+            return null;
+        }
+
+        try
+        {
+            return (fields[0], key.Type == KeyType.Int ? BitConverter.GetBytes(int.Parse(fields[2])) : Convert.FromHexString(fields[2]));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
 
     private void Load()
     {

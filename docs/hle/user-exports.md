@@ -36,6 +36,26 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
 - Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv) (os buracos: biblioteca, NID, nome, tipo,
   importadores, se está no VitaSDK).
 
+## Lote 15 (15/11/2026, feat/user-hle-15)
+
+- SceMgVideo (29) e SceMgVideoForMiniApp (4), lidos no `os0:kd/mgvideo.skprx` 3.74 (e no `magicgate.skprx`): toda
+  entrada pede o bit 0x81 da capacidade (SceSblACMgrForDriver_A27E47A7, senão 0x80010058); as que copiam um bloco de
+  parâmetros da memória do usuário fazem a cópia (e os limites 0x400/0x40, 0x8002710B) antes disso. A abertura
+  (`NID_C62CA5A7`, `NID_E8617A7F`, `NID_3EBD4502`) aceita só três zeros (senão 0x8050C002) e liga a emulação de
+  MagicGate do `magicgate.skprx` (chaves do SceSblMgKeyMgr, identidade do cartão pelo SceMsif, licenças em
+  `tm0:/drm/magicgate`). O VitaSharp não tem essas chaves nem o MagicGate do cartão: a abertura responde 0x8050C021 (o
+  que o módulo dá quando o armazenamento do MagicGate não sobe) e o resto responde como sem sessão (0x8050C011; as duas
+  liberações, `NID_8A803FB4`/`NID_553C65CB`, 0). Marcadas Default.
+- SceRegMgr: `sceRegMgrResetRegistryLv`, `sceRegMgrDbBackup`, `sceRegMgrDbRestore` (SceRegistryMgr 3.74). O registro
+  agora lê do template os campos 4 (nível de reset e flags 0x2000/0x4000; 0x80 vira 0x1000), 5 (tipos de aparelho) e 7
+  (nível de backup) de cada chave. Reset: níveis 0/0x10/0x20/0x30/0x40/0x100/0x1000 (senão 0x800D000D), categoria sem
+  chaves 0x800D0017, caminho de 0x100+ 0x800D000A. Backup: níveis 0/10/20/30/40/99 (senão 0x800D0020); as chaves de
+  nível de reset >= 5 e nível de backup abaixo do pedido vão com o padrão de fábrica. Restore: chaves de nível de
+  backup 5 ficam com o valor do aparelho, as outras recebem o do backup ou o padrão. O arquivo de backup usa o formato
+  do armazenamento do VitaSharp (o registro não é o `system.dreg` do firmware).
+- Pendente: SceMarlinHci (44 exportações, 20 importadas): o `marlin_hci.skprx` é a biblioteca HCI do Marlin em
+  software (cripto do SceKernelUtils, chaves em arquivos), capacidade bit 0x80 (SceSblACMgrForDriver_F5AE24AC);
+  descompilado, falta o estudo das funções internas.
 ## Jogos de volta a 100% e LLE das bibliotecas que o HLE não emula (15/11/2026, docs/hle-status-15)
 
 - Por que a coluna "jogos" caiu de 100% (2.049/2.049) para 99,1% (2.105/2.124): o status anterior (eef84396, 11/11) foi
