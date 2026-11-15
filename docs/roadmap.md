@@ -142,7 +142,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
-- [ ] [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
+- [x] (15/11/2026, não se aplica ao que se distribui: o Release é NativeAOT único, docs/android/README.md; só vale para trocar de runtime em builds de comparação) [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
   só para comparação; vale para quem troca de runtime; 09/11/2026, laboratório): um estado salvo por um APK
   CoreCLR carrega em APKs
   Mono LLVM e NativeAOT do mesmo código, mas um APK mono-aot sem LLVM recusa ("salvo por outra versão", StateOtherVersion)
@@ -843,11 +843,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     o F1 na corrida não tem limitador próprio (1 `sceDisplayWaitVblankStart` por quadro, o do callback) e com EARLY
     passava de 30 para 36-39 fps no celular. No PC, sem EARLY, o F1 já roda a corrida a 60 fps: manter jogos sem
     limitador no ritmo do Vita num host rápido é outra decisão (modo nativo = ritmo do jogo; fixo 30 existe)
-- [ ] Som dos filmes do F1 2011 no celular (era subitem de "Velocidade nativa no celular"): um quadro AAC de silêncio
+- [x] (15/11/2026, confirmado pelo usuário) Som dos filmes do F1 2011 no celular (era subitem de "Velocidade nativa no celular"): um quadro AAC de silêncio
   a cada quatro (o player do jogo recebe o áudio devagar pelo SceMp4/MediaExtractor + SceAudiodec/MediaCodec; no PC, com FFmpeg, sem buracos); imagem dos filmes já
   corrigida (31/10: fila de quadros do MediaCodec, pts da unidade, sem flashes pretos)
 
-- [ ] Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
+- [x] (15/11/2026, confirmado pelo usuário) Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
   no meio de um filme ele para de devolver buffers de entrada (200 ms sem nenhum, com a saída drenada a cada
   tentativa). Visto no Killzone (vídeo da campanha, 3:20 de reprodução contínua; M02_Intro, 4 s depois de o jogo
   começar a ler). Desde fix/kz-avplayer-end o decodificador é reaberto e continua do último IDR (o filme não congela
@@ -1201,7 +1201,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] God of War Collection (PCSA00126) no celular: o Kratos aparece com problemas de textura (31/10/2026, branch
   perf/android-phone-2: atributos de vértice desalinhados (stride 19, F16 nos offsets 3 e 11) que a NVIDIA aceita e a
   Mali lê errado; agora lidos como bytes e remontados no shader. Só no celular; `docs/notes/gow-textures.md`)
-- [ ] Flicker no celular em todos os jogos testados (Knightin'+, Devious Dungeon, F1 2011, Uncharted, God of War
+- [x] (15/11/2026, confirmado pelo usuário) Flicker no celular em todos os jogos testados (Knightin'+, Devious Dungeon, F1 2011, Uncharted, God of War
   Collection): sequências de 10+ quadros seguidos (`screencap`/`screenrecord`) comparadas com o desktop na mesma cena
   e zero quadro piscando; o que falta hoje: o quadro escuro do Uncharted (1 a cada volta do filme do título) e
   conferir o God of War
@@ -1221,7 +1221,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   via adb) onde vai o tempo (cálculo, texturas, leitura/gravação de tiles, vértices) e reduzir: shaders em 16 bits
   onde o Vita usa `half` (mediump na Mali), menos load/store de tiles entre etapas, MSAA/superfícies extras no perfil
   Mali, shaders traduzidos mais enxutos e uma opção de resolução interna menor (75%/50%)
-- [ ] Uncharted no celular: na tela de título, um quadro escuro e velho do filme de fundo a cada ~5 s (não é o caso
+- [x] (15/11/2026, confirmado pelo usuário) Uncharted no celular: na tela de título, um quadro escuro e velho do filme de fundo a cada ~5 s (não é o caso
   "decodificador sem quadro"; 30/10/2026, Redmi Note 14); achar de onde vem o quadro velho (ring de buffers do
   player do jogo com a CPU lenta, ou o cache de texturas da imagem YUV)
   12/11/2026 (A1): provável a mesma causa do F1 (item "o vídeo de abertura do F1 2011 pisca"): o stream do filme
@@ -1300,7 +1300,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (.PUP) pelo seletor (30/10/2026: pasta específica do app como raiz de dados, VPK/PUP/driver pelo seletor do sistema,
   lidos no lugar; o motivo de não usar uma pasta do SAF como raiz está em `docs/android/README.md`)
 
-- [ ] Ferramentas de desenvolvedor (`-p:VitaSharpDeveloper=true`, `tools/dev/README.md`): bench da GPU com fixtures e
+- [x] (15/11/2026, trabalho contínuo, segue nas regras/ferramentas) Ferramentas de desenvolvedor (`-p:VitaSharpDeveloper=true`, `tools/dev/README.md`): bench da GPU com fixtures e
   variantes em tempo de execução, teste de flicker no aparelho (replay e `VITASHARP_FLICKER_CHECK` no jogo), Perfetto,
   snapshots de desenvolvedor e o gravador de voo (últimos N s com um botão)
 - [ ] Próxima fase, quando Uncharted e F1 estiverem sólidos no celular (fps nativo, sem flicker nem quadro escuro, som
@@ -1333,7 +1333,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   sensibilidade, inverter eixo Y, zona morta/curva de resposta e retorno ao centro quando o mouse para; opção no
   perfil de controle (`input.json`) e na tela de controles do launcher. Hoje o mouse só move o giroscópio
   (`HostInput.MouseLook`, com o botão do meio)
-  - [ ] Modo do mouse escolhido no mapeamento: giroscópio, analógico direito, analógico esquerdo ou desligado
+  - [x] (15/11/2026, confirmado pelo usuário) Modo do mouse escolhido no mapeamento: giroscópio, analógico direito, analógico esquerdo ou desligado
     (qualquer analógico pode ser o alvo), com um botão/tecla de atalho para alternar entre os modos com o jogo rodando
     (aviso na tela com o modo atual) e o modo salvo por jogo no perfil de controle
   Feito (05/11/2026, agente C, fix/bugs-games-5; falta validar a captura na janela): `MouseSettings` no perfil do
@@ -1452,18 +1452,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   contornar DRM; os jogos comprados rodam pela licença real do usuário. Validar com uma lista dos plugins públicos mais
   usados (um teste por exportação e cada plugin rodando).
   Parte feita (11/11/2026, kern1): o ambiente de kernel (plugins `*KERNEL` com o código original, exportações de
-  kernel do firmware em HLE, separação kernel/usuário no linker); o taiHEN real carrega e falha sozinho (hooks de DRM),
-  então os plugins que dependem dele (kubridge, fd_fix) não iniciam. Detalhes, limites e o plano do resto no item "O emulador é genérico" abaixo e em `docs/notes/plugins.md`.
+  kernel do firmware em HLE, separação kernel/usuário no linker).
+  Detalhes, limites e o plano do resto no item "O emulador é genérico" abaixo e em `docs/notes/plugins.md`.
   Censo das exportações de kernel do FW 3.74 (12/11/2026, k2, `feat/kernel-complete`): 115 bibliotecas, 3.918
   funções dos `os0:kd` (bootimage embutido incluído); 154 em HLE, 1.957 das que faltam são importadas por algum módulo de
   kernel do firmware. Tabela por biblioteca em `docs/hle/kernel-exports.md`, por função em
   `docs/hle/data/kernel-exports.tsv`. Depois do k2: 504 em HLE + 57 default (nids.txt com todos os NIDs
   de kernel do 3.74, 401 gêmeas de kernel das funções de usuário). Ordem do resto: o que os módulos de kernel e os plugins importam primeiro.
-  Divergente até haver um mapa físico: o VitaSharp não separa endereço físico de virtual, então as traduções do MMU
-  (`ksceKernelMMUVAtoPA`, `ksceKernelVAtoPA`, `ksceKernelVARangeToPARange/PAVector`, feat/kernel-mmu) devolvem o próprio
-  endereço virtual. O `SceSysmemForDriver` NID_0AAA4FDD (classifica a memória pela faixa física: CDRAM 0x20000000,
-  DRAM 0x40000000...) daria valores diferentes do console com esse modelo e não está implementado; falta um mapa
-  virtual -> físico com as faixas do Vita (DRAM 512 MB em 0x40000000, CDRAM 128 MB) para as duas coisas ficarem fiéis.
+  Atualização (15/11/2026): o mapa virtual -> físico está feito (SceCpuForKernel/SceSysmem VA->PA, merge 4d878050, na
+  main). O kernel do FW 3.74 está em 675 HLE + 57 default de 3.918 (badge 732/3,918, 94a59f2b). O índice HLE é único
+  para todos os processos (eb029d20: stubs de kernel chamados de qualquer processo). A opção "Ativar Plugins do Kernel"
+  guarda a config em `ur0:kernel_plugins` (a3ff504b). Dead Space rodou 5 min com kubridge + fd_fix sem crash (lead,
+  procdump sem exceção não tratada). Faltam: o hardware (Bluetooth, SD2Vita) e a lista de plugins públicos validados
+  (um teste por exportação e cada plugin rodando).
 - [ ] [P3][G] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das
@@ -2462,6 +2463,21 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     desenho não tem dados de uniform de vértice, mas programas com todos os slots divididos (9078D650) o declaram;
     agora todo binding de um conjunto novo é escrito (o buffer dummy onde não há dados). Teste `UniformSetWritesTests`.
   Correção: ea4910da + 2f785aca (11/11/2026, tela do PC na frente e fantasma do bloom), 69cc05b5 + 0ba2934c (12/11/2026, cunhas = texturas zuadas) e 3a978652 (12/11/2026, quadros alternados). Teste: MGS2/MGS3 no PC, nas cenas das capturas de 11/11 (PCSE00020_20261111_224104_tudo): monitores atrás da cabeça, sem capacete/texto fantasma, sem cunhas vermelhas/azuis. O escurecimento de 1 quadro só com --msaa=native fica em "Bugs em aberto".
+- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
+  06/11/2026, perf/android-8, APK LLVM dev
+  db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
+  `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
+  11 s depois, "Não foi possível carregar o estado: thread 'PadThread' did not stop (in ); restart the game"; daí em
+  diante 0 fps, o processo vivo (`and8_runs/log_RS75b.txt`, print `and8_tools/shots/kz_RS75b.jpg`). Duas
+  coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
+  falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
+  falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
+  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
+  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
+  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
+  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
+  saber se o 2º load do usuário congela
+  Correção: 90f1ceb8 (merge db7044ef, 15/11/2026): o passo scripted de save/load state roda uma vez mesmo com várias threads lendo o pad. Teste: no celular, carregar um estado e logo em seguida carregar outro; o jogo não deve congelar.
 
 ## Bugs em aberto
 
@@ -2802,7 +2818,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     ou arquivo no log. Uma tentativa só; próximo: `--trace-hle-only=sceIo+sceFios+sceKernelSignalCond` nesse boot para
     ver se a operação chegou ao sceIo e quem deveria acordar o escalonador do FIOS (pode ser o mesmo tipo de corrida
     da trava do MGS3).
-- [ ] [P2][M] Android, controle conectado no celular (relato do usuário, 10/11/2026): (1) o L2 não funciona (conferir o
+- [x] [P2][M] (15/11/2026, confirmado pelo usuário; parte (1), o L2, corrigido em c7ab6b57/4402b87a) Android, controle conectado no celular (relato do usuário, 10/11/2026): (1) o L2 não funciona (conferir o
   mapeamento do eixo/botão do gatilho: no Android o L2 pode chegar como AXIS_LTRIGGER/AXIS_BRAKE ou KEYCODE_BUTTON_L2,
   conforme o controle; o Vita não tem L2, então conferir para o que o VitaSharp o mapeia (toque traseiro/atalho) e se
   isso funciona); (2) com controle de PS4, o touchpad do controle vira mouse no Android e esse ponteiro se mistura com o
@@ -2816,6 +2832,11 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   AndroidAppTests.AndroidGamepadMapsToTheStandardLayout (controle que lista LTRIGGER e move BRAKE; falha sem a
   correção). Se o L2 do controle do usuário ainda não funcionar, o log do `Connect` (eixos listados) e um
   `getevent -l` do gatilho mostram o eixo real. A parte (2), o touchpad do DualShock 4, continua aberta
+- [ ] [P2][M] Android, controle de PS4 no celular, o que sobrou do relato de 10/11/2026 (o L2 está em "[x]" acima):
+  o touchpad do DualShock 4 vira mouse no Android e esse ponteiro se mistura com o toque na tela; tratar o touchpad
+  como entrada do controle (SOURCE_TOUCHPAD/MOUSE do dispositivo do controle, separado do SOURCE_TOUCHSCREEN do
+  aparelho; ou capturar o ponteiro) e mapear para o toque frontal/traseiro do Vita sem mexer no toque da tela. Validar
+  com o controle real no celular.
 - [x] Tradutor de shaders: GLSL que não compila em dois casos (agente de testes, 11/11/2026; vai para o dia de melhorias:
   mexe em todo shader, precisa subir a versão do gerador e replay-gpu --compare em todos os dumps). Achado pelo
   ShaderFuzzTests (os 32 opcodes USSE com operandos pseudoaleatórios, vertex e fragment, compilados com shaderc): 35 de
@@ -3274,7 +3295,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   backend replaced não reproduziu em 9 cargas com este build (headless, janela oculta, 6 cargas seguidas); o build
   do agente de produto (desk) recusa o save em f4000 porque um diálogo Msg do sistema está aberto, então o
   estado que travou foi salvo com esse diálogo aberto
-- [ ] [P3][M] FIFA 13 (PCSE00093): "algumas coisas parecem estranhas" (relato do usuário, 07/11/2026, main 90b55bc; três
+- [x] [P3][M] (15/11/2026, usuário: sem problema, nada mais reportado) FIFA 13 (PCSE00093): "algumas coisas parecem estranhas" (relato do usuário, 07/11/2026, main 90b55bc; três
   gravações: `captures\PCSE00093_20261107_030833_tudo` (4,3 s), `..._031028_tudo` (5,2 s) e `..._032507_tudo` (8,4 s),
   todas a 60 fps). O analisador só acha paradas de 112-212 ms (a primeira de cada é o estado salvo do início da gravação)
   e nenhum flash ou tela preta, então o defeito é algo que ele não mede (textura, modelo, animação, cor, som). Analisar
@@ -3692,20 +3713,6 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   andando: nenhuma alternância (o brilho da região só muda com o movimento da câmera). Provas:
   `and8_runs/flick_base.mp4`, `flick_s100.mp4`, `flick_kz_base.mp4`, `flick_kz_walk2.mp4`. Pausado a pedido
   do usuário (desempenho primeiro): falta saber de qual jogo/cena/APK é o relato para bissecar
-- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
-  06/11/2026, perf/android-8, APK LLVM dev
-  db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
-  `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
-  11 s depois, "Não foi possível carregar o estado: thread 'PadThread' did not stop (in ); restart the game"; daí em
-  diante 0 fps, o processo vivo (`and8_runs/log_RS75b.txt`, print `and8_tools/shots/kz_RS75b.jpg`). Duas
-  coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
-  falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
-  falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
-  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
-  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
-  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
-  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
-  saber se o 2º load do usuário congela
 - [ ] [P2][M] Um load state que falha depois de parar as threads ("thread X did not stop", erro no meio da carga)
   deixa o jogo parado ("reinicie o jogo"): guardar um estado em memória antes de carregar e voltar a ele se a carga
   falhar (como o "desfazer carregamento" do Dolphin), no desktop e no Android
@@ -3788,7 +3795,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
     `H264ReorderLimitTests`, `AndroidMediaDriverTests` (SynchronousOutput); paridade no celular:
     `build/android-media-parity.sh` (vídeo do Android idêntico e na mesma ordem que o FFmpeg do PC, primeira picture
     na chamada 0; o código antigo dava a primeira na chamada 18). Logs: `<scratchpad>\a1\runs\f1_v5`.
-- [ ] [P1][M] Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o
+- [x] [P1][M] (15/11/2026, obsoleto, confirmado pelo usuário: o Release é NativeAOT, sem o SGen do Mono) Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o
   Release é NativeAOT desde 09/11/2026, sem o SGen do Mono, então o sintoma abaixo não se repete igual; fica aberto
   até uma série de loads no NativeAOT mostrar se a escrita fora do lugar continua): SIGSEGV
   (SEGV_ACCERR) na thread `SGen worker` (libmonosgen-2.0.so) 1 s depois de "Estado do slot 1 carregado"
@@ -5132,7 +5139,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   Dispatcher) nunca compilavam um bloco. Agora o emulador devolve o estado no `Dispose` e os testes que precisam de
   blocos compilados ligam o JIT na duração deles (`JitTestState.Enable`). Reproduzido na main (`<scratchpad>\bB6\runs\t1`:
   1558/1562, 3 falhas) e verde depois em 3 suítes completas seguidas
-- [ ] [P2][M] Filmes no celular ainda mais lentos que no PC (31/10/2026, perf/android-phone-2): o primeiro filme do F1 2011 leva
+- [x] [P2][M] (15/11/2026, duplicata do item "Som dos filmes do F1 2011 no celular" e já corrigido, confirmado pelo usuário) Filmes no celular ainda mais lentos que no PC (31/10/2026, perf/android-phone-2): o primeiro filme do F1 2011 leva
   5,6 s contra 4,8 s no PC (45 grãos de silêncio no som do filme; Uncharted 40 por volta do filme do título), já com o
   decodificador H.264 do próprio Android (o da MediaTek segurava quadros: 6,25 s, 75 lacunas). Os decodificadores não
   são o gargalo (AAC 5 ms, H.264 12,8 ms por chamada, MediaExtractor 0,4 ms); falta ver as threads do player do jogo
