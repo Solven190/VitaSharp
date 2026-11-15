@@ -1,5 +1,6 @@
 using VitaSharp.Core.Hle.Np;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -44,8 +45,44 @@ public sealed partial class NpManager : HleModule
     /// <summary>A NetCheckDialog in PSN_ONLINE mode finished OK: the console stays connected to PSN from now on.</summary>
     internal void OnPsnOnlineCheckSucceeded() => _psnConnected = true;
 
-    // the registered service state callbacks and the state each was last told (0: not yet)
+    /// <summary>
+    /// The service state callback: np_manager 3.74 keeps ONE (0x810080B0/B4; sceNpRegisterServiceStateCallback replaces
+    /// it, sceNpUnregisterServiceStateCallback clears it), so this list holds at most one entry: its function, argument
+    /// and the state it was last told (0: not yet, so the state is posted once after registering).
+    /// </summary>
     readonly List<(uint Func, uint Arg, int Notified)> _npCallbacks = new();
+
+    /// <summary>A thread is running the callback from sceNpCheckCallback: np_manager's message pump (try_get_message,
+    /// 0x810010BF) holds its semaphore meanwhile, so another thread calling CheckCallback or (un)registering waits for it.</summary>
+    [SnapshotIgnore]
+    bool _delivering;
+
+    /// <summary>The thread running the callback (it may register again from inside it without waiting on itself).</summary>
+    [SnapshotIgnore]
+    Kernel.GuestThread? _deliveringThread;
+
+    /// <summary>Waits, holding <see cref="_npCallbacks"/>, until no other thread runs the state callback.</summary>
+    void WaitForStateCallbackDelivery()
+    {
+        Kernel.GuestThread? self = Kernel.GuestThread.Current;
+        if (_delivering && _deliveringThread != null && _deliveringThread == self)
+        {
+            return;
+        }
+
+        Kernel.Wait.Until(_npCallbacks, this, static m => !m._delivering, new Ptr<uint>(0), null, "np state callback");
+    }
+
+    bool NpManagerReady
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _npInited || _sysInited;
+            }
+        }
+    }
 
     readonly object _lock = new();
     bool _npInited;
@@ -92,24 +129,55 @@ public sealed partial class NpManager : HleModule
     }
 
     // shared empty results of the per-frame poll (never modified)
-    static readonly List<(uint Func, uint Arg, int Notified)> NoPending = [];
     static readonly List<(int Id, uint Cb, uint Arg)> NoDone = [];
 
+    /// <summary>
+    /// np_manager 3.74 (0x3B0AE9A9): NOT_INITIALIZED before sceNpInit; then its message pump runs on the calling thread,
+    /// under the manager's semaphore: a thread that calls it while another runs the callback waits for that one to
+    /// finish. The state message (the state, posted once after registering and on every change) goes to the one
+    /// registered callback, on whichever thread drains it first.
+    /// </summary>
     [Hle]
     int sceNpCheckCallback()
     {
-        List<(uint Func, uint Arg, int Notified)> pending;
+        if (!NpManagerReady)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
+        uint func = 0;
+        uint arg = 0;
         int state = ServiceState;
         lock (_npCallbacks)
         {
-            // polled every frame: only build the lists when a callback has not been told the current state
-            bool anyPending = false;
-            foreach (var c in _npCallbacks) if (c.Notified != state) { anyPending = true; break; }
-            pending = anyPending ? _npCallbacks.Where(c => c.Notified != state).ToList() : NoPending;
-            if (anyPending)
-                for (int i = 0; i < _npCallbacks.Count; i++) _npCallbacks[i] = (_npCallbacks[i].Func, _npCallbacks[i].Arg, state);
+            WaitForStateCallbackDelivery();
+            state = ServiceState;
+            if (_npCallbacks.Count > 0 && _npCallbacks[0].Notified != state)
+            {
+                (func, arg, _) = _npCallbacks[0];
+                _npCallbacks[0] = (func, arg, state);
+                _delivering = true;
+                _deliveringThread = Kernel.GuestThread.Current;
+            }
         }
-        foreach (var c in pending) Kernel.GuestThread.Current?.CallGuest(c.Func, (uint)state, 0, c.Arg);
+
+        if (func != 0)
+        {
+            Log.Info($"sceNpCheckCallback: service state {state} to callback 0x{func:X8} on thread '{Kernel.GuestThread.Current?.Name}'");
+            try
+            {
+                Kernel.GuestThread.Current?.CallGuest(func, (uint)state, 0, arg);
+            }
+            finally
+            {
+                lock (_npCallbacks)
+                {
+                    _delivering = false;
+                    _deliveringThread = null;
+                    Monitor.PulseAll(_npCallbacks);
+                }
+            }
+        }
 
         // auth (ticket) requests complete here: with the local services the callback gets the ticket size (the ticket is
         // then read with sceNpAuthGetTicket), otherwise the server error
@@ -133,14 +201,50 @@ public sealed partial class NpManager : HleModule
 
     [Hle] int sceNpGetServiceState(Ptr<int> state) { if (state.Address == 0) return ERR_INVALID_ARGUMENT; state.Value = ServiceState; return 0; }
 
+    /// <summary>np_manager 3.74 (0x44239C35): INVALID_ARGUMENT for a NULL callback, NOT_INITIALIZED before sceNpInit;
+    /// the callback replaces the one registered before (one slot), and the daemon posts the current state to it.</summary>
     [Hle]
     int sceNpRegisterServiceStateCallback(uint cb, uint arg)
     {
-        lock (_npCallbacks) _npCallbacks.Add((cb, arg, 0));
+        if (cb == 0)
+        {
+            return ERR_INVALID_ARGUMENT;
+        }
+
+        if (!NpManagerReady)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
+        lock (_npCallbacks)
+        {
+            WaitForStateCallbackDelivery();
+            _npCallbacks.Clear();
+            _npCallbacks.Add((cb, arg, 0));
+        }
+
+        Log.Info($"sceNpRegisterServiceStateCallback(0x{cb:X8}, 0x{arg:X8}) on thread '{Kernel.GuestThread.Current?.Name}'");
         return 0;
     }
 
-    [Hle] int sceNpUnregisterServiceStateCallback() { lock (_npCallbacks) _npCallbacks.Clear(); return 0; }
+    /// <summary>np_manager 3.74 (0xD9E6E56C): NOT_INITIALIZED before sceNpInit; clears the one callback.</summary>
+    [Hle]
+    int sceNpUnregisterServiceStateCallback()
+    {
+        if (!NpManagerReady)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
+        lock (_npCallbacks)
+        {
+            WaitForStateCallbackDelivery();
+            _npCallbacks.Clear();
+        }
+
+        Log.Info($"sceNpUnregisterServiceStateCallback on thread '{Kernel.GuestThread.Current?.Name}'");
+        return 0;
+    }
 
     /// <summary>The signed-in account's SceNpId (like Vita3K: online id, platform "psp2", isIdValid; the rest zero).</summary>
     [Hle]

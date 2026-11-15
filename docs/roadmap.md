@@ -898,7 +898,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   de barreiras (`VITASHARP_NATIVE_A64_NOOPT=fence` 1/5) e as chamadas HLE de dentro do código nativo
   (`VITASHARP_NATIVE_HLE_CALLOUT=off` 0/5). Próximo: APK de teste com o modo de depuração (retornos de erro das
   HLE por thread e as últimas 16 chamadas de cada thread na captura) para ver o que o Toolkit::NP recebe antes de sair
-- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
+  Ponto (B), 15/11/2026 (andA/bugA2): a main fica num laço de `sceNpCheckCallback` (lr 0x8120283B) enquanto o
+  Toolkit::NP também chama a função. O callback de estado do NP foi alinhado ao np_manager 3.74 (0x3B0AE9A9/0x44239C35/
+  0xD9E6E56C, decompilado, só estudo): há UM callback (um registro novo substitui o anterior, o Unregister limpa); o
+  CheckCallback roda a bomba de mensagens do daemon sob um semáforo, então uma segunda thread espera o callback que
+  outra está rodando; e as três funções devolvem NOT_INITIALIZED sem sceNpInit. Antes, o HLE chamava todos os
+  callbacks já registrados, e a segunda thread voltava na hora. Não existe "thread certa" no firmware: quem chama
+  primeiro recebe o evento. Uma linha Info por Register/Unregister/entrega mostra a ordem real. Testes:
+  `NpStateCallbackTests` (falham sem a correção). A confirmar no celular (5 boots, andA).- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
   (0 fps logo depois de criar 'Toolkit::NP'): alguma combinação das opções desligadas está errada; achar qual
   (desligar uma a uma) e cobrir com teste do backend no sandbox
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
