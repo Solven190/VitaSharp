@@ -812,8 +812,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   relógio do player passa o tempo dela (o jogo chama GetVideoData em laço quando fica >200 ms atrás; um portão de
   20 ms desde a imagem anterior fazia esse laço girar milhares de vezes por segundo). Feito assim (`MediaPlayerBase.TakeNextVideo`, `AvPlayer.NextPictureDue`), chave A/B
   `VITASHARP_AVPLAYER_PACING=newest`, log "AvPlayer: pictures ..." a cada 10 s; testes em `AvPlayerJumpTests`.
-  Falta: confirmação no celular (imagens distintas/s, A/B). Diferença que ficou: com som, o firmware responde em
-  CurrentTime o tempo do último áudio entregue; aqui ainda é o da última imagem
+  No celular (A/B, 14/11): antigo 7,5-8/s distintas, com a cadência 16,6-16,9/s. Os quadros sem perda da captura
+  mostraram as imagens indo para frente e para trás: o decodificador do Android (libavc com max_num_reorder_frames 0,
+  que segue depois do flush do reinício) dá as imagens B depois da P seguinte. A fila do player agora fica em ordem de
+  exibição (`MediaPlayerBase.InsertInDisplayOrder`, como a do libsceavplayer); imagem mais velha que a já entregue
+  é descartada. Falta: confirmação no celular. Diferenças que ficaram: com som, o firmware responde em CurrentTime o
+  tempo do último áudio entregue (aqui ainda o da última imagem); o reinício do MediaCodec com a profundidade
+  própria do SPS não muda a ordem de saída do libavc (precisaria recriar o codec)
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:

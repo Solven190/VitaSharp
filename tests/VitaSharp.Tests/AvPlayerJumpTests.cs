@@ -377,6 +377,111 @@ public sealed class AvPlayerJumpTests(GuestMemoryFixture fixture) : IDisposable
         return distinct / (Frames * FrameUs / 1e6);
     }
 
+    /// <summary>The display index of the picture a decoder that gives pictures out in decode order (a reorder limit of 0
+    /// on a stream with B frames: I0 P3 B1 B2 P6 B4 B5 ...) gives out <paramref name="n"/>-th.</summary>
+    private static int DecodeOrderIndex(int n)
+    {
+        if (n == 0)
+        {
+            return 0;
+        }
+
+        int group = (n - 1) / 3, inGroup = (n - 1) % 3;
+        return inGroup == 0 ? group * 3 + 3 : group * 3 + inGroup;
+    }
+
+    [Fact]
+    public void PicturesGivenOutOfOrderAreHandedOutInDisplayOrder()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        using var player = new SteppedPlayer();
+        for (int n = 0; n < 10; n++)
+        {
+            player.Deliver(DecodeOrderIndex(n) * FrameUs);
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            Assert.Equal(i * FrameUs, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+        }
+    }
+
+    [Fact]
+    public void APictureOlderThanTheOneHandedOutIsDropped()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        using var player = new SteppedPlayer();
+        player.Deliver(0);
+        player.Deliver(3 * FrameUs);
+        Assert.Equal(0, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+        Assert.Equal(3 * FrameUs, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+        player.Deliver(FrameUs); // came out after the one already shown: too late
+        player.Deliver(4 * FrameUs);
+        Assert.Equal(1, player.Queued);
+        Assert.Equal(4 * FrameUs, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+    }
+
+    [Fact]
+    public void ALoopingMoviesFirstPictureComesAfterItsLast()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        using var player = new SteppedPlayer();
+        player.Deliver(150_000_000);
+        player.Deliver(150_000_000 + FrameUs);
+        player.Deliver(0); // the movie starts over
+        Assert.Equal(150_000_000, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+        Assert.Equal(150_000_000 + FrameUs, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+        Assert.Equal(0, player.TakeNextVideo(long.MaxValue)!.TimeUs);
+    }
+
+    /// <summary>
+    /// The campaign intro on the phone: the decoder gave pictures out in decode order (the B pictures after the P picture
+    /// that follows them) and the game, asking when CurrentTime is more than 200 ms behind, showed ~18 different pictures
+    /// a second, going forward and back (lossless frames of a phone capture, 14/11/2026). In display order it sees every
+    /// picture, always forward.
+    /// </summary>
+    [Fact]
+    public void AGameSeesEveryPictureForwardWhenTheDecoderGivesThemInDecodeOrder()
+    {
+        MediaPlayerBase.LegacyJumps = false;
+        MediaPlayerBase.NewestPicturePacing = false;
+        var media = new SteppedPlayer();
+        (AvPlayer module, uint handle) = PlayerWith(media);
+        uint frameInfo = fixture.Memory.Alloc(0x40, "avplayer frame info");
+        const int Frames = 300;
+        int next = 0, distinct = 0, backwards = 0;
+        long shown = -1;
+        for (int f = 0; f < Frames; f++)
+        {
+            long nowUs = f * FrameUs;
+            while (DecodeOrderIndex(next) * FrameUs <= nowUs + 8 * FrameUs && media.Queued < 12)
+            {
+                media.Deliver(DecodeOrderIndex(next) * FrameUs);
+                next++;
+            }
+
+            FreezePlaybackClock(module, handle, nowUs);
+            long currentMs = (long)(ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!;
+            while (shown < 0 || nowUs / 1000 - currentMs > 200)
+            {
+                long picture = PictureNow(module, handle, frameInfo);
+                if (picture < 0 || picture == shown)
+                {
+                    break;
+                }
+
+                backwards += picture < shown ? 1 : 0;
+                distinct++;
+                shown = picture;
+                currentMs = (long)(ulong)Invoke(module, "sceAvPlayerCurrentTime", handle)!;
+            }
+        }
+
+        Assert.Equal(0, (int)Invoke(module, "sceAvPlayerStop", handle)!);
+        double perSecond = distinct / (Frames * FrameUs / 1e6);
+        Assert.True(backwards == 0 && perSecond >= 25, $"{perSecond:F1} pictures a second, {backwards} going back");
+    }
+
     [Fact]
     public void AGameThatAsksWhenBehindSeesEveryPicture()
     {
