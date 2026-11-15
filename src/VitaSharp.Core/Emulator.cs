@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using VitaSharp.Core.Cpu;
 using VitaSharp.Core.Firmware;
 using VitaSharp.Core.Hle;
@@ -919,7 +919,7 @@ public sealed class Emulator : IDisposable
     /// <summary>The running executable is part of the system software (vs0:app/NPXS*, vs0:vsh/shell/shell.self...):
     /// it runs with system privileges and uses the firmware's own user-mode libraries (LLE) where VitaSharp's HLE
     /// stops: the process preloads, the sysmodules it loads and the libraries those import.</summary>
-    public bool IsSystemProgram { get; private set; }
+    public bool IsSystemProgram { get; internal set; }
 
     /// <summary>The process is the shell (vs0:vsh/shell/shell.self): its threads run on the Vita's 4th core, the one
     /// the system keeps for itself, instead of the three application cores (<see cref="Kernel.Scheduler"/>).</summary>
@@ -1098,12 +1098,16 @@ public sealed class Emulator : IDisposable
                     continue;
                 }
                 // a library VitaSharp emulates in HLE (even partly: NP, AppUtil, Http...) stays on HLE, so every
-                // process sees the same emulated services; only libraries the HLE knows nothing of come from the firmware
-                // Except for a firmware module that uses only functions of such a library the HLE does not have (the
-                // library's internals): liblocation_internal / liblocation_extension call nothing of SceLibLocation
-                // but its internal context functions, so near (NPXS10000) gets the real liblocation (an IPC client of
-                // the shell's location provider) instead of HLE stubs that returned NULL and stopped its first page.
-                bool firmwareNeedsInternals = m.Path.StartsWith("vs0:", StringComparison.OrdinalIgnoreCase) && nids.Length > 0 && nids.All(n => !Hle.Implements(n));
+                // process sees the same emulated services; only libraries the HLE knows nothing of come from the firmware.
+                // Except when the importer is system software (a firmware module, or any module of a system program)
+                // and calls functions of the library the HLE does not have (its internals, unnamed in the SDK): then
+                // the real module serves the whole library, public functions included, so its internal state stays
+                // its own. liblocation_internal / liblocation_extension call only SceLibLocation's internal context
+                // functions, so near (NPXS10000) gets the real liblocation (an IPC client of the shell's location
+                // provider); the system applications' calls to SceNpUtility/SceNpCommon/SceSslInternal internals
+                // (memory pools, the NP HTTP/JSON client) reach the real np_utility, np_common and libssl.
+                bool systemImporter = IsSystemProgram || m.Path.StartsWith("vs0:", StringComparison.OrdinalIgnoreCase);
+                bool firmwareNeedsInternals = systemImporter && nids.Any(n => !Hle.Implements(n));
                 // and for the libraries whose firmware version is a client of a service the system runs, which the HLE
                 // only approximates (FirmwareServiceClients): a system program gets the real one
                 bool serviceClient = IsSystemProgram && FirmwareServiceClients.Contains(lib);

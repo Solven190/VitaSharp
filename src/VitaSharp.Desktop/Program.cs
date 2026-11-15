@@ -677,11 +677,12 @@ public static class Program
     /// <summary>Every NID with an [Hle] entry point; Default when every entry point of it is a documented firmware
     /// default (<see cref="HleAttribute.Default"/>), not a real implementation.</summary>
     static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids()
-        => HleImplementedNids(out _);
+        => HleImplementedNids(out _, out _);
 
     /// <summary>The same, also giving the HLE's "the firmware module serves every importer" test, from the one emulator
     /// the scan makes (only one guest memory can exist per process).</summary>
-    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareForEveryImporter)
+    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareForEveryImporter,
+        out Func<uint, bool> servedByHle)
     {
         SortedDictionary<uint, (string Name, string Module, bool Default)> byNid = HleBindingNids();
         // data exports (variables) the HLE hands to importers: the modules register them when the emulator is made
@@ -692,6 +693,7 @@ public static class Program
             using var emu = new Emulator(new EmulatorOptions { FsRoot = tmp, EnableJit = false });
             var hle = emu.Hle;
             firmwareForEveryImporter = hle.FirmwareForEveryImporter;
+            servedByHle = hle.ServesFunction;
             foreach (var nid in emu.Hle.VariableNids)
             {
                 byNid.TryAdd(nid, (NidDatabase.NameOf(nid), "data", false));
@@ -745,15 +747,18 @@ public static class Program
     static int HleCoverage(string? outTsv, string? vitasdkTsv = null, string? statusRoot = null)
     {
         Log.Level = LogLevel.Warn;
-        var impl = HleImplementedNids(out var firmwareForEveryImporter);
-        // functions the emulator provides by running a real installed module (LleLibraries: the games' own modules and the
-        // firmware modules the loader serves to every importer): covered, no HLE
-        HashSet<uint> lle = LleLibraries.InstalledNids(FsRoot, firmwareForEveryImporter).Where(n => !impl.ContainsKey(n)).ToHashSet();
+        var impl = HleImplementedNids(out var firmwareForEveryImporter, out var servedByHle);
+        HashSet<uint> installed = LleLibraries.InstalledNids(FsRoot, firmwareForEveryImporter);
         var c = VitaSharp.Core.Firmware.FunctionCensus.Scan(FsRoot);
+        // per function: the HLE's (real or default), or a real module's (LLE: the games' own modules, the firmware modules
+        // the loader serves to every importer, and the firmware modules the HLE only stands in for as a fallback)
+        VitaSharp.Core.Firmware.CoverageStatus.Counts Status(uint nid) => VitaSharp.Core.Firmware.CoverageStatus.Of(impl.TryGetValue(nid, out var iv), servedByHle(nid), iv.Default,
+            c.Exported.ContainsKey(nid), installed.Contains(nid));
+        HashSet<uint> lle = impl.Keys.Concat(installed).Where(n => Status(n).Lle).ToHashSet();
         string Importer(uint nid) => c.GameImports.TryGetValue(nid, out var g) ? g : c.SystemImports.GetValueOrDefault(nid, "-");
         string Group(uint nid) => c.GameImports.ContainsKey(nid) ? "games" : c.SystemImports.ContainsKey(nid) ? "system" : "general";
-        var rows = c.Exported.Select(e => (Nid: e.Key, e.Value.Library, e.Value.Module, Group: Group(e.Key), Impl: impl.ContainsKey(e.Key) || lle.Contains(e.Key),
-            Default: impl.TryGetValue(e.Key, out var iv) && iv.Default, Lle: lle.Contains(e.Key))).ToList();
+        var rows = c.Exported.Select(e => (Nid: e.Key, e.Value.Library, e.Value.Module, Group: Group(e.Key), Impl: Status(e.Key).Covered,
+            Default: Status(e.Key).Default, Lle: Status(e.Key).Lle)).ToList();
         Console.WriteLine($"{c.FirmwareModules} firmware modules read, {c.Games} games; not read: {string.Join(", ", c.Failed)}");
         void Line(string label, IEnumerable<(uint Nid, string Library, string Module, string Group, bool Impl, bool Default, bool Lle)> set)
         {
@@ -774,7 +779,7 @@ public static class Program
         {
             var sdk = File.ReadLines(vitasdkTsv).Where(l => l.StartsWith("0x"))
                 .Select(l => uint.Parse(l.AsSpan(2, 8), System.Globalization.NumberStyles.HexNumber)).Distinct().ToList();
-            int nl = sdk.Count(lle.Contains), n = sdk.Count(impl.ContainsKey) + nl, nd = sdk.Count(x => impl.TryGetValue(x, out var v) && v.Default);
+            int nl = sdk.Count(x => Status(x).Lle), n = sdk.Count(x => Status(x).Covered), nd = sdk.Count(x => Status(x).Default);
             (sdkTotal, sdkImpl, sdkDefault, sdkLle) = (sdk.Count, n, nd, nl);
             Console.WriteLine($"{"vitasdk",-10} {n,6} / {sdk.Count,6}  {(sdk.Count == 0 ? 0 : 100.0 * n / sdk.Count),6:F1}%  (real {n - nd - nl}, default {nd}, LLE {nl})");
         }

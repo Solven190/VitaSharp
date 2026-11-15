@@ -1,8 +1,8 @@
 # User-side HLE holes of FW 3.74 (VitaSharp.Desktop hle-coverage --out and hle-implemented; method in docs/hle/user-exports.md):
-# the functions the firmware exports to user code that reach the HLE and have no [Hle] entry. kind: kernel-syscall (os0:kd
-# syscall export) and os0-user (os0:us module) always reach the HLE; vs0-user rows are the missing functions of the vs0
-# libraries the HLE serves (an HLE function outside the firmware-fallback modules keeps the library on HLE). games/system:
-# importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
+# the functions the firmware exports to user code that have no [Hle] entry and can reach the HLE. kind: kernel-syscall
+# (os0:kd syscall export) and os0-user (os0:us module) always reach it; vs0-user rows are the missing functions of the vs0
+# libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).
+# games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
 library	nid	name	kind	games	system	vitasdk
 SceAppMgr	0x32FD0B99	sceAppMgrEnableCoredumpForTest	kernel-syscall	0	0	yes
 SceAppMgr	0xECEC7F90	sceAppMgrSuspendUntilActivated	kernel-syscall	0	0	yes
@@ -715,7 +715,6 @@ ScePspnetAdhoc	0xA3EC45B9	NID_A3EC45B9	vs0-user	0	1	-
 ScePspnetAdhoc	0xF87F9518	NID_F87F9518	vs0-user	0	1	-
 SceRegMgr	0xB68B5422	sceRegMgrDbBackup	kernel-syscall	0	1	yes
 SceRegMgr	0xA87D2562	sceRegMgrDbRestore	kernel-syscall	0	1	yes
-SceRegMgr	0x74A0FB10	sceRegMgrGetRegVersion	kernel-syscall	0	1	yes
 SceRegMgr	0x2B5F3E20	sceRegMgrResetRegistryLv	kernel-syscall	0	4	yes
 SceSas	0x0AEA9963	NID_0AEA9963	vs0-user	0	0	-
 SceSas	0x0B96AF29	NID_0B96AF29	vs0-user	0	0	-
@@ -842,10 +841,7 @@ SceSslInternal	0xFB51AE89	NID_FB51AE89	vs0-user	0	0	-
 SceSslInternal	0xFBEB1FD7	NID_FBEB1FD7	vs0-user	0	4	-
 SceSslInternal	0xFEFE761C	NID_FEFE761C	vs0-user	0	0	-
 SceSslInternal	0xFFE2ED51	NID_FFE2ED51	vs0-user	0	4	-
-SceSysmem	0xEC636BCB	sceKernelAllocUnmapMemBlock	kernel-syscall	1	0	yes
 SceThreadmgr	0x2682E6ED	_sceKernelExitCallback	kernel-syscall	0	1	yes
-SceThreadmgr	0x7204B846	ksceKernelCancelMutex	kernel-syscall	0	0	-
-SceThreadmgr	0x751C9B7A	ksceKernelChangeCurrentThreadAttr	kernel-syscall	0	0	-
 SceThreadmgr	0xD06F2886	ksceKernelLockMutexCB_089	kernel-syscall	0	0	-
 SceTriggerUtil	0x1B615264	NID_1B615264	vs0-user	0	0	-
 SceTriggerUtil	0x257BA954	NID_257BA954	vs0-user	0	1	-

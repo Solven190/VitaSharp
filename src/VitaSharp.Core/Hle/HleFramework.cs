@@ -303,6 +303,10 @@ public sealed partial class HleRegistry : IImportResolver
     /// <summary>The HLE has function <paramref name="nid"/>.</summary>
     public bool Implements(uint nid) => _impls.ContainsKey(nid);
 
+    /// <summary>The HLE has function <paramref name="nid"/> in a module that is not
+    /// <see cref="HleModule.FirmwareFallbackOnly"/> (a function it serves, not only a fallback of the firmware's).</summary>
+    public bool ServesFunction(uint nid) => _serviceNids.Contains(nid);
+
     /// <summary>True when VitaSharp's HLE emulates <paramref name="library"/>: it implements at least one of its functions
     /// in a module that is not <see cref="HleModule.FirmwareFallbackOnly"/> (by the NID database's library of each NID).</summary>
     public bool ImplementsLibrary(string library)
