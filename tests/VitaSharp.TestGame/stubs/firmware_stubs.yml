@@ -1,0 +1,28 @@
+# Import stubs for firmware libraries VitaSDK has no stubs for (vita-libs-gen database, built by the Makefile into
+# build/stubs). Names are the NIDs: these functions have no public name. Library NIDs from the FW 3.74 modules'
+# export tables (os0:kd/mgvideo.skprx, os0:kd/marlin_hci.skprx).
+version: 2
+firmware: 3.60
+modules:
+  SceMgVideo:
+    nid: 0x00000000
+    libraries:
+      SceMgVideo:
+        kernel: false
+        nid: 0x7937AA3F
+        functions:
+          SceMgVideo_C62CA5A7: 0xC62CA5A7
+          SceMgVideo_8A803FB4: 0x8A803FB4
+          SceMgVideo_D6EE7B53: 0xD6EE7B53
+  SceMarlinHci:
+    nid: 0x00000000
+    libraries:
+      SceMarlinHci:
+        kernel: false
+        nid: 0x982E0032
+        functions:
+          SceMarlinHci_4406594F: 0x4406594F
+          SceMarlinHci_457F6683: 0x457F6683
+          SceMarlinHci_E8A352C2: 0xE8A352C2
+          SceMarlinHci_C3E201D5: 0xC3E201D5
+          SceMarlinHci_A626EBBC: 0xA626EBBC
