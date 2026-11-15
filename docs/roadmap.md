@@ -865,6 +865,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   não pisca. Falta, no celular: `VITASHARP_REGION_COPY_REUSE=0` e `VITASHARP_SCENE_BREAKS=strict` (o que o present
   no meio da cena faz com as cópias de região e as renderings adiadas) e um replay do dump do próprio celular no
   celular, para separar defeito de caminho (repete no replay) de corrida de tempo (não repete).
+  Feito (15/11): `REGION_COPY_REUSE=0` e `SCENE_BREAKS=strict` não mudam (4-8%). O replay do dump no celular (bench
+  `mode=flicker`) pisca (43-46 de 420 quadros) e o do PC não; nenhuma chave muda, mas `barrier=full` (barreira cheia
+  depois de cada rendering) zera, e as variantes mostram que basta uma dependência de execução depois dos renderings
+  do meio da cena: faltava ordenar dois renderings seguidos nos mesmos attachments (Vulkan não ordena render passes
+  entre si; no Mali o load do rendering retomado lia cor/depth antes do store do anterior). Correção:
+  VulkanRenderer.AttachmentSync.cs (barreira de attachment antes de um rendering que reusa imagens escritas por um
+  anterior). Celular: bench 0 de 420 (3x), UC ao vivo 0% contra 5,3-5,7%, 29,5 fps nos dois. O bench tinha um bug
+  próprio (um present no meio da cena fazia o skipscene padrão pular o resto da cena), corrigido. Falta: confirmar o
+  KZ em gameplay no celular com essa correção.
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo

@@ -1638,7 +1638,11 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
                 PStencilAttachment = &depth,
             };
             CountOps(_renderTarget != null, color.LoadOp, color.StoreOp, true, depth.LoadOp, depth.StoreOp);
-            _vk.CmdBeginRendering(Cmd, in ri);
+            CommandBuffer cmd = Cmd;
+            Image colorImage = _renderTarget != null ? SingleFetchImage() : default, wordImage = word ? _tileWord1!.Image : default;
+            SyncAttachmentsBeforeRendering(cmd, colorImage, _depth.Image, wordImage);
+            NoteAttachmentsWritten(colorImage, _depth.Image, wordImage);
+            _vk.CmdBeginRendering(cmd, in ri);
         }
         _rendering = true;
         if (_renderTarget != null)
