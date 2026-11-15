@@ -183,8 +183,8 @@ public sealed partial class ProcessMgr : HleModule
     void sceKernelExitProcess(int res)
     {
         Log.Info($"sceKernelExitProcess({res})");
-        // an application the shell launched: the shell comes back
-        if (!Emu.EndProcess(res)) Emu.Stop();
+        // an application the shell launched: the shell comes back; the last process: the session ends
+        Emu.EndProcess(res);
         throw new GuestThreadExitException(res, false);
     }
 

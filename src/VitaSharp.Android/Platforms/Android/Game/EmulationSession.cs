@@ -53,6 +53,10 @@ public sealed partial class EmulationSession : IDisposable
     /// <summary>Raised (on an emulator thread) when the game crashes or cannot start.</summary>
     public event Action<string>? Failed;
 
+    /// <summary>Raised (on an emulator thread) when the game ended by itself (sceKernelExitProcess, exit()) with no
+    /// shell to take the screen back: the session is over, as the Vita returns to its home screen.</summary>
+    public event Action? Exited;
+
     /// <summary>Raised (on an emulator thread) on a trophy unlock.</summary>
     public event Action<TrophyUnlockedEvent>? TrophyUnlocked;
 
@@ -95,6 +99,11 @@ public sealed partial class EmulationSession : IDisposable
         {
             Log.Error($"Fatal error in thread {t.Name}: {e}");
             Failed?.Invoke(Loc.Format("MGameThreadError", t.Name, e.Message));
+        };
+        _emu.ProcessExited += status =>
+        {
+            Log.Info($"Game exited (0x{status:X}): leaving the game screen");
+            Exited?.Invoke();
         };
         _emu.Host.Input = input;
         _emu.Host.Motion = input.Keyboard; // the keyboard's tilt keys (VirtualMotion), from their first use

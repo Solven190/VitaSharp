@@ -763,12 +763,24 @@ public static class Runner
             ShowTitle();
             return true;
         };
+        // the game ended by itself (sceKernelExitProcess, exit()) with no shell to take the screen back: the window
+        // closes as with its X button, so a "Gravar tudo" recording is still saved first, and the launcher comes back
+        int processExited = 0;
+        emu.ProcessExited += status =>
+        {
+            Log.Info($"Window: the game exited (0x{status:X}): closing the window");
+            Volatile.Write(ref processExited, 1);
+        };
         window.Tick += () =>
         {
             if (Volatile.Read(ref closeNow) == 1 && closeAfterSave)
             {
                 closeAfterSave = false;
                 window.Close();
+            }
+            if (Interlocked.CompareExchange(ref processExited, 2, 1) == 1)
+            {
+                window.RequestClose();
             }
         };
         emu.Fatal += (t, e) => Log.Error($"Fatal error in thread {t.Name}: {e.Message}");
@@ -1272,7 +1284,14 @@ public static class Runner
         long fpsFrames = 0;
         double fpsAt = 0;
         var allocMarks = new List<AllocMark>();
-        while (!fatal.Wait(50) && nav?.Quit != true && playback?.Done != true && (frameLimit <= 0 || VitaSharp.Core.Hle.Modules.Display.FramesPresented < frameLimit) && wall.Elapsed.TotalSeconds < seconds)
+        // the game ended by itself (sceKernelExitProcess, exit()) with no shell to take the screen back: the run is over
+        var processExited = new ManualResetEventSlim(); // not disposed: a late exit may still set it
+        emu.ProcessExited += status =>
+        {
+            Log.Info($"Headless: the game exited (0x{status:X}): the run ends");
+            processExited.Set();
+        };
+        while (!fatal.Wait(50) && !processExited.IsSet && nav?.Quit != true && playback?.Done != true && (frameLimit <= 0 || VitaSharp.Core.Hle.Modules.Display.FramesPresented < frameLimit) && wall.Elapsed.TotalSeconds < seconds)
         {
             // scripted pause / F10 key steps (key@f300:P, key@f300+5:P): the guest polls no input while paused, so here
             if (hostKeyScript != null)

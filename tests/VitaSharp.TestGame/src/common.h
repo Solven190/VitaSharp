@@ -11,6 +11,8 @@
 #define VSTEST_TITLE_ID "VSTEST001"
 #define VSTEST_DATA_DIR "ux0:data/VSTEST"
 #define VSTEST_RESULTS_PATH "ux0:data/VSTEST/results.txt"
+/* When this file exists the app exits (sceKernelExitProcess) right after the automatic run. */
+#define VSTEST_EXIT_TRIGGER_PATH "ux0:data/VSTEST/exit_after_run"
 
 #define ALIGN_UP(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof((array)[0]))

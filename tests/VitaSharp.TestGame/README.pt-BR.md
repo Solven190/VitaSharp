@@ -109,6 +109,11 @@ O `build.ps1` roda o `build.sh` dentro do WSL. Defina `VITASDK` para usar um Vit
   `VSTEST input window opens at frame N`), então os passos acima, contados em quadros apresentados, caem dentro dela.
   O firmware é opcional: com as pastas `os0`, `vs0` e `sa0` de um firmware instalado na pasta de teste (junctions
   ou cópias) a rodada é a mesma.
+- **Sair depois da rodada**: com um arquivo `ux0:data/VSTEST/exit_after_run` (qualquer conteúdo; no VitaSharp
+  `<pasta de teste>/fs/ux0/data/VSTEST/exit_after_run`) o app chama `sceKernelExitProcess(0)` logo depois da rodada
+  automática, como o "Sair" de um jogo. Um Vita de verdade volta ao LiveArea; o VitaSharp sem o shell encerra a
+  sessão: a janela fecha, uma rodada headless termina bem antes do `--seconds` e o log tem `VSTEST exit after the
+  run` seguido de `the game exited (0x0)`. Uma rodada que segue até o `--seconds` é a regressão.
 
 ## Organização da pasta
 

@@ -8,6 +8,7 @@
 #include <psp2/apputil.h>
 #include <psp2/common_dialog.h>
 #include <psp2/system_param.h>
+#include <psp2/io/stat.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/sysmodule.h>
 #include <psp2/touch.h>
@@ -205,6 +206,18 @@ int main(void)
     }
     init_system();
     run_all();
+
+    /* ux0:data/VSTEST/exit_after_run present: the app ends itself right after the automatic run, as a game's Quit
+     * does. On the Vita the system takes the screen back (LiveArea); on VitaSharp without the shell the session ends
+     * (the window closes, a headless run stops before its --seconds, the log says "the game exited (0x0)"). */
+    SceIoStat exitTrigger;
+    if (sceIoGetstat(VSTEST_EXIT_TRIGGER_PATH, &exitTrigger) >= 0)
+    {
+        log_line("VSTEST exit after the run: sceKernelExitProcess(0), the session must end here");
+        gfx_shutdown();
+        sceKernelExitProcess(0);
+        return 0;
+    }
 
     int selected = 0;
     bool running = true;

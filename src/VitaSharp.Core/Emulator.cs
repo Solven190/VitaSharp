@@ -248,26 +248,46 @@ public sealed class Emulator : IDisposable
         QueueExec("app0:" + self, args, appDir);
     }
 
-    /// <summary>The process ends (sceKernelExitProcess, the main thread returning): true when the system keeps running
-    /// (a process the shell started ends and the shell takes the display back, or a suspended program is resumed),
-    /// false when this was the last process (the emulator stops).</summary>
-    public bool EndProcess(int status)
+    /// <summary>
+    /// Raised once when the last process ends by itself (sceKernelExitProcess, exit()), with its exit status: on the
+    /// Vita the system takes the screen back; when no shell runs the session is over, so the host closes the game's
+    /// window (desktop), ends the run (headless) or leaves the game screen (Android). Not raised when the shell
+    /// launched the process (the shell comes back) or a suspended program resumes. Called on the exiting guest thread.
+    /// </summary>
+    public event Action<int>? ProcessExited;
+
+    /// <summary>The exit status of the last process once it ended by itself (<see cref="ProcessExited"/>), else null.</summary>
+    public int? LastProcessExitStatus { get; private set; }
+
+    private int _lastProcessEnded;
+
+    /// <summary>The process ends (sceKernelExitProcess, exit()): a process the shell started ends and the shell takes the
+    /// display back, a suspended program is resumed, or, when this was the last process, the emulator stops and
+    /// <see cref="ProcessExited"/> tells the host the session is over.</summary>
+    public void EndProcess(int status)
     {
         if (Parent != null)
         {
             _exitStatus = status;
             Terminate($"exited (0x{status:X})");
-            return true;
+            return;
         }
-        if (SuspendedPrograms.Count == 0)
+        if (SuspendedPrograms.Count > 0)
         {
-            return false;
+            (string? dir, string? self) = SuspendedPrograms.Pop();
+            Log.Info($"Process exited (0x{status:X}): resuming {dir} ({self})");
+            QueueExec("app0:" + self, [], dir);
+            return;
+        }
+        if (Interlocked.Exchange(ref _lastProcessEnded, 1) != 0)
+        {
+            return; // another thread of the process already ended it
         }
 
-        (string? dir, string? self) = SuspendedPrograms.Pop();
-        Log.Info($"Process exited (0x{status:X}): resuming {dir} ({self})");
-        QueueExec("app0:" + self, [], dir);
-        return true;
+        LastProcessExitStatus = status;
+        Log.Info($"Process exited (0x{status:X}): it was the last process, the session ends");
+        Stop();
+        ProcessExited?.Invoke(status);
     }
 
     private void QueueExec(string path, string[] args, string? appDir)
