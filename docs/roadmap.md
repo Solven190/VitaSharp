@@ -2692,9 +2692,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   buffer é o tamanho pedido arredondado para páginas de 4 KB (o bloco de memória que o threadmgr aloca; o campo de
   capacidade guarda o arredondado). Testes: ThreadMgrHleTests.MsgPipeSendReceiveModes,
   MsgPipeFullSendWaitsForRoomForTheWholeMessage. Correção feita, ainda não validada com jogo.
-- [ ] [P3][P] MsgPipe: pipe sem buffer (tamanho 0) e entrega direta a um receptor que espera (o firmware passa os dados ao
-  receptor antes do buffer), achados junto com o item de DONT_WAIT abaixo; conferir no threadmgr (FUN_81013dfc) antes
-  de mudar.
+- [x] MsgPipe: pipe sem buffer (tamanho 0) (bugA/bugA2, 15/11/2026; threadmgr 3.74 0x81013DFC / FUN_81015d10, só
+  estudo): o firmware não aloca bloco para tamanho 0 e não confere o tamanho no envio; os dados vão direto do
+  remetente para o receptor. `MsgPipeCapacity(0)` = 0 e `MsgPipe.SendUnbuffered`/`TakeOffered`: o envio entrega na
+  hora o que os receptores em espera pediram, e um remetente bloqueado deixa o resto oferecido para um receptor (também
+  o Try) copiar dos buffers dele; FreeSize, bits IN/OUT e DONT_WAIT seguem a mesma regra. Antes: buffer de 1 byte e
+  ILLEGAL_SIZE em toda mensagem maior. Testes: `ThreadMgrHleTests.MsgPipeWithoutABufferHandsDataStraightBetweenSenderAndReceiver`,
+  `MsgPipeWithoutABufferSenderTimeoutLeavesNothingBehind` (falham sem a correção). Correção feita, ainda não validada
+  com jogo. Fica de fora: a entrega direta a um receptor que espera num pipe COM buffer (o firmware copia para ele
+  antes do buffer; aqui passa pelo buffer, sem diferença de resultado conhecida).
 - [x] MsgPipe: DONT_WAIT (0x10) nas formas bloqueantes (sceKernelSendMsgPipe/ReceiveMsgPipe e Vector) não é "falhar em
   vez de esperar" no firmware: o threadmgr copia o vetor, enfileira o pedido para os threads "SceKernelMsgPipeAsync"
   (até 0x100 pedidos por processo, depois 0x80028225) e volta na hora; o envio/recebimento acontece depois nesse thread

@@ -1188,7 +1188,7 @@ public sealed partial class MsgPipe : KernelObject
         {
             lock (this)
             {
-                return BufferSize - _data.Count;
+                return Math.Max(0, BufferSize - _data.Count);
             }
         }
     }
@@ -1246,8 +1246,9 @@ public sealed partial class MsgPipe : KernelObject
                 return SceError.MPP_DELETED;
             }
 
-            // threadmgr refuses a message larger than the pipe's buffer, in either mode
-            if (size > BufferSize)
+            // threadmgr refuses a message larger than the pipe's buffer, in either mode; a pipe without a buffer takes
+            // any size (FW 3.74 send, 0x81013DFC: the size check is skipped for capacity 0)
+            if (!Unbuffered && size > BufferSize)
             {
                 return SceError.ILLEGAL_SIZE;
             }
@@ -1258,6 +1259,11 @@ public sealed partial class MsgPipe : KernelObject
             SendWaiters++;
             try
             {
+                if (Unbuffered)
+                {
+                    return SendUnbuffered(src, size, asap, result, timeout, poll, gen);
+                }
+
                 while (sent < size)
                 {
                     // ASAP moves what fits; FULL goes into the buffer only whole (threadmgr copies the rest of a FULL
@@ -1333,7 +1339,7 @@ public sealed partial class MsgPipe : KernelObject
             {
                 while (got < size)
                 {
-                    if (_data.Count > 0)
+                    if (_data.Count > 0 || OfferedBytes > 0)
                     {
                         int n = Math.Min(_data.Count, size - got);
                         dst.ForEach(got, n, (a, len) =>
@@ -1345,6 +1351,8 @@ public sealed partial class MsgPipe : KernelObject
                             }
                         });
                         got += n;
+                        // a pipe without a buffer: the rest straight from the senders waiting with their data
+                        got += TakeOffered(dst, got, size - got);
                         WakeWaiters();
                         if (asap)
                         {
@@ -1358,8 +1366,18 @@ public sealed partial class MsgPipe : KernelObject
                         break;
                     }
 
-                    int r = Wait.Until(this, (p: this, gen), static t => t.p._data.Count > 0, timeout,
+                    // a waiting receiver of a pipe without a buffer is where a sender's data can go
+                    int demand = Unbuffered ? size - got : 0;
+                    _receiveDemand += demand;
+                    if (demand > 0)
+                    {
+                        ServeLater();
+                        WakeWaiters();
+                    }
+
+                    int r = Wait.Until(this, (p: this, gen), static t => t.p._data.Count > 0 || t.p.OfferedBytes > 0, timeout,
                         static t => t.p._deleted ? SceError.WAIT_DELETE : t.p._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
+                    _receiveDemand -= demand;
                     if (r != SceError.OK)
                     {
                         result.TrySet((uint)got);
@@ -1380,6 +1398,122 @@ public sealed partial class MsgPipe : KernelObject
 
             return SceError.OK;
         }
+    }
+
+    /// <summary>
+    /// A pipe created with size 0 has no buffer (FW 3.74 threadmgr allocates no memory block for it and skips the size
+    /// check of a send): a send hands its data straight to receivers. Here the bytes the waiting receivers asked for
+    /// go through <see cref="_data"/> at once (only those receivers can take them), and a sender that has more waits
+    /// with the rest offered (<see cref="Offer"/>), which a receiver, a polling one too, copies from the sender's own
+    /// buffers.
+    /// </summary>
+    private bool Unbuffered => BufferSize == 0;
+
+    /// <summary>Bytes the receivers blocked on a pipe without a buffer still want.</summary>
+    private int _receiveDemand;
+
+    /// <summary>The rest of a blocked send on a pipe without a buffer, taken by receivers from the sender's buffers.</summary>
+    private sealed class Offer(Segments source, int start, int size)
+    {
+        public readonly Segments Source = source;
+        public readonly int Start = start;
+        public readonly int Size = size;
+        public int Taken;
+    }
+
+    private readonly List<Offer> _offers = new();
+
+    private int OfferedBytes
+    {
+        get
+        {
+            int total = 0;
+            foreach (Offer offer in _offers)
+            {
+                total += offer.Size - offer.Taken;
+            }
+
+            return total;
+        }
+    }
+
+    /// <summary>Copies up to <paramref name="count"/> offered bytes, oldest sender first, to <paramref name="dst"/> at
+    /// <paramref name="offset"/>; returns how many.</summary>
+    private int TakeOffered(Segments dst, int offset, int count)
+    {
+        int moved = 0;
+        foreach (Offer offer in _offers)
+        {
+            int n = Math.Min(offer.Size - offer.Taken, count - moved);
+            if (n <= 0)
+            {
+                continue;
+            }
+
+            byte[] bytes = System.Buffers.ArrayPool<byte>.Shared.Rent(n);
+            int read = 0;
+            offer.Source.ForEach(offer.Start + offer.Taken, n, (address, length) =>
+            {
+                GuestMemory.Span(address, length).CopyTo(bytes.AsSpan(read));
+                read += length;
+            });
+            int written = 0;
+            dst.ForEach(offset + moved, n, (address, length) =>
+            {
+                bytes.AsSpan(written, length).CopyTo(GuestMemory.Span(address, length));
+                written += length;
+            });
+            System.Buffers.ArrayPool<byte>.Shared.Return(bytes);
+            offer.Taken += n;
+            moved += n;
+        }
+
+        return moved;
+    }
+
+    /// <summary>A send on a pipe without a buffer (<see cref="Unbuffered"/>): what the waiting receivers asked for goes
+    /// at once; a blocking send then waits with the rest offered until a receiver took some (ASAP) or all (FULL) of it.
+    /// The Try forms move only what waiting receivers asked for (MPP_FULL when that is nothing, or, FULL, not all).</summary>
+    private int SendUnbuffered(Segments src, int size, bool asap, Ptr<uint> result, Ptr<uint> timeout, bool poll, int gen)
+    {
+        int room = Math.Max(0, _receiveDemand - _data.Count);
+        // a Try FULL send moves its message only whole, as on a pipe with a buffer
+        int sent = poll && !asap && room < size ? 0 : Math.Min(room, size);
+        if (sent > 0)
+        {
+            src.ForEach(0, sent, (address, length) =>
+            {
+                foreach (byte value in GuestMemory.Span(address, length))
+                {
+                    _data.Enqueue(value);
+                }
+            });
+            WakeWaiters();
+        }
+
+        if (sent < size && !(asap && sent > 0) && !poll)
+        {
+            var offer = new Offer(src, sent, size - sent);
+            _offers.Add(offer);
+            WakeWaiters();
+            int r = Wait.Until(this, (p: this, offer, asap, gen), static t => t.asap ? t.offer.Taken > 0 : t.offer.Taken == t.offer.Size, timeout,
+                static t => t.p._deleted ? SceError.WAIT_DELETE : t.p._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
+            _offers.Remove(offer);
+            sent += offer.Taken;
+            if (r != SceError.OK)
+            {
+                result.TrySet((uint)sent);
+                return r;
+            }
+        }
+
+        result.TrySet((uint)sent);
+        if (asap ? sent == 0 && size > 0 : sent < size)
+        {
+            return SceError.MPP_FULL;
+        }
+
+        return SceError.OK;
     }
 
     public int Cancel(Ptr<int> numSend, Ptr<int> numRecv)
@@ -1475,7 +1609,7 @@ public sealed partial class MsgPipe : KernelObject
     /// <summary>A queued send's bytes that fit now (FULL: only the whole rest at once, as the blocking send).</summary>
     private int SendNow(LaterTransfer transfer, int size)
     {
-        int free = BufferSize - _data.Count;
+        int free = (Unbuffered ? _receiveDemand : BufferSize) - _data.Count;
         int rest = size - transfer.Done;
         if (rest <= 0 || (transfer.Asap ? free <= 0 : free < rest))
         {
@@ -1534,7 +1668,8 @@ public sealed partial class MsgPipe : KernelObject
     public const uint EventReceivable = 0x10000, EventSendable = 0x20000;
     private uint _latched;
 
-    private uint Pattern => (_data.Count > 0 ? EventIn | EventReceivable : 0) | (_data.Count < BufferSize ? EventOut | EventSendable : 0)
+    private uint Pattern => (_data.Count > 0 || OfferedBytes > 0 ? EventIn | EventReceivable : 0)
+        | (_data.Count < (Unbuffered ? _receiveDemand : BufferSize) ? EventOut | EventSendable : 0)
         | (_deleted ? EventBits.Delete : 0) | _latched;
 
     /// <summary>A handle to the pipe was opened or closed (<see cref="EventOpen"/>, <see cref="EventClose"/>).</summary>
