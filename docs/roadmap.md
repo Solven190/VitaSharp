@@ -1410,6 +1410,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   kernel do firmware. Tabela por biblioteca em `docs/hle/kernel-exports.md`, por função em
   `docs/hle/data/kernel-exports.tsv`. Depois do k2: 504 em HLE + 57 default (nids.txt com todos os NIDs
   de kernel do 3.74, 401 gêmeas de kernel das funções de usuário). Ordem do resto: o que os módulos de kernel e os plugins importam primeiro.
+  Divergente até haver um mapa físico: o VitaSharp não separa endereço físico de virtual, então as traduções do MMU
+  (`ksceKernelMMUVAtoPA`, `ksceKernelVAtoPA`, `ksceKernelVARangeToPARange/PAVector`, feat/kernel-mmu) devolvem o próprio
+  endereço virtual. O `SceSysmemForDriver` NID_0AAA4FDD (classifica a memória pela faixa física: CDRAM 0x20000000,
+  DRAM 0x40000000...) daria valores diferentes do console com esse modelo e não está implementado; falta um mapa
+  virtual -> físico com as faixas do Vita (DRAM 512 MB em 0x40000000, CDRAM 128 MB) para as duas coisas ficarem fiéis.
 - [ ] [P3][G] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das
