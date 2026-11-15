@@ -42,11 +42,13 @@ public sealed partial class ThreadmgrKernel : HleModule
         FastMutexLocked = unchecked((int)0x80028166), FastMutexAlreadyInitialized = unchecked((int)0x80028167),
         FastMutexNotInitialized = unchecked((int)0x80028168), IllegalContext = unchecked((int)0x80027101);
 
-    /// <summary>The priority each fast mutex owner had before a ceiling raised it: (work area, thread UID).</summary>
-    readonly Dictionary<(uint Work, int Thread), int> _ceilingRestore = new();
+    /// <summary>The priority each fast mutex owner had before a ceiling raised it: <see cref="CeilingKey"/>.</summary>
+    readonly Dictionary<ulong, int> _ceilingRestore = new();
 
     /// <summary>Each fast mutex's attributes as given (its kernel object keeps only the ones the wait queue uses).</summary>
     readonly Dictionary<int, uint> _fastMutexAttributes = new();
+
+    static ulong CeilingKey(uint work, GuestThread owner) => ((ulong)work << 32) | (uint)owner.Uid;
 
     SysmemKernel Sysmem => Emu.Hle.Modules.OfType<SysmemKernel>().First();
 
@@ -81,7 +83,7 @@ public sealed partial class ThreadmgrKernel : HleModule
 
         lock (_ceilingRestore)
         {
-            _ceilingRestore[(work, owner.Uid)] = owner.Priority;
+            _ceilingRestore[CeilingKey(work, owner)] = owner.Priority;
         }
 
         owner.Priority = ceiling;
@@ -91,7 +93,7 @@ public sealed partial class ThreadmgrKernel : HleModule
     {
         lock (_ceilingRestore)
         {
-            if (_ceilingRestore.Remove((work, owner.Uid), out int previous))
+            if (_ceilingRestore.Remove(CeilingKey(work, owner), out int previous))
             {
                 owner.Priority = previous;
             }
