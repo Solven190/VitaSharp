@@ -769,7 +769,7 @@ public sealed class Emulator : IDisposable
         }
 
         string saveDir = Io.FirmwareLayout.SaveData.Host(Options.FsRoot, TitleId);
-        Vfs.Mount("savedata0", saveDir);
+        Vfs.MountSaveData("savedata0", saveDir);
         Vfs.Mount("addcont0", Io.FirmwareLayout.AddCont.Host(Options.FsRoot, TitleId));
 
         Klicensee = FindKlicensee();

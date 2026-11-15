@@ -2346,8 +2346,22 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `DataRemoveOfTheEmptyPathEmptiesSaveDataButKeepsTheSystemData`,
   `DataRemoveReturnsAnErrorWhenTheHostRefusesTheDelete`, `AppMgrDataRemoveReadsItemsOfTheApputilLayout` (falham
   sem a correção). Correção feita, ainda não confirmada no Killzone ("deleted saves" trava: falta a captura do
-  usuário para saber se é este o caminho). Pendente: o `sceAppMgrSaveDataDataRemove` chamado direto ainda não apaga
-  o slot (no firmware é o kernel que apaga), e o `sceAppUtilSaveDataDataSave` ainda aceita caminho com `savedata0:`.
+  usuário para saber se é este o caminho).
+  Feito depois (fix/savedata-rest-15, bugA2): o slot da remoção é tratado como no kernel (SceAppMgr 0x81029E3C), também
+  no `sceAppMgrSaveDataDataRemove` chamado direto. O slot existente é apagado quando todos os itens estão em DEFAULT
+  e fica quando algum está em NO_SLOT; nesse caso recebe o param novo, se houver. Antes o AppMgr não mexia no slot e o
+  apputil olhava só o item 0. O `sceAppUtilSaveDataDataSave` confere a lista como o apputil (0x81000BB2/0x81001AEE/
+  0x810016F8): NOT_INITIALIZED antes do Init; PARAMETER para caminho com `savedata0:`, "..", `sce_`, mais de 3
+  separadores, componente com mais de 63 bytes, modo acima de DIRECTORY, diretório com buffer/tamanho/offset, arquivo
+  com tamanho e sem buffer, pad/reservados não zerados, requiredSizeKiB NULL, lista NULL, 0 ou mais de 5 arquivos,
+  slot 256 ou mais e ponto de montagem diferente de `savedata0:`. O savedata0: do próprio título é montado já com
+  `sce_sys` (`Vfs.MountSaveData`; o SceAppMgr cria "%s/sce_sys" junto com o save). Testes:
+  `DataRemoveRemovesOrKeepsTheSlotAsTheKernelDoes`, `DataSaveChecksTheWholeListBeforeWritingAnything`,
+  `OwnSaveDataIsMountedWithItsSystemFolder` (falham sem a correção). Fica de fora: os slots ficam em
+  `SlotParam_<n>.bin` na raiz do save, e no Vita ficam em `sce_sys/sdslot.dat`, um arquivo só (mudar isso precisa
+  migrar os saves que já existem). O keystone e o sealedkey do sce_sys também ficam de fora, porque pertencem à
+  imagem PFS e não têm equivalente numa pasta do host. O limite de tamanho do save (1 MiB, ou 10 MiB) também não é
+  conferido.
 
 - [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado

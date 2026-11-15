@@ -97,6 +97,20 @@ public sealed class Vfs
         Directory.CreateDirectory(hostPath);
     }
 
+    /// <summary>
+    /// Mounts a process's own save data (savedata0:). SceAppMgr creates a title's save data with its system folder
+    /// sce_sys already in it (FW 3.74: "%s/sce_sys", then the keystone and sealedkey files of the PFS image, which have
+    /// no counterpart on a host folder), and apputil keeps its own files there (safemem.dat, sdslot.dat).
+    /// </summary>
+    public void MountSaveData(string device, string hostPath)
+    {
+        Mount(device, hostPath);
+        Directory.CreateDirectory(Path.Combine(hostPath, SaveDataSystemFolder));
+    }
+
+    /// <summary>The system folder of every save data (a fixed name of the firmware's layout).</summary>
+    public const string SaveDataSystemFolder = "sce_sys";
+
     /// <summary>Removes a device mapping (the host directory is kept). Returns false if it was not mounted.</summary>
     public bool Unmount(string device) => _mounts.Remove(device.TrimEnd(':'));
 

@@ -707,7 +707,7 @@ public sealed partial class AppMgr : HleModule
 
     /// <summary>SceAppMgrSaveDataDataDelete (0x44, the size first; FW 3.74 SceAppMgr 0x81029E3C refuses another size
     /// with 0x80800001): files* at +0x2C and fileNum at +0x30, items of 0x2C bytes (SceAppUtilSaveDataRemoveItem, as
-    /// apputil passes them), removed by <see cref="AppUtil.RemoveItems"/>.</summary>
+    /// apputil passes them), removed by <see cref="AppUtil.RemoveItems"/>, which also removes or keeps the slot.</summary>
     [Hle]
     int sceAppMgrSaveDataDataRemove(uint data)
     {
@@ -721,7 +721,8 @@ public sealed partial class AppMgr : HleModule
             return AppUtil.ERR_APPMGR_INVALID;
         }
 
-        return AppUtil.RemoveItems(GuestMemory.R32(data + 0x2C), GuestMemory.R32(data + 0x30));
+        // slot id at +4 (-1: none), slot param* at +8: the kernel removes or keeps the slot itself
+        return AppUtil.RemoveItems(GuestMemory.R32(data + 0x2C), GuestMemory.R32(data + 0x30), (int)GuestMemory.R32(data + 4), GuestMemory.R32(data + 8), stampTime: false);
     }
 
     [Hle]
@@ -852,7 +853,7 @@ public sealed partial class AppMgr : HleModule
         int r = CheckSize(data, 0x3C);
         if (r < 0) return r;
         if (!Emu.Vfs.IsMounted("savedata0"))
-            Emu.Vfs.Mount("savedata0", Io.FirmwareLayout.SaveData.Host(Emu.Options.FsRoot, Emu.TitleId));
+            Emu.Vfs.MountSaveData("savedata0", Io.FirmwareLayout.SaveData.Host(Emu.Options.FsRoot, Emu.TitleId));
         return 0;
     }
 

@@ -365,13 +365,84 @@ public sealed partial class AppUtil : HleModule
         return 0;
     }
 
+    /// <summary>SceAppUtilSaveDataFile: dataPath* (+0), buf* (+4), bufSize (+8), pad (+0xC), offset (s64, +0x10),
+    /// mode (+0x18: FILE 0, FILE_TRUNCATE 1, DIRECTORY 2), reserved[36] (+0x1C).</summary>
+    internal const uint SaveFileSize = 0x40;
+
+    /// <summary>
+    /// apputil.suprx 3.74 (0x81000BB2, list check 0x81001AEE/0x810016F8) checks everything before the kernel writes:
+    /// NOT_INITIALIZED before sceAppUtilInit; PARAMETER for a slot id of 256 or more, a mount point other than
+    /// savedata0:, a NULL requiredSizeKiB, a NULL list, 0 or more than 5 files, and per file a path breaking the rules
+    /// of <see cref="SaveDataPathValid"/> (relative to the mount point: a "savedata0:" prefix is refused), components
+    /// over 63 bytes, a mode above DIRECTORY, a directory with a buffer, size or offset, a file with a size but no
+    /// buffer, and pad or reserved bytes set.
+    /// </summary>
     [Hle]
     int sceAppUtilSaveDataDataSave(uint slot, uint files, uint fileNum, uint mountPoint, Ptr<uint> requiredKiB)
     {
+        if (!_initialized)
+        {
+            return ERR_NOT_INITIALIZED;
+        }
+
+        if (!SlotArgumentValid(slot) || (mountPoint != 0 && GuestMemory.ReadCString(mountPoint, 16) != "savedata0:"))
+        {
+            return ERR_PARAMETER;
+        }
+
+        if (files == 0 || fileNum == 0 || fileNum > MaxRemoveItems || requiredKiB.IsNull)
+        {
+            return ERR_PARAMETER;
+        }
+
+        for (uint i = 0; i < fileNum; i++)
+        {
+            if (!SaveFileValid(files + i * SaveFileSize))
+            {
+                return ERR_PARAMETER;
+            }
+        }
+
         requiredKiB.TrySet(0);
         SaveFiles(files, fileNum);
-        if (slot != 0) UpdateSlotAfterSave(GuestMemory.R32(slot), GuestMemory.R32(slot + 4));
+        if (slot != 0)
+        {
+            UpdateSlotAfterSave(GuestMemory.R32(slot), GuestMemory.R32(slot + 4));
+        }
+
         return 0;
+    }
+
+    static bool SaveFileValid(uint file)
+    {
+        if (!SaveDataPathValid(GuestMemory.R32(file), maxSeparators: 3, lastComponentSce: false, maxComponent: 63))
+        {
+            return false;
+        }
+
+        uint buffer = GuestMemory.R32(file + 4);
+        uint size = GuestMemory.R32(file + 8);
+        long offset = GuestMemory.Read<long>(file + 0x10);
+        uint mode = GuestMemory.R32(file + 0x18);
+        if (mode > 2)
+        {
+            return false;
+        }
+
+        if (mode == 2 ? buffer != 0 || size != 0 || offset != 0 : buffer == 0 && size != 0)
+        {
+            return false;
+        }
+
+        return GuestMemory.R32(file + 0xC) == 0 && !GuestMemory.Span(file + 0x1C, 36).ContainsAnyExcept((byte)0);
+    }
+
+    /// <summary>Stores a slot's param as given.</summary>
+    void WriteSlotParam(uint slot, byte[] param)
+    {
+        string path = SlotPath(slot);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, param);
     }
 
     /// <summary>Writes SceAppUtilSaveDataFile entries (0x40 bytes: dataPath*, buf*, bufSize, pad, offset (s64), mode).</summary>
@@ -440,7 +511,25 @@ public sealed partial class AppUtil : HleModule
     /// </summary>
     static bool RemoveItemValid(uint item, bool appUtilRules)
     {
-        uint pathAddress = GuestMemory.R32(item);
+        if (!SaveDataPathValid(GuestMemory.R32(item), appUtilRules ? 3 : int.MaxValue, lastComponentSce: appUtilRules, maxComponent: int.MaxValue))
+        {
+            return false;
+        }
+
+        if (GuestMemory.R32(item + 4) > 1)
+        {
+            return false;
+        }
+
+        return !GuestMemory.Span(item + 8, 36).ContainsAnyExcept((byte)0);
+    }
+
+    /// <summary>The path rules shared by the save and remove lists (see <see cref="RemoveItemValid"/>): at most
+    /// <paramref name="maxSeparators"/> separators, an "sce_" last component refused when
+    /// <paramref name="lastComponentSce"/> (apputil's remove check), components of at most <paramref name="maxComponent"/>
+    /// bytes (apputil's save check 0x810016F8: 63).</summary>
+    static bool SaveDataPathValid(uint pathAddress, int maxSeparators, bool lastComponentSce, int maxComponent)
+    {
         if (pathAddress == 0)
         {
             return false;
@@ -470,9 +559,19 @@ public sealed partial class AppUtil : HleModule
 
             if (separator)
             {
+                if (i - lastSeparator - 1 > maxComponent)
+                {
+                    return false;
+                }
+
                 separators++;
                 lastSeparator = i;
             }
+        }
+
+        if (path.Length - lastSeparator - 1 > maxComponent)
+        {
+            return false;
         }
 
         string firstComponent = path.TrimStart('/', '\\');
@@ -481,25 +580,12 @@ public sealed partial class AppUtil : HleModule
             return false; // a fixed name of the firmware's save data layout (sce_sys)
         }
 
-        if (appUtilRules)
-        {
-            if (separators > 3)
-            {
-                return false;
-            }
-
-            if (path.StartsWith("sce_", StringComparison.Ordinal) || path.AsSpan(lastSeparator + 1).StartsWith("sce_", StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-
-        if (GuestMemory.R32(item + 4) > 1)
+        if (separators > maxSeparators)
         {
             return false;
         }
 
-        return !GuestMemory.Span(item + 8, 36).ContainsAnyExcept((byte)0);
+        return !lastComponentSce || !path.AsSpan(lastSeparator + 1).StartsWith("sce_", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -507,9 +593,14 @@ public sealed partial class AppUtil : HleModule
     /// items of <see cref="RemoveItemSize"/> bytes, each checked (<see cref="ERR_APPMGR_INVALID"/>, the items before it
     /// already removed) and removed with everything under it; a path that does not exist is fine. A host error (a file
     /// another program holds, no permission) becomes the I/O error instead of an exception that would stop the guest.
+    /// Then the slot <paramref name="slotId"/> (-1: none), when it exists: removed when every item is in mode DEFAULT;
+    /// kept when one is NO_SLOT, and then given <paramref name="slotParam"/> if there is one (stamped with the current
+    /// time when <paramref name="stampTime"/>, which apputil does before the call).
     /// </summary>
-    internal int RemoveItems(uint files, uint fileNum)
+    internal int RemoveItems(uint files, uint fileNum, int slotId, uint slotParam, bool stampTime)
     {
+        bool slotExists = slotId >= 0 && SlotExists((uint)slotId);
+        bool keepSlot = false;
         for (uint i = 0; i < fileNum && i < MaxRemoveItems; i++)
         {
             uint item = files + i * RemoveItemSize;
@@ -518,12 +609,39 @@ public sealed partial class AppUtil : HleModule
                 return ERR_APPMGR_INVALID;
             }
 
+            if (GuestMemory.R32(item + 4) == 1)
+            {
+                keepSlot = true;
+            }
+
             string rel = GuestMemory.ReadCString(GuestMemory.R32(item), 200);
             string host = SavePath(rel);
             int r = RemoveTree(host, IsSameDirectory(host, SavePath("")));
             if (r < 0)
             {
                 return r;
+            }
+        }
+
+        if (!slotExists)
+        {
+            return 0;
+        }
+
+        if (!keepSlot)
+        {
+            return RemoveTree(SlotPath((uint)slotId), isRoot: false);
+        }
+
+        if (slotParam != 0)
+        {
+            if (stampTime)
+            {
+                UpdateSlotAfterSave((uint)slotId, slotParam);
+            }
+            else
+            {
+                WriteSlotParam((uint)slotId, GuestMemory.Span(slotParam, SlotParamSize).ToArray());
             }
         }
 
@@ -593,7 +711,7 @@ public sealed partial class AppUtil : HleModule
     /// apputil.suprx 3.74 (0x81000D2C): NOT_INITIALIZED before sceAppUtilInit; PARAMETER for a NULL list, 0 or more than
     /// 5 items, an item breaking the path rules (<see cref="RemoveItemValid"/>), a mount point other than savedata0:,
     /// or a slot with a new param while item 0 also removes the slot (mode DEFAULT). Then the kernel removes the items
-    /// (<see cref="RemoveItems"/>) and, slot given and item 0 in mode DEFAULT, the slot.
+    /// and handles the slot (<see cref="RemoveItems"/>).
     /// </summary>
     [Hle]
     int sceAppUtilSaveDataDataRemove(uint slot, uint files, uint fileNum, uint mountPoint)
@@ -621,35 +739,22 @@ public sealed partial class AppUtil : HleModule
             return ERR_PARAMETER;
         }
 
-        bool removesSlot = GuestMemory.R32(files + 4) == 0;
-        if (slot != 0 && GuestMemory.R32(slot + 4) != 0 && removesSlot)
+        if (slot != 0 && GuestMemory.R32(slot + 4) != 0 && GuestMemory.R32(files + 4) == 0)
         {
             return ERR_PARAMETER;
         }
 
-        if (slot != 0 && GuestMemory.R32(slot) >= 256)
+        if (!SlotArgumentValid(slot))
         {
-            return ERR_PARAMETER; // SCE_APPUTIL_SAVEDATA_SLOT_MAX
+            return ERR_PARAMETER;
         }
 
-        int r = RemoveItems(files, fileNum);
-        if (r < 0)
-        {
-            return r;
-        }
-
-        if (slot != 0 && removesSlot)
-        {
-            string slotFile = SlotPath(GuestMemory.R32(slot));
-            int slotResult = RemoveTree(slotFile, isRoot: false);
-            if (slotResult < 0)
-            {
-                return slotResult;
-            }
-        }
-
-        return 0;
+        return slot == 0 ? RemoveItems(files, fileNum, -1, 0, stampTime: true)
+            : RemoveItems(files, fileNum, (int)GuestMemory.R32(slot), GuestMemory.R32(slot + 4), stampTime: true);
     }
+
+    /// <summary>apputil 3.74 (0x810016D8): a slot argument is NULL or names a slot 0..255 (SCE_APPUTIL_SAVEDATA_SLOT_MAX).</summary>
+    static bool SlotArgumentValid(uint slot) => slot == 0 || GuestMemory.R32(slot) < 256;
 
     /// <summary>Quota = SAVEDATA_MAX_SIZE of param.sfo (KiB); used = savedata0: size in KiB, clamped to the quota.</summary>
     [Hle]

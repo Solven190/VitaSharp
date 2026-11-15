@@ -117,7 +117,9 @@ public sealed class AppUtilSaveDataTests : IDisposable
     [Fact]
     public void DataSaveWritesFilesAndUpdatesTheSlot()
     {
-        uint path = _harness.Str("savedata0:game/progress.bin"), dirPath = _harness.Str("savedata0:game/extra");
+        // paths are relative to the mount point (apputil refuses a "savedata0:" prefix)
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilInit", _harness.Alloc(0x40), _harness.Alloc(0x40)));
+        uint path = _harness.Str("game/progress.bin"), dirPath = _harness.Str("game/extra");
         uint data = _harness.Alloc(16);
         for (uint i = 0; i < 16; i++)
         {
@@ -125,6 +127,7 @@ public sealed class AppUtilSaveDataTests : IDisposable
         }
         // SceAppUtilSaveDataFile (0x40): dataPath, buf, bufSize, pad, offset (s64), mode (0 write, 1 truncate, 2 dir)
         uint files = _harness.Alloc(64 * 3);
+        GuestMemory.Fill(files, 0, 64 * 3);
         GuestMemory.W32(files, path);
         GuestMemory.W32(files + 4, data);
         GuestMemory.W32(files + 8, 16);
@@ -155,7 +158,6 @@ public sealed class AppUtilSaveDataTests : IDisposable
 
         // removal: SceAppUtilSaveDataRemoveItem (0x2C) {dataPath, mode}, paths relative to the mount point; mode 0 also
         // removes the slot, which then may not carry a new param
-        Assert.Equal(0, Call(AppUtil, "sceAppUtilInit", _harness.Alloc(0x40), _harness.Alloc(0x40)));
         uint rm = RemoveList(("game/progress.bin", 0u), ("game/extra", 0u));
         GuestMemory.W32(slot + 4, 0);
         Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataDataRemove", slot, rm, 2u, 0u));
@@ -328,6 +330,139 @@ public sealed class AppUtilSaveDataTests : IDisposable
         Assert.Equal(0, Call(appMgr, "sceAppMgrSaveDataDataRemove", request));
         Assert.False(File.Exists(a));
         Assert.False(File.Exists(b));
+    }
+
+    /// <summary>The slot of a removal is handled by the kernel (FW 3.74 SceAppMgr 0x81029E3C), also for a direct
+    /// sceAppMgrSaveDataDataRemove: an existing slot is removed when every item is in mode DEFAULT, kept when one is
+    /// NO_SLOT (and then given the request's new param, if any); slot id -1 or a slot that does not exist is left
+    /// alone. Before, the AppMgr call never touched the slot and apputil looked only at item 0.</summary>
+    [Fact]
+    public void DataRemoveRemovesOrKeepsTheSlotAsTheKernelDoes()
+    {
+        AppMgr appMgr = _harness.Module<AppMgr>();
+        uint request = _harness.Alloc(0x44);
+
+        int Remove(uint slotId, uint slotParam, params (string Path, uint Mode)[] items)
+        {
+            GuestMemory.Fill(request, 0, 0x44);
+            GuestMemory.W32(request, 0x44);
+            GuestMemory.W32(request + 4, slotId);
+            GuestMemory.W32(request + 8, slotParam);
+            GuestMemory.W32(request + 0x2C, RemoveList(items));
+            GuestMemory.W32(request + 0x30, (uint)items.Length);
+            return Call(appMgr, "sceAppMgrSaveDataDataRemove", request);
+        }
+
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataSlotCreate", 1u, SlotParam("one", 0), 0u));
+        MakeSaveFile("x.bin");
+        Assert.Equal(0, Remove(1, 0, ("x.bin", 0u), ("y.bin", 0u)));
+        Assert.False(AppUtil.SlotExists(1));
+
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataSlotCreate", 2u, SlotParam("two", 0), 0u));
+        Assert.Equal(0, Remove(2, 0, ("x.bin", 0u), ("y.bin", 1u)));
+        Assert.True(AppUtil.SlotExists(2));
+        Assert.Equal(0, Remove(2, SlotParam("two again", 0), ("x.bin", 1u)));
+        uint get = _harness.Alloc(AppUtil.SlotParamSize);
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataSlotGetParam", 2u, get, 0u));
+        Assert.Equal("two again", GuestMemory.ReadCString(get + 4, 64));
+
+        Assert.Equal(0, Remove(0xFFFFFFFF, 0, ("x.bin", 0u)));
+        Assert.True(AppUtil.SlotExists(2));
+        Assert.Equal(0, Remove(7, 0, ("x.bin", 0u)));
+        Assert.False(AppUtil.SlotExists(7));
+
+        // through apputil: the second item in NO_SLOT keeps the slot (apputil passes the slot to the kernel as is)
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilInit", _harness.Alloc(0x40), _harness.Alloc(0x40)));
+        uint slot = _harness.Alloc(8);
+        GuestMemory.W32(slot, 2);
+        GuestMemory.W32(slot + 4, 0);
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataDataRemove", slot, RemoveList(("x.bin", 0u), ("y.bin", 1u)), 2u, 0u));
+        Assert.True(AppUtil.SlotExists(2));
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataDataRemove", slot, RemoveList(("x.bin", 0u)), 1u, 0u));
+        Assert.False(AppUtil.SlotExists(2));
+    }
+
+    /// <summary>A SceAppUtilSaveDataFile list (0x40 bytes each), zeroed but for the path, buffer, size and mode.</summary>
+    private uint SaveList(params (string Path, uint Buffer, uint Size, uint Mode)[] files)
+    {
+        uint list = _harness.Alloc(AppUtil.SaveFileSize * (uint)files.Length);
+        GuestMemory.Fill(list, 0, AppUtil.SaveFileSize * (uint)files.Length);
+        for (int i = 0; i < files.Length; i++)
+        {
+            uint file = list + (uint)i * AppUtil.SaveFileSize;
+            GuestMemory.W32(file, _harness.Str(files[i].Path));
+            GuestMemory.W32(file + 4, files[i].Buffer);
+            GuestMemory.W32(file + 8, files[i].Size);
+            GuestMemory.W32(file + 0x18, files[i].Mode);
+        }
+
+        return list;
+    }
+
+    /// <summary>apputil.suprx 3.74 (0x81000BB2, 0x81001AEE, 0x810016F8) checks a save list before anything is written:
+    /// NOT_INITIALIZED before sceAppUtilInit; PARAMETER for a "savedata0:" path (paths are relative to the mount
+    /// point), "..", an "sce_" first component, more than 3 separators, a component over 63 bytes, a mode above
+    /// DIRECTORY, a directory with a buffer or size, a file with a size but no buffer, pad or reserved bytes set, a NULL
+    /// requiredSizeKiB, a NULL list, 0 or more than 5 files, a slot id of 256 or more, or a mount point other than
+    /// savedata0:. Before, every list was written as given.</summary>
+    [Fact]
+    public void DataSaveChecksTheWholeListBeforeWritingAnything()
+    {
+        uint data = _harness.Alloc(4);
+        uint required = _harness.Word(0);
+        Ptr<uint> requiredPtr = new(required);
+        uint good = SaveList(("game/a.bin", data, 4u, 0u));
+        Assert.Equal(ERR_NOT_INITIALIZED, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 1u, 0u, requiredPtr));
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilInit", _harness.Alloc(0x40), _harness.Alloc(0x40)));
+
+        string longName = new('n', 64);
+        var badFiles = new (string Path, uint Buffer, uint Size, uint Mode)[]
+        {
+            ("savedata0:game/b.bin", data, 4u, 0u),
+            ("game/../b.bin", data, 4u, 0u),
+            ("sce_sys/b.bin", data, 4u, 0u),
+            ("a/b/c/d/e.bin", data, 4u, 0u),
+            ("game/" + longName, data, 4u, 0u),
+            ("game/b.bin", data, 4u, 3u),
+            ("game/dir", data, 0u, 2u),
+            ("game/dir", 0u, 4u, 2u),
+            ("game/b.bin", 0u, 4u, 0u),
+        };
+        foreach ((string Path, uint Buffer, uint Size, uint Mode) bad in badFiles)
+        {
+            uint list = SaveList(("game/a.bin", data, 4u, 0u), bad);
+            Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, list, 2u, 0u, requiredPtr));
+        }
+
+        uint padSet = SaveList(("game/a.bin", data, 4u, 0u));
+        GuestMemory.W32(padSet + 0xC, 1);
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, padSet, 1u, 0u, requiredPtr));
+        uint reservedSet = SaveList(("game/a.bin", data, 4u, 0u));
+        GuestMemory.Write(reservedSet + 0x1C + 35, (byte)1);
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, reservedSet, 1u, 0u, requiredPtr));
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 1u, 0u, new Ptr<uint>(0)));
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, 0u, 1u, 0u, requiredPtr));
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 0u, 0u, requiredPtr));
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 6u, 0u, requiredPtr));
+        uint slot = _harness.Alloc(8);
+        GuestMemory.W32(slot, 256);
+        GuestMemory.W32(slot + 4, 0);
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", slot, good, 1u, 0u, requiredPtr));
+        Assert.Equal(ERR_PARAMETER, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 1u, _harness.Str("savedata1:"), requiredPtr));
+        Assert.False(File.Exists(Path.Combine(_save, "game", "a.bin")));
+
+        Assert.Equal(0, Call(AppUtil, "sceAppUtilSaveDataDataSave", 0u, good, 1u, _harness.Str("savedata0:"), requiredPtr));
+        Assert.True(File.Exists(Path.Combine(_save, "game", "a.bin")));
+    }
+
+    /// <summary>A title's save data comes with its system folder sce_sys (FW 3.74 SceAppMgr creates "%s/sce_sys" with
+    /// the save data), also for a homebrew that never saved anything. Before, savedata0: was an empty folder.</summary>
+    [Fact]
+    public void OwnSaveDataIsMountedWithItsSystemFolder()
+    {
+        string root = Path.Combine(_harness.Root, "fresh-save");
+        _harness.Emu.Vfs.MountSaveData("savedata0", root);
+        Assert.True(Directory.Exists(Path.Combine(root, "sce_sys")));
     }
 
     [Fact]
