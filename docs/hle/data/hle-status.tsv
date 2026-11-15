@@ -1,5 +1,5 @@
 # HLE status per firmware library, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=55 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
+# firmware=3.74 games=56 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
 library	module	total	impl	games	games_impl	system	system_impl	default	games_default	system_default	lle
 SceAACPromoter	vs0:vsh/common/mms/AACPromoter.suprx	4	1	0	0	0	0	0	0	0	1
 SceAVConfig	os0:kd/bootimage.skprx/SceAVConfig	34	34	0	0	31	31	0	0	0	0
@@ -97,7 +97,7 @@ SceGxmInternalForVsh	os0:us/libgxm_es4.suprx	5	5	1	1	4	4	0	0	0	0
 SceHandwriting	vs0:sys/external/libhandwriting.suprx	11	11	0	0	0	0	0	0	0	0
 SceHid	os0:kd/bootimage.skprx/SceHid	28	28	4	4	7	7	0	0	0	0
 SceHostAvch	vs0:vsh/common/av_content_handler.suprx	155	155	0	0	96	96	0	0	0	155
-SceHttp	vs0:sys/external/libhttp.suprx	116	98	44	44	22	20	0	0	0	2
+SceHttp	vs0:sys/external/libhttp.suprx	116	98	46	46	20	18	0	0	0	2
 SceIme	vs0:sys/external/libime.suprx	6	6	6	6	0	0	0	0	0	0
 SceImeVsh	vs0:sys/external/libime.suprx	17	17	0	0	0	0	0	0	0	17
 SceIncomingDialog	vs0:sys/external/incoming_dialog.suprx	6	6	0	0	2	2	0	0	0	0
@@ -133,8 +133,8 @@ SceLibRudp	vs0:sys/external/librudp.suprx	31	31	25	25	0	0	0	0	0	0
 SceLibSsp	os0:us/libkernel.suprx	1	1	0	0	0	0	0	0	0	0
 SceLibVitaJSExtObj	vs0:data/external/webcore/vita_jsextobj.suprx	10	0	0	0	7	0	0	0	0	0
 SceLibXml	vs0:sys/external/libSceXml.suprx	186	186	0	0	19	19	0	0	0	186
-SceLibc	vs0:sys/external/libc.suprx	350	350	202	202	4	4	0	0	0	350
-SceLibm	vs0:sys/external/libc.suprx	201	201	65	65	6	6	0	0	0	201
+SceLibc	vs0:sys/external/libc.suprx	350	350	203	203	4	4	0	0	0	350
+SceLibm	vs0:sys/external/libc.suprx	201	201	68	68	6	6	0	0	0	201
 SceLibstdcxx	vs0:sys/external/libc.suprx	522	522	85	85	3	3	0	0	0	522
 SceLiveAreaUtil	vs0:sys/external/livearea_util.suprx	14	14	6	6	6	6	0	0	0	0
 SceLiveAreaUtilBgApp	vs0:sys/external/livearea_util.suprx	1	1	0	0	0	0	0	0	0	0
@@ -188,11 +188,11 @@ SceNpMessageContacts	vs0:sys/external/np_message_contacts.suprx	16	16	0	0	12	12	
 SceNpMessageDialogPlugin	vs0:sys/external/np_message_dialog_impl.suprx	5	5	0	0	4	4	0	0	0	5
 SceNpPartyAppUtil	vs0:app/NPXS10001/np_party_app.suprx	15	0	0	0	15	0	0	0	0	0
 SceNpPartyGameUtil	vs0:sys/external/np_party.suprx	13	11	8	8	0	0	0	0	0	0
-SceNpScore	vs0:sys/external/np_ranking.suprx	32	32	25	25	0	0	0	0	0	0
+SceNpScore	vs0:sys/external/np_ranking.suprx	32	32	26	26	0	0	0	0	0	0
 SceNpSignaling	vs0:sys/external/np_signaling.suprx	18	18	12	12	0	0	0	0	0	0
 SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	7	6	6	23	0	0	0	0	0
 SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	15	15	15	16	0	0	0	0	0
-SceNpTus	vs0:sys/external/np_tus.suprx	67	67	42	42	0	0	0	0	0	0
+SceNpTus	vs0:sys/external/np_tus.suprx	67	67	46	46	0	0	0	0	0	0
 SceNpUtility	vs0:sys/external/np_utility.suprx	140	44	33	33	46	10	0	0	0	0
 SceNpUtilityAvatarN	vs0:sys/external/np_utility.suprx	2	2	0	0	0	0	0	0	0	2
 SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	47	19	19	25	12	0	0	0	0
@@ -291,7 +291,7 @@ SceVideodecLowDelayUser	os0:us/avcodec_us.suprx	1	1	0	0	1	1	0	0	0	0
 SceVideodecRecoveryPointUser	os0:us/avcodec_us.suprx	1	1	0	0	0	0	0	0	0	0
 SceVideodecUser	os0:us/avcodec_us.suprx	56	56	11	11	33	33	0	0	0	0
 SceVideoencUser	os0:us/avcodec_us.suprx	21	21	0	0	11	11	0	0	0	0
-SceVoice	vs0:sys/external/libvoice.suprx	28	28	14	14	5	5	0	0	0	0
+SceVoice	vs0:sys/external/libvoice.suprx	28	28	18	18	2	2	0	0	0	0
 SceVoiceQoS	vs0:sys/external/libvoiceqos.suprx	17	17	10	10	0	0	0	0	0	0
 SceVshBridge	os0:kd/bootimage.skprx/SceVshBridge	206	206	2	2	138	138	49	0	0	0
 SceWebFiltering	vs0:data/external/webcore/jx_web_filtering.suprx	8	0	0	0	7	0	0	0	0	0
