@@ -1630,12 +1630,14 @@ public static class Runner
             var t = VitaSharp.Core.Kernel.GuestThread.Current;
             if (t == null)
             {
+                // a write by the emulator itself on a host thread (the GPU worker signalling a notification)
+                Log.Info($"WATCH f{f} [host:{Thread.CurrentThread.Name}] {a:X8} <- {v:X} size {size} t={VitaSharp.Core.Util.GuestClock.Microseconds}");
                 return;
             }
 
             var s = t.Core.State;
             float fv = size == 4 ? BitConverter.UInt32BitsToSingle((uint)v) : float.NaN;
-            Log.Info($"WATCH f{f} [{t.Name}] {a:X8} <- {v:X} ({fv}) size {size} blockEnd={s->R[15]:X8} lr={s->R[14]:X8} {t.Backtrace(s)}");
+            Log.Info($"WATCH f{f} [{t.Name}] {a:X8} <- {v:X} ({fv}) size {size} t={VitaSharp.Core.Util.GuestClock.Microseconds} blockEnd={s->R[15]:X8} lr={s->R[14]:X8} {t.Backtrace(s)}");
         };
     }
 
@@ -1842,7 +1844,7 @@ public static class Runner
                     return;
                 }
             }
-            var sb = new System.Text.StringBuilder($"PROBE f{VitaSharp.Core.Hle.Modules.Display.FramesPresented} {pc:X8} #{hits[pc]} cyc={core.BlockCycles} ins={core.InstructionsExecuted}:");
+            var sb = new System.Text.StringBuilder($"PROBE f{VitaSharp.Core.Hle.Modules.Display.FramesPresented} {pc:X8} #{hits[pc]} cyc={core.BlockCycles} ins={core.InstructionsExecuted} t={VitaSharp.Core.Util.GuestClock.Microseconds}:");
             for (int i = 0; i < 15; i++)
             {
                 sb.Append($" r{i}={s->R[i]:X}");
