@@ -856,6 +856,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   FETCH_PASS_JOIN, FETCH_PASS_MERGE e DEPTH_FEEDBACK, todos no passe de luz/névoa do Uncharted sobre 0x60600000.
   Próximo A/B no celular: padrão x `VITASHARP_FETCH_LARGE=0` x `VITASHARP_DEPTH_FEEDBACK=0` x
   `VITASHARP_FETCH_PASS_JOIN=0` x `VITASHARP_FETCH_PASS_MERGE=0` x `VITASHARP_RENDER_AREA_TRIM=0`.
+  Resultado (15 s cada, saltos de luma > 6): padrão 5,9%; `FETCH_LARGE=0` 7,6%; `DEPTH_FEEDBACK=0` 8,7%;
+  `FETCH_PASS_JOIN=0` 6,8%; `RENDER_AREA_TRIM=0` 5,9%; só `FETCH_PASS_MERGE=0` reduz (2,7%), com o fps caindo para
+  19-27. Com o merge desligado o PERF gpu do celular quase não tem "mid-scene breaks: Present" (2 contra 348-398 no
+  padrão) e a fila da GPU nunca esvazia (idle 0,1 contra 8,7 ms/quadro): o merge muda mais o ritmo (onde o flip do
+  guest cai no meio de uma cena) do que um caminho de desenho, e os piscados seguem os presents no meio da cena. O
+  replay no PC com `--gpu-profile=mali` já usa render passes (a quirk RenderPasses vem do perfil, como no celular) e
+  não pisca. Falta, no celular: `VITASHARP_REGION_COPY_REUSE=0` e `VITASHARP_SCENE_BREAKS=strict` (o que o present
+  no meio da cena faz com as cópias de região e as renderings adiadas) e um replay do dump do próprio celular no
+  celular, para separar defeito de caminho (repete no replay) de corrida de tempo (não repete).
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo
