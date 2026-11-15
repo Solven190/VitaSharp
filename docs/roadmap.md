@@ -3076,7 +3076,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   do SH4 o mask update NEVER é seguido de um ALWAYS da tela inteira (o scissor do vitaGL desligado; com ele ligado o
   vitaGL também põe o region clip no retângulo), então nenhum jogo testado depende dela; fica para quando um jogo
   precisar. O Salt and Sanctuary não muda com esta correção (replay idêntico; lá é o viewport zerado, item próprio)
-- [ ] [P3][M] Comparação com o Vita3K (pedido do usuário): lista de lacunas em `<scratchpad>\c24\vita3k_gap.tsv` (agente de
+- [x] (15/11/2026, usuário: obsoleto, os jogos têm 100% das importações atendidas, 2.124/2.124) [P3][M] Comparação com o Vita3K (pedido do usuário): lista de lacunas em `<scratchpad>\c24\vita3k_gap.tsv` (agente de
   tarefas rápidas). Do lado do usuário só ~20 funções reais faltavam; feitas: aliases sceKernelLock/Unlock/TryLock
   LwMutex_0/_16XX, _sceKernelSuspend/ResumeThreadForVM, _sceKernelGetRandomNumber,
   sceFiosKernelOverlayResolveWithRangeSync02. Faltam: sceKernelWaitMultipleEvents(CB), _sceKernelGetTimer5Reg,
