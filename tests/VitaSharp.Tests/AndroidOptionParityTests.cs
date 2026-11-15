@@ -26,7 +26,7 @@ public sealed class AndroidOptionParityTests : IDisposable
     public void ShaderOptionsHaveTheDesktopDefaults()
     {
         var android = new AppPreferences();
-        List<string> desktop = new LauncherSettings().RunOptions().ToList();
+        var desktop = new LauncherSettings().RunOptions().ToList();
         Assert.True(android.FastShaderCompile);
         Assert.True(android.BackgroundShaderCompile);
         Assert.Contains($"--shaderc-opt={android.ShaderOptimization}", desktop);
@@ -37,7 +37,7 @@ public sealed class AndroidOptionParityTests : IDisposable
     public void ShaderOptionsTurnedOffMeanTheSameOnBothSides()
     {
         var android = new AppPreferences { FastShaderCompile = false, BackgroundShaderCompile = false };
-        List<string> desktop = new LauncherSettings { FastShaderCompile = false, BackgroundShaderCompile = false }.RunOptions().ToList();
+        var desktop = new LauncherSettings { FastShaderCompile = false, BackgroundShaderCompile = false }.RunOptions().ToList();
         Assert.Equal("perf", android.ShaderOptimization);
         Assert.Contains($"--shaderc-opt={android.ShaderOptimization}", desktop);
         Assert.Contains("--async-shaders=off", desktop);
@@ -48,12 +48,12 @@ public sealed class AndroidOptionParityTests : IDisposable
     {
         string path = Path.Combine(_folder, "app.json");
         File.WriteAllText(path, "{\"VSync\":true}"); // a settings file from before these options
-        AppPreferences old = AppPreferences.Load(path);
+        var old = AppPreferences.Load(path);
         Assert.True(old.FastShaderCompile);
         Assert.True(old.BackgroundShaderCompile);
 
         new AppPreferences { FastShaderCompile = false, BackgroundShaderCompile = false }.Save(path);
-        AppPreferences saved = AppPreferences.Load(path);
+        var saved = AppPreferences.Load(path);
         Assert.False(saved.FastShaderCompile);
         Assert.False(saved.BackgroundShaderCompile);
         Assert.DoesNotContain("ShaderOptimization", File.ReadAllText(path));
