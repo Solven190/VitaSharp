@@ -80,7 +80,7 @@ point a scenario reaches is not the end of the game.
 | Silent Hill: Book of Memories | PCSE00011 | In‑game | Character creation and intro cutscene | `shbom_boot` |
 | Silverio Vendetta -Verse of Orpheus- | PCSG00845 | In‑game | Visual novel: title, prologue and story text (needs the firmware fonts) | `verse_orpheus_boot` |
 | Skullgirls 2nd Encore | PCSE00606 | In‑game | Fights | `skullgirls_boot` |
-| Sonic Mania (homebrew port) | MANIA0001 | Does not run | Needs taiHEN, which cannot start in VitaSharp (its start needs patches to the firmware's signature and DRM checks): see [plugins](notes/plugins.md). It reached gameplay at 60 fps while the emulator had its own taiHEN substitute, removed so that only real modules run | — |
+| Sonic Mania (homebrew port) | MANIA0001 | Not confirmed | Needs the plugin framework: run it with the emulator option **Enable Kernel Plugins** (see [plugins](notes/plugins.md)); not yet confirmed with the option | — |
 | The Deer God | PCSB01070 | Menus | Menus and the intro text; frames not paced (214-348 fps) | `deergod` |
 | Tearaway (Trial & Unlock) | PCSF00476 | In‑game | New profile up to the first papercraft tutorial | `tearaway_tutorial` |
 | Unit 13 | PCSF00034 | In‑game | First mission with HUD | `unit13_boot` |

@@ -455,6 +455,8 @@ public static class Strings
     public static string RpcnTokenWatermark => T();
     public static string DebugMode => T();
     public static string DebugModeDetail => T();
+    public static string KernelPlugins => T();
+    public static string KernelPluginsDetail => T();
     public static string PreRoll => T();
     public static string PreRollDetail => T();
     public static string DataFolder => T();

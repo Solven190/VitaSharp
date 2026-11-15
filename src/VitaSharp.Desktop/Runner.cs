@@ -272,6 +272,9 @@ public static class Runner
             Rpcn = rpcn,
             LleModules = ModuleListOpt(options, "--lle-modules"),
             HleModules = ModuleListOpt(options, "--hle-modules"),
+            // --kernel-plugins=on|off: the emulator option "Enable Kernel Plugins" (launcher: Configuracoes > Avancado;
+            // default VITASHARP_KERNEL_PLUGINS, else off = the pure firmware, no plugin)
+            KernelPlugins = OnOff(options, "--kernel-plugins"),
         });
         var fatal = new ManualResetEventSlim();
         emu.Fatal += (t, e) => fatal.Set();

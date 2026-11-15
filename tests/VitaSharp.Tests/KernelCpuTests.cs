@@ -416,7 +416,7 @@ public sealed class KernelCpuTests(GuestMemoryFixture fixture) : IDisposable
                 Assert.Equal(2u, t.Core.State->R[0]);
             }
 
-            Assert.Equal(2, sysMem.sceKernelGetCpuId());
+            Assert.Equal(2, Call(sysMem, "sceKernelGetCpuId"));
         });
     }
 

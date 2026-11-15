@@ -959,6 +959,7 @@ public static class Program
         Console.WriteLine("               --psn-local=on|off  local PSN services: TUS/Cross-Save, rankings, tickets, matching in <data>/np");
         Console.WriteLine("                             (default on; off = every PSN server request fails as unreachable)");
         Console.WriteLine("               --net=off|real  real internet for game sockets, DNS and HTTP (default off; Sony's servers stay blocked)");
+        Console.WriteLine("               --kernel-plugins=on|off  emulator option: load the plugins of ur0:tai / ux0:tai config.txt (default off: pure firmware)");
         Console.WriteLine("               --net-allow=host,...  with --net=real, only these hosts/addresses are reachable (localhost = loopback)");
         Console.WriteLine("               --rpcn=host[:port] --rpcn-user=<name> [--rpcn-token=]  Score/TUS on an RPCN server (needs --net=real;");
         Console.WriteLine("                             password in " + EnvVars.RpcnPassword + ")");

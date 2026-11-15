@@ -24,11 +24,10 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
 
     public void Dispose() => _harness.Dispose();
 
-    /// <summary>The firmware imports of the kernel plugins of a HENkaku installation (taihen.skprx, kubridge.skprx and
-    /// fd_fix.skprx as installed by the homebrew's own installers, their import tables read with the loader), and the
-    /// firmware functions kubridge looks up by module: every one is served by VitaSharp. taiHEN's own libraries
-    /// (taihenForKernel, taihenModuleUtils, which kubridge and fd_fix import) are not firmware: only the real
-    /// taihen.skprx exports them.</summary>
+    /// <summary>The firmware imports of the kernel plugins of a homebrew installation (the framework module, kubridge.skprx
+    /// and fd_fix.skprx as installed by the homebrew's own installers, their import tables read with the loader), and the
+    /// firmware functions kubridge looks up by module: every one is served by VitaSharp. The plugin framework's own
+    /// libraries are not firmware: the emulator offers them only with the option "Enable Kernel Plugins".</summary>
     private static readonly uint[] s_pluginImports =
     [
         // SceThreadmgrForDriver

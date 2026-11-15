@@ -48,6 +48,10 @@ public sealed class LauncherSettings
     /// <summary>"Internet real": game sockets, DNS and HTTP go through this PC's network (--net=real). Off by default:
     /// game traffic would leave the PC (Sony's servers stay blocked).</summary>
     public bool RealInternet { get; set; }
+
+    /// <summary>The emulator option "Enable Kernel Plugins": the plugins of ur0:tai / ux0:tai config.txt load (off: the
+    /// pure firmware, no plugin; --kernel-plugins).</summary>
+    public bool KernelPlugins { get; set; }
     /// <summary>RPCN server for Score/TUS ("host" or "host:port", --rpcn=); empty = the local PSN services. Used only
     /// with <see cref="RealInternet"/>.</summary>
     public string RpcnServer { get; set; } = "";
@@ -256,6 +260,7 @@ public sealed class LauncherSettings
 
         yield return PsnLocalServices ? "--psn-local=on" : "--psn-local=off";
         yield return RealInternet ? "--net=real" : "--net=off";
+        yield return KernelPlugins ? "--kernel-plugins=on" : "--kernel-plugins=off";
         if (RealInternet && UsesRpcn)
         {
             yield return $"--rpcn={RpcnServer.Trim()}";

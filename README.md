@@ -156,13 +156,15 @@ runs the firmware's `shell.self`: initial setup the first time, lock screen, hom
 LiveArea. A game opened from the LiveArea runs as a second process; the PS button (Home key) goes back to the system
 and **Continue** resumes the game. Details and what is missing in [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** VitaSharp loads the plugins of `fs/ur0/tai/config.txt` (copied from your Vita to `fs/ur0/tai`, listed as
-on the Vita: `*KERNEL` for `.skprx` kernel plugins, loaded once when the system starts, `*ALL` / `*TITLEID` for `.suprx`
-user plugins, for games and for the system's own programs too: `*main` is the home screen, `*NPXS10015` Settings and so
-on) and runs their own code. taiHEN (`taihen.skprx`) loads too, but it cannot start: its start needs patches to the firmware's signature and
-DRM checks, which VitaSharp does not make work. So everything that needs taiHEN does not run, as on a Vita without
-it: plugins built on it (kubridge, fd_fix) and homebrew that calls it or needs such a plugin, among them **Dead Space**
-(through kubridge) and **Sonic Mania**. Details in [`docs/notes/plugins.md`](docs/notes/plugins.md).
+**Plugins.** Off by default: VitaSharp runs the pure firmware and loads no plugin. The emulator option **Enable Kernel
+Plugins** (Settings > Advanced; Android: Settings > Debugging; command line `--kernel-plugins=on`; environment
+`VITASHARP_KERNEL_PLUGINS=1`) is a setting of the emulator, like pausing or recording the screen, that the Vita does not
+have: on, VitaSharp reads `fs/ur0/tai/config.txt` (or `fs/ux0/tai/config.txt`; copied from your Vita, listed as on the
+Vita: `*KERNEL` for `.skprx` kernel plugins, loaded once when the system starts, `*ALL` / `*TITLEID` for `.suprx` user
+plugins, `*main` is the home screen), loads the plugins and offers them the plugin framework libraries they import
+(module information, export and import lookups, data injections), as a console with the homebrew environment set up.
+The framework's own file is not loaded: the emulator provides its libraries. Details in
+[`docs/notes/plugins.md`](docs/notes/plugins.md).
 
 **Android.** See [Android](#android).
 

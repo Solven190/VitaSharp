@@ -159,14 +159,15 @@ de comando: `install-firmware <PSVUPDAT.PUP>`.
 instalados e LiveArea. Um jogo aberto pela LiveArea roda como um segundo processo; o botão PS (tecla Home) volta ao
 sistema e **Continuar** retoma o jogo. Detalhes e o que falta em [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** O VitaSharp carrega os plugins do `fs/ur0/tai/config.txt` (copiados do seu Vita para `fs/ur0/tai`,
-listados como no Vita: `*KERNEL` para os plugins de kernel `.skprx`, carregados uma vez quando o sistema inicia, `*ALL` /
-`*TITLEID` para os de usuário `.suprx`, nos jogos e também nos programas do próprio sistema: `*main` é a tela inicial,
-`*NPXS10015` as Configurações e assim por diante) e roda o código deles. O taiHEN (`taihen.skprx`) também carrega, mas não consegue iniciar: o início dele precisa de
-patches nas checagens de assinatura e de DRM do firmware, que o VitaSharp não faz funcionar. Por isso nada que precise
-do taiHEN roda, como num Vita sem ele: os plugins feitos sobre ele (kubridge, fd_fix) e os homebrews que o chamam ou
-precisam de um desses plugins, entre eles o **Dead Space** (pelo kubridge) e o **Sonic Mania**. Detalhes em
-[`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
+**Plugins.** Desligados por padrão: o VitaSharp roda o firmware puro e não carrega nenhum plugin. A opção do emulador
+**Ativar Plugins do Kernel** (Configurações > Avançado; Android: Configurações > Depuração; linha de comando
+`--kernel-plugins=on`; ambiente `VITASHARP_KERNEL_PLUGINS=1`) é uma configuração do emulador, como pausar ou gravar a
+tela, que o Vita não tem: ligada, o VitaSharp lê o `fs/ur0/tai/config.txt` (ou `fs/ux0/tai/config.txt`; copiado do seu
+Vita, listado como no Vita: `*KERNEL` para os plugins de kernel `.skprx`, carregados uma vez quando o sistema inicia,
+`*ALL` / `*TITLEID` para os de usuário `.suprx`, `*main` é a tela inicial), carrega os plugins e oferece a eles as
+bibliotecas do framework de plugins que eles importam (informação de módulo, busca de exports e imports, injeção de
+dados), como um console com o ambiente homebrew instalado. O arquivo do próprio framework não é carregado: o emulador
+oferece as bibliotecas dele. Detalhes em [`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
 
 **Android.** Veja [Android](#android).
 

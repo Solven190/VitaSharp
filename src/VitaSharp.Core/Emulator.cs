@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using VitaSharp.Core.Cpu;
 using VitaSharp.Core.Firmware;
 using VitaSharp.Core.Hle;
@@ -41,6 +41,10 @@ public sealed class EmulatorOptions
     /// ("libult", "libSceJson", or the short names "ult", "json", ...), and the process preloads a game ships ("libc",
     /// "libfios2"...). Null: VITASHARP_HLE_MODULES.</summary>
     public IReadOnlyCollection<string>? HleModules { get; init; }
+    /// <summary>The emulator option "Enable Kernel Plugins" (the Vita has no such setting, like pausing or recording
+    /// the screen): on, the emulator reads the plugin configuration (ur0:tai / ux0:tai config.txt) and loads the plugins
+    /// it lists; off (the default), the pure firmware runs and no plugin loads. Null: VITASHARP_KERNEL_PLUGINS=1.</summary>
+    public bool? KernelPlugins { get; init; }
     /// <summary>An existing guest address space to run in (there is one per process: unit tests that boot an
     /// emulator share the test fixture's). Null: the emulator creates it.</summary>
     public GuestMemory? Memory { get; init; }
@@ -822,10 +826,10 @@ public sealed class Emulator : IDisposable
             _startFirst.AddRange(LoadFirmwareDependencies(MainModule, withoutOnRequest: true));
         }
 
-        // the plugins of every process, the system's too (taiHEN hooks sceKernelStartPreloadedModules: each process
-        // gets its plugins after its preloaded modules, the shell those of *main, a system application those of its
-        // NPXS ID); the *KERNEL ones load once, with the first process (the system's boot)
-        LoadPlugins();
+        // with the emulator option "Enable Kernel Plugins" on, the plugins of every process, the system's too (each
+        // process gets its plugins after its preloaded modules, the shell those of *main, a system application those of
+        // its NPXS ID; the *KERNEL ones load once, with the first process); off, the pure firmware: no plugin
+        LoadPluginsIfEnabled();
         // a system program's variable imports from firmware modules it loads itself later through sysmodule (ScePaf*
         // from libpaf, SceCommonGuiDialog's class tables...) are bound when that module loads; only the others are missing
         FirmwareLibraries? firmware = IsSystemProgram ? Firmware.FirmwareLibraries.For(Options.FsRoot) : null;
@@ -925,7 +929,7 @@ public sealed class Emulator : IDisposable
     /// the system keeps for itself, instead of the three application cores (<see cref="Kernel.Scheduler"/>).</summary>
     public bool RunsOnSystemCore { get; internal set; }
 
-    /// <summary>The title ID the kernel gives the shell's process (ksceKernelGetProcessTitleId; taiHEN's "*main").</summary>
+    /// <summary>The title ID the kernel gives the shell's process (ksceKernelGetProcessTitleId; "*main" of the plugin configuration).</summary>
     public const string ShellProcessTitleId = "main";
 
     /// <summary>The process's title ID as the kernel keeps it (sceKernelGetProcessTitleId, the plugin configuration's
@@ -1259,8 +1263,24 @@ public sealed class Emulator : IDisposable
         Log.Info($"Unloaded module {loadedModule.Name} ({loadedModule.Path}): {rebound} import stub(s) rebound");
     }
 
+    /// <summary>The plugins of this process when the emulator option "Enable Kernel Plugins" is on (<see cref="LoadPlugins"/>);
+    /// nothing with it off, the default: the pure firmware runs.</summary>
+    internal List<string> LoadPluginsIfEnabled()
+    {
+        if (!KernelPluginsEnabled)
+        {
+            return [];
+        }
+
+        return LoadPlugins();
+    }
+
+    /// <summary>The emulator option "Enable Kernel Plugins" (<see cref="EmulatorOptions.KernelPlugins"/>, else
+    /// VITASHARP_KERNEL_PLUGINS=1); off by default.</summary>
+    public bool KernelPluginsEnabled => Options.KernelPlugins ?? Environment.GetEnvironmentVariable(EnvVars.KernelPlugins) == "1";
+
     /// <summary>
-    /// The plugins of the system's plugin configuration (taiHEN's config.txt, read with taiHEN's rules:
+    /// The plugins of the system's plugin configuration (ur0:tai / ux0:tai config.txt, read with the rules of the scene's plugin loader:
     /// <see cref="PluginConfig"/>): the modules of <c>*KERNEL</c> (kernel modules), then those of <c>*ALL</c> and of the
     /// process's title ID (user modules), all through the same path, the module loader, before the process starts;
     /// their module_start runs before the main thread (as Vita3K does for user plugins). Like the firmware's module
@@ -1278,7 +1298,7 @@ public sealed class Emulator : IDisposable
     }
 
     /// <summary>The plugin configuration's text: ux0:tai/config.txt, or ur0:tai/config.txt only when the first does not
-    /// exist (taiHEN's order); null without one or when taiHEN would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
+    /// exist (the plugin loader's order); null without one or when the plugin loader would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
     private string? ReadPluginConfig()
     {
         foreach (string path in PluginConfig.Paths)
@@ -1291,7 +1311,7 @@ public sealed class Emulator : IDisposable
             string text = File.ReadAllText(host);
             if (!PluginConfig.IsValid(text))
             {
-                Log.Warn($"plugin configuration {path} is not valid (taiHEN loads no plugin from it)");
+                Log.Warn($"plugin configuration {path} is not valid (no plugin loads from it)");
                 return null;
             }
 
@@ -1364,6 +1384,14 @@ public sealed class Emulator : IDisposable
         catch (Exception e) when (e is not OutOfMemoryException)
         {
             return $"not loaded ({e.Message})";
+        }
+
+        // the emulator offers the plugin framework libraries itself: a listed module that exports them (the user's copy of
+        // the framework) is not loaded
+        if (loadedModule.Exports.Any(e => e.FuncNids.Any(Hle.Modules.OfType<Hle.Modules.PluginFramework>().First().Provides)))
+        {
+            UnloadModule(loadedModule);
+            return "not loaded (the emulator provides its libraries)";
         }
 
         var missing = loadedModule.Imports

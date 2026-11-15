@@ -31,11 +31,11 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 
 ## Plugins instalados (ur0:tai)
 
-- `kubridge.skprx`: 33 importações; todas as de firmware em HLE; 5 de `taihenForKernel`/`taihenModuleUtils`
-  (dependem do taiHEN rodar).
-- `fd_fix.skprx`: 2 importações, ambas do taiHEN.
-- `taihen.skprx`: 60 importações; todas as de firmware em HLE (o `module_start` dele falha sozinho, ver
-  `docs/notes/plugins.md`).
+- `kubridge.skprx`: 33 importações; todas as de firmware em HLE; 5 do framework de plugins (que o emulador oferece com a
+  opção "Ativar Plugins do Kernel").
+- `fd_fix.skprx`: 2 importações, ambas do framework de plugins (hooks de função).
+- o módulo do próprio framework: 60 importações, todas as de firmware em HLE; com a opção ligada não é carregado (o
+  emulador oferece as bibliotecas dele, ver `docs/notes/plugins.md`).
 - 12 funções já implementadas só tinham o NID do 3.60 (SceModulemgrForKernel, SceSysmemForKernel,
   SceCpuForKernel, SceExcpmgrForKernel): o firmware 3.74 as exporta com o NID novo.
 
