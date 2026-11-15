@@ -5,7 +5,8 @@ namespace VitaSharp.Core.Kernel;
 public abstract class KernelObject
 {
     public int Uid { get; internal set; }
-    public string Name { get; init; } = "";
+    /// <summary>The object's name (ksceGUIDSetName renames a kernel object).</summary>
+    public string Name { get; set; } = "";
     /// <summary>Process that created the object (<see cref="ProcessScope.CurrentPid"/> at registration; 0 = the system).</summary>
     public int OwnerPid { get; internal set; }
 
