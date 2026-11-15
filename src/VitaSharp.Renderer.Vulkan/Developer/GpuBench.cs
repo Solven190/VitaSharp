@@ -532,7 +532,8 @@ public static class GpuBench
                             break;
                         case DrawCommand:
                             draws++;
-                            if (scene == skipScene || (drawLimit > 0 && draws > drawLimit))
+                            // (scene is -1 for the draws a present splits from their scene's begin: never skipped)
+                            if ((skipScene >= 0 && scene == skipScene) || (drawLimit > 0 && draws > drawLimit))
                             {
                                 continue;
                             }
