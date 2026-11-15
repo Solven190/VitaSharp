@@ -643,9 +643,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   com compartilhar (feat/android-game-states, `AndroidGameStatesTests`; falta confirmar no celular: Killzone, tocar
   num slot na página do jogo); fonte de cada câmera em Ajustes > Câmeras (aparelho, imagem fixa copiada para
   `<data>/camera`, nenhuma), com a regra do desktop em `FacingCameras.FromSettings` (feat/android-camera-source,
-  `AndroidCameraSourceTests`; falta confirmar no celular num jogo com câmera). Falta, nesta ordem: tela inicial do
-  Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
-  no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
+  `AndroidCameraSourceTests`; falta confirmar no celular num jogo com câmera); resolução interna 3x e 4x por jogo,
+  as do desktop (feat/android-res-3x4x, `AndroidOptionParityTests`). Falta: tela inicial do Sistema (tema, música,
+  sons, abrir em Biblioteca/Sistema, clique no jogo: jogar/LiveArea)
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
   "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
   (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua

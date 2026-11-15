@@ -96,9 +96,9 @@ public sealed class GameSettings
     public string? GpuProfile { get; set; }
     public bool? VSync { get; set; }
     public bool? ShowFps { get; set; }
-    /// <summary>"Resolucao interna": render-target scale, "0.75", "0.5" or "2" (null = native; per game only,
-    /// VulkanRenderer.ResScale.cs). Lower is faster on GPU-bound games, and softer; 2x is sharper and costs about four
-    /// times the GPU work.</summary>
+    /// <summary>"Resolucao interna": render-target scale, "0.75", "0.5", "2", "3" or "4" (null = native; per game
+    /// only, VulkanRenderer.ResScale.cs; 2-4 are the desktop launcher's choices). Lower is faster on GPU-bound games, and
+    /// softer; 2x is sharper and costs about four times the GPU work, 3x nine, 4x sixteen.</summary>
     public string? ResScale { get; set; }
     /// <summary>"MSAA": "off" renders the game's multisampled scenes with one sample (faster on the GPU, edges alias);
     /// null = native (as the game asks, 2x/4x). Per game only.</summary>
@@ -198,6 +198,8 @@ public static class SettingsChoices
         new("0.75", Loc.Get("MRes75")),
         new("0.5", Loc.Get("MRes50")),
         new("2", Loc.Get("MRes200")),
+        new("3", Loc.Get("MRes300")),
+        new("4", Loc.Get("MRes400")),
     ];
 
     /// <summary>"Taxa de quadros" (values of Hle/Modules/Display.cs FrameRate.Parse; "" = native).</summary>

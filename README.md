@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=fee264128c270b2cbfc58e2172718f5c6f013bb8cc40eaba5b1c55898508d7d7 -->
+<!-- pair: README.pt-BR.md sha256=7f93a3d739f2ef4b23c65a91945044b1f8337047d9d2ef13ee479f48b20a93e4 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -294,7 +294,7 @@ slot opens the game already loading that state (as the desktop's `--load-state`;
 it). Below them are the game's **Gravar tudo** recordings with their date and size; tapping one shares the `.zip`.
 From adb: `am start ... --es titleId <ID> --ei loadSlot <1-6>`.
 
-**Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
+**Per-game settings.** In the game's details: internal resolution (50%, 75%, native, 2x, 3x or 4x, as the desktop's), MSAA, frame rate (**Nativo**, the
 game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
 the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
 GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).

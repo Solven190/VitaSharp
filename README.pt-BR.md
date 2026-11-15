@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=b32e5d662598da7d7f6608d99908fe6e61151d1bc91f460b40f10cc0fd08cf86 -->
+<!-- pair: README.md sha256=55412c948fd0473978880cb8e963952a930353c8b954a2c2fc54130198884bcd -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -298,7 +298,7 @@ slot abre o jogo já carregando aquele estado (como o `--load-state` do desktop;
 abaixo ficam as gravações do **Gravar tudo** do jogo, com data e tamanho; tocar numa compartilha o `.zip`. Pelo adb:
 `am start ... --es titleId <ID> --ei loadSlot <1-6>`.
 
-**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa ou 2x), MSAA, taxa de quadros
+**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa, 2x, 3x ou 4x, como no desktop), MSAA, taxa de quadros
 (**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`
 do desktop; também no menu de pausa, vale na hora, e aparece ao lado do contador de FPS), VSync, o contador de FPS,
 backend de CPU, clock e perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).

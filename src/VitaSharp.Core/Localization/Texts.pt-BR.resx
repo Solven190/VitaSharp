@@ -2943,6 +2943,12 @@
   <data name="MRes200" xml:space="preserve">
     <value>2x (1920x1088, mais nítido, ~4x o trabalho da GPU)</value>
   </data>
+  <data name="MRes300" xml:space="preserve">
+    <value>3x (2880x1632, ~9x o trabalho da GPU)</value>
+  </data>
+  <data name="MRes400" xml:space="preserve">
+    <value>4x (3840x2176, ~16x o trabalho da GPU)</value>
+  </data>
   <data name="MInternalResolutionDetail" xml:space="preserve">
     <value>Abaixo da nativa é mais rápido com a GPU ocupada, e mais suave; 2x é mais nítido mas custa ~4x o trabalho da GPU</value>
   </data>

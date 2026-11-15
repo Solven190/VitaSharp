@@ -2943,6 +2943,12 @@
   <data name="MRes200" xml:space="preserve">
     <value>2x (1920x1088, sharper, about 4x the GPU work)</value>
   </data>
+  <data name="MRes300" xml:space="preserve">
+    <value>3x (2880x1632, about 9x the GPU work)</value>
+  </data>
+  <data name="MRes400" xml:space="preserve">
+    <value>4x (3840x2176, about 16x the GPU work)</value>
+  </data>
   <data name="MInternalResolutionDetail" xml:space="preserve">
     <value>Below native is faster on a busy GPU, and softer; 2x is sharper but costs about four times the GPU work</value>
   </data>

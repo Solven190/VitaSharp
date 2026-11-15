@@ -60,6 +60,24 @@ public sealed class AndroidOptionParityTests : IDisposable
     }
 
     [Fact]
+    public void EveryDesktopInternalResolutionIsOfferedOnAndroidWithTheSameScale()
+    {
+        foreach ((int factor, string _) in GameOptions.ResScales)
+        {
+            if (factor == 1)
+            {
+                continue; // native: the empty value on both sides
+            }
+
+            string value = factor.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Contains(SettingsChoices.ResScales, c => c.Value == value);
+            var effective = EffectiveSettings.Resolve(new AppPreferences(), new GameSettings { ResScale = value });
+            Assert.Equal(factor, effective.ResScaleValue);
+            Assert.Contains($"--res-scale={factor}", new GameOptions { ResScale = factor }.RunOptions());
+        }
+    }
+
+    [Fact]
     public void KernelPluginsOptionExistsOnBothSidesAndIsOffByDefault()
     {
         Assert.False(new AppPreferences().KernelPlugins);
