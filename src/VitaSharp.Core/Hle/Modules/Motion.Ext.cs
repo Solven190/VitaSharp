@@ -28,15 +28,6 @@ public sealed partial class Sensors
     [SnapshotMissing(1)]
     private int _tiltCorrectionSetting = 1;
 
-    // The first two basic-orientation thresholds as the library stores them (the third is Fusion.AngleThreshold):
-    // the in-plane one is kept as 90 minus the angle NID_CA0A798B was given; sceMotionSetAngleThreshold stores its
-    // angle in all three as it is. 20 degrees at start.
-    [SnapshotMissing(20f)]
-    private float _angleThresholdPlane = 20f;
-
-    [SnapshotMissing(20f)]
-    private float _angleThresholdCone = 20f;
-
     /// <summary>The setting the library keeps, or the switch itself for a state saved before the setting was kept.</summary>
     private static int Setting(int setting, bool on) => (setting != 0) == on ? setting : (on ? 1 : 0);
 
@@ -138,8 +129,8 @@ public sealed partial class Sensors
             return ERR_NULL_PARAMETER;
         }
 
-        _angleThresholdPlane = 90f - GuestMemory.Read<float>(thresholds);
-        _angleThresholdCone = GuestMemory.Read<float>(thresholds + 4);
+        Fusion.AngleThresholdPlane = 90f - GuestMemory.Read<float>(thresholds);
+        Fusion.AngleThresholdCone = GuestMemory.Read<float>(thresholds + 4);
         Fusion.AngleThreshold = GuestMemory.Read<float>(thresholds + 8);
         return 0;
     }
@@ -149,8 +140,8 @@ public sealed partial class Sensors
     [Hle("NID_F4E9D62E", Nid = 0xF4E9D62E, Library = "SceMotion")]
     private int MotionGetAngleThresholds(uint thresholds)
     {
-        GuestMemory.Write(thresholds, 90f - _angleThresholdPlane);
-        GuestMemory.Write(thresholds + 4, _angleThresholdCone);
+        GuestMemory.Write(thresholds, 90f - Fusion.AngleThresholdPlane);
+        GuestMemory.Write(thresholds + 4, Fusion.AngleThresholdCone);
         GuestMemory.Write(thresholds + 8, Fusion.AngleThreshold);
         return 0;
     }

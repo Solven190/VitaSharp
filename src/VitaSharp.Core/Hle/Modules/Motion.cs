@@ -71,8 +71,8 @@ public sealed partial class Sensors : HleModule
             return ERR_ANGLE_OUT_OF_RANGE;
         }
 
-        _angleThresholdPlane = angle;
-        _angleThresholdCone = angle;
+        Fusion.AngleThresholdPlane = angle;
+        Fusion.AngleThresholdCone = angle;
         Fusion.AngleThreshold = angle;
         return 0;
     }
@@ -177,40 +177,11 @@ public sealed partial class Sensors : HleModule
         float p0 = GuestMemory.Read<float>(th), p1 = GuestMemory.Read<float>(th + 4), p2 = GuestMemory.Read<float>(th + 8);
         var a = new System.Numerics.Vector3(GuestMemory.Read<float>(accel), GuestMemory.Read<float>(accel + 4), GuestMemory.Read<float>(accel + 8));
         float px = GuestMemory.Read<float>(prev), py = GuestMemory.Read<float>(prev + 4), pz = GuestMemory.Read<float>(prev + 8);
-        var r = BasicOrientationStep(p0, p1, p2, a, new System.Numerics.Vector3(px, py, pz));
+        var r = MotionFusion.BasicOrientationStep(p0, p1, p2, a, new System.Numerics.Vector3(px, py, pz));
         GuestMemory.Write(outVec, r.X);
         GuestMemory.Write(outVec + 4, r.Y);
         GuestMemory.Write(outVec + 8, r.Z);
         return 0;
-    }
-
-    static float AcosDeg(float v) => (float)(MathF.Acos(v) * 180f / Math.PI);
-
-    internal static System.Numerics.Vector3 BasicOrientationStep(float p0, float p1, float p2, System.Numerics.Vector3 a, System.Numerics.Vector3 prev)
-    {
-        float len = a.Length();
-        if (len != 0 && !(len - 1f < 0.08f)) return prev;
-        var n = a / len;
-        float angZ = AcosDeg(n.Z);
-        if (angZ <= p1) return new(0, 0, -1);
-        if (angZ >= 180f - p1) return new(0, 0, 1);
-        float dz = MathF.Abs(angZ - 90f);
-        float x = prev.X, y = prev.Y;
-        bool fresh;
-        if (90f - p0 < dz)
-        {
-            if (prev.Z != 0) return prev;
-            fresh = x == 0 && y == 0;
-        }
-        else if (prev.Z == 0) fresh = x == 0 && y == 0;
-        else { x = 0; y = 0; fresh = true; }
-        // the in-plane direction (Z dropped)
-        var v = System.Numerics.Vector2.Normalize(new System.Numerics.Vector2(a.X, a.Y));
-        float angX = AcosDeg(v.X), angY = AcosDeg(v.Y);
-        float dx = MathF.Abs(angX - 90f);
-        if (!fresh && !(p2 >= dx) && 90f - p2 > dx) return new(x, y, 0);
-        if (dx > 45f) return angX < 90f ? new(-1, 0, 0) : new(1, 0, 0);
-        return angY < 90f ? new(0, -1, 0) : new(0, 1, 0);
     }
 
     // ---- SceMotionDev (the kernel sensor driver, bootimage SceMotionDev, FW 3.74): the shell's calibration updater
