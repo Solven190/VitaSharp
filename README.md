@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=e467301f04b3d0b26efa7ec707a54df30e3737abd4fc591ee3afd1859accc887 -->
+<!-- pair: README.pt-BR.md sha256=3abb02139a7821464f2408d252bfb9e17b20bc08524cfccfeda00fd35126f4fa -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -84,7 +84,7 @@ started from them. It is a research project under active development, all in C#.
 <a href="docs/hle/progress.md">
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/status/progress-map-light.svg">
-  <img src="docs/assets/status/progress-map.svg" alt="HLE progress map: one cell per firmware library, sized by its exported functions and coloured by how many are implemented" width="760">
+  <img src="docs/assets/status/progress-map.svg" alt="HLE progress map: one cell per firmware library, user libraries and kernel libraries in separate regions, sized by their exported functions and coloured by how many are implemented" width="760">
 </picture>
 </a>
 

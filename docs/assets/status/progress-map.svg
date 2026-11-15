@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" role="img" aria-label="HLE progress map: 308 firmware libraries">
-<rect width="1000" height="600" rx="8" fill="#0d1117"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="720" viewBox="0 0 1000 720" role="img" aria-label="HLE progress map: 308 user libraries and 114 kernel libraries of the firmware">
+<rect width="1000" height="720" rx="8" fill="#0d1117"/>
 <g font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
 <text x="12" y="27" font-size="17" font-weight="600" fill="#e6edf3">HLE progress map</text>
-<text x="170" y="27" font-size="12" fill="#9198a1">308 libraries of firmware 3.74, area = exported functions, 84.8% implemented</text>
+<text x="170" y="27" font-size="12" fill="#9198a1">firmware 3.74: 308 user + 114 kernel libraries, area = exported functions</text>
 <text x="798" y="27" font-size="11" fill="#9198a1">0%</text>
 <rect x="820" y="16" width="24" height="14" rx="2" fill="#8e2929"/>
 <rect x="846" y="16" width="24" height="14" rx="2" fill="#8e5c29"/>
@@ -10,313 +10,429 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#5c8e29"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#298e29"/>
 <text x="952" y="27" font-size="11" fill="#9198a1">100%</text>
-<g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="44" width="227.9" height="289.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="59" font-size="13" fill="#ffffff">PafWidget</text><text x="11" y="75" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="333.2" width="227.9" height="131.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="348.2" font-size="13" fill="#ffffff">PafMisc</text><text x="11" y="364.2" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePsp2Compat: 160/1047 (15.2%)</title><rect x="8" y="464.3" width="227.9" height="127.7" fill="#8e4829" stroke="#0d1117" stroke-width="1"/><text x="11" y="479.3" font-size="13" fill="#ffffff">Psp2Compat</text><text x="11" y="495.3" font-size="11" fill="#ffffff" fill-opacity=".8">15.2%</text></g>
-<g><title>SceWebKit: 198/803 (24.6%)</title><rect x="235.9" y="44" width="143.3" height="155.7" fill="#8e5b29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="59" font-size="13" fill="#ffffff">WebKit</text><text x="238.9" y="75" font-size="11" fill="#ffffff" fill-opacity=".8">24.6%</text></g>
-<g><title>SceNpCommonPs4: 713/713 (100%)</title><rect x="235.9" y="199.7" width="143.3" height="138.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="214.7" font-size="13" fill="#ffffff">NpCommonPs4</text><text x="238.9" y="230.7" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePafGraphics: 686/686 (100%)</title><rect x="235.9" y="337.9" width="143.3" height="133" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="352.9" font-size="13" fill="#ffffff">PafGraphics</text><text x="238.9" y="368.9" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceVideoProfiler: 625/625 (100%)</title><rect x="235.9" y="470.8" width="143.3" height="121.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="485.8" font-size="13" fill="#ffffff">VideoProfiler</text><text x="238.9" y="501.8" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibstdcxx: 522/522 (100%)</title><rect x="379.2" y="44" width="103.4" height="140.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="59" font-size="13" fill="#ffffff">Libstdcxx</text><text x="382.2" y="75" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceNpCommerce2: 432/502 (86%)</title><rect x="379.2" y="184.2" width="103.4" height="134.9" fill="#458e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="199.2" font-size="13" fill="#ffffff">NpCommerce2</text><text x="382.2" y="215.2" font-size="11" fill="#ffffff" fill-opacity=".8">86%</text></g>
-<g><title>SceLibc: 350/350 (100%)</title><rect x="379.2" y="319.1" width="103.4" height="94" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="334.1" font-size="13" fill="#ffffff">Libc</text><text x="382.2" y="350.1" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibKernel: 329/341 (96.4%), 30 default</title><rect x="379.2" y="413.1" width="103.4" height="91.6" fill="#308e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="428.1" font-size="13" fill="#ffffff">LibKernel</text><text x="382.2" y="444.1" font-size="11" fill="#ffffff" fill-opacity=".8">96.4%</text></g>
-<g><title>SceEmailEngine: 99/325 (30.4%)</title><rect x="379.2" y="504.7" width="103.4" height="87.3" fill="#8e6729" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="519.7" font-size="13" fill="#ffffff">EmailEngine</text><text x="382.2" y="535.7" font-size="11" fill="#ffffff" fill-opacity=".8">30.4%</text></g>
-<g><title>ScePafResource: 274/274 (100%)</title><rect x="482.7" y="44" width="88.5" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="58.6" font-size="12.6" fill="#ffffff">PafResource</text><text x="485.7" y="74.3" font-size="10.7" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceGxm: 267/267 (100%)</title><rect x="571.2" y="44" width="86.2" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="574.2" y="58.3" font-size="12.3" fill="#ffffff">Gxm</text><text x="574.2" y="73.6" font-size="10.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceDbutil: 214/214 (100%)</title><rect x="657.4" y="44" width="69.1" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="660.4" y="55.9" font-size="9.9" fill="#ffffff">Dbutil</text><text x="660.4" y="68.7" font-size="8.4" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibFflMp4: 213/213 (100%)</title><rect x="726.5" y="44" width="68.8" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="729.5" y="55.8" font-size="9.8" fill="#ffffff">LibFflMp4</text><text x="729.5" y="68.7" font-size="8.4" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceVshBridge: 206/206 (100%), 49 default</title><rect x="795.3" y="44" width="66.5" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="798.3" y="55.5" font-size="9.5" fill="#ffffff">VshBridge</text><text x="798.3" y="68" font-size="8.1" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePafToplevel: 202/202 (100%)</title><rect x="861.8" y="44" width="65.2" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="864.8" y="55.3" font-size="9.3" fill="#ffffff">PafToplevel</text><text x="864.8" y="67.6" font-size="7.9" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibm: 201/201 (100%)</title><rect x="927.1" y="44" width="64.9" height="86" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="930.1" y="55.3" font-size="9.3" fill="#ffffff">Libm</text><text x="930.1" y="67.5" font-size="7.9" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLsdb: 199/199 (100%)</title><rect x="482.7" y="130" width="68.1" height="81.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="141.8" font-size="9.7" fill="#ffffff">Lsdb</text><text x="485.7" y="154.5" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScebXCe: 194/194 (100%)</title><rect x="482.7" y="211.2" width="68.1" height="79.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="222.9" font-size="9.7" fill="#ffffff">bXCe</text><text x="485.7" y="235.6" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceAppMgr: 191/191 (100%)</title><rect x="482.7" y="290.3" width="68.1" height="77.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="302" font-size="9.7" fill="#ffffff">AppMgr</text><text x="485.7" y="314.7" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibXml: 186/186 (100%)</title><rect x="482.7" y="368.2" width="68.1" height="75.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="379.9" font-size="9.7" fill="#ffffff">LibXml</text><text x="485.7" y="392.6" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceThreadmgr: 182/184 (98.9%)</title><rect x="482.7" y="444" width="68.1" height="75" fill="#2c8e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="455.7" font-size="9.7" fill="#ffffff">Threadmgr</text><text x="485.7" y="468.5" font-size="8.3" fill="#ffffff" fill-opacity=".8">98.9%</text></g>
-<g><title>SceLibJson: 179/179 (100%)</title><rect x="482.7" y="519" width="68.1" height="73" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="530.8" font-size="9.7" fill="#ffffff">LibJson</text><text x="485.7" y="543.5" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePafCommon: 176/176 (100%)</title><rect x="550.8" y="130" width="66.4" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="141.5" font-size="9.5" fill="#ffffff">PafCommon</text><text x="553.8" y="154" font-size="8.1" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceSqlite: 171/171 (100%)</title><rect x="617.2" y="130" width="64.5" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="620.2" y="141.2" font-size="9.2" fill="#ffffff">Sqlite</text><text x="620.2" y="153.5" font-size="7.8" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceFios2: 168/168 (100%)</title><rect x="681.7" y="130" width="63.4" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="684.7" y="141.1" font-size="9.1" fill="#ffffff">Fios2</text><text x="684.7" y="153.1" font-size="7.7" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceFt2: 166/166 (100%)</title><rect x="745" y="130" width="62.6" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="748" y="141" font-size="8.9" fill="#ffffff">Ft2</text><text x="748" y="152.9" font-size="7.6" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceCommonDialog: 124/163 (76%)</title><rect x="807.6" y="130" width="61.5" height="73.7" fill="#5a8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMtpClient: 163/163 (100%)</title><rect x="869.1" y="130" width="61.5" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="872.1" y="140.8" font-size="8.8" fill="#ffffff">MtpClient</text><text x="872.1" y="152.6" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>ScePafStdc: 163/163 (100%)</title><rect x="930.5" y="130" width="61.5" height="73.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="933.5" y="140.8" font-size="8.8" fill="#ffffff">PafStdc</text><text x="933.5" y="152.6" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceHostAvch: 155/155 (100%)</title><rect x="550.8" y="203.7" width="61.8" height="69.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="214.5" font-size="8.8" fill="#ffffff">HostAvch</text><text x="553.8" y="226.4" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceLibMtp: 154/154 (100%)</title><rect x="550.8" y="273.5" width="61.8" height="69.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="284.3" font-size="8.8" fill="#ffffff">LibMtp</text><text x="553.8" y="296.1" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceNpUtility: 44/140 (31.4%)</title><rect x="550.8" y="342.7" width="61.8" height="63" fill="#8e6929" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="353.6" font-size="8.8" fill="#ffffff">NpUtility</text><text x="553.8" y="365.4" font-size="7.5" fill="#ffffff" fill-opacity=".8">31.4%</text></g>
-<g><title>ScePafWebMapView: 140/140 (100%)</title><rect x="550.8" y="405.7" width="61.8" height="63" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSqliteVsh: 139/139 (100%)</title><rect x="550.8" y="468.7" width="61.8" height="62.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="479.5" font-size="8.8" fill="#ffffff">SqliteVsh</text><text x="553.8" y="491.4" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceAvcodec: 135/135 (100%)</title><rect x="550.8" y="531.3" width="61.8" height="60.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="542.1" font-size="8.8" fill="#ffffff">Avcodec</text><text x="553.8" y="553.9" font-size="7.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceAppMgrUser: 128/128 (100%)</title><rect x="612.6" y="203.7" width="66.3" height="53.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="615.6" y="215.2" font-size="9.5" fill="#ffffff">AppMgrUser</text><text x="615.6" y="227.7" font-size="8" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceHttp: 98/116 (84.4%)</title><rect x="678.8" y="203.7" width="60" height="53.7" fill="#498e29" stroke="#0d1117" stroke-width="1"/><text x="681.8" y="214.3" font-size="8.6" fill="#ffffff">Http</text><text x="681.8" y="225.9" font-size="7.3" fill="#ffffff" fill-opacity=".8">84.4%</text></g>
-<g><title>SceNetCtl: 94/112 (83.9%)</title><rect x="738.9" y="203.7" width="58" height="53.7" fill="#4a8e29" stroke="#0d1117" stroke-width="1"/><text x="741.9" y="214" font-size="8.3" fill="#ffffff">NetCtl</text><text x="741.9" y="225.3" font-size="7" fill="#ffffff" fill-opacity=".8">83.9%</text></g>
-<g><title>SceSslInternal: 6/98 (6.1%)</title><rect x="796.8" y="203.7" width="50.7" height="53.7" fill="#8e3629" stroke="#0d1117" stroke-width="1"/><text x="799.8" y="213" font-size="7.2" fill="#ffffff">SslInternal</text><text x="799.8" y="223.2" font-size="6.2" fill="#ffffff" fill-opacity=".8">6.1%</text></g>
-<g><title>ScePafThread: 95/95 (100%)</title><rect x="847.6" y="203.7" width="49.2" height="53.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="850.6" y="212.7" font-size="7" fill="#ffffff">PafThread</text><text x="850.6" y="222.8" font-size="6" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceSystemSettingsCore: 1/93 (1%)</title><rect x="896.8" y="203.7" width="48.1" height="53.7" fill="#8e2b29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpManager: 79/91 (86.8%)</title><rect x="944.9" y="203.7" width="47.1" height="53.7" fill="#448e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>gaikai_player: 0/86 (0%)</title><rect x="612.6" y="257.4" width="44" height="54.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIpmi: 83/83 (100%)</title><rect x="612.6" y="311.7" width="44" height="52.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceActivityDb: 78/78 (100%)</title><rect x="612.6" y="364.1" width="44" height="49.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBbmc: 77/77 (100%), 75 default</title><rect x="612.6" y="413.3" width="44" height="48.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpCommon: 48/71 (67.6%)</title><rect x="612.6" y="461.9" width="44" height="44.8" fill="#6b8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNgs: 68/68 (100%)</title><rect x="612.6" y="506.8" width="44" height="42.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpTus: 67/67 (100%)</title><rect x="612.6" y="549.7" width="44" height="42.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSas: 33/65 (50.7%)</title><rect x="656.6" y="257.4" width="41.1" height="43.9" fill="#8d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpWebApi: 47/63 (74.6%)</title><rect x="656.6" y="301.3" width="41.1" height="42.6" fill="#5d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNet: 59/62 (95.1%)</title><rect x="656.6" y="343.9" width="41.1" height="41.9" fill="#338e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNgsInternal: 62/62 (100%), 5 default</title><rect x="656.6" y="385.8" width="41.1" height="41.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUlt: 62/62 (100%)</title><rect x="656.6" y="427.7" width="41.1" height="41.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibFflVuMp4: 61/61 (100%)</title><rect x="656.6" y="469.7" width="41.1" height="41.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpSnsFacebook: 7/61 (11.4%)</title><rect x="656.6" y="510.9" width="41.1" height="41.2" fill="#8e4029" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIofilemgr: 59/59 (100%)</title><rect x="656.6" y="552.1" width="41.1" height="39.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpTrophy: 15/59 (25.4%)</title><rect x="697.7" y="257.4" width="43.3" height="37.9" fill="#8e5d29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNetInternal: 7/58 (12%)</title><rect x="741" y="257.4" width="42.6" height="37.9" fill="#8e4229" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>libical: 58/58 (100%)</title><rect x="783.6" y="257.4" width="42.6" height="37.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceStitcherCoreAdapter: 0/57 (0%)</title><rect x="826.1" y="257.4" width="41.8" height="37.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>stitch_core_prx: 0/57 (0%)</title><rect x="868" y="257.4" width="41.8" height="37.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtil: 46/56 (82.1%)</title><rect x="909.8" y="257.4" width="41.1" height="37.9" fill="#4d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideodecUser: 56/56 (100%)</title><rect x="950.9" y="257.4" width="41.1" height="37.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpMatching2: 50/55 (90.9%)</title><rect x="697.7" y="295.3" width="41" height="37.3" fill="#3c8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBt: 54/54 (100%), 46 default</title><rect x="738.7" y="295.3" width="40.2" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCommonGuiDialog: 54/54 (100%)</title><rect x="778.9" y="295.3" width="40.2" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGpuEs4User: 1/49 (2%)</title><rect x="819.1" y="295.3" width="36.5" height="37.3" fill="#8e2d29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNearUtil: 49/49 (100%)</title><rect x="855.6" y="295.3" width="36.5" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCamera: 46/46 (100%)</title><rect x="892.2" y="295.3" width="34.3" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMarlinHci: 44/44 (100%), 34 default</title><rect x="926.4" y="295.3" width="32.8" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRtcUser: 44/44 (100%)</title><rect x="959.2" y="295.3" width="32.8" height="37.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePvf: 43/43 (100%)</title><rect x="697.7" y="332.6" width="34.3" height="34.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMarlin: 42/42 (100%)</title><rect x="697.7" y="367.4" width="34.3" height="34.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePower: 42/42 (100%)</title><rect x="697.7" y="401.5" width="34.3" height="34.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMotion: 41/41 (100%)</title><rect x="697.7" y="435.5" width="34.3" height="33.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpBasic: 31/41 (75.6%)</title><rect x="697.7" y="468.8" width="34.3" height="33.2" fill="#5b8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShellUtil: 40/40 (100%)</title><rect x="697.7" y="502" width="34.3" height="32.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCtrl: 37/37 (100%)</title><rect x="697.7" y="534.4" width="34.3" height="30" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAVConfig: 34/34 (100%)</title><rect x="697.7" y="564.4" width="34.3" height="27.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCompat: 34/34 (100%), 3 default</title><rect x="732" y="332.6" width="31.8" height="29.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNetPsForSyscalls: 34/34 (100%)</title><rect x="732" y="362.3" width="31.8" height="29.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblGcAuthMgr: 34/34 (100%), 34 default</title><rect x="732" y="392" width="31.8" height="29.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocation: 22/33 (66.6%)</title><rect x="732" y="421.7" width="31.8" height="28.8" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNearDialogUtil: 33/33 (100%)</title><rect x="732" y="450.5" width="31.8" height="28.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShell: 0/33 (0%)</title><rect x="732" y="479.3" width="31.8" height="28.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMotionDev: 32/32 (100%), 5 default</title><rect x="732" y="508.1" width="31.8" height="28" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMp3Promoter: 7/32 (21.8%)</title><rect x="732" y="536.1" width="31.8" height="28" fill="#8e5529" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpScore: 32/32 (100%)</title><rect x="732" y="564" width="31.8" height="28" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePspnetAdhoc: 28/32 (87.5%)</title><rect x="763.8" y="332.6" width="30.6" height="29.1" fill="#438e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibRudp: 31/31 (100%)</title><rect x="794.3" y="332.6" width="29.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceProcessmgr: 31/31 (100%)</title><rect x="823.9" y="332.6" width="29.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpActivityNet: 30/30 (100%)</title><rect x="853.5" y="332.6" width="28.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceWebUIPlugin: 30/30 (100%)</title><rect x="882.2" y="332.6" width="28.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMgVideo: 29/29 (100%), 29 default</title><rect x="910.8" y="332.6" width="27.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceHid: 28/28 (100%)</title><rect x="938.5" y="332.6" width="26.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibMtpHttp: 28/28 (100%)</title><rect x="965.3" y="332.6" width="26.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibMtpHttpWrapper: 28/28 (100%)</title><rect x="763.8" y="361.7" width="30" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVoice: 28/28 (100%)</title><rect x="793.8" y="361.7" width="30" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBemp2sys: 27/27 (100%)</title><rect x="823.8" y="361.7" width="28.9" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTouch: 27/27 (100%)</title><rect x="852.7" y="361.7" width="28.9" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIpmiNonGameApp: 26/26 (100%)</title><rect x="881.6" y="361.7" width="27.9" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePerf: 26/26 (100%)</title><rect x="909.5" y="361.7" width="27.9" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePromoterUtil: 26/26 (100%)</title><rect x="937.4" y="361.7" width="27.9" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDtcpIp: 25/25 (100%)</title><rect x="965.2" y="361.7" width="26.8" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblSsUpdateMgr: 25/25 (100%), 24 default</title><rect x="763.8" y="387.6" width="25.8" height="26.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppSettings: 24/24 (100%)</title><rect x="763.8" y="414.5" width="25.8" height="25.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAtrac: 24/24 (100%)</title><rect x="763.8" y="440.3" width="25.8" height="25.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBackupRestore: 24/24 (100%)</title><rect x="763.8" y="466.1" width="25.8" height="25.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIniFileProcessor: 24/24 (100%)</title><rect x="763.8" y="491.9" width="25.8" height="25.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePgf: 23/23 (100%)</title><rect x="763.8" y="517.8" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSulpha: 23/23 (100%)</title><rect x="763.8" y="542.5" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbdForUser: 23/23 (100%), 21 default</title><rect x="763.8" y="567.3" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRegMgr: 22/22 (100%)</title><rect x="789.6" y="387.6" width="23.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDisplay: 21/21 (100%)</title><rect x="813.5" y="387.6" width="22.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMp4: 21/21 (100%)</title><rect x="836.4" y="387.6" width="22.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSensMe: 2/21 (9.5%)</title><rect x="859.2" y="387.6" width="22.9" height="25.5" fill="#8e3d29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideoencUser: 21/21 (100%)</title><rect x="882.1" y="387.6" width="22.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAvPlayer: 20/20 (100%)</title><rect x="904.9" y="387.6" width="21.8" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceFios2Kernel: 20/20 (100%)</title><rect x="926.7" y="387.6" width="21.8" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibGcc: 20/20 (100%)</title><rect x="948.5" y="387.6" width="21.8" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePafLowlayer: 20/20 (100%)</title><rect x="970.2" y="387.6" width="21.8" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSysmem: 20/20 (100%)</title><rect x="789.6" y="413.1" width="22.8" height="24.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceKrm: 0/19 (0%)</title><rect x="789.6" y="437.5" width="22.8" height="23.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTriggerUtil: 12/19 (63.1%)</title><rect x="789.6" y="460.6" width="22.8" height="23.1" fill="#748e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBeisobmf: 18/18 (100%)</title><rect x="789.6" y="483.7" width="22.8" height="21.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpGriefReport: 18/18 (100%)</title><rect x="789.6" y="505.6" width="22.8" height="21.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpSignaling: 18/18 (100%)</title><rect x="789.6" y="527.5" width="22.8" height="21.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblQafMgr: 18/18 (100%), 7 default</title><rect x="789.6" y="549.4" width="22.8" height="21.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceImeVsh: 17/17 (100%)</title><rect x="789.6" y="571.3" width="22.8" height="20.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRtc: 17/17 (100%)</title><rect x="812.4" y="413.1" width="20.5" height="23" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSystemGesture: 17/17 (100%)</title><rect x="812.4" y="436.2" width="20.5" height="23" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVoiceQoS: 17/17 (100%)</title><rect x="812.4" y="459.2" width="20.5" height="23" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>mlndl: 17/17 (100%)</title><rect x="812.4" y="482.2" width="20.5" height="23" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAudio: 16/16 (100%)</title><rect x="812.4" y="505.3" width="20.5" height="21.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCodecEngineWrapper: 16/16 (100%)</title><rect x="812.4" y="527" width="20.5" height="21.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceFiber: 16/16 (100%)</title><rect x="812.4" y="548.6" width="20.5" height="21.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGxmInternal: 13/16 (81.2%)</title><rect x="812.4" y="570.3" width="20.5" height="21.7" fill="#4f8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMetaGen: 0/16 (0%)</title><rect x="832.9" y="413.1" width="20.2" height="22" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceModulemgr: 16/16 (100%)</title><rect x="853.1" y="413.1" width="20.2" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpDrmPackage: 16/16 (100%), 3 default</title><rect x="873.3" y="413.1" width="20.2" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpFriendPrivacyLevel: 16/16 (100%)</title><rect x="893.5" y="413.1" width="20.2" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpMessageContacts: 16/16 (100%)</title><rect x="913.7" y="413.1" width="20.2" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRtabi: 16/16 (100%)</title><rect x="933.9" y="413.1" width="20.2" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAudiodecUser: 15/15 (100%)</title><rect x="954.1" y="413.1" width="18.9" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBEAVCorePlayer: 15/15 (100%)</title><rect x="973.1" y="413.1" width="18.9" height="22" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCommonDialogMain: 15/15 (100%)</title><rect x="832.9" y="435.1" width="20.5" height="20.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGxmInternalForTest: 0/15 (0%)</title><rect x="832.9" y="455.4" width="20.5" height="20.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMtpIf: 15/15 (100%)</title><rect x="832.9" y="475.7" width="20.5" height="20.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpPartyAppUtil: 0/15 (0%)</title><rect x="832.9" y="496" width="20.5" height="20.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAudioencUser: 14/14 (100%)</title><rect x="832.9" y="516.3" width="20.5" height="18.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCompanionUtil: 14/14 (100%)</title><rect x="832.9" y="535.2" width="20.5" height="18.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDrmPsmKdc: 14/14 (100%)</title><rect x="832.9" y="554.1" width="20.5" height="18.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLiveAreaUtil: 14/14 (100%)</title><rect x="832.9" y="573.1" width="20.5" height="18.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNetAdhocMatching: 14/14 (100%)</title><rect x="853.5" y="435.1" width="20.4" height="19.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceStitchAdapter: 0/14 (0%)</title><rect x="873.9" y="435.1" width="20.4" height="19.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbSerial: 7/14 (50%), 7 default</title><rect x="894.3" y="435.1" width="20.4" height="19.1" fill="#8e8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>stitch_prx: 0/14 (0%)</title><rect x="914.7" y="435.1" width="20.4" height="19.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAvcdecForPlayer: 13/13 (100%)</title><rect x="935.1" y="435.1" width="19" height="19.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpPartyGameUtil: 11/13 (84.6%)</title><rect x="954.1" y="435.1" width="19" height="19.1" fill="#488e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTeleportClient: 13/13 (100%)</title><rect x="973" y="435.1" width="19" height="19.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAacenc: 12/12 (100%)</title><rect x="853.5" y="454.2" width="18.8" height="17.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAacencInternal: 12/12 (100%)</title><rect x="853.5" y="472" width="18.8" height="17.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAudioIn: 12/12 (100%)</title><rect x="853.5" y="489.8" width="18.8" height="17.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSharedFb: 12/12 (100%)</title><rect x="853.5" y="507.5" width="18.8" height="17.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbPspcm: 12/12 (100%), 12 default</title><rect x="853.5" y="525.3" width="18.8" height="17.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGps: 11/11 (100%)</title><rect x="853.5" y="543.1" width="18.8" height="16.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceHandwriting: 11/11 (100%)</title><rect x="853.5" y="559.4" width="18.8" height="16.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceJpegUser: 11/11 (100%)</title><rect x="853.5" y="575.7" width="18.8" height="16.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpMessage: 11/11 (100%)</title><rect x="872.2" y="454.2" width="18" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSsl: 11/11 (100%)</title><rect x="890.3" y="454.2" width="18" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>mlnapplib: 11/11 (100%)</title><rect x="908.3" y="454.2" width="18" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceContentOperation: 10/10 (100%)</title><rect x="926.4" y="454.2" width="16.4" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceFios2Kernel02: 10/10 (100%)</title><rect x="942.8" y="454.2" width="16.4" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceFios2User: 10/10 (100%)</title><rect x="959.2" y="454.2" width="16.4" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceJpegEncUser: 10/10 (100%)</title><rect x="975.6" y="454.2" width="16.4" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocationPermission: 10/10 (100%)</title><rect x="872.2" y="471.1" width="17.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibMp4Recorder: 10/10 (100%)</title><rect x="889.6" y="471.1" width="17.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibVitaJSExtObj: 0/10 (0%)</title><rect x="906.9" y="471.1" width="17.4" height="16" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpWebApiCommonDialog: 10/10 (100%)</title><rect x="924.3" y="471.1" width="17.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePhotoExport: 4/10 (40%)</title><rect x="941.7" y="471.1" width="17.4" height="16" fill="#8e7a29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShellSvc: 10/10 (100%)</title><rect x="959" y="471.1" width="17.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGriefReportDialog: 2/9 (22.2%)</title><rect x="976.4" y="471.1" width="15.6" height="16" fill="#8e5629" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceJpegEncArm: 8/9 (88.8%)</title><rect x="872.2" y="487.1" width="15.6" height="16" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceScreenShot: 8/9 (88.8%)</title><rect x="872.2" y="503.1" width="15.6" height="16" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbAudioIn: 8/9 (88.8%), 8 default</title><rect x="872.2" y="519.1" width="15.6" height="16" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceG729: 8/8 (100%)</title><rect x="872.2" y="535.1" width="15.6" height="14.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNearProfile: 8/8 (100%)</title><rect x="872.2" y="549.3" width="15.6" height="14.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpDrm: 8/8 (100%), 6 default</title><rect x="872.2" y="563.6" width="15.6" height="14.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblLicMgr: 8/8 (100%), 8 default</title><rect x="872.2" y="577.8" width="15.6" height="14.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSysmodule: 8/8 (100%)</title><rect x="887.9" y="487.1" width="15.4" height="14.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUdcd: 8/8 (100%)</title><rect x="903.3" y="487.1" width="15.4" height="14.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbDevSerial: 0/8 (0%)</title><rect x="918.7" y="487.1" width="15.4" height="14.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideoSearchEmpr: 8/8 (100%)</title><rect x="934.1" y="487.1" width="15.4" height="14.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceWebFiltering: 0/8 (0%)</title><rect x="949.6" y="487.1" width="15.4" height="14.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDisplayUser: 7/7 (100%)</title><rect x="965" y="487.1" width="13.5" height="14.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGpuEs4ForUser: 4/7 (57.1%)</title><rect x="978.5" y="487.1" width="13.5" height="14.4" fill="#808e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMtpr3: 7/7 (100%)</title><rect x="887.9" y="501.5" width="12.6" height="15.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpKdc: 7/7 (100%)</title><rect x="887.9" y="517" width="12.6" height="15.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRegMgrForGame: 7/7 (100%)</title><rect x="887.9" y="532.4" width="12.6" height="15.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblRtcMgr: 7/7 (100%), 7 default</title><rect x="887.9" y="547.9" width="12.6" height="15.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShellUtilUketorne: 7/7 (100%)</title><rect x="887.9" y="563.3" width="12.6" height="15.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAudiocodec: 6/6 (100%)</title><rect x="887.9" y="578.8" width="12.6" height="13.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCodecEngineUser: 6/6 (100%)</title><rect x="900.5" y="501.5" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceError: 6/6 (100%)</title><rect x="900.5" y="514.5" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceErrorUser: 6/6 (100%)</title><rect x="900.5" y="527.4" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIme: 6/6 (100%)</title><rect x="900.5" y="540.3" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceIncomingDialog: 6/6 (100%)</title><rect x="900.5" y="553.2" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceJpegArm: 6/6 (100%)</title><rect x="900.5" y="566.2" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceKernelForMono: 6/6 (100%)</title><rect x="900.5" y="579.1" width="12.9" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePerfInternal: 6/6 (100%)</title><rect x="913.4" y="501.5" width="13.5" height="12.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePsmDrm: 6/6 (100%), 6 default</title><rect x="926.8" y="501.5" width="13.5" height="12.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRegMgrForSDK: 6/6 (100%)</title><rect x="940.3" y="501.5" width="13.5" height="12.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRiffPromoter: 2/6 (33.3%)</title><rect x="953.8" y="501.5" width="13.5" height="12.4" fill="#8e6d29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideodecAsyncUser: 6/6 (100%)</title><rect x="967.3" y="501.5" width="13.5" height="12.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilUmass: 5/5 (100%)</title><rect x="980.8" y="501.5" width="11.2" height="12.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDbg: 5/5 (100%)</title><rect x="913.4" y="513.9" width="12.5" height="11.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDrmBridge: 4/5 (80%)</title><rect x="913.4" y="525.1" width="12.5" height="11.2" fill="#528e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDrmBridgeUser: 4/5 (80%)</title><rect x="913.4" y="536.2" width="12.5" height="11.2" fill="#528e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGpuEs4UserForVsh: 0/5 (0%)</title><rect x="913.4" y="547.4" width="12.5" height="11.2" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGxmInternalForVsh: 5/5 (100%)</title><rect x="913.4" y="558.5" width="12.5" height="11.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocationInternal: 5/5 (100%)</title><rect x="913.4" y="569.7" width="12.5" height="11.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpManagerTicket: 5/5 (100%)</title><rect x="913.4" y="580.8" width="12.5" height="11.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpMessageDialogPlugin: 5/5 (100%)</title><rect x="925.8" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePartyMemberListPlugin: 5/5 (100%)</title><rect x="936.8" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRegMgrService: 5/5 (100%)</title><rect x="947.9" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblPmMgr: 5/5 (100%), 4 default</title><rect x="958.9" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblUtMgr: 5/5 (100%), 5 default</title><rect x="969.9" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceWlan: 5/5 (100%)</title><rect x="981" y="513.9" width="11" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>libicalss: 5/5 (100%)</title><rect x="925.8" y="526.5" width="10.6" height="13.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAACPromoter: 1/4 (25%)</title><rect x="925.8" y="539.6" width="10.6" height="10.5" fill="#8e5c29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilExtPlayReady: 4/4 (100%)</title><rect x="925.8" y="550.1" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDebugLed: 4/4 (100%)</title><rect x="925.8" y="560.6" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGameUpdate: 4/4 (100%)</title><rect x="925.8" y="571" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocationProvider: 4/4 (100%)</title><rect x="925.8" y="581.5" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMgVideoForMiniApp: 4/4 (100%), 4 default</title><rect x="936.4" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpActivity: 4/4 (100%)</title><rect x="947.5" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblDmac5Mgr: 4/4 (100%), 3 default</title><rect x="958.7" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSvcCtrl: 4/4 (100%)</title><rect x="969.8" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbstorVStor: 4/4 (100%), 4 default</title><rect x="980.9" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilCache: 3/3 (100%)</title><rect x="936.4" y="536.5" width="9" height="9.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBmpPromoter: 2/3 (66.6%)</title><rect x="936.4" y="545.8" width="9" height="9.2" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCompatForVsh: 3/3 (100%), 1 default</title><rect x="936.4" y="555" width="9" height="9.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDipsw: 3/3 (100%)</title><rect x="936.4" y="564.3" width="9" height="9.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGifPromoter: 2/3 (66.6%)</title><rect x="936.4" y="573.5" width="9" height="9.2" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceJpegPromoter: 2/3 (66.6%)</title><rect x="936.4" y="582.8" width="9" height="9.2" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceKernelForVM: 3/3 (100%)</title><rect x="945.4" y="536.5" width="9.3" height="9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocationExtension: 3/3 (100%)</title><rect x="954.7" y="536.5" width="9.3" height="9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMsvPromoter: 0/3 (0%)</title><rect x="964.1" y="536.5" width="9.3" height="9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNotificationUtilProgress: 3/3 (100%)</title><rect x="973.4" y="536.5" width="9.3" height="9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePngPromoter: 2/3 (66.6%)</title><rect x="982.7" y="536.5" width="9.3" height="9" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSecondScreen: 0/3 (0%)</title><rect x="945.4" y="545.5" width="9" height="9.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTelephonyUtil: 3/3 (100%)</title><rect x="945.4" y="554.8" width="9" height="9.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTiffPromoter: 2/3 (66.6%)</title><rect x="945.4" y="564.1" width="9" height="9.3" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUlobjMgr: 3/3 (100%)</title><rect x="945.4" y="573.4" width="9" height="9.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideoExportData: 3/3 (100%)</title><rect x="945.4" y="582.7" width="9" height="9.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilBook: 2/2 (100%)</title><rect x="954.4" y="545.5" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilExt: 2/2 (100%)</title><rect x="961.9" y="545.5" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilExtMarlinIptv: 2/2 (100%)</title><rect x="969.4" y="545.5" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilExtPsNow: 2/2 (100%)</title><rect x="977" y="545.5" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilLaunchApp: 2/2 (100%)</title><rect x="984.5" y="545.5" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceClipboard: 2/2 (100%)</title><rect x="954.4" y="552.8" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCoredump: 2/2 (100%)</title><rect x="961.9" y="552.8" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDmacmgr: 2/2 (100%)</title><rect x="969.4" y="552.8" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMusicExport: 1/2 (50%)</title><rect x="977" y="552.8" width="7.5" height="7.4" fill="#8e8e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNotificationUtil: 2/2 (100%)</title><rect x="984.5" y="552.8" width="7.5" height="7.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpUtilityAvatarN: 2/2 (100%)</title><rect x="954.4" y="560.2" width="7" height="7.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUlobjDbg: 2/2 (100%)</title><rect x="954.4" y="568.2" width="7" height="7.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbServ: 2/2 (100%), 2 default</title><rect x="954.4" y="576.1" width="7" height="7.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>WebPlugin: 0/2 (0%)</title><rect x="954.4" y="584.1" width="7" height="7.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilAddcontForce: 1/1 (100%)</title><rect x="961.4" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilAppEventUserDefined: 1/1 (100%)</title><rect x="966.5" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilDevice: 1/1 (100%)</title><rect x="971.6" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilNpSignin: 1/1 (100%)</title><rect x="976.7" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilPsm: 1/1 (100%)</title><rect x="981.8" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceAppUtilWebBrowserCBLimited: 1/1 (100%)</title><rect x="986.9" y="560.2" width="5.1" height="5.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBacktrace: 1/1 (100%)</title><rect x="961.4" y="565.7" width="5.3" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceBgAppUtil: 1/1 (100%)</title><rect x="961.4" y="570.9" width="5.3" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCoredumpNounlink: 1/1 (100%)</title><rect x="961.4" y="576.2" width="5.3" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceCpu: 1/1 (100%)</title><rect x="961.4" y="581.5" width="5.3" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDbRecovery: 1/1 (100%)</title><rect x="961.4" y="586.7" width="5.3" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDbSetup: 1/1 (100%)</title><rect x="966.7" y="565.7" width="5.1" height="5.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceDbrecoveryUtility: 1/1 (100%)</title><rect x="971.7" y="565.7" width="5.1" height="5.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGxmInternalForGles: 0/1 (0%)</title><rect x="976.8" y="565.7" width="5.1" height="5.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGxmInternalForReplay: 1/1 (100%)</title><rect x="981.9" y="565.7" width="5.1" height="5.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibLocationFactory: 1/1 (100%)</title><rect x="986.9" y="565.7" width="5.1" height="5.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibRng: 1/1 (100%)</title><rect x="966.7" y="571.2" width="5.3" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLibSsp: 1/1 (100%)</title><rect x="966.7" y="576.4" width="5.3" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceLiveAreaUtilBgApp: 1/1 (100%)</title><rect x="966.7" y="581.6" width="5.3" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNotificationUtilBgApp: 1/1 (100%)</title><rect x="966.7" y="586.8" width="5.3" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpManagerOAuth: 1/1 (100%)</title><rect x="972" y="571.2" width="5" height="5.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpManagerSP: 1/1 (100%)</title><rect x="977" y="571.2" width="5" height="5.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblACMgr: 1/1 (100%)</title><rect x="982" y="571.2" width="5" height="5.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblAimgr: 1/1 (100%)</title><rect x="987" y="571.2" width="5" height="5.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceSblRng: 1/1 (100%)</title><rect x="972" y="576.7" width="5.5" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShellUtilLaunchApp: 1/1 (100%)</title><rect x="972" y="581.8" width="5.5" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceShutterSound: 1/1 (100%)</title><rect x="972" y="586.9" width="5.5" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceTeleportServer: 1/1 (100%)</title><rect x="977.5" y="576.7" width="4.8" height="5.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceUsbstor: 0/1 (0%)</title><rect x="982.3" y="576.7" width="4.8" height="5.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideoExport: 1/1 (100%)</title><rect x="987.2" y="576.7" width="4.8" height="5.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideoExportEmpr: 1/1 (100%)</title><rect x="977.5" y="582.4" width="5.8" height="4.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideodecLowDelayUser: 1/1 (100%)</title><rect x="977.5" y="587.2" width="5.8" height="4.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceVideodecRecoveryPointUser: 1/1 (100%)</title><rect x="983.3" y="582.4" width="4.4" height="6.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>mail_api_for_local: 1/1 (100%)</title><rect x="987.6" y="582.4" width="4.4" height="6.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>mail_api_for_local_libc: 1/1 (100%)</title><rect x="983.3" y="588.8" width="8.7" height="3.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#e6edf3">User (308 libraries): 84.8% implemented (16,462/19,406)</text>
+<g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="273.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#ffffff">PafWidget</text><text x="11" y="95" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="337.2" width="227.9" height="123.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="352.2" font-size="13" fill="#ffffff">PafMisc</text><text x="11" y="368.2" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePsp2Compat: 160/1047 (15.2%)</title><rect x="8" y="460.9" width="227.9" height="120.6" fill="#8e4829" stroke="#0d1117" stroke-width="1"/><text x="11" y="475.9" font-size="13" fill="#ffffff">Psp2Compat</text><text x="11" y="491.9" font-size="11" fill="#ffffff" fill-opacity=".8">15.2%</text></g>
+<g><title>SceWebKit: 198/803 (24.6%)</title><rect x="235.9" y="64" width="143.3" height="147" fill="#8e5b29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="79" font-size="13" fill="#ffffff">WebKit</text><text x="238.9" y="95" font-size="11" fill="#ffffff" fill-opacity=".8">24.6%</text></g>
+<g><title>SceNpCommonPs4: 713/713 (100%)</title><rect x="235.9" y="211" width="143.3" height="130.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="226" font-size="13" fill="#ffffff">NpCommonPs4</text><text x="238.9" y="242" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePafGraphics: 686/686 (100%)</title><rect x="235.9" y="341.5" width="143.3" height="125.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="356.5" font-size="13" fill="#ffffff">PafGraphics</text><text x="238.9" y="372.5" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceVideoProfiler: 625/625 (100%)</title><rect x="235.9" y="467.1" width="143.3" height="114.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="238.9" y="482.1" font-size="13" fill="#ffffff">VideoProfiler</text><text x="238.9" y="498.1" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibstdcxx: 522/522 (100%)</title><rect x="379.2" y="64" width="103.4" height="132.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="79" font-size="13" fill="#ffffff">Libstdcxx</text><text x="382.2" y="95" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceNpCommerce2: 432/502 (86%)</title><rect x="379.2" y="196.4" width="103.4" height="127.3" fill="#458e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="211.4" font-size="13" fill="#ffffff">NpCommerce2</text><text x="382.2" y="227.4" font-size="11" fill="#ffffff" fill-opacity=".8">86%</text></g>
+<g><title>SceLibc: 350/350 (100%)</title><rect x="379.2" y="323.8" width="103.4" height="88.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="338.8" font-size="13" fill="#ffffff">Libc</text><text x="382.2" y="354.8" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibKernel: 329/341 (96.4%), 30 default</title><rect x="379.2" y="412.6" width="103.4" height="86.5" fill="#308e29" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="427.6" font-size="13" fill="#ffffff">LibKernel</text><text x="382.2" y="443.6" font-size="11" fill="#ffffff" fill-opacity=".8">96.4%</text></g>
+<g><title>SceEmailEngine: 99/325 (30.4%)</title><rect x="379.2" y="499.1" width="103.4" height="82.4" fill="#8e6729" stroke="#0d1117" stroke-width="1"/><text x="382.2" y="514.1" font-size="13" fill="#ffffff">EmailEngine</text><text x="382.2" y="530.1" font-size="11" fill="#ffffff" fill-opacity=".8">30.4%</text></g>
+<g><title>ScePafResource: 274/274 (100%)</title><rect x="482.7" y="64" width="88.5" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="78.6" font-size="12.6" fill="#ffffff">PafResource</text><text x="485.7" y="94.3" font-size="10.7" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceGxm: 267/267 (100%)</title><rect x="571.2" y="64" width="86.2" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="574.2" y="78.3" font-size="12.3" fill="#ffffff">Gxm</text><text x="574.2" y="93.6" font-size="10.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceDbutil: 214/214 (100%)</title><rect x="657.4" y="64" width="69.1" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="660.4" y="75.9" font-size="9.9" fill="#ffffff">Dbutil</text><text x="660.4" y="88.7" font-size="8.4" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibFflMp4: 213/213 (100%)</title><rect x="726.5" y="64" width="68.8" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="729.5" y="75.8" font-size="9.8" fill="#ffffff">LibFflMp4</text><text x="729.5" y="88.7" font-size="8.4" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceVshBridge: 206/206 (100%), 49 default</title><rect x="795.3" y="64" width="66.5" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="798.3" y="75.5" font-size="9.5" fill="#ffffff">VshBridge</text><text x="798.3" y="88" font-size="8.1" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePafToplevel: 202/202 (100%)</title><rect x="861.8" y="64" width="65.2" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="864.8" y="75.3" font-size="9.3" fill="#ffffff">PafToplevel</text><text x="864.8" y="87.6" font-size="7.9" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibm: 201/201 (100%)</title><rect x="927.1" y="64" width="64.9" height="81.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="930.1" y="75.3" font-size="9.3" fill="#ffffff">Libm</text><text x="930.1" y="87.5" font-size="7.9" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLsdb: 199/199 (100%)</title><rect x="482.7" y="145.2" width="68.1" height="76.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="157" font-size="9.7" fill="#ffffff">Lsdb</text><text x="485.7" y="169.7" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScebXCe: 194/194 (100%)</title><rect x="482.7" y="221.9" width="68.1" height="74.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="233.6" font-size="9.7" fill="#ffffff">bXCe</text><text x="485.7" y="246.3" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceAppMgr: 191/191 (100%)</title><rect x="482.7" y="296.6" width="68.1" height="73.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="308.3" font-size="9.7" fill="#ffffff">AppMgr</text><text x="485.7" y="321" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibXml: 186/186 (100%)</title><rect x="482.7" y="370.1" width="68.1" height="71.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="381.9" font-size="9.7" fill="#ffffff">LibXml</text><text x="485.7" y="394.6" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceThreadmgr: 182/184 (98.9%)</title><rect x="482.7" y="441.7" width="68.1" height="70.9" fill="#2c8e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="453.5" font-size="9.7" fill="#ffffff">Threadmgr</text><text x="485.7" y="466.2" font-size="8.3" fill="#ffffff" fill-opacity=".8">98.9%</text></g>
+<g><title>SceLibJson: 179/179 (100%)</title><rect x="482.7" y="512.6" width="68.1" height="68.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="485.7" y="524.3" font-size="9.7" fill="#ffffff">LibJson</text><text x="485.7" y="537.1" font-size="8.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePafCommon: 176/176 (100%)</title><rect x="550.8" y="145.2" width="70.4" height="65.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="157.3" font-size="10.1" fill="#ffffff">PafCommon</text><text x="553.8" y="170.4" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceSqlite: 171/171 (100%)</title><rect x="550.8" y="210.9" width="70.4" height="63.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="222.9" font-size="10.1" fill="#ffffff">Sqlite</text><text x="553.8" y="236" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceFios2: 168/168 (100%)</title><rect x="550.8" y="274.6" width="70.4" height="62.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="286.7" font-size="10.1" fill="#ffffff">Fios2</text><text x="553.8" y="299.7" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceFt2: 166/166 (100%)</title><rect x="550.8" y="337.3" width="70.4" height="61.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="349.3" font-size="10.1" fill="#ffffff">Ft2</text><text x="553.8" y="362.4" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceCommonDialog: 124/163 (76%)</title><rect x="550.8" y="399.2" width="70.4" height="60.8" fill="#5a8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMtpClient: 163/163 (100%)</title><rect x="550.8" y="460" width="70.4" height="60.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="472" font-size="10.1" fill="#ffffff">MtpClient</text><text x="553.8" y="485.1" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>ScePafStdc: 163/163 (100%)</title><rect x="550.8" y="520.7" width="70.4" height="60.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="553.8" y="532.8" font-size="10.1" fill="#ffffff">PafStdc</text><text x="553.8" y="545.8" font-size="8.5" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceHostAvch: 155/155 (100%)</title><rect x="621.2" y="145.2" width="66.6" height="61.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="624.2" y="156.8" font-size="9.5" fill="#ffffff">HostAvch</text><text x="624.2" y="169.3" font-size="8.1" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceLibMtp: 154/154 (100%)</title><rect x="687.8" y="145.2" width="66.2" height="61.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="690.8" y="156.7" font-size="9.5" fill="#ffffff">LibMtp</text><text x="690.8" y="169.2" font-size="8" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceNpUtility: 44/140 (31.4%)</title><rect x="754" y="145.2" width="60.2" height="61.1" fill="#8e6929" stroke="#0d1117" stroke-width="1"/><text x="757" y="155.8" font-size="8.6" fill="#ffffff">NpUtility</text><text x="757" y="167.4" font-size="7.3" fill="#ffffff" fill-opacity=".8">31.4%</text></g>
+<g><title>ScePafWebMapView: 140/140 (100%)</title><rect x="814.1" y="145.2" width="60.2" height="61.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSqliteVsh: 139/139 (100%)</title><rect x="874.3" y="145.2" width="59.7" height="61.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="877.3" y="155.8" font-size="8.5" fill="#ffffff">SqliteVsh</text><text x="877.3" y="167.3" font-size="7.3" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceAvcodec: 135/135 (100%)</title><rect x="934" y="145.2" width="58" height="61.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="937" y="155.5" font-size="8.3" fill="#ffffff">Avcodec</text><text x="937" y="166.8" font-size="7" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceAppMgrUser: 128/128 (100%)</title><rect x="621.2" y="206.3" width="64.8" height="51.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="624.2" y="217.6" font-size="9.3" fill="#ffffff">AppMgrUser</text><text x="624.2" y="229.8" font-size="7.9" fill="#ffffff" fill-opacity=".8">100%</text></g>
+<g><title>SceHttp: 98/116 (84.4%)</title><rect x="685.9" y="206.3" width="58.7" height="51.9" fill="#498e29" stroke="#0d1117" stroke-width="1"/><text x="688.9" y="216.7" font-size="8.4" fill="#ffffff">Http</text><text x="688.9" y="228.1" font-size="7.1" fill="#ffffff" fill-opacity=".8">84.4%</text></g>
+<g><title>SceNetCtl: 94/112 (83.9%)</title><rect x="744.6" y="206.3" width="56.7" height="51.9" fill="#4a8e29" stroke="#0d1117" stroke-width="1"/><text x="747.6" y="216.4" font-size="8.1" fill="#ffffff">NetCtl</text><text x="747.6" y="227.5" font-size="6.9" fill="#ffffff" fill-opacity=".8">83.9%</text></g>
+<g><title>SceSslInternal: 6/98 (6.1%)</title><rect x="801.3" y="206.3" width="49.6" height="51.9" fill="#8e3629" stroke="#0d1117" stroke-width="1"/><text x="804.3" y="215.4" font-size="7.1" fill="#ffffff">SslInternal</text><text x="804.3" y="225.5" font-size="6" fill="#ffffff" fill-opacity=".8">6.1%</text></g>
+<g><title>ScePafThread: 95/95 (100%)</title><rect x="850.9" y="206.3" width="48.1" height="51.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSystemSettingsCore: 1/93 (1%)</title><rect x="898.9" y="206.3" width="47" height="51.9" fill="#8e2b29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpManager: 79/91 (86.8%)</title><rect x="946" y="206.3" width="46" height="51.9" fill="#448e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>gaikai_player: 0/86 (0%)</title><rect x="621.2" y="258.2" width="43" height="52.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIpmi: 83/83 (100%)</title><rect x="621.2" y="310.7" width="43" height="50.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceActivityDb: 78/78 (100%)</title><rect x="621.2" y="361.3" width="43" height="47.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBbmc: 77/77 (100%), 75 default</title><rect x="621.2" y="408.9" width="43" height="47" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpCommon: 48/71 (67.6%)</title><rect x="621.2" y="455.8" width="43" height="43.3" fill="#6b8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNgs: 68/68 (100%)</title><rect x="621.2" y="499.2" width="43" height="41.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpTus: 67/67 (100%)</title><rect x="621.2" y="540.6" width="43" height="40.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSas: 33/65 (50.7%)</title><rect x="664.2" y="258.2" width="40.2" height="42.5" fill="#8d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpWebApi: 47/63 (74.6%)</title><rect x="664.2" y="300.6" width="40.2" height="41.2" fill="#5d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNet: 59/62 (95.1%)</title><rect x="664.2" y="341.8" width="40.2" height="40.5" fill="#338e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNgsInternal: 62/62 (100%), 5 default</title><rect x="664.2" y="382.3" width="40.2" height="40.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUlt: 62/62 (100%)</title><rect x="664.2" y="422.8" width="40.2" height="40.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibFflVuMp4: 61/61 (100%)</title><rect x="664.2" y="463.3" width="40.2" height="39.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpSnsFacebook: 7/61 (11.4%)</title><rect x="664.2" y="503.1" width="40.2" height="39.8" fill="#8e4029" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIofilemgr: 59/59 (100%)</title><rect x="664.2" y="543" width="40.2" height="38.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpTrophy: 15/59 (25.4%)</title><rect x="704.4" y="258.2" width="42.3" height="36.6" fill="#8e5d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNetInternal: 7/58 (12%)</title><rect x="746.7" y="258.2" width="41.6" height="36.6" fill="#8e4229" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>libical: 58/58 (100%)</title><rect x="788.3" y="258.2" width="41.6" height="36.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceStitcherCoreAdapter: 0/57 (0%)</title><rect x="829.9" y="258.2" width="40.9" height="36.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>stitch_core_prx: 0/57 (0%)</title><rect x="870.8" y="258.2" width="40.9" height="36.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtil: 46/56 (82.1%)</title><rect x="911.7" y="258.2" width="40.2" height="36.6" fill="#4d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideodecUser: 56/56 (100%)</title><rect x="951.8" y="258.2" width="40.2" height="36.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpMatching2: 50/55 (90.9%)</title><rect x="704.4" y="294.8" width="36.1" height="39.9" fill="#3c8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBt: 54/54 (100%), 46 default</title><rect x="704.4" y="334.7" width="36.1" height="39.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCommonGuiDialog: 54/54 (100%)</title><rect x="704.4" y="373.9" width="36.1" height="39.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4User: 1/49 (2%)</title><rect x="704.4" y="413.1" width="36.1" height="35.6" fill="#8e2d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNearUtil: 49/49 (100%)</title><rect x="704.4" y="448.7" width="36.1" height="35.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCamera: 46/46 (100%)</title><rect x="704.4" y="484.2" width="36.1" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMarlinHci: 44/44 (100%), 34 default</title><rect x="704.4" y="517.6" width="36.1" height="31.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRtcUser: 44/44 (100%)</title><rect x="704.4" y="549.6" width="36.1" height="31.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePvf: 43/43 (100%)</title><rect x="740.5" y="294.8" width="33.8" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMarlin: 42/42 (100%)</title><rect x="774.3" y="294.8" width="33" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePower: 42/42 (100%)</title><rect x="807.3" y="294.8" width="33" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMotion: 41/41 (100%)</title><rect x="840.3" y="294.8" width="32.2" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpBasic: 31/41 (75.6%)</title><rect x="872.5" y="294.8" width="32.2" height="33.4" fill="#5b8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShellUtil: 40/40 (100%)</title><rect x="904.8" y="294.8" width="31.4" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCtrl: 37/37 (100%)</title><rect x="936.2" y="294.8" width="29.1" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAVConfig: 34/34 (100%)</title><rect x="965.3" y="294.8" width="26.7" height="33.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCompat: 34/34 (100%), 3 default</title><rect x="740.5" y="328.2" width="28.8" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNetPsForSyscalls: 34/34 (100%)</title><rect x="769.3" y="328.2" width="28.8" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgr: 34/34 (100%), 34 default</title><rect x="798.1" y="328.2" width="28.8" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocation: 22/33 (66.6%)</title><rect x="826.9" y="328.2" width="27.9" height="31" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNearDialogUtil: 33/33 (100%)</title><rect x="854.8" y="328.2" width="27.9" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShell: 0/33 (0%)</title><rect x="882.8" y="328.2" width="27.9" height="31" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMotionDev: 32/32 (100%), 5 default</title><rect x="910.7" y="328.2" width="27.1" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMp3Promoter: 7/32 (21.8%)</title><rect x="937.8" y="328.2" width="27.1" height="31" fill="#8e5529" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpScore: 32/32 (100%)</title><rect x="964.9" y="328.2" width="27.1" height="31" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePspnetAdhoc: 28/32 (87.5%)</title><rect x="740.5" y="359.2" width="28.2" height="29.8" fill="#438e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibRudp: 31/31 (100%)</title><rect x="740.5" y="388.9" width="28.2" height="28.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceProcessmgr: 31/31 (100%)</title><rect x="740.5" y="417.8" width="28.2" height="28.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpActivityNet: 30/30 (100%)</title><rect x="740.5" y="446.6" width="28.2" height="27.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceWebUIPlugin: 30/30 (100%)</title><rect x="740.5" y="474.5" width="28.2" height="27.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMgVideo: 29/29 (100%), 29 default</title><rect x="740.5" y="502.4" width="28.2" height="27" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceHid: 28/28 (100%)</title><rect x="740.5" y="529.4" width="28.2" height="26.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibMtpHttp: 28/28 (100%)</title><rect x="740.5" y="555.5" width="28.2" height="26.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibMtpHttpWrapper: 28/28 (100%)</title><rect x="768.7" y="359.2" width="25.1" height="29.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVoice: 28/28 (100%)</title><rect x="768.7" y="388.4" width="25.1" height="29.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBemp2sys: 27/27 (100%)</title><rect x="768.7" y="417.6" width="25.1" height="28.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTouch: 27/27 (100%)</title><rect x="768.7" y="445.8" width="25.1" height="28.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIpmiNonGameApp: 26/26 (100%)</title><rect x="768.7" y="474" width="25.1" height="27.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePerf: 26/26 (100%)</title><rect x="768.7" y="501.1" width="25.1" height="27.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePromoterUtil: 26/26 (100%)</title><rect x="768.7" y="528.3" width="25.1" height="27.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDtcpIp: 25/25 (100%)</title><rect x="768.7" y="555.4" width="25.1" height="26.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblSsUpdateMgr: 25/25 (100%), 24 default</title><rect x="793.9" y="359.2" width="26.1" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppSettings: 24/24 (100%)</title><rect x="819.9" y="359.2" width="25" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAtrac: 24/24 (100%)</title><rect x="845" y="359.2" width="25" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBackupRestore: 24/24 (100%)</title><rect x="870" y="359.2" width="25" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIniFileProcessor: 24/24 (100%)</title><rect x="895" y="359.2" width="25" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePgf: 23/23 (100%)</title><rect x="920" y="359.2" width="24" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSulpha: 23/23 (100%)</title><rect x="944" y="359.2" width="24" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbdForUser: 23/23 (100%), 21 default</title><rect x="968" y="359.2" width="24" height="25.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgr: 22/22 (100%)</title><rect x="793.9" y="384.3" width="24.8" height="23.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDisplay: 21/21 (100%)</title><rect x="793.9" y="407.6" width="24.8" height="22.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMp4: 21/21 (100%)</title><rect x="793.9" y="429.9" width="24.8" height="22.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSensMe: 2/21 (9.5%)</title><rect x="793.9" y="452.2" width="24.8" height="22.3" fill="#8e3d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideoencUser: 21/21 (100%)</title><rect x="793.9" y="474.4" width="24.8" height="22.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAvPlayer: 20/20 (100%)</title><rect x="793.9" y="496.7" width="24.8" height="21.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceFios2Kernel: 20/20 (100%)</title><rect x="793.9" y="517.9" width="24.8" height="21.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibGcc: 20/20 (100%)</title><rect x="793.9" y="539.1" width="24.8" height="21.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePafLowlayer: 20/20 (100%)</title><rect x="793.9" y="560.3" width="24.8" height="21.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysmem: 20/20 (100%)</title><rect x="818.6" y="384.3" width="23.6" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceKrm: 0/19 (0%)</title><rect x="842.2" y="384.3" width="22.4" height="22.2" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTriggerUtil: 12/19 (63.1%)</title><rect x="864.6" y="384.3" width="22.4" height="22.2" fill="#748e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBeisobmf: 18/18 (100%)</title><rect x="887" y="384.3" width="21.2" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpGriefReport: 18/18 (100%)</title><rect x="908.3" y="384.3" width="21.2" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpSignaling: 18/18 (100%)</title><rect x="929.5" y="384.3" width="21.2" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblQafMgr: 18/18 (100%), 7 default</title><rect x="950.7" y="384.3" width="21.2" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceImeVsh: 17/17 (100%)</title><rect x="971.9" y="384.3" width="20.1" height="22.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRtc: 17/17 (100%)</title><rect x="818.6" y="406.6" width="22.3" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSystemGesture: 17/17 (100%)</title><rect x="840.9" y="406.6" width="22.3" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVoiceQoS: 17/17 (100%)</title><rect x="863.3" y="406.6" width="22.3" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>mlndl: 17/17 (100%)</title><rect x="885.6" y="406.6" width="22.3" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudio: 16/16 (100%)</title><rect x="907.9" y="406.6" width="21" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCodecEngineWrapper: 16/16 (100%)</title><rect x="928.9" y="406.6" width="21" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceFiber: 16/16 (100%)</title><rect x="950" y="406.6" width="21" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGxmInternal: 13/16 (81.2%)</title><rect x="971" y="406.6" width="21" height="20" fill="#4f8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMetaGen: 0/16 (0%)</title><rect x="818.6" y="426.5" width="21.3" height="19.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceModulemgr: 16/16 (100%)</title><rect x="818.6" y="446.2" width="21.3" height="19.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpDrmPackage: 16/16 (100%), 3 default</title><rect x="818.6" y="465.9" width="21.3" height="19.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpFriendPrivacyLevel: 16/16 (100%)</title><rect x="818.6" y="485.6" width="21.3" height="19.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpMessageContacts: 16/16 (100%)</title><rect x="818.6" y="505.3" width="21.3" height="19.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRtabi: 16/16 (100%)</title><rect x="818.6" y="524.9" width="21.3" height="19.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudiodecUser: 15/15 (100%)</title><rect x="818.6" y="544.6" width="21.3" height="18.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBEAVCorePlayer: 15/15 (100%)</title><rect x="818.6" y="563.1" width="21.3" height="18.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCommonDialogMain: 15/15 (100%)</title><rect x="839.9" y="426.5" width="19.7" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGxmInternalForTest: 0/15 (0%)</title><rect x="859.6" y="426.5" width="19.7" height="20" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMtpIf: 15/15 (100%)</title><rect x="879.3" y="426.5" width="19.7" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpPartyAppUtil: 0/15 (0%)</title><rect x="898.9" y="426.5" width="19.7" height="20" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudioencUser: 14/14 (100%)</title><rect x="918.6" y="426.5" width="18.4" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCompanionUtil: 14/14 (100%)</title><rect x="936.9" y="426.5" width="18.4" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDrmPsmKdc: 14/14 (100%)</title><rect x="955.3" y="426.5" width="18.4" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLiveAreaUtil: 14/14 (100%)</title><rect x="973.6" y="426.5" width="18.4" height="20" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNetAdhocMatching: 14/14 (100%)</title><rect x="839.9" y="446.6" width="18.5" height="19.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceStitchAdapter: 0/14 (0%)</title><rect x="839.9" y="466.4" width="18.5" height="19.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbSerial: 7/14 (50%), 7 default</title><rect x="839.9" y="486.3" width="18.5" height="19.9" fill="#8e8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>stitch_prx: 0/14 (0%)</title><rect x="839.9" y="506.2" width="18.5" height="19.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAvcdecForPlayer: 13/13 (100%)</title><rect x="839.9" y="526.1" width="18.5" height="18.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpPartyGameUtil: 11/13 (84.6%)</title><rect x="839.9" y="544.6" width="18.5" height="18.5" fill="#488e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTeleportClient: 13/13 (100%)</title><rect x="839.9" y="563" width="18.5" height="18.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAacenc: 12/12 (100%)</title><rect x="858.4" y="446.6" width="17.2" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAacencInternal: 12/12 (100%)</title><rect x="875.7" y="446.6" width="17.2" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudioIn: 12/12 (100%)</title><rect x="892.9" y="446.6" width="17.2" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSharedFb: 12/12 (100%)</title><rect x="910.1" y="446.6" width="17.2" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbPspcm: 12/12 (100%), 12 default</title><rect x="927.4" y="446.6" width="17.2" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGps: 11/11 (100%)</title><rect x="944.6" y="446.6" width="15.8" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceHandwriting: 11/11 (100%)</title><rect x="960.4" y="446.6" width="15.8" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceJpegUser: 11/11 (100%)</title><rect x="976.2" y="446.6" width="15.8" height="18.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpMessage: 11/11 (100%)</title><rect x="858.4" y="464.8" width="16.4" height="17.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSsl: 11/11 (100%)</title><rect x="858.4" y="482.4" width="16.4" height="17.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>mlnapplib: 11/11 (100%)</title><rect x="858.4" y="500" width="16.4" height="17.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceContentOperation: 10/10 (100%)</title><rect x="858.4" y="517.6" width="16.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceFios2Kernel02: 10/10 (100%)</title><rect x="858.4" y="533.6" width="16.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceFios2User: 10/10 (100%)</title><rect x="858.4" y="549.5" width="16.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceJpegEncUser: 10/10 (100%)</title><rect x="858.4" y="565.5" width="16.4" height="16" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocationPermission: 10/10 (100%)</title><rect x="874.8" y="464.8" width="15.5" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibMp4Recorder: 10/10 (100%)</title><rect x="874.8" y="481.7" width="15.5" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibVitaJSExtObj: 0/10 (0%)</title><rect x="874.8" y="498.7" width="15.5" height="16.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpWebApiCommonDialog: 10/10 (100%)</title><rect x="874.8" y="515.6" width="15.5" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePhotoExport: 4/10 (40%)</title><rect x="874.8" y="532.5" width="15.5" height="16.9" fill="#8e7a29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShellSvc: 10/10 (100%)</title><rect x="874.8" y="549.4" width="15.5" height="16.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGriefReportDialog: 2/9 (22.2%)</title><rect x="874.8" y="566.3" width="15.5" height="15.2" fill="#8e5629" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceJpegEncArm: 8/9 (88.8%)</title><rect x="890.4" y="464.8" width="15.5" height="15.2" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceScreenShot: 8/9 (88.8%)</title><rect x="905.9" y="464.8" width="15.5" height="15.2" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbAudioIn: 8/9 (88.8%), 8 default</title><rect x="921.4" y="464.8" width="15.5" height="15.2" fill="#408e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceG729: 8/8 (100%)</title><rect x="936.9" y="464.8" width="13.8" height="15.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNearProfile: 8/8 (100%)</title><rect x="950.7" y="464.8" width="13.8" height="15.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpDrm: 8/8 (100%), 6 default</title><rect x="964.4" y="464.8" width="13.8" height="15.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblLicMgr: 8/8 (100%), 8 default</title><rect x="978.2" y="464.8" width="13.8" height="15.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysmodule: 8/8 (100%)</title><rect x="890.4" y="480.1" width="14" height="15" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUdcd: 8/8 (100%)</title><rect x="890.4" y="495.1" width="14" height="15" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbDevSerial: 0/8 (0%)</title><rect x="890.4" y="510.1" width="14" height="15" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideoSearchEmpr: 8/8 (100%)</title><rect x="890.4" y="525.2" width="14" height="15" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceWebFiltering: 0/8 (0%)</title><rect x="890.4" y="540.2" width="14" height="15" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDisplayUser: 7/7 (100%)</title><rect x="890.4" y="555.2" width="14" height="13.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4ForUser: 4/7 (57.1%)</title><rect x="890.4" y="568.4" width="14" height="13.2" fill="#808e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMtpr3: 7/7 (100%)</title><rect x="904.3" y="480.1" width="15" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpKdc: 7/7 (100%)</title><rect x="919.3" y="480.1" width="15" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrForGame: 7/7 (100%)</title><rect x="934.3" y="480.1" width="15" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblRtcMgr: 7/7 (100%), 7 default</title><rect x="949.2" y="480.1" width="15" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShellUtilUketorne: 7/7 (100%)</title><rect x="964.2" y="480.1" width="15" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudiocodec: 6/6 (100%)</title><rect x="979.2" y="480.1" width="12.8" height="12.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCodecEngineUser: 6/6 (100%)</title><rect x="904.3" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceError: 6/6 (100%)</title><rect x="916.8" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceErrorUser: 6/6 (100%)</title><rect x="929.4" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIme: 6/6 (100%)</title><rect x="941.9" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIncomingDialog: 6/6 (100%)</title><rect x="954.4" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceJpegArm: 6/6 (100%)</title><rect x="966.9" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceKernelForMono: 6/6 (100%)</title><rect x="979.5" y="492.3" width="12.5" height="12.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePerfInternal: 6/6 (100%)</title><rect x="904.3" y="504.9" width="12" height="13.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePsmDrm: 6/6 (100%), 6 default</title><rect x="904.3" y="518" width="12" height="13.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrForSDK: 6/6 (100%)</title><rect x="904.3" y="531.2" width="12" height="13.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRiffPromoter: 2/6 (33.3%)</title><rect x="904.3" y="544.3" width="12" height="13.1" fill="#8e6d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideodecAsyncUser: 6/6 (100%)</title><rect x="904.3" y="557.4" width="12" height="13.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilUmass: 5/5 (100%)</title><rect x="904.3" y="570.6" width="12" height="10.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDbg: 5/5 (100%)</title><rect x="916.3" y="504.9" width="10.8" height="12.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDrmBridge: 4/5 (80%)</title><rect x="927.1" y="504.9" width="10.8" height="12.1" fill="#528e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDrmBridgeUser: 4/5 (80%)</title><rect x="937.9" y="504.9" width="10.8" height="12.1" fill="#528e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4UserForVsh: 0/5 (0%)</title><rect x="948.7" y="504.9" width="10.8" height="12.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGxmInternalForVsh: 5/5 (100%)</title><rect x="959.6" y="504.9" width="10.8" height="12.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocationInternal: 5/5 (100%)</title><rect x="970.4" y="504.9" width="10.8" height="12.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpManagerTicket: 5/5 (100%)</title><rect x="981.2" y="504.9" width="10.8" height="12.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpMessageDialogPlugin: 5/5 (100%)</title><rect x="916.3" y="517" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePartyMemberListPlugin: 5/5 (100%)</title><rect x="916.3" y="527.8" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrService: 5/5 (100%)</title><rect x="916.3" y="538.5" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblPmMgr: 5/5 (100%), 4 default</title><rect x="916.3" y="549.3" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblUtMgr: 5/5 (100%), 5 default</title><rect x="916.3" y="560" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceWlan: 5/5 (100%)</title><rect x="916.3" y="570.8" width="12.2" height="10.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>libicalss: 5/5 (100%)</title><rect x="928.5" y="517" width="12.7" height="10.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAACPromoter: 1/4 (25%)</title><rect x="941.2" y="517" width="10.2" height="10.3" fill="#8e5c29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilExtPlayReady: 4/4 (100%)</title><rect x="951.4" y="517" width="10.2" height="10.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDebugLed: 4/4 (100%)</title><rect x="961.5" y="517" width="10.2" height="10.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGameUpdate: 4/4 (100%)</title><rect x="971.7" y="517" width="10.2" height="10.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocationProvider: 4/4 (100%)</title><rect x="981.8" y="517" width="10.2" height="10.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMgVideoForMiniApp: 4/4 (100%), 4 default</title><rect x="928.5" y="527.4" width="9.7" height="10.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpActivity: 4/4 (100%)</title><rect x="928.5" y="538.2" width="9.7" height="10.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblDmac5Mgr: 4/4 (100%), 3 default</title><rect x="928.5" y="549" width="9.7" height="10.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSvcCtrl: 4/4 (100%)</title><rect x="928.5" y="559.9" width="9.7" height="10.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbstorVStor: 4/4 (100%), 4 default</title><rect x="928.5" y="570.7" width="9.7" height="10.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilCache: 3/3 (100%)</title><rect x="938.2" y="527.4" width="9" height="8.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBmpPromoter: 2/3 (66.6%)</title><rect x="947.2" y="527.4" width="9" height="8.8" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCompatForVsh: 3/3 (100%), 1 default</title><rect x="956.1" y="527.4" width="9" height="8.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDipsw: 3/3 (100%)</title><rect x="965.1" y="527.4" width="9" height="8.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGifPromoter: 2/3 (66.6%)</title><rect x="974.1" y="527.4" width="9" height="8.8" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceJpegPromoter: 2/3 (66.6%)</title><rect x="983" y="527.4" width="9" height="8.8" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceKernelForVM: 3/3 (100%)</title><rect x="938.2" y="536.1" width="8.7" height="9.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocationExtension: 3/3 (100%)</title><rect x="938.2" y="545.2" width="8.7" height="9.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMsvPromoter: 0/3 (0%)</title><rect x="938.2" y="554.3" width="8.7" height="9.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNotificationUtilProgress: 3/3 (100%)</title><rect x="938.2" y="563.4" width="8.7" height="9.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePngPromoter: 2/3 (66.6%)</title><rect x="938.2" y="572.4" width="8.7" height="9.1" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSecondScreen: 0/3 (0%)</title><rect x="946.9" y="536.1" width="9" height="8.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTelephonyUtil: 3/3 (100%)</title><rect x="955.9" y="536.1" width="9" height="8.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTiffPromoter: 2/3 (66.6%)</title><rect x="964.9" y="536.1" width="9" height="8.7" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUlobjMgr: 3/3 (100%)</title><rect x="974" y="536.1" width="9" height="8.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideoExportData: 3/3 (100%)</title><rect x="983" y="536.1" width="9" height="8.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilBook: 2/2 (100%)</title><rect x="946.9" y="544.9" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilExt: 2/2 (100%)</title><rect x="946.9" y="552.2" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilExtMarlinIptv: 2/2 (100%)</title><rect x="946.9" y="559.5" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilExtPsNow: 2/2 (100%)</title><rect x="946.9" y="566.9" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilLaunchApp: 2/2 (100%)</title><rect x="946.9" y="574.2" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceClipboard: 2/2 (100%)</title><rect x="954" y="544.9" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCoredump: 2/2 (100%)</title><rect x="954" y="552.2" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDmacmgr: 2/2 (100%)</title><rect x="954" y="559.5" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMusicExport: 1/2 (50%)</title><rect x="954" y="566.9" width="7.2" height="7.3" fill="#8e8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNotificationUtil: 2/2 (100%)</title><rect x="954" y="574.2" width="7.2" height="7.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpUtilityAvatarN: 2/2 (100%)</title><rect x="961.2" y="544.9" width="7.7" height="6.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUlobjDbg: 2/2 (100%)</title><rect x="968.9" y="544.9" width="7.7" height="6.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbServ: 2/2 (100%), 2 default</title><rect x="976.6" y="544.9" width="7.7" height="6.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>WebPlugin: 0/2 (0%)</title><rect x="984.3" y="544.9" width="7.7" height="6.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilAddcontForce: 1/1 (100%)</title><rect x="961.2" y="551.7" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilAppEventUserDefined: 1/1 (100%)</title><rect x="961.2" y="556.7" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilDevice: 1/1 (100%)</title><rect x="961.2" y="561.6" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilNpSignin: 1/1 (100%)</title><rect x="961.2" y="566.6" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilPsm: 1/1 (100%)</title><rect x="961.2" y="571.6" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppUtilWebBrowserCBLimited: 1/1 (100%)</title><rect x="961.2" y="576.5" width="5.3" height="5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBacktrace: 1/1 (100%)</title><rect x="966.5" y="551.7" width="5.1" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBgAppUtil: 1/1 (100%)</title><rect x="971.6" y="551.7" width="5.1" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCoredumpNounlink: 1/1 (100%)</title><rect x="976.7" y="551.7" width="5.1" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCpu: 1/1 (100%)</title><rect x="981.8" y="551.7" width="5.1" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDbRecovery: 1/1 (100%)</title><rect x="986.9" y="551.7" width="5.1" height="5.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDbSetup: 1/1 (100%)</title><rect x="966.5" y="556.8" width="5.3" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDbrecoveryUtility: 1/1 (100%)</title><rect x="966.5" y="561.8" width="5.3" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGxmInternalForGles: 0/1 (0%)</title><rect x="966.5" y="566.7" width="5.3" height="4.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGxmInternalForReplay: 1/1 (100%)</title><rect x="966.5" y="571.6" width="5.3" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibLocationFactory: 1/1 (100%)</title><rect x="966.5" y="576.6" width="5.3" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibRng: 1/1 (100%)</title><rect x="971.8" y="556.8" width="5" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLibSsp: 1/1 (100%)</title><rect x="976.9" y="556.8" width="5" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLiveAreaUtilBgApp: 1/1 (100%)</title><rect x="981.9" y="556.8" width="5" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNotificationUtilBgApp: 1/1 (100%)</title><rect x="987" y="556.8" width="5" height="5.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpManagerOAuth: 1/1 (100%)</title><rect x="971.8" y="562" width="5.4" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpManagerSP: 1/1 (100%)</title><rect x="971.8" y="566.9" width="5.4" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblACMgr: 1/1 (100%)</title><rect x="971.8" y="571.8" width="5.4" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblAimgr: 1/1 (100%)</title><rect x="971.8" y="576.6" width="5.4" height="4.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblRng: 1/1 (100%)</title><rect x="977.2" y="562" width="4.9" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShellUtilLaunchApp: 1/1 (100%)</title><rect x="982.1" y="562" width="4.9" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceShutterSound: 1/1 (100%)</title><rect x="987.1" y="562" width="4.9" height="5.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTeleportServer: 1/1 (100%)</title><rect x="977.2" y="567.3" width="5.6" height="4.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbstor: 0/1 (0%)</title><rect x="977.2" y="572.1" width="5.6" height="4.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideoExport: 1/1 (100%)</title><rect x="977.2" y="576.8" width="5.6" height="4.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideoExportEmpr: 1/1 (100%)</title><rect x="982.7" y="567.3" width="4.6" height="5.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideodecLowDelayUser: 1/1 (100%)</title><rect x="987.4" y="567.3" width="4.6" height="5.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceVideodecRecoveryPointUser: 1/1 (100%)</title><rect x="982.7" y="573" width="6.2" height="4.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>mail_api_for_local: 1/1 (100%)</title><rect x="982.7" y="577.3" width="6.2" height="4.3" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>mail_api_for_local_libc: 1/1 (100%)</title><rect x="988.9" y="573" width="3.1" height="8.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<text x="12" y="601.5" font-size="13" font-weight="600" fill="#e6edf3">Kernel (114 libraries): 18.6% covered (732/3,918)</text>
+<g><title>SceSysconForDriver: 0/311 (0%)</title><rect x="8" y="607.5" width="78.1" height="104.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceThreadmgrForDriver: 98/248 (39.5%)</title><rect x="86.1" y="607.5" width="62.3" height="104.5" fill="#8e7929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysrootForDriver: 0/181 (0%)</title><rect x="148.4" y="607.5" width="87.9" height="54" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysmemForKernel: 2/169 (1.1%)</title><rect x="148.4" y="661.5" width="87.9" height="50.5" fill="#8e2c29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePervasiveForDriver: 0/156 (0%)</title><rect x="236.3" y="607.5" width="76.3" height="53.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIofilemgrForDriver: 47/148 (31.7%)</title><rect x="236.3" y="661.1" width="76.3" height="50.9" fill="#8e6929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysrootForKernel: 2/143 (1.3%)</title><rect x="312.6" y="607.5" width="64.5" height="58.1" fill="#8e2c29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysmemForDriver: 52/114 (45.6%)</title><rect x="312.6" y="665.7" width="64.5" height="46.3" fill="#8e8529" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePowerForDriver: 36/109 (33%)</title><rect x="377.2" y="607.5" width="53.7" height="53.2" fill="#8e6c29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAvcodecForDriver: 23/105 (21.9%)</title><rect x="377.2" y="660.7" width="53.7" height="51.3" fill="#8e5629" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCpuForDriver: 103/104 (99%)</title><rect x="430.9" y="607.5" width="45.2" height="60.4" fill="#2b8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAppMgrForDriver: 3/76 (3.9%)</title><rect x="430.9" y="667.9" width="45.2" height="44.1" fill="#8e3129" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRtcForDriver: 16/65 (24.6%)</title><rect x="476.1" y="607.5" width="48.7" height="35" fill="#8e5b29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceZlibForDriver: 0/65 (0%)</title><rect x="476.1" y="642.5" width="48.7" height="35" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceThreadmgrForKernel: 0/64 (0%)</title><rect x="476.1" y="677.5" width="48.7" height="34.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBbmcForDriver: 0/63 (0%)</title><rect x="524.9" y="607.5" width="45.7" height="36.2" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceProcessmgrForKernel: 3/60 (5%)</title><rect x="524.9" y="643.7" width="45.7" height="34.4" fill="#8e3329" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSdifForDriver: 0/59 (0%)</title><rect x="524.9" y="678.1" width="45.7" height="33.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceKernelUtilsForDriver: 1/57 (1.7%)</title><rect x="570.6" y="607.5" width="41.2" height="36.3" fill="#8e2d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBtForDriver: 52/54 (96.2%), 45 default</title><rect x="570.6" y="643.8" width="41.2" height="34.4" fill="#318e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDisplayForDriver: 18/53 (33.9%)</title><rect x="570.6" y="678.2" width="41.2" height="33.8" fill="#8e6e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSysclibForDriver: 51/51 (100%)</title><rect x="611.8" y="607.5" width="37.4" height="35.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCodecEngineWrapperForDriver: 0/50 (0%)</title><rect x="611.8" y="643.3" width="37.4" height="35.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMagicGateForDriver: 0/48 (0%)</title><rect x="611.8" y="678.3" width="37.4" height="33.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceModulemgrForKernel: 5/48 (10.4%)</title><rect x="649.2" y="607.5" width="35.7" height="35.3" fill="#8e3e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblACMgrForKernel: 0/47 (0%)</title><rect x="649.2" y="642.8" width="35.7" height="34.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUdcdForDriver: 3/47 (6.3%)</title><rect x="649.2" y="677.4" width="35.7" height="34.6" fill="#8e3629" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceProcessmgrForDriver: 10/46 (21.7%)</title><rect x="684.8" y="607.5" width="33.9" height="35.6" fill="#8e5529" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblACMgrForDriver: 1/45 (2.2%)</title><rect x="684.8" y="643.1" width="33.9" height="34.8" fill="#8e2e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblPostSsMgrForDriver: 5/44 (11.3%), 5 default</title><rect x="684.8" y="677.9" width="33.9" height="34.1" fill="#8e4029" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCtrlForDriver: 11/40 (27.5%)</title><rect x="718.8" y="607.5" width="29.9" height="35.1" fill="#8e6129" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblSsMgrForDriver: 0/40 (0%)</title><rect x="718.8" y="642.6" width="29.9" height="35.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCpuForKernel: 39/39 (100%)</title><rect x="718.8" y="677.8" width="29.9" height="34.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4ForDriver: 0/31 (0%)</title><rect x="748.6" y="607.5" width="29.6" height="27.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceHidForDriver: 28/30 (93.3%)</title><rect x="748.6" y="635" width="29.6" height="26.6" fill="#378e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceTouchForDriver: 15/29 (51.7%)</title><rect x="748.6" y="661.5" width="29.6" height="25.7" fill="#8b8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceKernelSuspendForDriver: 4/28 (14.2%)</title><rect x="748.6" y="687.2" width="29.6" height="24.8" fill="#8e4629" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpDrmForDriver: 0/26 (0%)</title><rect x="778.3" y="607.5" width="25.4" height="26.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCameraForDriver: 0/25 (0%)</title><rect x="778.3" y="634.4" width="25.4" height="25.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceHdmiForDriver: 0/25 (0%)</title><rect x="778.3" y="660.3" width="25.4" height="25.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceQafMgrForDriver: 0/25 (0%)</title><rect x="778.3" y="686.1" width="25.4" height="25.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrForDriver: 25/25 (100%)</title><rect x="803.6" y="607.5" width="23.6" height="27.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIntrmgrForDriver: 0/23 (0%)</title><rect x="803.6" y="635.3" width="23.6" height="25.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLcdForDriver: 0/23 (0%)</title><rect x="803.6" y="660.9" width="23.6" height="25.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMotionDevForDriver: 9/23 (39.1%), 3 default</title><rect x="803.6" y="686.4" width="23.6" height="25.6" fill="#8e7829" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCoredumpForDriver: 0/21 (0%)</title><rect x="827.2" y="607.5" width="21.1" height="26.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIntrmgrForKernel: 0/21 (0%)</title><rect x="827.2" y="633.6" width="21.1" height="26.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceOledForDriver: 0/21 (0%)</title><rect x="827.2" y="659.8" width="21.1" height="26.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbdForDriver: 0/21 (0%)</title><rect x="827.2" y="685.9" width="21.1" height="26.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudioForDriver: 3/20 (15%)</title><rect x="848.3" y="607.5" width="24.9" height="21.1" fill="#8e4829" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceFios2KernelForDriver: 0/20 (0%)</title><rect x="848.3" y="628.6" width="24.9" height="21.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNetPsForDriver: 12/20 (60%)</title><rect x="848.3" y="649.7" width="24.9" height="21.1" fill="#7a8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrDrmBBForDriver: 0/20 (0%)</title><rect x="848.3" y="670.8" width="24.9" height="21.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUlobjMgrForDriver: 0/19 (0%)</title><rect x="848.3" y="691.9" width="24.9" height="20.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDebugForKernel: 7/17 (41.1%)</title><rect x="873.2" y="607.5" width="21.3" height="20.9" fill="#8e7c29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceExcpmgrForKernel: 1/17 (5.8%)</title><rect x="873.2" y="628.4" width="21.3" height="20.9" fill="#8e3529" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIdStorageForDriver: 0/17 (0%)</title><rect x="873.2" y="649.3" width="21.3" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMtpIfForDriver: 0/17 (0%)</title><rect x="873.2" y="670.2" width="21.3" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblAIMgrForDriver: 0/17 (0%)</title><rect x="873.2" y="691.1" width="21.3" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDebugForDriver: 13/16 (81.2%)</title><rect x="894.6" y="607.5" width="20.2" height="20.7" fill="#4f8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblSmSchedProxyForKernel: 0/16 (0%)</title><rect x="914.8" y="607.5" width="20.2" height="20.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDmacmgrForDriver: 2/15 (13.3%)</title><rect x="935.1" y="607.5" width="19" height="20.7" fill="#8e4429" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDsiForDriver: 0/15 (0%)</title><rect x="954" y="607.5" width="19" height="20.7" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceModulemgrForDriver: 9/15 (60%)</title><rect x="973" y="607.5" width="19" height="20.7" fill="#7a8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceClockgenForDriver: 0/14 (0%)</title><rect x="894.6" y="628.3" width="17.5" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePfsMgrForKernel: 0/14 (0%)</title><rect x="894.6" y="649.2" width="17.5" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblMgKeyMgrForDriver: 0/14 (0%)</title><rect x="894.6" y="670.1" width="17.5" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSystimerForDriver: 0/14 (0%)</title><rect x="894.6" y="691.1" width="17.5" height="20.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrForTool: 0/13 (0%)</title><rect x="912.1" y="628.3" width="21.6" height="15.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMsifForDriver: 0/12 (0%)</title><rect x="933.7" y="628.3" width="20" height="15.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbMtpForDriver: 0/12 (0%)</title><rect x="953.7" y="628.3" width="20" height="15.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceHpremoteForDriver: 0/11 (0%)</title><rect x="973.7" y="628.3" width="18.3" height="15.8" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAudioInForDriver: 4/10 (40%)</title><rect x="912.1" y="644" width="14.7" height="17.9" fill="#8e7a29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpioForDriver: 0/10 (0%)</title><rect x="912.1" y="661.9" width="14.7" height="17.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCodecForDriver: 0/9 (0%)</title><rect x="912.1" y="679.8" width="14.7" height="16.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDebugLedForDriver: 4/9 (44.4%)</title><rect x="912.1" y="695.9" width="14.7" height="16.1" fill="#8e8329" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceIftuForDriver: 0/9 (0%)</title><rect x="926.8" y="644" width="16.3" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrForDebugger: 0/9 (0%)</title><rect x="943.1" y="644" width="16.3" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblAuthMgrForKernel: 0/9 (0%)</title><rect x="959.4" y="644" width="16.3" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbstorForDriver: 0/9 (0%)</title><rect x="975.7" y="644" width="16.3" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGrabForDriver: 0/8 (0%)</title><rect x="926.8" y="658.5" width="14.7" height="14.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceI2cForDriver: 0/8 (0%)</title><rect x="926.8" y="672.8" width="14.7" height="14.3" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpsForDriver: 0/7 (0%)</title><rect x="926.8" y="687" width="14.7" height="12.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbServForDriver: 2/7 (28.5%), 2 default</title><rect x="926.8" y="699.5" width="14.7" height="12.5" fill="#8e6329" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceAVConfigForDriver: 0/6 (0%)</title><rect x="941.5" y="658.5" width="12.6" height="12.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCsiForDriver: 0/6 (0%)</title><rect x="954.1" y="658.5" width="12.6" height="12.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePfsFacadeForKernel: 0/6 (0%)</title><rect x="966.7" y="658.5" width="12.6" height="12.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePsmDrmForDriver: 1/6 (16.6%), 1 default</title><rect x="979.4" y="658.5" width="12.6" height="12.5" fill="#8e4b29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrMsSaveBBForDriver: 0/6 (0%)</title><rect x="941.5" y="671" width="10.9" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbMassForDriver: 0/6 (0%)</title><rect x="941.5" y="685.4" width="10.9" height="14.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePwmForDriver: 0/5 (0%)</title><rect x="941.5" y="699.9" width="10.9" height="12.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgrServiceForDriver: 5/5 (100%)</title><rect x="952.4" y="671" width="13.2" height="9.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblSsMgrForKernel: 0/5 (0%)</title><rect x="965.6" y="671" width="13.2" height="9.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbAudioForDriver: 0/5 (0%)</title><rect x="978.8" y="671" width="13.2" height="9.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceDipswForDriver: 3/4 (75%)</title><rect x="952.4" y="680.9" width="10.1" height="10.4" fill="#5c8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblSmCommForKernel: 0/4 (0%)</title><rect x="952.4" y="691.3" width="10.1" height="10.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUartForKernel: 0/4 (0%)</title><rect x="952.4" y="701.6" width="10.1" height="10.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceWlanBtForDriver: 0/4 (0%)</title><rect x="962.5" y="680.9" width="11.8" height="8.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBacktraceForDriver: 1/3 (33.3%)</title><rect x="974.3" y="680.9" width="8.9" height="8.9" fill="#8e6d29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCdramForDriver: 0/3 (0%)</title><rect x="983.1" y="680.9" width="8.9" height="8.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceProcEventForDriver: 2/3 (66.6%)</title><rect x="962.5" y="689.8" width="10.6" height="7.4" fill="#6d8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblAuthMgrForDriver: 0/3 (0%)</title><rect x="962.5" y="697.2" width="10.6" height="7.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblFwLoaderForDriver: 0/3 (0%)</title><rect x="962.5" y="704.6" width="10.6" height="7.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceUsbEtherRtlForDriver: 0/3 (0%)</title><rect x="973.1" y="689.8" width="11.3" height="6.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePmMgrForDriver: 0/2 (0%)</title><rect x="984.4" y="689.8" width="7.6" height="6.9" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrMlnpsnlForDriver: 0/2 (0%)</title><rect x="973.1" y="696.7" width="6.9" height="7.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrSclkForDriver: 0/2 (0%)</title><rect x="973.1" y="704.4" width="6.9" height="7.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceBusErrorForKernel: 0/1 (0%)</title><rect x="980" y="696.7" width="6" height="4.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCodecEngineWrapperForDebugger: 0/1 (0%)</title><rect x="986" y="696.7" width="6" height="4.4" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceCompatForDriver: 0/1 (0%)</title><rect x="980" y="701.1" width="4.8" height="5.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceLedForDriver: 0/1 (0%)</title><rect x="980" y="706.5" width="4.8" height="5.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrGcAuthForDriver: 0/1 (0%)</title><rect x="984.8" y="701.1" width="7.2" height="3.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrPkgForDriver: 1/1 (100%), 1 default</title><rect x="984.8" y="704.7" width="7.2" height="3.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceSblGcAuthMgrPsmactForDriver: 0/1 (0%)</title><rect x="984.8" y="708.4" width="7.2" height="3.6" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
 </g>
 </svg>

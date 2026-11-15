@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=b6ee9bde7d19e66047e45857bf1f7cff4f31a1f5ecf75042d2c3d3e99d900321 -->
+<!-- pair: README.md sha256=08c5cb44f0c2085fbfcdd2d237555331da897ec5be012ec589760ac8f624ad91 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -84,7 +84,7 @@ LiveArea e jogos abertos por elas. É um projeto de pesquisa em desenvolvimento 
 <a href="docs/hle/progress.md">
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/status/progress-map-light.svg">
-  <img src="docs/assets/status/progress-map.svg" alt="Mapa do progresso do HLE: uma célula por biblioteca do firmware, do tamanho das funções que ela exporta e com a cor de quantas estão implementadas" width="760">
+  <img src="docs/assets/status/progress-map.svg" alt="Mapa do progresso do HLE: uma célula por biblioteca do firmware, bibliotecas de usuário e de kernel em regiões separadas, do tamanho das funções que elas exportam e com a cor de quantas estão implementadas" width="760">
 </picture>
 </a>
 
