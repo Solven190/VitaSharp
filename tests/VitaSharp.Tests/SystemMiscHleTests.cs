@@ -132,12 +132,13 @@ public sealed class SystemMiscHleTests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(222, Call(SystemMisc, "scePowerGetBusClockFrequency"));
         Assert.Equal(222, Call(SystemMisc, "scePowerGetGpuClockFrequency"));
         Assert.Equal(166, Call(SystemMisc, "scePowerGetGpuXbarClockFrequency"));
-        foreach (string? fn in new[] { "scePowerSetBusClockFrequency", "scePowerSetGpuClockFrequency", "scePowerSetGpuXbarClockFrequency", "scePowerSetConfigurationMode", "scePowerRegisterCallback", "scePowerUnregisterCallback" })
+        // the power callbacks, standby (scePowerRequestSuspend) and power off (scePowerRequestStandby): PowerButtonTests
+        foreach (string? fn in new[] { "scePowerSetBusClockFrequency", "scePowerSetGpuClockFrequency", "scePowerSetGpuXbarClockFrequency", "scePowerSetConfigurationMode" })
         {
             Assert.Equal(0, Call(SystemMisc, fn, 1));
         }
 
-        foreach (string? fn in new[] { "scePowerRequestDisplayOn", "scePowerRequestDisplayOff", "scePowerRequestSuspend", "scePowerRequestStandby", "scePowerRequestColdReset",
+        foreach (string? fn in new[] { "scePowerRequestDisplayOn", "scePowerRequestDisplayOff", "scePowerRequestColdReset",
             "scePowerIsLowBatteryInhibitUpdateDownload", "scePowerIsLowBatteryInhibitUpdateReboot", "scePowerBatteryUpdateInfo", "scePowerGetBatteryElec", "scePowerGetBatteryChargingStatus" })
         {
             Assert.Equal(0, Call(SystemMisc, fn));

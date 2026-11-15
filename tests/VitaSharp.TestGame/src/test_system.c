@@ -107,6 +107,58 @@ static void check_system_params(void)
                  (int)strlen(userName));
 }
 
+/*
+ * The power callbacks (ScePower 3.74): a registration notifies the callback at once with the state bits a game may
+ * see (battery / power online; never a button or suspend bit); registering it again is 0x802B0001, a UID that is not
+ * a callback 0xC00280A1, unregistering one that is not registered 0x802B0002.
+ */
+#define POWER_ALREADY_REGISTERED ((int)0x802B0001)
+#define POWER_NOT_REGISTERED ((int)0x802B0002)
+#define POWER_NOT_A_CALLBACK ((int)0xC00280A1)
+#define POWER_GAME_MASK 0x00361180
+#define POWER_BATTERY_ONLINE 0x00000100
+
+static volatile int g_powerCalls;
+static volatile int g_powerInfo;
+
+static int power_callback(int notifyId, int notifyCount, int powerInfo, void *common)
+{
+    (void)notifyId;
+    (void)notifyCount;
+    (void)common;
+    g_powerCalls++;
+    g_powerInfo = powerInfo;
+    return 0;
+}
+
+static void check_power_callback(void)
+{
+    g_powerCalls = 0;
+    g_powerInfo = 0;
+    SceUID callback = sceKernelCreateCallback("vstest_power", 0, power_callback, NULL);
+    int registered = scePowerRegisterCallback(callback);
+    int again = scePowerRegisterCallback(callback);
+    sceKernelCheckCallback();
+    int calls = g_powerCalls;
+    int info = g_powerInfo;
+    int unregistered = scePowerUnregisterCallback(callback);
+    int unregisteredAgain = scePowerUnregisterCallback(callback);
+    int notCallback = scePowerRegisterCallback(0x7FFF0001);
+    result_check(AREA, "power_callback_register", callback > 0 && registered == 0 && again == POWER_ALREADY_REGISTERED,
+                 "0x%08X, again 0x%08X", (unsigned int)registered, (unsigned int)again);
+    result_check(AREA, "power_callback_notified_at_once",
+                 calls == 1 && (info & ~POWER_GAME_MASK) == 0 && (info & POWER_BATTERY_ONLINE) != 0, "%d calls, 0x%08X",
+                 calls, (unsigned int)info);
+    result_check(AREA, "power_callback_unregister",
+                 unregistered == 0 && unregisteredAgain == POWER_NOT_REGISTERED && notCallback == POWER_NOT_A_CALLBACK,
+                 "0x%08X, again 0x%08X, not a callback 0x%08X", (unsigned int)unregistered, (unsigned int)unregisteredAgain,
+                 (unsigned int)notCallback);
+    if (callback > 0)
+    {
+        sceKernelDeleteCallback(callback);
+    }
+}
+
 static void check_power(void)
 {
     int percent = scePowerGetBatteryLifePercent();
@@ -348,6 +400,7 @@ void test_system_run(bool withDialogs)
         check_rtc();
         check_system_params();
         check_power();
+        check_power_callback();
         check_display_and_memory();
         check_network();
         check_registry_system_only();

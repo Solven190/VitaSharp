@@ -32,6 +32,7 @@ public static class DefaultMappings
         K(VitaControl.Start, "Enter");
         K(VitaControl.Select, "Backspace", "ShiftRight");
         K(VitaControl.PS, "Home");
+        K(VitaControl.Power, "End");
         K(VitaControl.LStickUp, "W");
         K(VitaControl.LStickDown, "S");
         K(VitaControl.LStickLeft, "A");

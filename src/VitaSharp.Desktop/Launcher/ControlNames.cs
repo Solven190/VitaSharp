@@ -31,6 +31,7 @@ static class ControlNames
         VitaControl.Start => "Start",
         VitaControl.Select => "Select",
         VitaControl.PS => T("CtlPsButton"),
+        VitaControl.Power => T("CtlPowerButton"),
         VitaControl.L3 => "L3 (PS TV)",
         VitaControl.R3 => "R3 (PS TV)",
         VitaControl.LStickUp => Stick(true, ArrowUp),

@@ -810,8 +810,12 @@ public sealed partial class SystemMisc : HleModule
     [Hle] int scePowerGetBusClockFrequency() => 222;
     [Hle] int scePowerGetGpuClockFrequency() => 222;
     [Hle] int scePowerGetGpuXbarClockFrequency() => 166;
-    [Hle] int scePowerRegisterCallback(int cb) => 0;
-    [Hle] int scePowerUnregisterCallback(int cb) => 0;
+    /// <summary>The power callbacks of the system (<see cref="Kernel.PowerCallbacks"/>, as ScePower 3.74).</summary>
+    [Hle]
+    int scePowerRegisterCallback(int cb) => Emu.Vita.Power.Callbacks.Register(Emu, cb);
+
+    [Hle]
+    int scePowerUnregisterCallback(int cb) => Emu.Vita.Power.Callbacks.Unregister(Emu, cb);
     [Hle] int scePowerRequestDisplayOn() => 0;
     [Hle] int scePowerRequestDisplayOff() => 0;
 
@@ -842,8 +846,24 @@ public sealed partial class SystemMisc : HleModule
     [Hle] int scePowerGetUsingWireless() => _usingWireless;
 
     // power requests: VitaSharp never suspends or restarts
-    [Hle] int scePowerRequestSuspend() { Log.Info("scePowerRequestSuspend (ignored)"); return 0; }
-    [Hle] int scePowerRequestStandby() { Log.Info("scePowerRequestStandby (ignored)"); return 0; }
+    /// <summary>Standby (the console's suspend; the shell's reaction to a POWER press): the emulation stops until POWER
+    /// is pressed again (<see cref="Kernel.SystemPower"/>).</summary>
+    [Hle]
+    int scePowerRequestSuspend()
+    {
+        Log.Info("scePowerRequestSuspend");
+        Emu.Vita.Power.Suspend();
+        return 0;
+    }
+
+    /// <summary>"Standby" is ScePower's name for turning the system off (the shell's Power Off): the session ends.</summary>
+    [Hle]
+    int scePowerRequestStandby()
+    {
+        Log.Info("scePowerRequestStandby: power off");
+        Emu.Vita.Power.PowerOff();
+        return 0;
+    }
     [Hle] int scePowerRequestColdReset() { Log.Warn("scePowerRequestColdReset (ignored)"); return 0; }
     [Hle] int scePowerIsSuspendRequired() => 0;
     [Hle] int scePowerIsRequest() => 0;

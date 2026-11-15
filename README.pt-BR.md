@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=6f9c52fbaa96db7ba56a1176cd23f8f64ea25be0d9312758e1a7d82a34fcc3cf -->
+<!-- pair: README.md sha256=8d186cd38a40de82968eae58db90a8662136ae257e22820abc4474cbbe38f146 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -186,6 +186,7 @@ Os dados ficam em `%APPDATA%\VitaSharp` no Windows (`~/.local/share/VitaSharp` n
 | `X` ou `Espaço` / `C` / `Z` / `V` | Cruz / Círculo / Quadrado / Triângulo |
 | `Q` / `E`, `Enter` / `Backspace` | L / R, Start / Select |
 | `Home` | Botão PS |
+| `End` | Botão POWER: um toque põe o sistema em modo de espera (a imagem fica, com um aviso; o toque seguinte volta e o jogo recebe os callbacks de energia de uma retomada), segurar 2 s abre o menu de energia do sistema (com o Sistema do Vita rodando), segurar 4 s desliga (a sessão termina) |
 | Botão esquerdo / direito do mouse | Toque na tela frontal / no touchpad traseiro |
 | `F1` / `Shift+F1` | Resolução interna seguinte / anterior com o jogo rodando (1x, 2x, 3x, 4x; só nesta sessão, com aviso na tela) |
 | `F2` / `Shift+F2` | Taxa de quadros seguinte / anterior com o jogo rodando (nativa, fixa em 30, fixa em 60, sem limite) |

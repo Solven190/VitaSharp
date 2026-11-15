@@ -9,7 +9,8 @@ public enum VitaButtons : uint
     LTrigger = 0x100, RTrigger = 0x200, L1 = 0x400, R1 = 0x800,
     Triangle = 0x1000, Circle = 0x2000, Cross = 0x4000, Square = 0x8000,
     Intercepted = 0x10000, PsButton = 0x10000, HeadphoneConnected = 0x80000,
-    VolumeUp = 0x100000, VolumeDown = 0x200000, PowerButton = 0x4000000,
+    // SCE_CTRL_VOLUP / VOLDOWN / POWER (vita-headers psp2common/ctrl.h; ScePower's button thread tests 0x40000000)
+    VolumeUp = 0x100000, VolumeDown = 0x200000, PowerButton = 0x40000000,
 }
 
 public struct ControllerState
