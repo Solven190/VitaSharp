@@ -24,11 +24,16 @@ CFLAGS      := -O2 -g -std=gnu11 -Wall -Wextra -Wno-unused-parameter -ffast-math
 ASFLAGS     := -Wa,-I$(SHADER_DIR)
 LDFLAGS     := -Wl,-q
 
+# stubs of firmware libraries VitaSDK has none for (stubs/firmware_stubs.yml)
+STUBS_DIR   := $(BUILD_DIR)/stubs
+STUBS_DONE  := $(STUBS_DIR)/.built
+
 LIBS := \
 	-lSceGxm_stub -lSceDisplay_stub -lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub \
 	-lSceAudio_stub -lSceAvPlayer_stub -lSceCommonDialog_stub -lSceAppUtil_stub -lSceAppMgr_stub -lSceSysmodule_stub -lSceRegistryMgr_stub \
 	-lScePower_stub -lSceRtc_stub -lSceNetCtl_stub -lSceNet_stub -lSceLibKernel_stub \
 	-lSceKernelThreadMgr_stub -lSceIofilemgr_stub -lSceSysmem_stub -lSceProcessmgr_stub \
+	-L$(STUBS_DIR) -lSceMgVideo_stub -lSceMarlinHci_stub \
 	-lm
 
 .PHONY: all clean
@@ -44,8 +49,15 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(wildcard $(SRC_DIR)/*.h) | $(BUILD_DIR)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.S $(wildcard $(SHADER_DIR)/*.gxp) | $(BUILD_DIR)
 	$(CC) $(ASFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+$(STUBS_DONE): stubs/firmware_stubs.yml | $(BUILD_DIR)
+	rm -rf $(STUBS_DIR)
+	mkdir -p $(STUBS_DIR)
+	vita-libs-gen $< $(STUBS_DIR)
+	$(MAKE) -C $(STUBS_DIR)
+	touch $@
+
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(STUBS_DONE)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 $(BUILD_DIR)/$(TARGET).velf: $(BUILD_DIR)/$(TARGET).elf
 	vita-elf-create $< $@

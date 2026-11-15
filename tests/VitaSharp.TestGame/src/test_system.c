@@ -429,6 +429,52 @@ static void check_appmgr(void)
                  (unsigned int)coredumpResult);
 }
 
+/*
+ * The MagicGate video (os0:kd/mgvideo.skprx) and Marlin (os0:kd/marlin_hci.skprx) syscalls check a capability bit of
+ * the caller first (0x81 and 0x80, SceSblACMgr): a game, as this safe homebrew is, gets 0x80010058 from each. The
+ * calls are ones that change nothing even where a console answered differently (an open with three zeros and its
+ * release, the Marlin mutex taken and given back, a key kind check, a key object whose handle is released, a state
+ * read). VitaSDK has no stubs for these libraries: stubs/firmware_stubs.yml names them by NID.
+ */
+#define CAPABILITY_REFUSED ((int)0x80010058)
+int SceMgVideo_C62CA5A7(int first, int second, int third);
+int SceMgVideo_8A803FB4(int handle);
+int SceMgVideo_D6EE7B53(int handle);
+int SceMarlinHci_4406594F(void);
+int SceMarlinHci_457F6683(void);
+int SceMarlinHci_E8A352C2(int kind);
+int SceMarlinHci_C3E201D5(int kind, SceUID *handle);
+int SceMarlinHci_A626EBBC(SceUID handle);
+
+static void check_mgvideo_refused(void)
+{
+    int opened = SceMgVideo_C62CA5A7(0, 0, 0);
+    int released = SceMgVideo_8A803FB4(0);
+    if (opened >= 0)
+    {
+        SceMgVideo_D6EE7B53(opened);
+    }
+    bool refused = opened == CAPABILITY_REFUSED && released == CAPABILITY_REFUSED;
+    result_check(AREA, "mgvideo_refused_to_a_game", refused, "open 0x%08X release 0x%08X", (unsigned int)opened,
+                 (unsigned int)released);
+}
+
+static void check_marlin_refused(void)
+{
+    int locked = SceMarlinHci_4406594F();
+    int unlocked = SceMarlinHci_457F6683();
+    int kind = SceMarlinHci_E8A352C2(0);
+    SceUID handle = 0;
+    int made = SceMarlinHci_C3E201D5(0, &handle);
+    int state = SceMarlinHci_A626EBBC(handle);
+    bool refused = locked == CAPABILITY_REFUSED && unlocked == CAPABILITY_REFUSED && kind == CAPABILITY_REFUSED &&
+                   made == CAPABILITY_REFUSED && state == CAPABILITY_REFUSED && handle == 0;
+    result_check(AREA, "marlin_refused_to_a_game", refused,
+                 "lock 0x%08X unlock 0x%08X kind 0x%08X make 0x%08X handle 0x%08X state 0x%08X", (unsigned int)locked,
+                 (unsigned int)unlocked, (unsigned int)kind, (unsigned int)made, (unsigned int)handle,
+                 (unsigned int)state);
+}
+
 void test_system_run(bool withDialogs)
 {
     if (!withDialogs)
@@ -445,6 +491,8 @@ void test_system_run(bool withDialogs)
         check_registry_reset_backup_system_only();
         check_psm_only_module();
         check_appmgr();
+        check_mgvideo_refused();
+        check_marlin_refused();
         return;
     }
     app_show_progress("System", "message dialog ...");
