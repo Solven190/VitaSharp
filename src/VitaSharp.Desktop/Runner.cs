@@ -1035,16 +1035,13 @@ public static class Runner
                 ls = ls[..at];
             }
 
-            if (VitaSharp.Core.SaveState.SaveStates.ProgramOf(ls) is { } p && p.StartsWith("app0:", StringComparison.OrdinalIgnoreCase))
+            string exe = VitaSharp.Core.SaveState.SaveStates.BootExecutable(ls);
+            if (!exe.Equals("eboot.bin", StringComparison.OrdinalIgnoreCase))
             {
-                string exe = p[5..].TrimStart('/');
-                if (!exe.Equals("eboot.bin", StringComparison.OrdinalIgnoreCase))
-                {
-                    Log.Info($"--load-state: the state was saved in {p}: booting it");
-                }
-
-                return exe;
+                Log.Info($"--load-state: the state was saved in app0:{exe}: booting it");
             }
+
+            return exe;
         }
         return "eboot.bin";
     }

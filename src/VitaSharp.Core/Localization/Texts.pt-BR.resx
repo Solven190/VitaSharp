@@ -2730,6 +2730,15 @@
   <data name="MEmptyLower" xml:space="preserve">
     <value>vazio</value>
   </data>
+  <data name="MStatesOpenHint" xml:space="preserve">
+    <value>toque para jogar a partir dele</value>
+  </data>
+  <data name="MRecordingDetail" xml:space="preserve">
+    <value>{0} · {1:0.0} MB</value>
+  </data>
+  <data name="MNoRecordingsYet" xml:space="preserve">
+    <value>Nenhuma gravação deste jogo ainda. No jogo: menu de pausa, Gravar tudo.</value>
+  </data>
   <data name="MFile" xml:space="preserve">
     <value>arquivo</value>
   </data>

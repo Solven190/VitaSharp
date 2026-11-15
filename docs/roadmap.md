@@ -637,7 +637,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
   dois (conferido no mesmo teste); remapear os botões de cada controle em Controles > Mapeamento, com um toque no
   controle da lista e o botão apertado no controle, mais "Restaurar padrão" (feat/android-remap, `PadCaptureTests`;
-  a mesma regra de captura do desktop). Falta, nesta ordem: página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
+  a mesma regra de captura do desktop); página do jogo com os 6 slots (imagem e data; um toque abre o jogo já
+  carregando o estado, com o executável em que ele foi salvo e depois de `SaveStates.StartLoadFrames` quadros, como o
+  `--load-state`; com o jogo aberto, carrega nele; `--ei loadSlot N` pelo adb) e as gravações do Gravar tudo do jogo
+  com compartilhar (feat/android-game-states, `AndroidGameStatesTests`). Falta confirmar no celular (Killzone: tocar
+  num slot na página do jogo). Falta, nesta ordem: fonte de cada câmera
   (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
   no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede

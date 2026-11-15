@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=5c2981795ed5998c5ddbe151ad7d260c19da3c84510864cdfea3af89563c96ba -->
+<!-- pair: README.md sha256=63ddf1cbedf212d182a684eadde4cee8f16aa43de937b83b809b4692c195bc68 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -290,6 +290,11 @@ vibração (a cada toque, também com o outro dedo no analógico; fraca, média 
 tela, MSAA, taxa de quadros, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
 relatório de bug do F8 do desktop (save state, entrada, GPU dump, quadros, áudio e log) em `captures/` até **Parar
 gravação**; envie o `.zip` como em [Relatar um bug](#relatar-um-bug).
+
+**Estados e gravações na página do jogo.** Os detalhes do jogo mostram os 6 slots com a imagem e a data; tocar num
+slot abre o jogo já carregando aquele estado (como o `--load-state` do desktop; com o jogo aberto, carrega nele). Logo
+abaixo ficam as gravações do **Gravar tudo** do jogo, com data e tamanho; tocar numa compartilha o `.zip`. Pelo adb:
+`am start ... --es titleId <ID> --ei loadSlot <1-6>`.
 
 **Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa ou 2x), MSAA, taxa de quadros
 (**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`

@@ -16,6 +16,10 @@ public sealed class GameState
     public TrophyProgress Trophies { get; set; } = TrophyProgress.None;
     public GameSettings Settings { get; set; } = new();
     public (long Bytes, DateTime? Modified) Saves { get; set; }
+    public IReadOnlyList<StateSlot> Slots { get; set; } = [];
+    /// <summary>The slots' pictures, made once per load (a new image source per render would reload them).</summary>
+    public IReadOnlyList<ImageSource?> SlotPictures { get; set; } = [];
+    public IReadOnlyList<GameRecording> Recordings { get; set; } = [];
 }
 
 /// <summary>
@@ -45,7 +49,27 @@ public sealed class GamePage : Screen<GameState, GameProps>
         var trophies = game != null ? GameLibrary.Trophies(game, data) : TrophyProgress.None;
         var settings = GameSettings.Load(data.GameSettingsFile(Props.TitleId));
         var saves = SaveInfo(data.SaveDir(Props.TitleId));
-        SetState(s => { s.Game = game; s.Trophies = trophies; s.Settings = settings; s.Saves = saves; });
+        var slots = GameStates.Slots(data.Root, Props.TitleId);
+        var pictures = new ImageSource?[slots.Count];
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i].Header?.Thumbnail is { Length: > 0 } png)
+            {
+                pictures[i] = ImageSource.FromStream(() => new MemoryStream(png));
+            }
+        }
+
+        var recordings = GameStates.Recordings(System.IO.Path.Combine(data.Root, "captures"), Props.TitleId);
+        SetState(s =>
+        {
+            s.Game = game;
+            s.Trophies = trophies;
+            s.Settings = settings;
+            s.Saves = saves;
+            s.Slots = slots;
+            s.SlotPictures = pictures;
+            s.Recordings = recordings;
+        });
     });
 
     static (long, DateTime?) SaveInfo(string dir)
@@ -94,6 +118,10 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         Stat(Loc.Get("MLast"), GameLibrary.LastPlayed(s.LastPlayedUtc, DateTime.UtcNow), 2)
                     ).ColumnSpacing(10).Padding(20, 16, 20, 0),
                     TrophyCard(),
+                    SectionTitle(Loc.Get("SaveStatesTitle"), Loc.Get("MStatesOpenHint")),
+                    StatesGrid(g),
+                    SectionTitle(Loc.Get("MRecordAll")),
+                    RecordingsCard(),
                     SectionTitle(Loc.Get("MGameSettings")),
                     Card(
                         Row("CPU", ValueText(CpuChoices.Available(), s.CpuBackend, SettingsChoices.LabelOf(CpuChoices.Available(), eff.CpuBackend)),
@@ -185,6 +213,79 @@ public sealed class GamePage : Screen<GameState, GameProps>
             .StrokeShape(new RoundRectangle().CornerRadius(20)).StrokeThickness(0).BackgroundColor(Palette.Surface)
             .Margin(20, 16, 20, 0)
             .OnTapped(() => { if (t.HasTrophies) Navigation?.PushAsync<TrophiesPage, GameProps>(p => p.TitleId = Props.TitleId); });
+    }
+
+    /// <summary>Slots 1-6 with their picture and date; a tap opens the game already in that state (the desktop's game
+    /// page and --load-state). An empty or incompatible slot says so and does nothing.</summary>
+    VisualNode StatesGrid(GameEntry g)
+    {
+        var slots = State.Slots;
+        var cells = new List<VisualNode>();
+        for (int i = 0; i < slots.Count; i++)
+        {
+            StateSlot slot = slots[i];
+            ImageSource? picture = i < State.SlotPictures.Count ? State.SlotPictures[i] : null;
+            string line = slot.Problem ?? (slot.Header is { } h ? h.CreatedUtc.ToLocalTime().ToString("g", Loc.Culture) : Loc.Get("MEmptyLower"));
+            var card = Border(
+                    VStack(
+                        Border(picture != null
+                                ? Image().Source(picture).Aspect(Aspect.AspectFill)
+                                : BoxView().Color(Color.FromArgb("#0E1116")))
+                            .StrokeShape(new RoundRectangle().CornerRadius(12)).StrokeThickness(0).HeightRequest(64),
+                        Label(Loc.Format("Slot", slot.Slot)).FontFamily(Fonts.InterSemiBold).FontSize(13)
+                            .TextColor(slot.CanLoad ? Palette.Text : Palette.Faint).Margin(0, 8, 0, 0),
+                        Label(line).FontSize(11).TextColor(slot.Problem != null ? Palette.Danger : Palette.Muted)
+                            .MaxLines(2).LineBreakMode(LineBreakMode.TailTruncation)
+                    ).Padding(8))
+                .StrokeShape(new RoundRectangle().CornerRadius(18)).Stroke(Palette.Border).StrokeThickness(1)
+                .BackgroundColor(Palette.Surface).Opacity(slot.CanLoad ? 1 : 0.6)
+                .GridRow(i / 3).GridColumn(i % 3);
+            if (slot.CanLoad)
+            {
+                int number = slot.Slot;
+                card = card.OnTapped(() => GameActivity.Launch(MainActivity.Current!, g.TitleId, loadSlot: number));
+            }
+
+            cells.Add(card);
+        }
+
+        return Grid("Auto,Auto", "*,*,*", cells.ToArray()).ColumnSpacing(10).RowSpacing(10).Margin(20, 0, 20, 12);
+    }
+
+    /// <summary>The game's "Gravar tudo" recordings (newest first) with their date and size; a tap shares the zip.</summary>
+    VisualNode RecordingsCard()
+    {
+        var recordings = State.Recordings;
+        if (recordings.Count == 0)
+        {
+            return Card(Row(Loc.Get("MNoRecordingsYet")));
+        }
+
+        var rows = new List<VisualNode?>();
+        foreach (GameRecording recording in recordings)
+        {
+            if (rows.Count > 0)
+            {
+                rows.Add(Divider());
+            }
+
+            string when = recording.ModifiedUtc.ToLocalTime().ToString("g", Loc.Culture);
+            rows.Add(Row(when, Loc.Get("MShare"), () => ShareRecording(recording),
+                detail: Loc.Format("MRecordingDetail", recording.Name, recording.Bytes / (1024.0 * 1024.0))));
+        }
+
+        return Card(rows.ToArray());
+    }
+
+    async void ShareRecording(GameRecording recording)
+    {
+        if (!File.Exists(recording.Path))
+        {
+            Load();
+            return;
+        }
+
+        await Run(Loc.Get("MShare"), () => Share.Default.RequestAsync(new ShareFileRequest(recording.Name, new ShareFile(recording.Path, "application/zip"))));
     }
 
     async void Pick(string title, IReadOnlyList<Choice> choices, string globalValue, Action<string?> apply)

@@ -10,8 +10,63 @@ namespace VitaSharp.Android.Game;
 /// &lt;data&gt;/savestates/&lt;TITLEID&gt;/, each with a picture of the screen taken when the menu opened.</summary>
 public sealed partial class EmulationSession
 {
-    public const int StateSlots = 6;
+    public const int StateSlots = Mobile.Core.Library.GameStates.SlotCount;
     byte[]? _menuThumbnail;
+
+    /// <summary>The slot the game opens in (the game page, a launch intent's loadSlot), 0 for a normal start.</summary>
+    readonly int _startSlot;
+
+    /// <summary>The executable to boot: the shell, the one the start slot's state was saved in (a program a LoadExec
+    /// started is booted directly, as the desktop's --load-state does), else eboot.bin.</summary>
+    string BootExecutable()
+    {
+        if (_game.TitleId == GameActivity.SystemTitleId)
+        {
+            return Emulator.ShellSelf;
+        }
+
+        if (_startSlot > 0)
+        {
+            string exe = SaveStates.BootExecutable(StatePath(_startSlot));
+            Log.Info($"Start in save state slot {_startSlot}: booting {exe}");
+            return exe;
+        }
+
+        return "eboot.bin";
+    }
+
+    /// <summary>Loads the start slot once the game presented <see cref="SaveStates.StartLoadFrames"/> frames (its
+    /// modules and service threads exist), as the desktop's --load-state; the result is shown as a notice.</summary>
+    void LoadStartSlot()
+    {
+        if (_startSlot == 0)
+        {
+            return;
+        }
+
+        long due = _framesAtStart + SaveStates.StartLoadFrames;
+        var thread = new Thread(() =>
+        {
+            while (VitaSharp.Core.Hle.Modules.Display.FramesPresented < due)
+            {
+                if (_disposed || Ended)
+                {
+                    return;
+                }
+
+                Thread.Sleep(10);
+            }
+
+            string message = LoadState(_startSlot);
+            Log.Info($"Start in save state slot {_startSlot}: {message}");
+            CaptureStatus?.Invoke(message);
+        })
+        {
+            Name = "start state",
+            IsBackground = true,
+        };
+        thread.Start();
+    }
 
     public string StatePath(int slot) => SaveStates.SlotPath(Services.AppServices.Data.Root, _game.TitleId, slot);
 

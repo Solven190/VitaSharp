@@ -94,7 +94,7 @@ public sealed class MainActivity : MauiAppCompatActivity
     /// <summary>
     /// A launcher intent with a "titleId" extra starts that game directly (home-screen shortcuts, and testing on a
     /// device: <c>adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p io.github.vitasharp
-    /// --es titleId PCSB01240</c>).
+    /// --es titleId PCSB01240</c>; <c>--ei loadSlot 4</c> opens it already in save state slot 4).
     /// </summary>
     void LaunchRequestedGame(Intent? intent)
     {
@@ -111,8 +111,11 @@ public sealed class MainActivity : MauiAppCompatActivity
         if (intent?.GetStringExtra(Game.GameActivity.ExtraTitleId) is not { Length: > 0 } titleId)
             return;
         intent.RemoveExtra(Game.GameActivity.ExtraTitleId);
-        Core.Util.Log.Info($"Launch intent: starting {titleId}");
-        Game.GameActivity.Launch(this, titleId, wakeScreen: true);
+        // --ei loadSlot N: the game opens already in that save state, as a slot tapped on the game page
+        int loadSlot = Mobile.Core.Library.GameStates.LaunchSlot(intent.GetIntExtra(Game.GameActivity.ExtraLoadSlot, 0));
+        intent.RemoveExtra(Game.GameActivity.ExtraLoadSlot);
+        Core.Util.Log.Info(loadSlot > 0 ? $"Launch intent: starting {titleId} in save state slot {loadSlot}" : $"Launch intent: starting {titleId}");
+        Game.GameActivity.Launch(this, titleId, wakeScreen: true, loadSlot: loadSlot);
     }
 
     protected override void OnResume()

@@ -69,9 +69,10 @@ public sealed partial class EmulationSession : IDisposable
     /// <summary>Thread placement, ADPF and the game's frame rate (for the display refresh rate).</summary>
     public GamePerformance Performance { get; }
 
-    public EmulationSession(GameEntry game, AndroidInput input, string rpcnPassword)
+    public EmulationSession(GameEntry game, AndroidInput input, string rpcnPassword, int startSlot = 0)
     {
         _game = game;
+        _startSlot = GameStates.LaunchSlot(startSlot);
         var data = AppServices.Data;
         var prefs = AppServices.Prefs;
         _settings = EffectiveSettings.Resolve(prefs, AppServices.GameSettingsFor(game.TitleId));
@@ -298,11 +299,12 @@ public sealed partial class EmulationSession : IDisposable
             }
             Log.Info($"Renderer: {_renderer.DeviceName}");
             _emu.Gpu.Backend = _renderer;
-            _emu.LoadTitle(_game.AppDir, _game.TitleId == GameActivity.SystemTitleId ? Emulator.ShellSelf : "eboot.bin");
+            _emu.LoadTitle(_game.AppDir, BootExecutable());
             _framesAtStart = VitaSharp.Core.Hle.Modules.Display.FramesPresented;
             _played.Start();
             _emu.Start();
             _emuStarted = true;
+            LoadStartSlot();
             ScheduleGpuDump();
 #if VITASHARP_DEVELOPER
             // VITASHARP_CAPTURE=KIND@START:STOP (seconds after the game starts): the pause menu's capture, scripted

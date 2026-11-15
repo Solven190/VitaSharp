@@ -255,7 +255,7 @@ sealed class SaveStateControl(Emulator emu, VulkanRendererOptions ro, Func<IGpuB
         if (Runner.Opt(options, "--load-state") is { } ls)
         {
             int at = ls.LastIndexOf('@');
-            long frame = 120;
+            long frame = SaveStates.StartLoadFrames;
             if (at > 1 && long.TryParse(ls[(at + 1)..].TrimStart('f'), out var lf))
             {
                 frame = lf;

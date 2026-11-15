@@ -506,6 +506,31 @@ public static class SaveStates
     }
 
     /// <summary>
+    /// Presented frames a state loaded when the game starts waits for (the desktop's --load-state, a slot picked on
+    /// the Android game page): the game's modules and service threads exist by then.
+    /// </summary>
+    public const int StartLoadFrames = 120;
+
+    /// <summary>
+    /// The executable (relative to app0:) to boot so that the state in <paramref name="path"/> loads into the program it
+    /// was saved in: the program a LoadExec started ("Jak1.self" of the Jak and Daxter Collection) is booted directly.
+    /// "eboot.bin" when the state was saved in it, outside app0: or cannot be read.
+    /// </summary>
+    public static string BootExecutable(string path)
+    {
+        if (ProgramOf(path) is { } program && program.StartsWith("app0:", StringComparison.OrdinalIgnoreCase))
+        {
+            string exe = program[5..].TrimStart('/');
+            if (exe.Length > 0)
+            {
+                return exe;
+            }
+        }
+
+        return "eboot.bin";
+    }
+
+    /// <summary>
     /// When the state in <paramref name="path"/> was saved in another executable of the running game than the one
     /// running now (the program a LoadExec started: Jak 1 of the Jak and Daxter Collection, saved and then loaded after
     /// the game was opened again, which boots the collection's menu), performs that LoadExec first and waits until the
@@ -513,7 +538,7 @@ public static class SaveStates
     /// load at start). Returns false when nothing had to be done; throws <see cref="SnapshotException"/> when the
     /// program did not come up in time.
     /// </summary>
-    public static bool SwitchProgramFor(Emulator emu, string path, Action<string>? status = null, int frames = 120, int timeoutMs = 60_000)
+    public static bool SwitchProgramFor(Emulator emu, string path, Action<string>? status = null, int frames = StartLoadFrames, int timeoutMs = 60_000)
     {
         if (ProgramOf(path) is not { } program || emu.MainModule == null
             || string.Equals(program, emu.MainModule.Path, StringComparison.OrdinalIgnoreCase))

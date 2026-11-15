@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=5e6967377c63b5e0d010a0b903b665414b025beb516a91318ab6f5f35bfd2267 -->
+<!-- pair: README.pt-BR.md sha256=3b07d8ec2fa90c5a41abd854ac7d283fdf89970e82ae6e355355b33231aa363d -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -286,6 +286,11 @@ started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 sl
 touch, on-screen controls, MSAA, frame rate, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
 tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
 `captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
+
+**States and recordings on the game page.** The game's details show the 6 slots with their picture and date; tapping a
+slot opens the game already loading that state (as the desktop's `--load-state`; with the game open, it loads into
+it). Below them are the game's **Gravar tudo** recordings with their date and size; tapping one shares the `.zip`.
+From adb: `am start ... --es titleId <ID> --ei loadSlot <1-6>`.
 
 **Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
 game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in

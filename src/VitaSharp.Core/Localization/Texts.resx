@@ -2730,6 +2730,15 @@
   <data name="MEmptyLower" xml:space="preserve">
     <value>empty</value>
   </data>
+  <data name="MStatesOpenHint" xml:space="preserve">
+    <value>tap to play from it</value>
+  </data>
+  <data name="MRecordingDetail" xml:space="preserve">
+    <value>{0} · {1:0.0} MB</value>
+  </data>
+  <data name="MNoRecordingsYet" xml:space="preserve">
+    <value>No recording of this game yet. In the game: pause menu, Record everything.</value>
+  </data>
   <data name="MFile" xml:space="preserve">
     <value>file</value>
   </data>
