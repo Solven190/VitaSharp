@@ -405,7 +405,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][M] Prioridade das threads em CPU híbrida (núcleos E) e na bateria: medir `SetThreadSelectedCpuSets` e o
   power throttling num Intel de 12ª geração ou mais novo (as threads da CPU emulada e da GPU já sobem para acima do
   normal, `--host-prio`; ver `docs/notes/thread-priority.md`)
-- [ ] [P2][M] Queda para 50-54 fps no menu do Sonic Mania
+- [x] (15/11/2026, usuário: concluído) [P2][M] Queda para 50-54 fps no menu do Sonic Mania
   Bloqueado (perf/desktop-23, 12/11/2026): o port não roda desde que o taiHEN em HLE saiu (11/11/2026, decisão do
   usuário: só módulos reais; ver Firmware e sistema), então este item e o das travadas nos carregamentos não podem ser
   medidos agora. A correção do ritmo das chamadas HLE (Wipeout 2048, Bugs em aberto) não mexe no custo do laço de
@@ -424,7 +424,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][P] Opção por jogo "Relógio da CPU" (333 MHz / 444 MHz / sem ritmo), como a taxa de quadros por jogo: **pendente da
   decisão do usuário, não implementar antes** (anotado em 08/11/2026, perf/desktop-12). Motivo: o menu do Sonic Mania
   (item acima) e outros jogos presos na CPU emulada a 333 MHz; hoje só --cpu-mhz=/VITASHARP_CPU_MHZ mudam isso
-- [ ] [P2][M] Sonic Mania: travadas de 3-5 s nos carregamentos (quadros ~1131 e ~1856 do `mania_boot`, 6-17 fps nesses 5 s)
+- [x] (15/11/2026, usuário: concluído) [P2][M] Sonic Mania: travadas de 3-5 s nos carregamentos (quadros ~1131 e ~1856 do `mania_boot`, 6-17 fps nesses 5 s)
   (perf/desktop-14, 08/11/2026). Reproduz com a CPU livre, em 1x e 2x e também sem ritmo de CPU (`--cpu-mhz=0`), então
   é tempo do host, não o relógio emulado. Precisa de `ux0:data/Mania` na pasta de dados (sem ele a tela fica preta).
   Perfil (dotnet-trace na travada): a `pthread` passa ~77% e a `main` ~22% do tempo dentro de uma mesma chamada HLE
@@ -2060,7 +2060,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `RendererTextureTests.EveryTextureFormatAndLayoutSamplesAndTheDumpReplaysTheSame` derruba o testhost com SIGSEGV
   (exit 139) logo depois de "Readback buffers" / o primeiro present; o runner ubuntu não tem lavapipe e pula. A
   investigar (driver lavapipe ou leitura de volta do renderizador).
-- [ ] [P3][G] **PRIORIDADE (11/11/2026, dia de refatoração)** O emulador é genérico (regra do usuário: nada específico a
+- [x] (15/11/2026: auditoria e trocas feitas, GenericCodeTests no CI; os passos de kernel que sobraram seguem no item "Plugins de kernel .skprx") [P3][G] **PRIORIDADE (11/11/2026, dia de refatoração)** O emulador é genérico (regra do usuário: nada específico a
   não ser a camada Vulkan; ver `tests/VitaSharp.Tests/GenericCodeTests.cs`). (1) Auditoria arquivo por arquivo de src/ procurando qualquer
   comportamento por jogo, app, homebrew ou módulo de terceiro (comparação de ID/nome, listas fixas, caminhos fixos,
   HLE de módulo que não é do firmware) e lista com o arquivo:linha de cada um. (2) Trocar cada um pelo caminho
