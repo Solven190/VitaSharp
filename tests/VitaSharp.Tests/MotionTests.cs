@@ -120,6 +120,9 @@ public sealed class MotionTests(GuestMemoryFixture fixture)
     /// <summary>The device's basic orientation follows driver_us 3.74's three thresholds: a narrow Z cone with a
     /// wide in-plane band (NID_CA0A798B gives th[0] = 10, stored as 80) leaves Z at a 15 degree tilt, which the
     /// default 20/20/20 keeps on Z.</summary>
+    private static void SetThreshold(MotionFusion fusion, string name, float degrees) =>
+        (typeof(MotionFusion).GetProperty(name) ?? throw new MissingMemberException(nameof(MotionFusion), name)).SetValue(fusion, degrees);
+
     [Fact]
     public void BasicOrientationUsesTheThreeThresholds()
     {
@@ -129,7 +132,9 @@ public sealed class MotionTests(GuestMemoryFixture fixture)
         standard.Update(Pitch(15), Vector3.Zero, Dt);
         Assert.Equal(new Vector3(0, 0, 1), standard.BasicOrientation);
 
-        var narrow = new MotionFusion { AngleThresholdPlane = 80f, AngleThresholdCone = 5f };
+        var narrow = new MotionFusion();
+        SetThreshold(narrow, "AngleThresholdPlane", 80f);
+        SetThreshold(narrow, "AngleThresholdCone", 5f);
         narrow.Update(Pitch(0), Vector3.Zero, Dt);
         Assert.Equal(new Vector3(0, 0, 1), narrow.BasicOrientation);
         narrow.Update(Pitch(15), Vector3.Zero, Dt);
