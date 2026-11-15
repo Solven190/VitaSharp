@@ -106,10 +106,15 @@ public sealed class GamePage : Screen<GameState, GameProps>
                             () => Pick(Loc.Get("MGpuProfile"), SettingsChoices.GpuProfiles, app.GpuProfile, v => s.GpuProfile = v)),
                         Divider(),
                         Row(Loc.Get("MInternalResolution"), ValueText(SettingsChoices.ResScales, s.ResScale, SettingsChoices.LabelOf(SettingsChoices.ResScales, eff.ResScale)),
-                            () => Pick(Loc.Get("MInternalResolution"), SettingsChoices.ResScales, "", v => s.ResScale = v)),
+                            () => Pick(Loc.Get("MInternalResolution"), SettingsChoices.ResScales, "", v => s.ResScale = string.IsNullOrEmpty(v) ? null : v),
+                            detail: Loc.Get("MInternalResolutionDetail")),
                         Divider(),
                         Row(Loc.Get("MMsaa"), ValueText(SettingsChoices.MsaaModes, s.Msaa, SettingsChoices.LabelOf(SettingsChoices.MsaaModes, eff.Msaa)),
                             () => Pick(Loc.Get("MMsaa"), SettingsChoices.MsaaModes, "", v => s.Msaa = v)),
+                        Divider(),
+                        Row(Loc.Get("FrameRate"), ValueText(SettingsChoices.FrameRates, s.FrameRate, SettingsChoices.LabelOf(SettingsChoices.FrameRates, eff.FrameRate)),
+                            () => Pick(Loc.Get("FrameRate"), SettingsChoices.FrameRates, "", v => s.FrameRate = string.IsNullOrEmpty(v) ? null : v),
+                            detail: Loc.Get("MFrameRateDetail")),
                         Divider(),
                         ToggleRow("VSync", eff.VSync, v => Save(x => x.VSync = v == app.VSync ? null : v)),
                         Divider(),
@@ -128,6 +133,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
                             x.ResScale = null;
                             x.Msaa = null;
                             x.FastLoading = null;
+                            x.FrameRate = null;
                         })) : null
                     ),
                     SectionTitle(Loc.Get("MSaves")),

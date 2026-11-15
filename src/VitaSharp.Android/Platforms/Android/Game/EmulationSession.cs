@@ -80,6 +80,11 @@ public sealed partial class EmulationSession : IDisposable
             Log.Info(line);
         Log.Info($"Game {game.TitleId} '{game.Title}' {game.Version}: CPU {(_settings.CpuBackend.Length > 0 ? _settings.CpuBackend : "auto")}, " +
                  $"{_settings.ClockHz / 1_000_000} MHz, GPU profile {(_settings.GpuProfile.Length > 0 ? _settings.GpuProfile : "native")}, VSync {_settings.VSync}" + (_settings.ResScale.Length > 0 ? $", resolution scale {_settings.ResScale}" : "") + (_settings.FastLoading ? ", fast loading" : ""));
+        VitaSharp.Core.Hle.Modules.FrameRate.Mode = _settings.StartFrameRate(Environment.GetEnvironmentVariable(VitaSharp.Core.Util.EnvVars.FrameRate));
+        if (VitaSharp.Core.Hle.Modules.FrameRate.Mode != VitaSharp.Core.Hle.Modules.FrameRateMode.Native)
+        {
+            Log.Info($"Frame rate: {VitaSharp.Core.Hle.Modules.FrameRate.Name(VitaSharp.Core.Hle.Modules.FrameRate.Mode)}");
+        }
 
         CpuCore.InstructionsPerSecond = _settings.ClockHz;
         VitaSharp.Core.Util.IoTiming.FastLoading = _settings.FastLoading; // "Carregamento rapido" (else the Vita memory card's speed)
@@ -606,6 +611,34 @@ public sealed partial class EmulationSession : IDisposable
             else
                 Log.Info($"MSAA {(off ? "off" : "native")}: renderer replaced");
         });
+    }
+
+    /// <summary>The frame rate option's value now ("" = native, "30", "60", "unlimited").</summary>
+    public string FrameRateValue
+    {
+        get
+        {
+            VitaSharp.Core.Hle.Modules.FrameRateMode mode = VitaSharp.Core.Hle.Modules.FrameRate.Mode;
+            return mode == VitaSharp.Core.Hle.Modules.FrameRateMode.Native ? "" : VitaSharp.Core.Hle.Modules.FrameRate.Name(mode);
+        }
+    }
+
+    /// <summary>Changes the per-game frame rate while the game runs: saved for the title and applied at the next display
+    /// wait (the mode is read on every vblank wait, as the desktop's F2 hotkey does).</summary>
+    public void SetFrameRate(string value)
+    {
+        try
+        {
+            var gs = GameSettings.Load(AppServices.Data.GameSettingsFile(_game.TitleId));
+            gs.FrameRate = value.Length > 0 ? value : null;
+            AppServices.SaveGameSettings(_game.TitleId, gs);
+        }
+        catch (Exception e)
+        {
+            Log.Warn($"Frame rate setting: {e.Message}");
+        }
+        VitaSharp.Core.Hle.Modules.FrameRate.Mode = VitaSharp.Core.Hle.Modules.FrameRate.Parse(value);
+        Log.Info($"Frame rate: {VitaSharp.Core.Hle.Modules.FrameRate.Name(VitaSharp.Core.Hle.Modules.FrameRate.Mode)} (pause menu)");
     }
 
     public void RecordStatistics()

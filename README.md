@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=c4e8cb7468014e9efb5e6b7a2ee2de98712b3dba4fb5b10962dacbb821ebe7b0 -->
+<!-- pair: README.pt-BR.md sha256=e0ce2de666e8c2388e7451d8ec09785de4cc3db567182c9c2844e66ec4dfd2c2 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -205,7 +205,7 @@ gyroscope. Everything can be remapped in **Settings > Controls**, per controller
 The Android app (`src/VitaSharp.Android`) is a .NET MAUI app that runs the same emulator core as the desktop on arm64
 phones: the Release APK is compiled with Native AOT by default, the Vita's ARMv7 code runs on the native ARM64 JIT and
 the picture is drawn with Vulkan. It has its own screens: game library, game details (CPU backend, clock, GPU profile,
-internal resolution, MSAA, VSync and the FPS counter per game, saves), trophies, controls, settings, firmware, GPU driver, PSN
+internal resolution, MSAA, frame rate, VSync and the FPS counter per game, saves), trophies, controls, settings, firmware, GPU driver, PSN
 account and network, and a performance page. The app follows the language setting (**Ajustes > Aparência > Idioma**;
 the menu names below are the Portuguese ones). Screens and design:
 [`docs/android/README.md`](docs/android/README.md#screens).
@@ -253,17 +253,18 @@ USB/MTP or the Files app on most phones; uninstalling the app deletes it.
 SELECT/PS/START, a TRÁS toggle for the rear touchpad); touches on the picture are the front touch screen. Bluetooth or
 USB controllers are detected on their own with the desktop's positional layout (the on-screen controls hide while one
 is connected), and a hardware keyboard uses the desktop's keys. **Controles** sets the O/X swap, deadzone, opacity,
-vibration and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
+vibration (on every press, also with the other thumb on the stick; weak, medium or strong) and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
 
 **Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game
 started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear
-touch, on-screen controls, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
+touch, on-screen controls, MSAA, frame rate, pre-recording), **Recentralizar** (motion), **Gravar tudo** and **Sair do jogo**. **Gravar
 tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
 `captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
 
-**Per-game settings.** In the game's details: internal resolution, MSAA, VSync (the frame rate follows the game's own
-30 or 60 fps; there is no separate frame rate choice on Android yet), the FPS counter, CPU backend, clock and GPU
-profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
+**Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
+game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
+the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
+GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
 
 **Known limitations.**
 
