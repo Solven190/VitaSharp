@@ -4334,7 +4334,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   05/11/2026 22:22 (main da8372d, com a b6949d7): o usuário não viu mais os triângulos na partida. Parece resolvido,
   falta mais uma partida
   Confirmado pelo usuário (06/11/2026, main 0d298b4): todos os problemas do FIFA 13 corrigidos
-- [ ] [P3][M] Achados do agente de bug C (05/11/2026; detalhes na branch fix/bugs-games, commits 749d738..7330147):
+- [x] (15/11/2026, usuário: concluído) [P3][M] Achados do agente de bug C (05/11/2026; detalhes na branch fix/bugs-games, commits 749d738..7330147):
   Jak 1: com o save state do usuário (carregado depois do LoadExec da coleção, cópias de ux0/user/00 e np) há quadros
   isolados com o céu preto e o mar azul-claro (7 em 623 quadros, `tileflick.py`), e a câmera segue o Jak; os dumps do
   usuário 015823/020221 não têm esse flicker e mostram a câmera fixa (intermitente). Ferramenta: depois de LoadExec ou
@@ -4346,7 +4346,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   desligado pela lógica do jogo a cada quadro (cor do uniform 1/0), a fila da tela pede 2 vblanks por troca e isso é
   respeitado; próximo passo é logar `sceKernelGetProcessTimeWide` por quadro e `--watch` na origem da cor. Akiba's
   Beat: as telas pretas longas são carregamentos (no Vita 8-18 s, com ícone animado; aqui a imagem congela ~10 s)
-- [ ] [P3][M] Achados do agente de bug C, dia 2 (05/11/2026, branch fix/bugs-games-2; dados em
+- [x] (15/11/2026, usuário: concluído) [P3][M] Achados do agente de bug C, dia 2 (05/11/2026, branch fix/bugs-games-2; dados em
   `bugsC2_*`). Corrigidos: (1) o renderer criado depois de um LoadExec ou de carregar um estado segue a
   contagem de presents do jogo (`FirstPresent = Display.FramesPresented`): o `--gpu-dump-at=1740:2340` do Jak 1
   depois do LoadExec e do estado gravou os presents 1740-2340 e os frame_N.png mantêm os números; (2) o travamento
@@ -4430,7 +4430,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   em 527 quadros (1351→1352→1353, `bugsC3_out/menu1352.png`), contra 7/504 antes da 57c57b1 — falta o
   usuário confirmar olhando para a direita na main atual
   Concluído por decisão do usuário (06/11/2026): Jak and Daxter fechado, exceto o save state no gameplay (item abaixo)
-- [ ] [P3][M] Achados do agente de bug C, dia 3 (05/11/2026, branch fix/bugs-games-3; dados em `bugsC3_*`).
+- [x] (15/11/2026, usuário: concluído) [P3][M] Achados do agente de bug C, dia 3 (05/11/2026, branch fix/bugs-games-3; dados em `bugsC3_*`).
   Corrigido: **Jak 1, flash de um quadro (faixa escura translúcida abaixo do horizonte)**. Com a ferramenta do item
   acima, o `--draw-limit` no `jak_flash.vsgd` (present 1928, faixa; 1927, sem) isola os desenhos 874-875: o 874 é um
   volume de sombra por stencil (z-fail: faces da frente INCR_WRAP, de trás DECR_WRAP, 4008 índices, sem cor) e o 875 um
