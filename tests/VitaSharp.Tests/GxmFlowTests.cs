@@ -879,6 +879,78 @@ public sealed class GxmFlowTests : IDisposable
     /// Gear Solid HD then fell into stretches of alternating pictures ([flash] / [picture-order]) about five times as
     /// often as with the queue order (12/11/2026).
     /// </summary>
+    /// <summary>
+    /// The game begins its next frame's scene into buffer B before it queues the current frame (A) for display: that
+    /// scene's sync object wait needs the flip of the entry not queued yet. libgxm's entry waits for the new buffer's
+    /// scenes (its sync object), which come before the held scene, so the flip happens and releases B. With the entry
+    /// waiting for every command submitted before it, its fence sat behind the held scene: the GPU worker waited for the
+    /// flip and the display thread for the fence, until the 250 ms limit (Wipeout 2048, 0.3-1.4 s stalls under load).
+    /// The wait can only end on that limit then, so the count of limit hits is the check, not a time.
+    /// </summary>
+    [Fact]
+    public void ASceneBegunBeforeTheEntryThatReleasesItsBufferDoesNotStallTheGpu()
+    {
+        TwoBuffers d = TwoBufferDisplay(_ => { }, _ => { });
+        uint entryA = _harness.Word(d.DataA), entryB = _harness.Word(d.DataB);
+        int timeoutsBefore = Volatile.Read(ref VitaSharp.Core.Hle.Modules.Gxm.SyncTimeouts);
+        _harness.OnGuest(_ =>
+        {
+            // frames 0 (A) and 1 (B), each queued after its scene
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncB, d.ColorB, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncA, d.SyncB, entryB));
+            // frame 2 into A, then frame 3's scene into B begins before frame 2 is queued: B leaves the screen only
+            // with frame 2's flip
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncB, d.ColorB, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncA, d.SyncB, entryB));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueFinish"));
+            Finish();
+        });
+        _harness.Emu.Running = false;
+        Assert.Equal(timeoutsBefore, Volatile.Read(ref VitaSharp.Core.Hle.Modules.Gxm.SyncTimeouts));
+        string a = $"0x{d.DataA:X8}", b = $"0x{d.DataB:X8}";
+        string[] order = SceneOrder(d.DataA, d.DataB).Where(e => e != "end").ToArray();
+        // frame 2 (A) is shown before frame 3's scene draws into B
+        int presentA2 = Array.LastIndexOf(order, "present " + a);
+        int beginB3 = Array.LastIndexOf(order, "begin " + b);
+        Assert.True(presentA2 >= 0 && presentA2 < beginB3, "GPU order: " + string.Join(", ", order));
+    }
+
+    /// <summary>A transfer naming the display buffer's sync object after its last scene writes the buffer too: the entry
+    /// then waits for everything submitted before it (the transfer included), not only for the scene.</summary>
+    [Fact]
+    public void ATransferIntoTheBufferAfterItsSceneIsWaitedForByTheEntry()
+    {
+        var shown = new List<uint>();
+        TwoBuffers d = default;
+        d = TwoBufferDisplay(flip =>
+        {
+            lock (shown)
+            {
+                shown.Add(GuestMemory.R32(d.DataA));
+            }
+        }, _ => { });
+        uint entryA = _harness.Word(d.DataA);
+        _harness.OnGuest(_ =>
+        {
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmTransferFill", 0xFF3366CCu, 0x000C0000u, d.DataA, 0u, 0u, 4u, 1u, 960 * 4, d.SyncA, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueFinish"));
+            Finish();
+        });
+        _harness.Emu.Running = false;
+        Assert.Equal([0xFF3366CCu], shown);
+    }
+
     [Fact]
     public void DisplayQueueFlipKeepsItsQueuePositionOutsideASyncWait()
     {

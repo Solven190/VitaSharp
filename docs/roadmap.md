@@ -2573,6 +2573,15 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
   console (a fila só chama o callback depois da fence; a liberação vem depois do callback) onde as duas esperas se
   cruzam no VitaSharp.
+  Correção feita, não confirmada (15/11/2026, kill1, fix/display-fence-cross): a entrada da fila de exibição esperava uma fence no fim de tudo o
+  que já tinha sido enviado à GPU; quando o jogo começava a cena do quadro seguinte no outro buffer antes de pôr o
+  quadro atual na fila, a espera dessa cena pelo sync object (que só a entrada ainda não enfileirada libera) ficava na
+  frente da fence, e a GPU e a thread da fila esperavam uma pela outra até o limite de 250 ms. Agora, como no libgxm,
+  a entrada espera as cenas do buffer novo (a fence depois da última cena com aquele fragment sync,
+  `GxmSyncObject.RenderedFence`); uma transferência que cita o sync object depois da cena volta para a fence no fim da
+  fila. Prova: `GxmFlowTests.ASceneBegunBeforeTheEntryThatReleasesItsBufferDoesNotStallTheGpu` (sem a correção a espera
+  só termina no limite de 250 ms) e `ATransferIntoTheBufferAfterItsSceneIsWaitedForByTheEntry`. Falta a confirmação no
+  Wipeout pelo usuário.
 - [ ] [P3][P] Tamanho da classe "espera no escalonador" (12.000 ciclos): `sceKernelDelayThread*` é uma espera como as outras
   (o threadmgr 3.74 põe a thread na lista de timers e troca de contexto, o mesmo caminho de uma espera com timeout),
   então fica na classe `SchedulerWait` (`HleCostTests.DelaysAreSchedulerWaits`); baixar só o delay para 2.000

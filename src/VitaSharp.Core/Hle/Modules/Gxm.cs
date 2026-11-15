@@ -633,6 +633,7 @@ public sealed partial class Gxm : HleModule
         if (_sceneGate is { } ended) EndSceneGate(ended);
         _sceneGate = null;
         long seq = Gpu.Submit(new EndSceneCommand { Notifications = notifications });
+        MarkRendered(c.FragmentSyncObject);
         // keep the guest at most a few scenes ahead of the GPU worker
         Gpu.WaitFor(seq - 4096, GpuQueue.GuestWait.Throttle);
         if (Gpu.Pending > 20000) Gpu.WaitFor(seq - 2000, GpuQueue.GuestWait.Throttle);
@@ -703,6 +704,46 @@ public sealed partial class Gxm : HleModule
     static readonly bool TraceDisplaySync = Environment.GetEnvironmentVariable(EnvVars.DisplaySync) == "trace";
     static long _syncWaits;
 
+    /// <summary>Sync object waits of sceGxmBeginScene that ended on the 250 ms limit instead of the flip (tests).</summary>
+    internal static int SyncTimeouts;
+
+    /// <summary>
+    /// After a scene that rendered into a display buffer (its fragment sync object): a fence there, which the display
+    /// queue entry showing the buffer waits for (<see cref="GxmSyncObject.RenderedFence"/>). libgxm's display queue
+    /// waits for the new buffer's sync object, i.e. the scenes into that buffer, not for every command submitted before
+    /// the entry: with the queue tail, a scene the game began into the other buffer before it queued this one (its
+    /// sync wait needs this very entry's flip) sat in front of the entry's fence, and the GPU worker and the display
+    /// thread waited on each other until the 250 ms limit (Wipeout 2048 under load, 0.3-1.4 s stalls).
+    /// </summary>
+    void MarkRendered(uint fragmentSync)
+    {
+        if (!DisplaySync || fragmentSync == 0 || !_syncObjects.TryGetValue(fragmentSync, out GxmSyncObject? s))
+        {
+            return;
+        }
+
+        GpuQueue.Fence fence = Gpu.SubmitFence(_earlyAuto?.Early ?? DisplayEarlySignal);
+        lock (s)
+        {
+            s.RenderedFence = fence;
+        }
+    }
+
+    /// <summary>A transfer naming a sync object writes the buffer after its last scene: the display entry falls back to
+    /// waiting for everything submitted before it.</summary>
+    void MarkTransferred(uint syncObject)
+    {
+        if (syncObject == 0 || !_syncObjects.TryGetValue(syncObject, out GxmSyncObject? s))
+        {
+            return;
+        }
+
+        lock (s)
+        {
+            s.RenderedFence = null;
+        }
+    }
+
     void WaitForDisplayRelease(uint fragmentSync)
     {
         if (!DisplaySync || fragmentSync == 0 || !_syncObjects.TryGetValue(fragmentSync, out var s)) return;
@@ -718,7 +759,10 @@ public sealed partial class Gxm : HleModule
                 GpuQueue.CountDisplayHold(w0);
                 if (TraceDisplaySync && ++_syncWaits % 30 == 1) Log.Info($"[display-sync] wait {_syncWaits}: sync 0x{s.Handle:X8} {System.Diagnostics.Stopwatch.GetElapsedTime(w0).TotalMilliseconds:F1} ms");
                 if (!ok)
+                {
+                    Interlocked.Increment(ref SyncTimeouts);
                     Log.WarnOnce("gxm-sync-timeout", $"sceGxmBeginScene: sync object 0x{s.Handle:X8} still displayed after 250 ms (display {s.Released}/{target}); rendering anyway");
+                }
             },
         });
     }
@@ -760,10 +804,20 @@ public sealed partial class Gxm : HleModule
         GxmSyncObject? oldSync = DisplaySync ? _syncObjects.GetValueOrDefault(oldBuffer) : null;
         long oldDisplays = 0;
         if (oldSync != null) lock (oldSync) oldDisplays = oldSync.Queued;
-        if (DisplaySync && _syncObjects.GetValueOrDefault(newBuffer) is { } newSync) lock (newSync) newSync.Queued++;
+        // the entry waits for the scenes into the new buffer (its sync object); without them known, for all the work so far
+        GpuQueue.Fence? rendered = null;
+        if (DisplaySync && _syncObjects.GetValueOrDefault(newBuffer) is { } newSync)
+        {
+            lock (newSync)
+            {
+                newSync.Queued++;
+                rendered = newSync.RenderedFence;
+                newSync.RenderedFence = null;
+            }
+        }
         // a full queue waits for the display thread; when the process is being stopped (a LoadExec the host started, the
         // shell ending it) that thread has already ended and nobody takes the entry: the wait ends with the thread's stop
-        var item = (copy, Gpu.SubmitFence(early), oldSync, oldDisplays);
+        var item = (copy, rendered ?? Gpu.SubmitFence(early), oldSync, oldDisplays);
         using (Scheduler.Block()) using (FrameLedger.Time(FrameLedger.Cat.GuestGpuWait))
             _displayQueue.TryAdd(item, () => GuestThread.Current?.Core.StopRequested != true);
         GpuQueue.CountGuestWait(GpuQueue.GuestWait.DisplayQueue, t0);
@@ -2624,6 +2678,7 @@ public sealed partial class Gxm : HleModule
         uint syncObject, uint syncFlags, uint notification)
     {
         if (srcAddr == 0 || dstAddr == 0) return ERR_INVALID_POINTER;
+        MarkTransferred(syncObject);
         int bpp = TransferBpp(srcFormat);
         var notif = ReadNotification(notification);
         Gpu.Submit(new CallbackCommand
@@ -2660,6 +2715,7 @@ public sealed partial class Gxm : HleModule
         uint syncObject, uint syncFlags, uint notification)
     {
         if (dstAddr == 0) return ERR_INVALID_POINTER;
+        MarkTransferred(syncObject);
         int bpp = TransferBpp(dstFormat);
         var notif = ReadNotification(notification);
         Gpu.Submit(new CallbackCommand
@@ -2694,6 +2750,7 @@ public sealed partial class Gxm : HleModule
         uint dstFormat, uint dstAddr, uint dstX, uint dstY, int dstStride, uint syncObject, uint syncFlags, uint notification)
     {
         if (srcAddr == 0 || dstAddr == 0) return ERR_INVALID_POINTER;
+        MarkTransferred(syncObject);
         int bpp = TransferBpp(srcFormat);
         var notif = ReadNotification(notification);
         Log.DebugOnce($"downscale-{srcAddr:X8}-{dstAddr:X8}", $"[gxm] TransferDownscale 0x{srcAddr:X8} ({srcX},{srcY} {srcWidth}x{srcHeight} stride {srcStride}) -> 0x{dstAddr:X8} ({dstX},{dstY} stride {dstStride}) fmt 0x{srcFormat:X8}");
