@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=8d186cd38a40de82968eae58db90a8662136ae257e22820abc4474cbbe38f146 -->
+<!-- pair: README.md sha256=0fd6ab5a4e884c4111692cdf6a25d6114a9338a29b4969f258d860a498c97e04 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -209,7 +209,7 @@ pode ser remapeado em **Configurações > Controles**, por controle ([`docs/note
 O app Android (`src/VitaSharp.Android`) é um app .NET MAUI que roda o mesmo núcleo do emulador do desktop em celulares
 arm64: o APK Release é compilado com Native AOT por padrão, o código ARMv7 do Vita roda no JIT nativo ARM64 e a imagem é
 desenhada com Vulkan. Tem telas próprias: biblioteca de jogos, detalhes do jogo (backend de CPU, clock, perfil de GPU,
-resolução interna, MSAA, VSync e contador de FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU,
+resolução interna, MSAA, taxa de quadros, VSync e contador de FPS por jogo, saves), troféus, controles, ajustes, firmware, driver da GPU,
 conta PSN e rede, e uma página de desempenho. O app segue o idioma escolhido (**Ajustes > Aparência > Idioma**; os
 nomes de menu abaixo são os em português). Telas e design:
 [`docs/android/README.md`](docs/android/README.md#screens).
@@ -258,17 +258,18 @@ ou pelo app Arquivos na maioria dos celulares; desinstalar o app apaga essa past
 L/R, SELECT/PS/START, um botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque frontal. Controles
 Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os controles na tela somem enquanto um está
 conectado), e um teclado físico usa as teclas do desktop. **Controles** ajusta a troca O/X, zona morta, opacidade,
-vibração e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
+vibração (a cada toque, também com o outro dedo no analógico; fraca, média ou forte) e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
 
 **Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:
 **Continuar**, **Salvar estado** / **Carregar estado** (6 slots com imagem), **Ajustes** (toque traseiro, controles na
-tela, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
+tela, MSAA, taxa de quadros, pré-gravação), **Recentralizar** (movimento), **Gravar tudo** e **Sair do jogo**. **Gravar tudo** grava o mesmo
 relatório de bug do F8 do desktop (save state, entrada, GPU dump, quadros, áudio e log) em `captures/` até **Parar
 gravação**; envie o `.zip` como em [Relatar um bug](#relatar-um-bug).
 
-**Ajustes por jogo.** Nos detalhes do jogo: resolução interna, MSAA, VSync (a taxa de quadros segue os 30 ou 60 fps do
-próprio jogo; ainda não há escolha separada de taxa de quadros no Android), o contador de FPS, backend de CPU, clock e
-perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
+**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa ou 2x), MSAA, taxa de quadros
+(**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`
+do desktop; também no menu de pausa, vale na hora, e aparece ao lado do contador de FPS), VSync, o contador de FPS,
+backend de CPU, clock e perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
 
 **Limitações conhecidas.**
 

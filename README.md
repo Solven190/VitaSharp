@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=b11cc8c4b1864696dfafb89f2d44395f8d2603cbf44a293a9fd9188015d14c9d -->
+<!-- pair: README.pt-BR.md sha256=e0ce2de666e8c2388e7451d8ec09785de4cc3db567182c9c2844e66ec4dfd2c2 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -261,7 +261,7 @@ touch, on-screen controls, MSAA, frame rate, pre-recording), **Recentralizar** (
 tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
 `captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
 
-**Per-game settings.** In the game's details: internal resolution, MSAA, frame rate (**Nativo**, the
+**Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
 game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
 the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
 GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).

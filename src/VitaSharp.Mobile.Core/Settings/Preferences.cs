@@ -77,8 +77,9 @@ public sealed class GameSettings
     public string? GpuProfile { get; set; }
     public bool? VSync { get; set; }
     public bool? ShowFps { get; set; }
-    /// <summary>"Resolucao interna": render-target scale below native, "0.75" or "0.5" (null = native; per game only,
-    /// VulkanRenderer.ResScale.cs). Lower is faster on GPU-bound games, and softer.</summary>
+    /// <summary>"Resolucao interna": render-target scale, "0.75", "0.5" or "2" (null = native; per game only,
+    /// VulkanRenderer.ResScale.cs). Lower is faster on GPU-bound games, and softer; 2x is sharper and costs about four
+    /// times the GPU work.</summary>
     public string? ResScale { get; set; }
     /// <summary>"MSAA": "off" renders the game's multisampled scenes with one sample (faster on the GPU, edges alias);
     /// null = native (as the game asks, 2x/4x). Per game only.</summary>
@@ -177,6 +178,7 @@ public static class SettingsChoices
         new("", Loc.Get("MResNative")),
         new("0.75", Loc.Get("MRes75")),
         new("0.5", Loc.Get("MRes50")),
+        new("2", Loc.Get("MRes200")),
     ];
 
     /// <summary>"Taxa de quadros" (values of Hle/Modules/Display.cs FrameRate.Parse; "" = native).</summary>
@@ -205,7 +207,7 @@ public static class SettingsChoices
 
     /// <summary>The FPS overlay's text: the frames of the last second, and the frame rate mode when it is not native.</summary>
     public static string FpsText(long fps, string frameRate) =>
-        frameRate.Length > 0 ? $"{fps} FPS · {LabelOf(FrameRates, frameRate)}" : $"{fps} FPS";
+        frameRate.Length > 0 ? Loc.Format("MFpsWithMode", fps, LabelOf(FrameRates, frameRate)) : Loc.Format("MFpsCount", fps);
 
     /// <summary>"Intensidade da vibracao" of the on-screen controls (values of Input.OnScreenHaptics).</summary>
     public static IReadOnlyList<Choice> HapticStrengths { get; } =

@@ -163,6 +163,21 @@ public sealed class AndroidAppTests : IDisposable
     }
 
     [Fact]
+    public void InternalResolutionOffersHalfToDouble()
+    {
+        var app = new AppPreferences();
+        Assert.Equal(0f, EffectiveSettings.Resolve(app, null).ResScaleValue); // native by default
+        foreach (string scale in new[] { "0.5", "0.75", "2" })
+        {
+            var settings = EffectiveSettings.Resolve(app, new GameSettings { ResScale = scale });
+            Assert.Equal(float.Parse(scale, System.Globalization.CultureInfo.InvariantCulture), settings.ResScaleValue);
+        }
+        // a factor the option does not offer stays native
+        Assert.Equal(0f, EffectiveSettings.Resolve(app, new GameSettings { ResScale = "3" }).ResScaleValue);
+        Assert.Equal(new[] { "", "0.75", "0.5", "2" }, SettingsChoices.ResScales.Select(c => c.Value));
+    }
+
+    [Fact]
     public void FrameRateIsAPerGameSettingThatStartsEverySession()
     {
         var app = new AppPreferences();
@@ -480,8 +495,28 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal(255, m.Ry);
         Assert.True((m.Buttons & VitaButtons.LTrigger) != 0);
 
-        pads.Disconnect(7);
+        // a pad that lists AXIS_LTRIGGER but moves the left trigger on AXIS_BRAKE (and the right one on AXIS_GAS)
+        pads.OnKey(8, AndroidKeys.ButtonL2, false);
         pads.Disconnect(8);
+        pads.Connect(9, "Bluetooth Gamepad", 0x045E, 0x0B13,
+            [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisZ, AndroidKeys.AxisRz, AndroidKeys.AxisLTrigger, AndroidKeys.AxisRTrigger, AndroidKeys.AxisBrake, AndroidKeys.AxisGas]);
+        pads.Disconnect(7);
+        pads.OnMotion(9, a => a == AndroidKeys.AxisBrake ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.OnMotion(9, a => a == AndroidKeys.AxisGas ? 1f : 0f);
+        m = pads.Map().State;
+        Assert.True((m.Buttons & VitaButtons.RTrigger) != 0);
+        Assert.True((m.Buttons & VitaButtons.LTrigger) == 0);
+        // ... and one with only BRAKE/GAS, or only LTRIGGER/RTRIGGER, still works
+        pads.Disconnect(9);
+        pads.Connect(10, "Brake Gas Pad", 0x0001, 0x0002, [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisBrake, AndroidKeys.AxisGas]);
+        pads.OnMotion(10, a => a == AndroidKeys.AxisBrake ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.Disconnect(10);
+        pads.Connect(11, "Trigger Pad", 0x0001, 0x0003, [AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisLTrigger, AndroidKeys.AxisRTrigger]);
+        pads.OnMotion(11, a => a == AndroidKeys.AxisLTrigger ? 1f : 0f);
+        Assert.True((pads.Map().State.Buttons & VitaButtons.LTrigger) != 0);
+        pads.Disconnect(11);
         Assert.False(pads.AnyConnected);
         Assert.Equal(ControllerState.Neutral.Lx, pads.Map().State.Lx);
     }

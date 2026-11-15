@@ -48,7 +48,8 @@ public static class AndroidKeys
 /// <summary>Which axes a controller reports (InputDevice.GetMotionRange), for the right stick and triggers.</summary>
 /// <param name="RightStickOnZ">The right stick is AXIS_Z/AXIS_RZ (the Android standard: DualShock 4, DualSense, most
 /// Bluetooth pads); false = AXIS_RX/AXIS_RY (some Xbox/USB pads).</param>
-/// <param name="TriggersOnBrakeGas">The triggers report AXIS_BRAKE/AXIS_GAS instead of AXIS_LTRIGGER/RTRIGGER.</param>
+/// <param name="TriggersOnBrakeGas">The motion ranges list AXIS_BRAKE/AXIS_GAS and no AXIS_LTRIGGER (only a
+/// description: the triggers are read from both pairs of axes either way).</param>
 public readonly record struct AndroidPadLayout(bool RightStickOnZ = true, bool TriggersOnBrakeGas = false)
 {
     public static AndroidPadLayout FromAxes(IReadOnlyCollection<int> axes) => new(
@@ -229,8 +230,11 @@ public sealed class AndroidGamepads
             a[(int)PadAxis.LeftY] = axisValue(AndroidKeys.AxisY);
             a[(int)PadAxis.RightX] = axisValue(d.Layout.RightStickOnZ ? AndroidKeys.AxisZ : AndroidKeys.AxisRx);
             a[(int)PadAxis.RightY] = axisValue(d.Layout.RightStickOnZ ? AndroidKeys.AxisRz : AndroidKeys.AxisRy);
-            d.AxisTrigger[0] = axisValue(d.Layout.TriggersOnBrakeGas ? AndroidKeys.AxisBrake : AndroidKeys.AxisLTrigger);
-            d.AxisTrigger[1] = axisValue(d.Layout.TriggersOnBrakeGas ? AndroidKeys.AxisGas : AndroidKeys.AxisRTrigger);
+            // Android's controller guide: a trigger is AXIS_LTRIGGER/RTRIGGER on some pads and AXIS_BRAKE/GAS on others,
+            // and some report it on both, or list LTRIGGER in their motion ranges but move only BRAKE (the L2 that did
+            // nothing on the phone): read both and keep the one pressed further
+            d.AxisTrigger[0] = Math.Max(axisValue(AndroidKeys.AxisLTrigger), axisValue(AndroidKeys.AxisBrake));
+            d.AxisTrigger[1] = Math.Max(axisValue(AndroidKeys.AxisRTrigger), axisValue(AndroidKeys.AxisGas));
             UpdateTriggers(d);
             d.HatX = axisValue(AndroidKeys.AxisHatX);
             d.HatY = axisValue(AndroidKeys.AxisHatY);

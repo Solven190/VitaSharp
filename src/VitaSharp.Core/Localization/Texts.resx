@@ -2904,6 +2904,18 @@
   <data name="MHapticStrong" xml:space="preserve">
     <value>Strong</value>
   </data>
+  <data name="MRes200" xml:space="preserve">
+    <value>2x (1920x1088, sharper, about 4x the GPU work)</value>
+  </data>
+  <data name="MInternalResolutionDetail" xml:space="preserve">
+    <value>Below native is faster on a busy GPU, and softer; 2x is sharper but costs about four times the GPU work</value>
+  </data>
+  <data name="MFpsCount" xml:space="preserve">
+    <value>{0} FPS</value>
+  </data>
+  <data name="MFpsWithMode" xml:space="preserve">
+    <value>{0} FPS · {1}</value>
+  </data>
   <data name="MMsaaDetail" xml:space="preserve">
     <value>Off renders the game with one sample per pixel: less GPU work, edges alias. Applies right away</value>
   </data>
