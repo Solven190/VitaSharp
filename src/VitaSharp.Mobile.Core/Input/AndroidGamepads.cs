@@ -180,6 +180,16 @@ public sealed class AndroidGamepads
         }
     }
 
+    /// <summary>A copy of the raw state of one controller (before its profile), null when it is not connected: what
+    /// <see cref="PadCapture"/> compares to find the button the user pressed.</summary>
+    public PadSnapshot? Snapshot(int deviceId)
+    {
+        lock (_lock)
+        {
+            return _devices.TryGetValue(deviceId, out Device? d) ? d.Pad.Clone() : null;
+        }
+    }
+
     /// <summary>A key event of a controller. Returns true when the key is a controller key (consume the event).</summary>
     public bool OnKey(int deviceId, int keyCode, bool down)
     {

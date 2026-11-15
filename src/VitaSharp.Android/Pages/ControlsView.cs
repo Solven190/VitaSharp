@@ -8,9 +8,12 @@ using VitaSharp.Mobile.Core.Input;
 
 namespace VitaSharp.Android.Pages;
 
+/// <summary>A connected controller: Android's device id, the profile id (vendor:product), its name, family and motion axes.</summary>
+public sealed record ControllerEntry(int DeviceId, string Id, string Name, ControllerKind Kind, int VendorId, int ProductId, int[] Axes);
+
 public sealed class ControlsState
 {
-    public List<(string Id, string Name, ControllerKind Kind)> Controllers { get; set; } = [];
+    public List<ControllerEntry> Controllers { get; set; } = [];
     public int Selected { get; set; }
     public int Revision { get; set; }
 }
@@ -31,7 +34,7 @@ public sealed class ControlsView : Screen<ControlsState>
 
     void Scan()
     {
-        var list = new List<(string, string, ControllerKind)>();
+        var list = new List<ControllerEntry>();
         foreach (int id in InputDevice.GetDeviceIds() ?? [])
         {
             var d = InputDevice.GetDevice(id);
@@ -41,7 +44,8 @@ public sealed class ControlsView : Screen<ControlsState>
             if (!pad)
                 continue;
             string guid = AndroidGamepads.Guid(d.VendorId, d.ProductId);
-            list.Add((guid, d.Name ?? Loc.Get("MController"), ControllerClassifier.Classify(guid, d.Name)));
+            int[] axes = d.MotionRanges?.Select(r => (int)r.Axis).Distinct().ToArray() ?? [];
+            list.Add(new ControllerEntry(id, guid, d.Name ?? Loc.Get("MController"), ControllerClassifier.Classify(guid, d.Name), d.VendorId, d.ProductId, axes));
         }
         SetState(s => { s.Controllers = list; s.Selected = Math.Min(s.Selected, Math.Max(0, list.Count - 1)); });
     }
@@ -50,8 +54,8 @@ public sealed class ControlsView : Screen<ControlsState>
     {
         if (State.Controllers.Count == 0)
             return null;
-        var (id, name, kind) = State.Controllers[State.Selected];
-        return AppServices.InputProfiles.ProfileFor(id, name, kind, isGamepad: true);
+        ControllerEntry c = State.Controllers[State.Selected];
+        return AppServices.InputProfiles.ProfileFor(c.Id, c.Name, c.Kind, isGamepad: true);
     }
 
     public override VisualNode Render()
@@ -107,16 +111,56 @@ public sealed class ControlsView : Screen<ControlsState>
 
     VisualNode?[] Mapping(ControllerProfile p, ControllerKind kind)
     {
+        // the buttons are remapped with a press on the controller (as Configuracoes > Controles on the desktop); the
+        // sticks are shown only
         VitaControl[] shown =
         [
             VitaControl.Cross, VitaControl.Circle, VitaControl.Square, VitaControl.Triangle, VitaControl.L, VitaControl.R,
-            VitaControl.Start, VitaControl.Select, VitaControl.PS, VitaControl.Up, VitaControl.LStickUp, VitaControl.RStickUp,
+            VitaControl.Start, VitaControl.Select, VitaControl.PS, VitaControl.Up, VitaControl.Down, VitaControl.Left,
+            VitaControl.Right, VitaControl.LStickUp, VitaControl.RStickUp,
         ];
-        return shown.SelectMany((c, i) => new VisualNode?[]
+        var rows = new List<VisualNode?>();
+        foreach (VitaControl c in shown)
         {
-            i > 0 ? Divider() : null,
-            Row(ControlName(c), string.Join(" / ", p.Get(c).Select(b => b.Describe(kind))) is { Length: > 0 } s ? s : "\u2014"),
-        }).ToArray();
+            if (rows.Count > 0)
+            {
+                rows.Add(Divider());
+            }
+
+            string bound = string.Join(" / ", p.Get(c).Select(b => b.Describe(kind))) is { Length: > 0 } s ? s : "\u2014";
+            bool stick = c is VitaControl.LStickUp or VitaControl.RStickUp;
+            rows.Add(Row(ControlName(c), bound, stick ? null : () => Remap(c)));
+        }
+
+        rows.Add(Divider());
+        rows.Add(Row(Loc.Get("CsResetDefault"), null, ResetMapping));
+        return rows.ToArray();
+    }
+
+    /// <summary>Waits for a press on the selected controller and binds it to <paramref name="control"/>.</summary>
+    void Remap(VitaControl control)
+    {
+        if (State.Controllers.Count == 0 || MainActivity.Current is not { } activity)
+        {
+            return;
+        }
+
+        ControllerEntry c = State.Controllers[State.Selected];
+        var capture = new PadCapture(c.DeviceId, c.Name, c.VendorId, c.ProductId, c.Axes);
+        activity.BeginPadCapture(capture, ControlName(control), binding => SaveProfile(p => p.Set(control, binding)));
+    }
+
+    void ResetMapping()
+    {
+        if (State.Controllers.Count == 0)
+        {
+            return;
+        }
+
+        ControllerEntry c = State.Controllers[State.Selected];
+        AppServices.InputProfiles.Put(DefaultMappings.For(c.Id, c.Name, c.Kind, isGamepad: true));
+        AppServices.InputProfiles.Save();
+        SetState(s => s.Revision++);
     }
 
     static string ControlName(VitaControl c) => c switch
@@ -126,7 +170,10 @@ public sealed class ControlsView : Screen<ControlsState>
         VitaControl.Square => "\u25A1",
         VitaControl.Triangle => "\u25B3",
         VitaControl.PS => Loc.Get("MPsButton"),
-        VitaControl.Up => Loc.Get("MDpad"),
+        VitaControl.Up => Loc.Get("MDpad") + " \u2191",
+        VitaControl.Down => Loc.Get("MDpad") + " \u2193",
+        VitaControl.Left => Loc.Get("MDpad") + " \u2190",
+        VitaControl.Right => Loc.Get("MDpad") + " \u2192",
         VitaControl.LStickUp => Loc.Get("MLeftStick"),
         VitaControl.RStickUp => Loc.Get("MRightStick"),
         VitaControl.Start => "START",

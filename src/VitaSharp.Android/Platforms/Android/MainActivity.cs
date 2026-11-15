@@ -2,7 +2,9 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using Android.Views;
 using VitaSharp.Android.Services;
+using VitaSharp.Mobile.Core.Input;
 
 namespace VitaSharp.Android;
 
@@ -129,6 +131,81 @@ public sealed class MainActivity : MauiAppCompatActivity
 
     /// <summary>Raised when the activity comes back (after a game, a picker).</summary>
     public static event Action? Resumed;
+
+    PadCapture? _capture;
+    Action<VitaSharp.Core.Input.InputBinding>? _captured;
+    AlertDialog? _captureDialog;
+
+    /// <summary>
+    /// Controles > Mapeamento: the next press on the controller of <paramref name="capture"/> goes to
+    /// <paramref name="captured"/> (a dialog says what to press; Cancel or the Back key stops it). The controller's keys
+    /// and motion events are taken while it waits, so they do not move the screens' focus.
+    /// </summary>
+    public void BeginPadCapture(PadCapture capture, string control, Action<VitaSharp.Core.Input.InputBinding> captured)
+    {
+        EndPadCapture();
+        _capture = capture;
+        _captured = captured;
+        _captureDialog = new AlertDialog.Builder(this)
+            .SetTitle(control)!
+            .SetMessage(VitaSharp.Core.Localization.Loc.Get("CsPressButton"))!
+            .SetNegativeButton(VitaSharp.Core.Localization.Loc.Get("MCancel"), (_, _) => EndPadCapture())!
+            .SetOnCancelListener(new CaptureCancel(this))!
+            .Show();
+    }
+
+    void EndPadCapture()
+    {
+        _capture = null;
+        _captured = null;
+        AlertDialog? dialog = _captureDialog;
+        _captureDialog = null;
+        dialog?.Dismiss();
+    }
+
+    void Captured(VitaSharp.Core.Input.InputBinding binding)
+    {
+        Action<VitaSharp.Core.Input.InputBinding>? done = _captured;
+        EndPadCapture();
+        done?.Invoke(binding);
+    }
+
+    public override bool DispatchKeyEvent(KeyEvent? e)
+    {
+        if (_capture is { } capture && e != null && e.DeviceId == capture.DeviceId && e.KeyCode != Keycode.Back)
+        {
+            if (e.RepeatCount == 0 && e.Action is KeyEventActions.Down or KeyEventActions.Up
+                && capture.OnKey(e.DeviceId, (int)e.KeyCode, e.Action == KeyEventActions.Down) is { } binding)
+            {
+                Captured(binding);
+            }
+
+            return true;
+        }
+
+        return base.DispatchKeyEvent(e);
+    }
+
+    public override bool DispatchGenericMotionEvent(MotionEvent? e)
+    {
+        if (_capture is { } capture && e != null && e.DeviceId == capture.DeviceId)
+        {
+            if (capture.OnMotion(e.DeviceId, axis => e.GetAxisValue((Axis)axis)) is { } binding)
+            {
+                Captured(binding);
+            }
+
+            return true;
+        }
+
+        return base.DispatchGenericMotionEvent(e);
+    }
+
+    /// <summary>The capture dialog closed by Back or a touch outside it.</summary>
+    sealed class CaptureCancel(MainActivity activity) : Java.Lang.Object, IDialogInterfaceOnCancelListener
+    {
+        public void OnCancel(IDialogInterface? dialog) => activity.EndPadCapture();
+    }
 
     protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
     {
