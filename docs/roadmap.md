@@ -285,8 +285,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (`VITASHARP_FRAME_RATE`, `FrameRate` em Hle/Modules/Display.cs): os modos fixos limitam os vblanks que as esperas
   de display pedem e seguram a troca que vem antes do intervalo; Sem limite pula as esperas de display. Modo no título da
   janela ao lado do FPS. Medido: menu do Jak 30 -> 59 fps em Fixo 60, Sonic Mania 60 -> 30 em Fixo 30, Sem limite 121 fps
-- [ ] Taxa de quadros por jogo no app Android (ajustes do jogo e menu de pausa, com o modo no overlay de FPS): o núcleo
+- [x] Taxa de quadros por jogo no app Android (ajustes do jogo e menu de pausa, com o modo no overlay de FPS): o núcleo
   já tem `FrameRate`; falta a interface (Android parado por ordem do usuário, 07/11/2026)
+  Feito (15/11/2026, feat/android-and15): "Taxa de quadros" na página do jogo (Nativo / Fixo em 30 / Fixo em 60 / Sem
+  limite, `GameSettings.FrameRate`, padrão nativo) e no Ajustes do menu de pausa (troca na hora e salva no jogo), o
+  modo ao lado do FPS no overlay ("30 FPS · Fixo em 30"); cada sessão começa no modo do jogo, senão no
+  `VITASHARP_FRAME_RATE` do env.txt, senão nativo (um modo nunca passa de um jogo para o outro). Teste:
+  AndroidAppTests.FrameRateIsAPerGameSettingThatStartsEverySession. Falta o usuário conferir no celular
 - [ ] Reflexão o mínimo possível (desktop e Android; ajuda o Native AOT, o Mono AOT e o tempo de início). Hoje
   (31/10/2026): `GetMethod(s)`/`GetProperty(s)` em 3 arquivos, `GetField(s)` em 1, `GetCustomAttribute` em 2,
   `Enum.GetValues/GetNames/Parse` em 5, `Assembly.GetTypes/GetExecutingAssembly` em 1 e `Reflection.Emit` em 3 (o
@@ -626,9 +631,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   medir no Killzone com e sem o modo desempenho
   Declaração feita (conferido em 08/11/2026: 7b6a2ae, `isGame`/`appCategory="game"` e `game_mode_config` no
   AndroidManifest, modo de jogo lido no GameActivity); falta validar no Redmi com o Game Turbo e medir no Killzone
-- [ ] Vibração dos botões na tela enquanto segura o analógico (pedido do usuário, 07/11/2026): opção nos controles por
+- [x] Vibração dos botões na tela enquanto segura o analógico (pedido do usuário, 07/11/2026): opção nos controles por
   toque para os botões virtuais vibrarem ao serem tocados mesmo com o outro dedo no analógico (hoje o toque multiponto
   com o analógico pressionado não dá retorno tátil); intensidade ajustável e desligável, por perfil de controle
+  Feito (15/11/2026, feat/android-and15): a vibração só saía quando nenhum controle estava seguro antes do toque
+  (`OnScreenControlsView`); agora cada controle recém-pressionado dá um pulso (`Mobile.Core/Input/OnScreenHaptics.cs`,
+  pelo `OnScreenPad.ControlPressed`), também com o analógico ou outro botão seguro. Ajustes > Controles: "Vibrar ao
+  tocar" (liga/desliga) e "Intensidade da vibração" (Fraca/Média/Forte: amplitude do `VibrationEffect`; sem controle
+  de amplitude no motor, o pulso padrão). Os controles na tela não têm perfil próprio (os perfis são dos controles
+  físicos): a opção é global, como a opacidade. Teste: AndroidAppTests.OnScreenButtonsVibrateWhileTheStickIsHeld.
+  Falta o usuário conferir no celular
 
 - [ ] Desempenho no Android (meta: o fps nativo do jogo no Vita, no Redmi Note 14, Helio G99 / Mali-G57; junta os
   itens "Killzone no Android a 30 fps" e "Velocidade nativa no celular"). Medidas atuais (14/11/2026, APK NativeAOT,
@@ -1016,6 +1028,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   por quadro em a92710b): precisa de trabalho no espaço de coordenadas. As cópias de região, as cópias de profundidade,
   os writebacks e a reinterpretação do G-buffer pelo espelho da CDRAM (bytes no layout do convidado) usam pixels do
   convidado; o caminho de supersample (2x) só aumenta a escala (04/11/2026)
+  15/11/2026 (feat/android-and15): a opção por jogo já existia no app (Nativa / 75% / 50%, desligada por padrão,
+  `GameSettings.ResScale`); entrou o 2x (1920x1088) e o aviso de custo na linha ("abaixo da nativa é mais rápido e
+  mais suave; 2x custa ~4x o trabalho da GPU"). Teste: AndroidAppTests.InternalResolutionOffersHalfToDouble. Continua
+  aberto: a exatidão abaixo da nativa (cópias de região, profundidade, writebacks e G-buffer pela CDRAM em pixels do
+  convidado), a conferir com `replay-gpu --compare` a 0,75 e 0,5
 - [x] (bug) Instalar jogos no Android: o usuário não encontrou como instalar um VPK no app (04/11/2026). O código tem
   um botão flutuante "+ Instalar VPK" no canto inferior direito da Biblioteca (`LibraryView.cs`, seletor do sistema
   pelo SAF), mas ele pode estar escondido/fora da tela (sobre a grade, atrás da barra de navegação, ou some durante
@@ -2591,6 +2608,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   toque na tela: o app deve tratar o touchpad do DualShock 4 como entrada do controle (SOURCE_TOUCHPAD/MOUSE do
   dispositivo do controle, separado do SOURCE_TOUCHSCREEN do aparelho; ou capturar o ponteiro) e mapear para o toque
   frontal/traseiro do Vita sem mexer no toque da tela. Validar com o controle real no celular.
+  15/11/2026 (feat/android-and15), parte (1), correção feita, ainda não confirmada: o L2 vira L por padrão
+  (`DefaultMappings.SetTriggersAsShoulders`); o eixo do gatilho vinha só de AXIS_LTRIGGER quando o controle lista esse
+  eixo, e só de AXIS_BRAKE quando não lista. O guia de controles do Android avisa que um gatilho pode vir em qualquer
+  um dos dois (ou nos dois); agora cada gatilho é o maior entre LTRIGGER/BRAKE e RTRIGGER/GAS. Teste:
+  AndroidAppTests.AndroidGamepadMapsToTheStandardLayout (controle que lista LTRIGGER e move BRAKE; falha sem a
+  correção). Se o L2 do controle do usuário ainda não funcionar, o log do `Connect` (eixos listados) e um
+  `getevent -l` do gatilho mostram o eixo real. A parte (2), o touchpad do DualShock 4, continua aberta
 - [x] Tradutor de shaders: GLSL que não compila em dois casos (agente de testes, 11/11/2026; vai para o dia de melhorias:
   mexe em todo shader, precisa subir a versão do gerador e replay-gpu --compare em todos os dumps). Achado pelo
   ShaderFuzzTests (os 32 opcodes USSE com operandos pseudoaleatórios, vertex e fragment, compilados com shaderc): 35 de
