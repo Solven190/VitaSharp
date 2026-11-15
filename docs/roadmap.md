@@ -2249,8 +2249,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   esse state no celular (fica rápido logo após o load?), achar a estrutura que cresce (contadores por estrutura do JIT
   arm64, filas, timers, waits com timeout: sceKernelWaitSema 0x80028005 x5025 na captura) e o teste que a reproduz.
   Também a ver: no desktop o UC passou 18 s em sceAvcdecDeleteDecoder na tela de título com o main num PC só (f1567).
-- [ ] `AppUtil._appMgr` (um cache do módulo AppMgr) é salvo como state aninhado: o load cria um AppMgr solto em vez de
+- [x] `AppUtil._appMgr` (um cache do módulo AppMgr) é salvo como state aninhado: o load cria um AppMgr solto em vez de
   achar o do emulador. Marcar como `[SnapshotIgnore]` (com a recusa de formato 1 tratada) e testar.
+  Feito (fix/snapshot-module-refs-15, bugA) no mecanismo: o gerador de snapshot grava vazio todo campo cujo tipo é um
+  módulo HLE salvo (caches como o do AppUtil) e o pula no load, mantendo a referência ao módulo do emulador: os
+  módulos são do emulador, um de cada, e o load restaura neles. O campo continua no layout, então os estados de
+  formato 1 do celular continuam aceitos (`SaveStateLegacyTests`; tirar o campo os recusaria). Teste:
+  `ModuleReferenceSnapshotTests` (falha sem a correção: "AppUtil._appMgr: a load left a AppMgr that is not the
+  emulator's module").
 
 - [ ] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
