@@ -31,13 +31,13 @@ public sealed class PluginRegressionTests(GuestMemoryFixture fixture) : IDisposa
         _harness = new HleHarness(fixture, "kplugreg", enabled);
         string folder = Path.Combine(_harness.Root, "kernel_plugins");
         Directory.CreateDirectory(folder);
-        var bridge = new SceModuleBuilder("BridgePlugin")
+        SceModuleBuilder bridge = new SceModuleBuilder("BridgePlugin")
             .Import("PluginLib", 0x11111111, GetModuleInfoForKernel, InjectDataForKernel, InjectReleaseForKernel, ModuleGetOffset, ModuleGetExportFunc)
             .Import("SceCpuForDriver", CpuForDriver, SpinlockLowLockCpuSuspendIntr, SpinlockLowUnlockCpuResumeIntr)
             .Start(0);
         bridge.CallImport(0, 0);
         bridge.CallImport(1, 0);
-        var hooker = new SceModuleBuilder("HookerPlugin").Import("PluginLib", 0x11111111, HookExportForKernel, HookReleaseForKernel).Start(0);
+        SceModuleBuilder hooker = new SceModuleBuilder("HookerPlugin").Import("PluginLib", 0x11111111, HookExportForKernel, HookReleaseForKernel).Start(0);
         hooker.CallImport(0, 0);
         File.WriteAllBytes(Path.Combine(folder, "bridge.skprx"), bridge.Build());
         File.WriteAllBytes(Path.Combine(folder, "hooker.skprx"), hooker.Build());
@@ -86,7 +86,7 @@ public sealed class PluginRegressionTests(GuestMemoryFixture fixture) : IDisposa
         foreach (bool enabled in new[] { false, true })
         {
             using var harness = new HleHarness(fixture, "kplugnone", enabled);
-            var game = new SceModuleBuilder("PlainGame").Import("SceThreadmgrForDriver", 0xE2C40624, 0x59D06540u);
+            SceModuleBuilder game = new SceModuleBuilder("PlainGame").Import("SceThreadmgrForDriver", 0xE2C40624, 0x59D06540u);
             int call = game.CallImport(0, 0);
             string dir = Path.Combine(harness.Root, "ux0", "data");
             Directory.CreateDirectory(dir);
