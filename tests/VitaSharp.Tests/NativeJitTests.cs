@@ -45,6 +45,7 @@ public sealed unsafe partial class NativeJitTests(GuestMemoryFixture fx, ITestOu
     private static readonly Dictionary<(uint, bool), bool> s_simdOk = new();
     private static readonly Unicorn?[] s_simdUc = new Unicorn?[2];
     private static readonly uint[] s_simdNext = new uint[2];
+    private static readonly int[] s_simdFailures = new int[2];
 
     private static bool SimdDefined(uint ins, bool thumb)
     {
@@ -88,10 +89,23 @@ public sealed unsafe partial class NativeJitTests(GuestMemoryFixture fx, ITestOu
         }
         catch (Exception)
         {
+            // Unicorn stops with an error on the UNDEFINED trap, and the instance stays usable (the next check writes
+            // CPSR and the registers again). Making a new one for every rejected word (most random NEON words) was
+            // ~80% of the NativeJitTests time of the suite; a new one is made only after a run of failures, in case
+            // the instance itself broke.
             ok = false;
-            s_simdUc[k]!.Close();
-            s_simdUc[k] = null;
+            if (++s_simdFailures[k] >= 4096)
+            {
+                s_simdUc[k]!.Close();
+                s_simdUc[k] = null;
+                s_simdFailures[k] = 0;
+            }
         }
+        if (ok)
+        {
+            s_simdFailures[k] = 0;
+        }
+
         s_simdOk[(ins, thumb)] = ok;
         return ok;
     }
