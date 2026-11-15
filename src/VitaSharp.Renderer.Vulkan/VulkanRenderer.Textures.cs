@@ -801,6 +801,17 @@ public sealed unsafe partial class VulkanRenderer
             return false;
         }
 
+        // the renderer's own writebacks mark the pages too and land when the GPU finishes: a writeback that landed in
+        // these pages since the target was rendered makes the CPU's writes impossible to tell apart, so the target's
+        // pixels are kept, the same answer whenever the writeback lands (as for a target written back itself, above).
+        // Metal Gear Solid HD's 1024x512 bloom atlas and its 360x224 scene share 0x60E0CA00: the scene's writeback
+        // landing after the atlas was rendered made the next scene start from memory in some runs and from the atlas
+        // in the others (frame 2749 of the 010709 capture differed between replays)
+        if (WritebackLandedSince(_recentWritebacks, start, end, rt.MemStamp))
+        {
+            return false;
+        }
+
         if (DebugMode.Enabled && _dbgOverlapSeen.Add((addr, rt.Address, int.MinValue)))
         {
             Dbg($"memory at 0x{addr:X8} (texture or transfer source) lies in render target 0x{rt.Address:X8} {rt.Width}x{rt.Height}, but was written after the target was last rendered: the memory is used");

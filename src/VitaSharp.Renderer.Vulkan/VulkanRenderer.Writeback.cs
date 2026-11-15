@@ -434,12 +434,47 @@ public sealed unsafe partial class VulkanRenderer
         }
     }
 
+    /// <summary>Guest memory the renderer's own writebacks wrote, with the dirty-page epoch they landed in (the latest
+    /// <see cref="RecentWritebackCapacity"/>): <see cref="WritebackLandedSince"/>.</summary>
+    private readonly Queue<(uint Start, uint End, uint Epoch)> _recentWritebacks = new();
+    private const int RecentWritebackCapacity = 64;
+
+    /// <summary>
+    /// Whether a writeback of the renderer landed in [<paramref name="start"/>, <paramref name="end"/>) at or after the
+    /// dirty-page epoch <paramref name="sinceStamp"/> (a target's <c>MemStamp</c>, taken 2 epochs ahead when it was
+    /// rendered). Writebacks mark the pages they write like a CPU store, and they land when their frame retires, at a
+    /// time that depends on the GPU: a target's memory "written since it was rendered" then meant the CPU wrote it in
+    /// some runs and an older rendering's late writeback in others.
+    /// </summary>
+    public static bool WritebackLandedSince(IEnumerable<(uint Start, uint End, uint Epoch)> writebacks, ulong start, ulong end, uint sinceStamp)
+    {
+        foreach ((uint wbStart, uint wbEnd, uint epoch) in writebacks)
+        {
+            if (wbStart < end && wbEnd > start && epoch + 2 >= sinceStamp)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Runs after the frame's fence signalled: copies each target's rows into guest memory.</summary>
     private void CompleteWritebacks(Frame f)
     {
         if (f.Writebacks.Count == 0)
         {
             return;
+        }
+
+        foreach (RtWriteback landed in f.Writebacks)
+        {
+            if (_recentWritebacks.Count == RecentWritebackCapacity)
+            {
+                _recentWritebacks.Dequeue();
+            }
+
+            _recentWritebacks.Enqueue((landed.Address, landed.Address + landed.GuestStride * landed.Rows, DirtyPages.Epoch));
         }
 
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
