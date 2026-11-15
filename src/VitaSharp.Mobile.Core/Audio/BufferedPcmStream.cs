@@ -87,6 +87,7 @@ public sealed class BufferedPcmStream : IAudioStream
 
     private readonly PcmSinkFactory _factory;
     private readonly Action<BufferedPcmStream>? _closed;
+    private readonly Func<bool> _stopRequested;
     private readonly object _lock = new();
     private readonly LinearResampler _resampler;
     private IPcmSink? _sink;
@@ -104,10 +105,15 @@ public sealed class BufferedPcmStream : IAudioStream
     public int Channels { get; }
     public int Grain { get; }
 
-    public BufferedPcmStream(PcmSinkFactory factory, int rate, int channels, int grain, Action<BufferedPcmStream>? closed = null)
+    /// <param name="stopRequested">Whether the submitting thread is being stopped (a save state load, the end of the
+    /// emulation): a grain waiting for room while the device is paused is dropped then. By default the stop request of
+    /// the calling guest thread, as the desktop's OpenAL stream checks it.</param>
+    public BufferedPcmStream(PcmSinkFactory factory, int rate, int channels, int grain, Action<BufferedPcmStream>? closed = null,
+        Func<bool>? stopRequested = null)
     {
         _factory = factory;
         _closed = closed;
+        _stopRequested = stopRequested ?? (() => VitaSharp.Core.Kernel.GuestThread.Current?.Core.StopRequested == true);
         Rate = rate;
         Channels = Math.Max(1, channels);
         Grain = Math.Max(1, grain);
@@ -350,8 +356,11 @@ public sealed class BufferedPcmStream : IAudioStream
                 Start(pcmSink);
                 continue;
             }
-            // full: wait for room; while the activity is paused the device does not drain, so wait for Resume
-            while (_paused && !_disposed)
+            // full: wait for room; while the activity is paused the device does not drain, so wait for Resume, or for
+            // the stop of the submitting thread: a load state pauses the emulation (and so this stream) and then stops
+            // the guest threads, and the audio thread blocked here made the load fail ("thread 'AudioOutput' did not
+            // stop", F1 2011 during its opening films)
+            while (_paused && !_disposed && !_stopRequested())
             {
                 Monitor.Wait(_lock, 100);
             }
@@ -359,6 +368,11 @@ public sealed class BufferedPcmStream : IAudioStream
             if (_disposed || pcmSink.Disconnected)
             {
                 return pcmSink.Disconnected ? PcmSinkStatus.Disconnected : 0;
+            }
+
+            if (_stopRequested())
+            {
+                return 0; // the rest of this grain is dropped: the thread is going away
             }
         }
         if (!_started)
