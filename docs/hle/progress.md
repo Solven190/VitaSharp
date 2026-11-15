@@ -6,7 +6,7 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="../assets/status/progress-map-light.svg">
-  <img src="../assets/status/progress-map.svg" alt="HLE progress map: one cell per firmware library" width="100%">
+  <img src="../assets/status/progress-map.svg" alt="HLE progress map: one cell per firmware library, user and kernel" width="100%">
 </picture>
 
 | Group | Covered | Real | Default | LLE | Total | % |
