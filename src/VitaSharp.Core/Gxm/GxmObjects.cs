@@ -99,6 +99,11 @@ public sealed class GxmSyncObject
     /// <summary>Times the buffer was queued for display (the new buffer of sceGxmDisplayQueueAddEntry) and how many of
     /// those displays are over (a later entry naming it as the old buffer flipped). Guarded by the object itself.</summary>
     public long Queued, Released;
+    /// <summary>The GPU fence after the last scene that rendered into the buffer (its fragment sync object) since the
+    /// buffer was last queued for display, or null when there is none or other work (a transfer naming the sync object)
+    /// came after it. The display queue entry that shows the buffer waits for this fence, as libgxm waits for the
+    /// buffer's sync object, not for everything submitted before the entry. Guarded by the object itself.</summary>
+    public GpuQueue.Fence? RenderedFence;
 }
 
 public sealed class GxmRenderTarget
