@@ -419,28 +419,235 @@ public sealed partial class AppUtil : HleModule
         File.WriteAllBytes(p, data);
     }
 
-    /// <summary>Deletes the files/directories of a remove list whose items are <paramref name="stride"/> bytes apart
-    /// (dataPath* first).</summary>
-    internal void RemoveFiles(uint files, uint fileNum, uint stride)
+    /// <summary>SceAppUtilSaveDataRemoveItem: dataPath* (+0), mode (+4: DEFAULT 0, NO_SLOT 1), reserved[36] (+8).</summary>
+    internal const uint RemoveItemSize = 0x2C;
+
+    /// <summary>The longest remove list apputil and the kernel accept (FW 3.74: apputil refuses more, SceAppMgr stops
+    /// at 5).</summary>
+    const uint MaxRemoveItems = 5;
+
+    /// <summary>What SceAppMgr answers for a remove item it refuses (FW 3.74 SceAppMgr 0x8102AF54).</summary>
+    internal const int ERR_APPMGR_INVALID = unchecked((int)0x80800001);
+
+    const int ERRNO_EBUSY = unchecked((int)0x80010010), ERRNO_EACCES = unchecked((int)0x8001000D);
+
+    /// <summary>
+    /// The path rules of a remove item, as both apputil (0x81001BEC) and SceAppMgr (0x8102AF54) check them in FW 3.74:
+    /// shorter than 200 bytes, only letters, digits, '-', '_', '.', '/' and '\', no "..", no first component starting
+    /// with "sce_" (the system's own files, sce_sys), mode DEFAULT or NO_SLOT and the reserved bytes zero. apputil also
+    /// refuses more than 3 separators and a last component starting with "sce_". An empty path passes both: it names
+    /// savedata0: itself.
+    /// </summary>
+    static bool RemoveItemValid(uint item, bool appUtilRules)
     {
-        for (uint i = 0; i < fileNum; i++)
+        uint pathAddress = GuestMemory.R32(item);
+        if (pathAddress == 0)
         {
-            string path = SavePath(GuestMemory.ReadCString(GuestMemory.R32(files + i * stride)));
-            if (File.Exists(path)) File.Delete(path);
-            else if (Directory.Exists(path)) Directory.Delete(path, true);
+            return false;
+        }
+
+        string path = GuestMemory.ReadCString(pathAddress, 200);
+        if (path.Length >= 200)
+        {
+            return false;
+        }
+
+        int separators = 0;
+        int lastSeparator = -1;
+        for (int i = 0; i < path.Length; i++)
+        {
+            char c = path[i];
+            bool separator = c == '/' || c == '\\';
+            if (!char.IsAsciiLetterOrDigit(c) && c != '-' && c != '_' && c != '.' && !separator)
+            {
+                return false;
+            }
+
+            if (c == '.' && i + 1 < path.Length && path[i + 1] == '.')
+            {
+                return false;
+            }
+
+            if (separator)
+            {
+                separators++;
+                lastSeparator = i;
+            }
+        }
+
+        string firstComponent = path.TrimStart('/', '\\');
+        if (firstComponent.StartsWith("sce_", StringComparison.OrdinalIgnoreCase))
+        {
+            return false; // a fixed name of the firmware's save data layout (sce_sys)
+        }
+
+        if (appUtilRules)
+        {
+            if (separators > 3)
+            {
+                return false;
+            }
+
+            if (path.StartsWith("sce_", StringComparison.Ordinal) || path.AsSpan(lastSeparator + 1).StartsWith("sce_", StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        if (GuestMemory.R32(item + 4) > 1)
+        {
+            return false;
+        }
+
+        return !GuestMemory.Span(item + 8, 36).ContainsAnyExcept((byte)0);
+    }
+
+    /// <summary>
+    /// The kernel side of a save data removal (SceAppMgr sceAppMgrSaveDataDataRemove, FW 3.74 0x81029E3C): up to 5
+    /// items of <see cref="RemoveItemSize"/> bytes, each checked (<see cref="ERR_APPMGR_INVALID"/>, the items before it
+    /// already removed) and removed with everything under it; a path that does not exist is fine. A host error (a file
+    /// another program holds, no permission) becomes the I/O error instead of an exception that would stop the guest.
+    /// </summary>
+    internal int RemoveItems(uint files, uint fileNum)
+    {
+        for (uint i = 0; i < fileNum && i < MaxRemoveItems; i++)
+        {
+            uint item = files + i * RemoveItemSize;
+            if (!RemoveItemValid(item, appUtilRules: false))
+            {
+                return ERR_APPMGR_INVALID;
+            }
+
+            string rel = GuestMemory.ReadCString(GuestMemory.R32(item), 200);
+            string host = SavePath(rel);
+            int r = RemoveTree(host, IsSameDirectory(host, SavePath("")));
+            if (r < 0)
+            {
+                return r;
+            }
+        }
+
+        return 0;
+    }
+
+    static bool IsSameDirectory(string a, string b) => string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+    /// <summary>Removes a file, or a directory with everything under it. The save data root itself (an empty path)
+    /// stays, emptied, and keeps the system's own data: sce_sys and the slot params this emulator keeps there
+    /// (SlotParam_*.bin, a fixed name of our own layout).</summary>
+    static int RemoveTree(string host, bool isRoot)
+    {
+        try
+        {
+            if (File.Exists(host))
+            {
+                File.Delete(host);
+                return 0;
+            }
+
+            if (!Directory.Exists(host))
+            {
+                return 0;
+            }
+
+            if (!isRoot)
+            {
+                Directory.Delete(host, true);
+                return 0;
+            }
+
+            foreach (string entry in Directory.EnumerateFileSystemEntries(host))
+            {
+                string name = Path.GetFileName(entry);
+                if (name.StartsWith("sce_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("SlotParam_", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (Directory.Exists(entry))
+                {
+                    Directory.Delete(entry, true);
+                }
+                else
+                {
+                    File.Delete(entry);
+                }
+            }
+
+            return 0;
+        }
+        catch (UnauthorizedAccessException e)
+        {
+            Log.Warn($"save data remove {host} failed: {e.Message}");
+            return ERRNO_EACCES;
+        }
+        catch (IOException e)
+        {
+            Log.Warn($"save data remove {host} failed: {e.Message}");
+            return ERRNO_EBUSY;
         }
     }
 
+    /// <summary>
+    /// apputil.suprx 3.74 (0x81000D2C): NOT_INITIALIZED before sceAppUtilInit; PARAMETER for a NULL list, 0 or more than
+    /// 5 items, an item breaking the path rules (<see cref="RemoveItemValid"/>), a mount point other than savedata0:,
+    /// or a slot with a new param while item 0 also removes the slot (mode DEFAULT). Then the kernel removes the items
+    /// (<see cref="RemoveItems"/>) and, slot given and item 0 in mode DEFAULT, the slot.
+    /// </summary>
     [Hle]
     int sceAppUtilSaveDataDataRemove(uint slot, uint files, uint fileNum, uint mountPoint)
     {
-        if (slot != 0 && GuestMemory.R32(slot) >= 256) return ERR_PARAMETER; // SCE_APPUTIL_SAVEDATA_SLOT_MAX
-        RemoveFiles(files, fileNum, 0x2C); // SceAppUtilSaveDataRemoveItem: dataPath*, mode, reserved[36]
-        if (slot != 0 && fileNum > 0 && GuestMemory.R32(files + 4) == 0)
+        if (!_initialized)
         {
-            var p = SlotPath(GuestMemory.R32(slot));
-            if (File.Exists(p)) File.Delete(p);
+            return ERR_NOT_INITIALIZED;
         }
+
+        if (files == 0 || fileNum == 0 || fileNum > MaxRemoveItems)
+        {
+            return ERR_PARAMETER;
+        }
+
+        for (uint i = 0; i < fileNum; i++)
+        {
+            if (!RemoveItemValid(files + i * RemoveItemSize, appUtilRules: true))
+            {
+                return ERR_PARAMETER;
+            }
+        }
+
+        if (mountPoint != 0 && GuestMemory.ReadCString(mountPoint, 16) != "savedata0:")
+        {
+            return ERR_PARAMETER;
+        }
+
+        bool removesSlot = GuestMemory.R32(files + 4) == 0;
+        if (slot != 0 && GuestMemory.R32(slot + 4) != 0 && removesSlot)
+        {
+            return ERR_PARAMETER;
+        }
+
+        if (slot != 0 && GuestMemory.R32(slot) >= 256)
+        {
+            return ERR_PARAMETER; // SCE_APPUTIL_SAVEDATA_SLOT_MAX
+        }
+
+        int r = RemoveItems(files, fileNum);
+        if (r < 0)
+        {
+            return r;
+        }
+
+        if (slot != 0 && removesSlot)
+        {
+            string slotFile = SlotPath(GuestMemory.R32(slot));
+            int slotResult = RemoveTree(slotFile, isRoot: false);
+            if (slotResult < 0)
+            {
+                return slotResult;
+            }
+        }
+
         return 0;
     }
 
