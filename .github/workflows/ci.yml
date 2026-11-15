@@ -271,7 +271,7 @@ jobs:
   # (third_party, keyed on their build files and the NDK version: the shaderc compile is the longest step). About
   # 15-20 min with warm caches, 25-35 min on a cold run.
   android-arm64:
-    name: Android APK (android-arm64, Native AOT)
+    name: Publish Android APK (android-arm64, Native AOT)
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
@@ -339,7 +339,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "### Android APK (android-arm64, Native AOT)"
+            echo "### Publish Android APK (android-arm64, Native AOT)"
             echo
             for f in artifacts/android/packages/*.apk; do
               echo "- \`$(basename "$f")\`: $(wc -c < "$f" | tr -d ' ') bytes, runtime nativeaot, NDK ${NDK_VERSION}, debug-keystore signed"

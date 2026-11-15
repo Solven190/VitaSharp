@@ -114,7 +114,7 @@ app), `libshaderc_shared.so`, `libadrenotools.so` and its four hooks, or with a 
 ABI inside (`AndroidApkContentsTests`), and `build/check-dev-gating` fails with developer tooling inside. `--check
 <apk>` / `-Check <apk>` only checks. Requirements: the .NET 10 SDK with `maui-android`, a JDK 17, the Android SDK
 (`platforms;android-36`, `build-tools;36.0.0`) and the NDK r30 (`ndk;30.0.16248370`; `ANDROID_NDK_HOME` or
-`ANDROID_NDK_ROOT` picks it, else the newest under the SDK), git. The CI job **Android APK (android-arm64, Native
+`ANDROID_NDK_ROOT` picks it, else the newest under the SDK), git. The CI job **Publish Android APK (android-arm64, Native
 AOT)** (`.github/workflows/ci.yml`, ubuntu-latest, every push and pull request) runs it and uploads the artifact
 **VitaSharp-android-arm64-packages** (release.yml publishes its APK on the Releases page);
 it caches NuGet, the NDK and the compiled native libraries (about 15-20
