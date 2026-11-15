@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=2c621c0e5d19652a4f881a227b93e8b6d8bee021c503324deb16150d942a6a12 -->
+<!-- pair: README.pt-BR.md sha256=c1cc05d6188d0538ea23e316c411cd60e06bed2e393dd2eac72b099146cc2804 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -176,15 +176,15 @@ injections, function hooks), as a console with the homebrew environment set up.
 - **Turn it on:** launcher **Settings > Advanced**; Android **Settings > Debugging**; command line
   `--kernel-plugins=on|off`; environment `VITASHARP_KERNEL_PLUGINS=1` (the switches win over the variable).
 - **Folder:** `kernel_plugins/`, next to `fs/` in the data folder (same on Windows, Linux, macOS and Android), holds
-  `config.txt` and the kernel plugins (`.skprx`). A line without a device (`kubridge.skprx`) is a file of that folder; a
-  line with one (`ur0:tai/x.skprx`) is a path of the Vita. Sections as on the Vita: `*KERNEL` for kernel plugins,
-  `*ALL` / `*TITLEID` for user plugins, `*main` is the home screen.
+  `config.txt`. Its lines are Vita paths, as on the Vita (`ur0:tai/kubridge.skprx`): the plugins themselves stay in
+  `fs/ur0/tai` (or `fs/ux0/tai`), where homebrew checks their files. A line without a device (`my.skprx`) names a file
+  you put in `kernel_plugins/`. Sections as on the Vita: `*KERNEL` for kernel plugins, `*ALL` / `*TITLEID` for user
+  plugins, `*main` is the home screen.
 - **Fallback:** without `kernel_plugins/config.txt`, the Vita's `fs/ux0/tai/config.txt` (else `fs/ur0/tai/config.txt`)
   is read, as copied from a Vita.
-- **Automatic move:** the first time the option is on, the Vita's `config.txt` and the kernel plugins it lists move into
-  `kernel_plugins/` (the original kept as `kernel_plugins/config.txt.bak`, the moved lines rewritten); the framework's
-  own file and the plugins' data files stay in `ur0:tai`, where the plugins read them. The framework's own file is
-  never loaded: the emulator provides its libraries.
+- **Automatic move:** the first time the option is on, the Vita's `config.txt` moves into `kernel_plugins/` unchanged
+  (a copy kept as `kernel_plugins/config.txt.bak`); the plugins, the framework's own file and the plugins' data files
+  stay in `ur0:tai`. The framework's own file is never loaded: the emulator provides its libraries.
 - **Log:** one line per plugin, `kernel plugin <path>: loaded and started (<name>)`, `... not started: no module
   provides ...` or `... not loaded (...)`.
 

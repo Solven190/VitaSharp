@@ -238,6 +238,8 @@ public sealed partial class PluginFramework
             }
 
             GuestMemory.W32(hookRefOut, record);
+            string what = redirectNid != 0 ? $" ({NidDatabase.NameOf(redirectNid)}, its import stubs too)" : "";
+            Util.Log.Info($"plugin hook {patch.Records.Count} on 0x{address:X8}{what}: hook function 0x{hookFunction:X8} (pid 0x{pid:X})");
             return patch.Uid;
         }
     }

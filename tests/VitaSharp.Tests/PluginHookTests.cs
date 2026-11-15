@@ -123,6 +123,27 @@ public sealed class PluginHookTests(GuestMemoryFixture fixture) : IDisposable
     }
 
     [Fact]
+    public void AHookDropsOnlyTheTranslatedCodeItPatches()
+    {
+        // cost: installing and releasing a hook keeps every other block of translated code (no flush of the whole cache)
+        (uint target, _) = LoadTarget();
+        uint[] hooks = LoadHooks(42, 9);
+        uint other = hooks[1];
+        uint hookRef = _harness.Word(0);
+        _harness.OnGuest(t =>
+        {
+            Assert.Equal(9u, t.CallGuest(other));
+            Assert.Equal(7u, t.CallGuest(target));
+            Assert.True(_harness.Emu.Code.TryGet(other & ~1u, thumb: true, out _), "the other function was not translated");
+            int uid = Call(Framework, "HookFunctionExportForKernel", KernelSpace.KernelPid, hookRef, _harness.Str("HookTarget"), TargetLib, TargetNid, hooks[0]);
+            Assert.True(_harness.Emu.Code.TryGet(other & ~1u, thumb: true, out _), "the hook dropped unrelated code");
+            Assert.Equal(42u, t.CallGuest(target));
+            Assert.Equal(0, Call(Framework, "HookReleaseForKernel", uid, GuestMemory.R32(hookRef)));
+            Assert.True(_harness.Emu.Code.TryGet(other & ~1u, thumb: true, out _), "the release dropped unrelated code");
+        });
+    }
+
+    [Fact]
     public void CodeThatCannotMoveIsNotHooked()
     {
         (_, uint callsImport) = LoadTarget();

@@ -1296,71 +1296,74 @@ public sealed class Emulator : IDisposable
     static bool InPluginFolder(string path) => !path.Contains(':', StringComparison.Ordinal);
 
     /// <summary>
-    /// Once, with the option on and no configuration in the emulator's plugin folder yet: moves the Vita's plugin
-    /// configuration (ux0:tai, else ur0:tai) and the kernel plugins it lists from ur0:tai / ux0:tai into the folder,
-    /// keeping a copy of the original as config.txt.bak, and writes the moved plugins' lines as paths relative to the
-    /// folder. The plugin framework's own file (a module that exports the libraries the emulator provides), user plugins
-    /// and the plugins' data files are not moved. Nothing is deleted except by moving.
+    /// With the option on: the first time (no configuration in the emulator's plugin folder yet), moves the Vita's plugin
+    /// configuration (ux0:tai, else ur0:tai) into the folder unchanged, keeping a copy as config.txt.bak; its lines keep
+    /// the Vita paths, and the plugins stay in ur0:tai / ux0:tai (homebrew checks their files there). A plugin an earlier
+    /// version moved into the folder, whose line was rewritten to its file name, goes back to the Vita path config.txt.bak
+    /// lists for it, and its line too. Nothing is deleted except by moving.
     /// </summary>
     internal void MigratePluginConfiguration()
     {
         if (File.Exists(PluginFolderConfig))
         {
+            ReturnMovedPlugins();
             return;
         }
 
         string? source = PluginConfig.Paths.Select(p => Vfs.Resolve(p)).FirstOrDefault(h => h != null && File.Exists(h));
-        if (source == null)
-        {
-            return;
-        }
-
-        string text = File.ReadAllText(source);
-        if (!PluginConfig.IsValid(text))
+        if (source == null || !PluginConfig.IsValid(File.ReadAllText(source)))
         {
             return;
         }
 
         Directory.CreateDirectory(KernelPluginsFolder);
-        var moved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string path in PluginConfig.ModulesFor(text, "KERNEL"))
+        File.Copy(source, PluginFolderConfig + ".bak", overwrite: true);
+        File.Move(source, PluginFolderConfig);
+        Log.Info($"plugins: moved the plugin configuration to the emulator's plugin folder ({PluginFolderConfig}; a copy is config.txt.bak)");
+    }
+
+    /// <summary>The plugins an earlier version moved into the folder go back to the Vita paths of config.txt.bak, and
+    /// their lines name those paths again.</summary>
+    void ReturnMovedPlugins()
+    {
+        string backup = PluginFolderConfig + ".bak";
+        if (!File.Exists(backup))
         {
-            if (InPluginFolder(path) || Vfs.Resolve(path) is not { } file || !File.Exists(file) || IsPluginFrameworkFile(path))
+            return;
+        }
+
+        var vitaPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in PluginConfig.ModulesFor(File.ReadAllText(backup), "KERNEL").Where(p => !InPluginFolder(p)))
+        {
+            vitaPaths.TryAdd(path[(path.LastIndexOfAny(['/', ':']) + 1)..], path);
+        }
+
+        string text = File.ReadAllText(PluginFolderConfig);
+        bool changed = false;
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (line.Length == 0 || line[0] is '#' or '*' || !InPluginFolder(line) || !vitaPaths.TryGetValue(line, out string? vitaPath))
             {
                 continue;
             }
 
-            string target = Path.Combine(KernelPluginsFolder, Path.GetFileName(file));
-            if (!File.Exists(target))
+            string file = Path.Combine(KernelPluginsFolder, line);
+            if (Vfs.Resolve(vitaPath) is { } target && File.Exists(file) && !File.Exists(target))
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Move(file, target);
-                Log.Info($"plugins: moved {path} to the emulator's plugin folder ({KernelPluginsFolder})");
+                Log.Info($"plugins: moved {line} back to {vitaPath}");
             }
 
-            moved.Add(path);
+            lines[i] = vitaPath;
+            changed = true;
         }
 
-        string rewritten = string.Join("\n", text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
-            .Select(line => moved.Contains(line.Trim()) ? Path.GetFileName(Vfs.Resolve(line.Trim()) ?? line.Trim()) : line));
-        File.WriteAllText(PluginFolderConfig, rewritten);
-        File.Move(source, PluginFolderConfig + ".bak", overwrite: true);
-        Log.Info($"plugins: moved the plugin configuration to the emulator's plugin folder ({PluginFolderConfig}; the original is config.txt.bak)");
-    }
-
-    /// <summary>True when the module at <paramref name="vitaPath"/> exports the plugin framework libraries the emulator
-    /// provides (it is loaded to read its export table, then unloaded).</summary>
-    bool IsPluginFrameworkFile(string vitaPath)
-    {
-        try
+        if (changed)
         {
-            LoadedModule module = LoadModule(vitaPath, kernel: true);
-            bool framework = ExportsPluginFramework(module);
-            UnloadModule(module);
-            return framework;
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            return false;
+            File.WriteAllText(PluginFolderConfig, string.Join("\n", lines));
         }
     }
 

@@ -37,10 +37,13 @@ public sealed partial class SysmemKernel
     /// <summary>The cores of the Vita's CPU.</summary>
     const int CoreCount = 4;
 
+    [VitaSharp.Core.SaveState.SnapshotMissing(BootSctlr)] // states of builds before it: the register was not kept (the boot value)
     uint _sctlr = BootSctlr;
 
     // the ASID (CONTEXTIDR low byte) of each process: the kernel's is 0, the others are handed out in order
+    [VitaSharp.Core.SaveState.SnapshotMissing] // states of builds before it: no process had asked yet
     readonly Dictionary<int, int> _asids = new();
+    [VitaSharp.Core.SaveState.SnapshotMissing(1)]
     int _nextAsid = 1;
 
     // ------------------------------------------------------------------ memory access helpers

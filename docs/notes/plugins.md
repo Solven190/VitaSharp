@@ -28,16 +28,16 @@ ux0:tai/some_plugin.suprx
 
 Without a `config.txt`, or with the option off, no plugin is loaded.
 
-The plugin configuration and the kernel plugins go in the emulator's own folder, `kernel_plugins/` next to `fs/` in the
-data folder (Windows, Linux, macOS and Android alike): `kernel_plugins/config.txt`, read with the same rules, where a
-line without a device (`kubridge.skprx`) is a file of that folder (a path relative to the configuration) and a line
-with one (`ur0:tai/x.skprx`) is a path of the Vita; a file that is not there is skipped with a warning in the log.
-Without `kernel_plugins/config.txt` the Vita's configuration above is read. Only the emulator's loader reads the
-configuration. The first time the option is on and the folder has no configuration, the Vita's `config.txt` and the
-kernel plugins its `*KERNEL` lists in `ur0:tai` / `ux0:tai` move into `kernel_plugins/` (the original configuration kept
-as `kernel_plugins/config.txt.bak`, the moved plugins' lines rewritten to their file names; the log names each move);
-the plugin framework's own file, user plugins and the plugins' data files stay where they are (the plugins read their
-data by its Vita path). Nothing is deleted.
+The plugin configuration goes in the emulator's own folder, `kernel_plugins/` next to `fs/` in the data folder
+(Windows, Linux, macOS and Android alike): `kernel_plugins/config.txt`, read with the same rules. Its lines are Vita
+paths (`ur0:tai/kubridge.skprx`): the plugins stay in `ur0:tai` / `ux0:tai`, where homebrew checks their files; a line
+without a device (`my.skprx`) names a file of `kernel_plugins/` (a path relative to the configuration); a file that is
+not there is skipped with a warning in the log. Without `kernel_plugins/config.txt` the Vita's configuration above is
+read. Only the emulator's loader reads the configuration. The first time the option is on and the folder has no
+configuration, the Vita's `config.txt` moves into `kernel_plugins/` unchanged (a copy kept as
+`kernel_plugins/config.txt.bak`; the log says so); a plugin an earlier version had moved into the folder goes back to the
+Vita path the `.bak` names for it. The plugins, the plugin framework's own file and the plugins' data files are never
+moved. Nothing is deleted.
 
 The file is read with the rules of the homebrew environment's own parser and plugin loader: only one
 file is used (`ux0:tai/config.txt`, else `ur0:tai/config.txt`); `#` starts a comment, `*` a section, anything else is

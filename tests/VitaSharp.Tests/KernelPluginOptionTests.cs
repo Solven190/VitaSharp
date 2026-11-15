@@ -132,7 +132,7 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
     }
 
     [Fact]
-    public void TheFirstRunMovesTheConfigurationAndThePluginsAndRewritesTheirLines()
+    public void TheFirstRunMovesOnlyTheConfigurationAndThePluginsStayInTai()
     {
         VitaConfiguration();
         File.WriteAllBytes(Path.Combine(Tai, "framework.skprx"), FrameworkCopy());
@@ -142,29 +142,43 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
         using (Emulator emu = NewEmulator(true))
         {
             List<string> results = emu.LoadPluginsIfEnabled();
-            Assert.Equal(["ur0:tai/framework.skprx: not loaded (the emulator provides its libraries)", "probe.skprx: loaded and started (PluginProbe)"],
+            Assert.Equal(["ur0:tai/framework.skprx: not loaded (the emulator provides its libraries)", "ur0:tai/probe.skprx: loaded and started (PluginProbe)"],
                 results.Where(r => !r.StartsWith("ux0:", StringComparison.Ordinal)));
         }
 
-        Assert.Equal("# plugins\n*KERNEL\nur0:tai/framework.skprx\nprobe.skprx\n*ALL\nux0:tai/user.suprx\n",
-            File.ReadAllText(Path.Combine(Folder, "config.txt")));
+        // the configuration moved unchanged (a .bak copy kept); the plugins, the framework's file and the data stayed
+        Assert.Equal(original, File.ReadAllText(Path.Combine(Folder, "config.txt")));
         Assert.Equal(original, File.ReadAllText(Path.Combine(Folder, "config.txt.bak")));
-        Assert.True(File.Exists(Path.Combine(Folder, "probe.skprx")));
-        Assert.False(File.Exists(Path.Combine(Tai, "probe.skprx")));
         Assert.False(File.Exists(Path.Combine(Tai, "config.txt")));
+        Assert.True(File.Exists(Path.Combine(Tai, "probe.skprx")));
         Assert.True(File.Exists(Path.Combine(Tai, "framework.skprx")));
         Assert.True(File.Exists(Path.Combine(Tai, "probe.cfg")));
+        Assert.False(File.Exists(Path.Combine(Folder, "probe.skprx")));
 
         // a second run finds the folder's configuration and moves nothing
-        File.WriteAllBytes(Path.Combine(Tai, "late.skprx"), Probe("LateProbe"));
         File.WriteAllText(Path.Combine(Tai, "config.txt"), "*KERNEL\nur0:tai/late.skprx\n");
         using (Emulator again = NewEmulator(true))
         {
             again.LoadPluginsIfEnabled();
         }
 
-        Assert.True(File.Exists(Path.Combine(Tai, "late.skprx")));
         Assert.True(File.Exists(Path.Combine(Tai, "config.txt")));
-        Assert.False(File.Exists(Path.Combine(Folder, "late.skprx")));
+        Assert.Equal(original, File.ReadAllText(Path.Combine(Folder, "config.txt")));
+    }
+
+    [Fact]
+    public void APluginAnEarlierVersionMovedGoesBackToItsVitaPath()
+    {
+        // the layout an earlier version left: the plugin in the folder, its line rewritten, the original in the .bak
+        Directory.CreateDirectory(Folder);
+        Directory.CreateDirectory(Tai);
+        File.WriteAllBytes(Path.Combine(Folder, "probe.skprx"), Probe("PluginProbe"));
+        File.WriteAllText(Path.Combine(Folder, "config.txt"), "*KERNEL\nprobe.skprx\n");
+        File.WriteAllText(Path.Combine(Folder, "config.txt.bak"), "*KERNEL\nur0:tai/probe.skprx\n");
+        using Emulator emu = NewEmulator(true);
+        Assert.Equal(["ur0:tai/probe.skprx: loaded and started (PluginProbe)"], emu.LoadPluginsIfEnabled());
+        Assert.True(File.Exists(Path.Combine(Tai, "probe.skprx")));
+        Assert.False(File.Exists(Path.Combine(Folder, "probe.skprx")));
+        Assert.Equal("*KERNEL\nur0:tai/probe.skprx\n", File.ReadAllText(Path.Combine(Folder, "config.txt")));
     }
 }

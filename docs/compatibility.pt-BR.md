@@ -1,4 +1,4 @@
-<!-- pair: compatibility.md sha256=c35b030a77f0e92c172a4aef0f037d749c14831f5abeccd50c0496309787a198 -->
+<!-- pair: compatibility.md sha256=1bc139741a443f963d496f4315195bd0319f689ee06afc3d75bb65498e4dae6d -->
 # Compatibilidade
 
 [English](compatibility.md) | **Português**
