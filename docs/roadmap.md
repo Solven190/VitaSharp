@@ -1191,9 +1191,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (perf/android-frame-13): conversão por linhas, uma leitura dos planos e termos em tabela, os mesmos bytes
   (`YuvTextureTests`); falta medir no celular. Também visto: durante o filme o planejador de núcleos troca a thread
   principal do jogo pela "avPlayer VideoDec" (a mais ocupada) e manda a principal para os A55
-- [ ] F1 2011 no celular: quadros pretos nos filmes, porque o player do jogo pula o desenho do quadro quando o
+- [x] F1 2011 no celular: quadros pretos nos filmes, porque o player do jogo pula o desenho do quadro quando o
   decodificador atrasa (CPU lenta: ~20 fps; reproduz no PC com `--cpu-mhz=120`); some com a velocidade nativa (item
   abaixo), conferir depois
+  15/11/2026: conferido no celular com o APK cd4f405b (entrega de imagens do AvPlayer fiel ao libsceavplayer e fila
+  em ordem de exibição): boot do zero 2x, "Gravar tudo" com pré-gravação 10 s cobrindo os filmes inteiros (0-41 s
+  de tempo do guest). No trecho da captura do usuário (3º filme, 30-41 s) 0 quadros pretos e 0 fora de ordem nas
+  duas (antes: 15 quadros pretos em 13 piscadas e 7 trocas de ordem em 8 s), filme a 25 fps (antes 20). No resto
+  do boot sobram só 1-2 quadros pretos nas 3 trocas de filme (~9,4 s, 17,8 s, 21,9 s), junto com a parada de
+  troca de filme (100-440 ms) que o Vita também tem
   12/11/2026 (A1): com o código atual não há mais chamada sem picture no começo dos filmes (era 8 por filme) e o fps
   do filme não mudou (ver o item "o vídeo de abertura do F1 2011 pisca")
 - [x] Teclado físico no jogo (setas/letras para os botões, como no desktop) (30/10/2026: `AndroidKeyboard` com o perfil
@@ -3622,6 +3628,12 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   fora de ordem. A captura do usuário (`PCSE00002_20261109_185836_tudo`, 3º filme, jogo a 20 fps) tem 13 piscadas
   pretas e 7 pictures fora de ordem em 8 s. Perguntar ao lab se o gameplay também pisca. **Restrição do usuário: a
   correção não pode afetar a performance** (medir no celular, sem perda de fps).
+  - 15/11/2026, APK cd4f405b (entrega de imagens do AvPlayer e fila em ordem de exibição), boot do zero 2x com
+    "Gravar tudo" (pré-gravação 10 s, 0-41 s de guest): no 3º filme (o trecho da captura do usuário) 0 quadros
+    pretos, 0 fora de ordem e 2 piscadas de célula em 10 s, filme a 25 fps (antes 13 piscadas pretas, 7 fora de
+    ordem e 22 piscadas em 8 s, 20 fps). Sobra: no começo do 2º filme (~10,1-10,5 s) um grupo de piscadas de célula
+    (3 numa execução, 9 e 1 troca de ordem na outra) e 1-2 quadros pretos em cada troca de filme; falta saber se
+    o grupo do 2º filme é do vídeo (comparar com o boot do Vita de verdade, vídeo `INf_kf6wGFY`)
   - O replay da captura no PC reproduz o defeito com qualquer build e qualquer chave do renderizador, inclusive o
     perfil do desktop e a main da manhã de 09/11. As pictures pretas ou velhas já estão na memória do guest quando o
     worker da GPU grava o quadro: o defeito é do lado do guest/HLE, não do renderizador.
