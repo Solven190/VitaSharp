@@ -346,8 +346,9 @@ public static class HleStatusReport
             .OrderByDescending(l => l.Total).ThenBy(l => l.Name, StringComparer.Ordinal).ToList();
         int kernelTotal = kernelCells.Sum(l => l.Total);
         int kernelImpl = kernelCells.Sum(l => l.Impl);
-        // taller with the kernel region, so its many small libraries still get readable cells
-        double H = kernelCells.Count > 0 ? 720 : 600;
+        // with the kernel region the map is taller and the kernel gets 45% of it (not its share of the functions, which
+        // would leave its 114 libraries a thin band without names): the area is proportional within each region
+        double H = kernelCells.Count > 0 ? 1100 : 600;
         string aria = kernelCells.Count > 0
             ? $"HLE progress map: {user.Count} user libraries and {kernelCells.Count} kernel libraries of the firmware"
             : $"HLE progress map: {user.Count} firmware libraries";
@@ -375,9 +376,9 @@ public static class HleStatusReport
         }
         else
         {
-            // two regions stacked, each under its label band; the cell areas follow the exported functions of both
+            // two regions stacked, each under its label band; within a region the cell areas follow the exported functions
             double cellsHeight = H - Top - Pad - 2 * RegionLabel - Gap;
-            double userHeight = cellsHeight * s.Total / (s.Total + kernelTotal);
+            double userHeight = cellsHeight * UserMapShare;
             double y = Top;
             RegionTitle(b, $"User ({user.Count} libraries): {PctText(s.Impl, s.Total)} implemented ({Count(s.Impl)}/{Count(s.Total)})", Pad, y, fg);
             y += RegionLabel;
@@ -391,6 +392,33 @@ public static class HleStatusReport
         b.Append("</g>\n</svg>\n");
         return b.ToString();
     }
+
+    /// <summary>The share of the map's cell height the user region gets when the kernel region is drawn too.</summary>
+    private const double UserMapShare = 0.55;
+
+    /// <summary>The label of a cell: the library name without the "Sce" prefix and, when that does not fit, without the
+    /// kernel export-table suffix too ("CtrlForDriver" -> "Ctrl"). By name because these are the firmware's fixed library
+    /// names and this only shortens a label (nothing behaves differently).</summary>
+    private static string CellName(string library, double size, double width)
+    {
+        string name = library.StartsWith("Sce", StringComparison.Ordinal) && library.Length > 3 ? library[3..] : library;
+        if (TextWidth(name, size) + 6 <= width)
+        {
+            return name;
+        }
+
+        foreach (string suffix in s_kernelTableSuffixes)
+        {
+            if (name.EndsWith(suffix, StringComparison.Ordinal) && name.Length > suffix.Length)
+            {
+                return name[..^suffix.Length];
+            }
+        }
+
+        return name;
+    }
+
+    private static readonly string[] s_kernelTableSuffixes = ["ForDriver", "ForKernel"];
 
     private static void RegionTitle(StringBuilder b, string text, double x, double y, string fill)
     {
@@ -407,7 +435,7 @@ public static class HleStatusReport
             b.Append(s_inv, $"<g><title>{Esc(l.Name)}: {l.Impl}/{l.Total} ({PctText(l.Impl, l.Total)}){(l.Default > 0 ? $", {l.Default} default" : "")}</title>");
             b.Append(s_inv, $"<rect x=\"{F(x)}\" y=\"{F(y)}\" width=\"{F(w)}\" height=\"{F(h)}\" fill=\"{CellColor(p, dark)}\" stroke=\"{stroke}\" stroke-width=\"1\"/>");
             double size = Math.Clamp(Math.Min(h / 2.6, w / 7), 0, 13);
-            string name = l.Name.StartsWith("Sce", StringComparison.Ordinal) && l.Name.Length > 3 ? l.Name[3..] : l.Name;
+            string name = CellName(l.Name, size, w);
             if (size >= 7 && TextWidth(name, size) + 6 <= w)
             {
                 b.Append(s_inv, $"<text x=\"{F(x + 3)}\" y=\"{F(y + size + 2)}\" font-size=\"{F(size)}\" fill=\"{label}\">{Esc(name)}</text>");

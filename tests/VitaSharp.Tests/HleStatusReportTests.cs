@@ -106,6 +106,14 @@ public class HleStatusReportTests
             Assert.Contains($">Kernel ({kernel.Count} libraries)", svg);
             Assert.Contains($"{kernel.Count} kernel libraries", svg);
             Assert.All(kernel, l => Assert.Contains($"<title>{l.Name}: {l.Impl}/{l.Total} (", svg));
+            // the kernel region is no thin band at the bottom (its share of the functions would leave it ~17% of the
+            // height and its cells without names): it starts above 60% of the map and most of its big cells are named
+            double height = double.Parse(System.Text.RegularExpressions.Regex.Match(svg, "height=\"([0-9.]+)\"").Groups[1].Value, CultureInfo.InvariantCulture);
+            double kernelTop = double.Parse(System.Text.RegularExpressions.Regex.Match(svg, "y=\"([0-9.]+)\"[^>]*>Kernel \\(").Groups[1].Value, CultureInfo.InvariantCulture);
+            Assert.True(kernelTop < 0.6 * height, $"kernel region starts at {kernelTop} of {height}");
+            string kernelPart = svg[svg.IndexOf(">Kernel (", StringComparison.Ordinal)..];
+            int named = System.Text.RegularExpressions.Regex.Matches(kernelPart, "/><text ").Count;
+            Assert.True(named >= 30, $"only {named} kernel cells are named");
         }
 
         string tsv = "library\tnid\tname\tstatus\tvitasharp\timporters\nSceKFoo\t0x1\ta\timpl\tA.a\t\nSceKFoo\t0x2\tb\tmissing\t\t\n";
