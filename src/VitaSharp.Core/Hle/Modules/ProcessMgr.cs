@@ -344,7 +344,6 @@ public sealed partial class ProcessMgr : HleModule
     }
 
     [Hle(Cost = HleCost.UserCall)]
-    [Hle("ksnprintf")]
     int sceClibSnprintf(uint buf, uint size, string fmt, VarArgs va)
     {
         string s = CFormat.Format(fmt, va);

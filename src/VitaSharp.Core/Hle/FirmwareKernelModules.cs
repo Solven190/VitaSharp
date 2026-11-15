@@ -1,0 +1,373 @@
+using System.Buffers.Binary;
+using System.Text;
+using VitaSharp.Core.Firmware;
+using VitaSharp.Core.Kernel;
+using VitaSharp.Core.Loader;
+using VitaSharp.Core.Memory;
+using VitaSharp.Core.Util;
+
+namespace VitaSharp.Core.Hle;
+
+/// <summary>
+/// The firmware's kernel modules as the kernel shows them to kernel code, for the modules whose code VitaSharp runs in
+/// HLE. On the Vita every kernel module of the firmware is in the module manager's list of the kernel process
+/// (ksceKernelGetModuleList(KERNEL_PID), ksceKernelGetModuleCB), with its module_info, export and import tables in
+/// kernel memory, and another kernel module (one the user loads included) links to the functions in those tables and
+/// may read them or write to the code they point at, as kernel code can write any kernel memory.
+/// <para>
+/// Each module of the installed firmware's kernel (<see cref="FirmwareKernelImage"/>) is loaded here as a module of
+/// the kernel process with the firmware's own name, module NID and export tables (libraries, attributes, function
+/// NIDs), through the module loader like any module, so the module manager's queries and the linker see it as they
+/// see a loaded module. Every exported function's entry is real ARM code, <c>svc #n; bx lr</c> into the HLE
+/// function, so code written over it runs for every kernel caller, and instructions moved elsewhere still reach the
+/// HLE (the SVC number names the function, not the address it runs from). Kernel modules that import a firmware
+/// library are linked to these entries. User modules keep reaching a syscall export through their HLE stubs (the
+/// emulator's syscall table, the same function). An HLE function that calls another firmware function the way the
+/// firmware module does goes through <see cref="Call"/>.
+/// </para>
+/// <para>
+/// The variables a firmware module exports are not part of the tables yet. Its imports are, as the firmware module
+/// has them, linked by the loader; HLE code that makes the call a firmware module makes through an import goes
+/// through <see cref="CallImport"/>.
+/// </para>
+/// </summary>
+public sealed class FirmwareKernelModules(Emulator emu)
+{
+    private const uint BxLr = 0xE12FFF1E, SvcOpcode = 0xEF000000;
+
+    /// <summary>(library NID, function NID) -> the entry's address and its unpatched first word.</summary>
+    private readonly Dictionary<(uint LibNid, uint Nid), (uint Entry, uint Svc)> _entries = new();
+
+    /// <summary>(importing module, library NID, function NID) -> the import stub and the code the linker put in it.</summary>
+    private readonly Dictionary<(string Module, uint LibNid, uint Nid), (uint Stub, uint[] Bound)> _imports = new();
+
+    private const int StubWords = 4;
+    private readonly object _lock = new();
+    private bool _loaded;
+
+    /// <summary>The kernel modules loaded for the firmware's modules (empty until <see cref="Load"/>).</summary>
+    public List<LoadedModule> Modules { get; } = new();
+
+    /// <summary>
+    /// Loads the firmware's kernel modules into the kernel process, once: each module of the installed firmware that no
+    /// loaded kernel module already stands for (same name). Without an installed firmware there is nothing to show.
+    /// Returns how many modules were loaded.
+    /// </summary>
+    public int Load()
+    {
+        lock (_lock)
+        {
+            if (_loaded)
+            {
+                return 0;
+            }
+
+            _loaded = true;
+            int loaded = 0;
+            foreach (FirmwareKernelImage.Module module in FirmwareKernelImage.For(emu.Options.FsRoot).Modules)
+            {
+                string name = module.Image.Name;
+                if (emu.Kernel.Modules.Values.Any(m => m.IsKernel && m.Name == name))
+                {
+                    continue;
+                }
+
+                List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries = module.Image.Exports
+                    .Where(e => e.FuncNids.Length > 0)
+                    .Select(e => (e.Library, e.LibNid, e.Attributes, e.FuncNids))
+                    .ToList();
+                List<(string Library, uint LibNid, uint[] FuncNids)> imports = module.Image.Imports
+                    .Where(i => i.FuncNids.Length > 0)
+                    .ToList();
+                LoadedModule loadedModule = LoadShell(module.VitaPath + "/" + name, module.Image, libraries, imports);
+                Modules.Add(loadedModule);
+                loaded++;
+            }
+
+            // what the linker bound each import stub to, once every module is there (a later module that exports the
+            // same library rebinds them; a hook rewrites them)
+            foreach (KeyValuePair<(string Module, uint LibNid, uint Nid), (uint Stub, uint[] Bound)> import in _imports.ToList())
+            {
+                _imports[import.Key] = (import.Value.Stub, GuestMemory.Span<uint>(import.Value.Stub, StubWords).ToArray());
+            }
+
+            if (loaded > 0)
+            {
+                Log.Info($"Firmware kernel modules: {loaded} shown to kernel code ({_entries.Count} exported functions, {_imports.Count} imports)");
+            }
+
+            return loaded;
+        }
+    }
+
+    /// <summary>Loads one firmware module's tables as a kernel module and writes its function entries.</summary>
+    private LoadedModule LoadShell(string path, ModuleImage image, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
+        List<(string Library, uint LibNid, uint[] FuncNids)> imports)
+    {
+        (byte[] elf, List<(int Library, int Function, uint Offset)> stubs, List<(int Library, int Function, uint Offset)> importStubs) =
+            BuildShell(image.Name, image.ModuleNid, image.Attributes, libraries, imports);
+        LoadedModule loadedModule;
+        using (ProcessScope.Enter(KernelSpace.KernelPid))
+        {
+            loadedModule = ModuleLoader.Load(elf, path, emu.Memory, emu.Linker, 0, kernel: true, syscallsForUsers: false);
+            loadedModule.Uid = emu.Kernel.Objects.Register(new ModuleObject(loadedModule));
+        }
+
+        loadedModule.Started = true;
+        emu.Kernel.Modules[loadedModule.Uid] = loadedModule;
+        uint segment = loadedModule.Segments[0].Address;
+        foreach ((int library, int function, uint offset) in stubs)
+        {
+            (string libName, uint libNid, _, uint[] nids) = libraries[library];
+            uint nid = nids[function];
+            uint entry = segment + offset;
+            uint svc = emu.Hle.GetHleFunctionIndex(nid, libNid, libName);
+            Linker.WriteHleStub(entry, svc, nid);
+            _entries[(libNid, nid)] = (entry, SvcOpcode | (svc & 0xFFFFFF));
+        }
+
+        foreach ((int library, int function, uint offset) in importStubs)
+        {
+            (_, uint libNid, uint[] nids) = imports[library];
+            _imports[(image.Name, libNid, nids[function])] = (segment + offset, []);
+        }
+
+        emu.Code.Invalidate(0, uint.MaxValue);
+        return loadedModule;
+    }
+
+    /// <summary>The address of the firmware's function <paramref name="nid"/> of library <paramref name="libNid"/>,
+    /// or 0 when no firmware module is shown for it.</summary>
+    public uint EntryOf(uint libNid, uint nid)
+    {
+        lock (_lock)
+        {
+            return _entries.TryGetValue((libNid, nid), out (uint Entry, uint Svc) e) ? e.Entry : 0;
+        }
+    }
+
+    /// <summary>Guest code rewrote the start of the function (a hook): its entry no longer is the SVC into the HLE.</summary>
+    public bool IsPatched(uint libNid, uint nid)
+    {
+        lock (_lock)
+        {
+            if (!_entries.TryGetValue((libNid, nid), out (uint Entry, uint Svc) e))
+            {
+                return false;
+            }
+
+            return GuestMemory.R32(e.Entry) != e.Svc || GuestMemory.R32(e.Entry + 4) != BxLr;
+        }
+    }
+
+    /// <summary>The import stub through which firmware module <paramref name="module"/> calls function
+    /// <paramref name="nid"/> of library <paramref name="libNid"/>, or 0.</summary>
+    public uint ImportStubOf(string module, uint libNid, uint nid)
+    {
+        lock (_lock)
+        {
+            return _imports.TryGetValue((module, libNid, nid), out (uint Stub, uint[] Bound) i) ? i.Stub : 0;
+        }
+    }
+
+    /// <summary>Guest code rewrote the import stub (an import hook): it is no longer what the linker bound.</summary>
+    public bool IsImportPatched(string module, uint libNid, uint nid)
+    {
+        lock (_lock)
+        {
+            if (!_imports.TryGetValue((module, libNid, nid), out (uint Stub, uint[] Bound) i) || i.Bound.Length != StubWords)
+            {
+                return false;
+            }
+
+            return !GuestMemory.Span<uint>(i.Stub, StubWords).SequenceEqual(i.Bound);
+        }
+    }
+
+    /// <summary>
+    /// A call firmware module <paramref name="module"/> makes through its import of function <paramref name="nid"/> of
+    /// library <paramref name="libNid"/>: when guest code hooked the import stub, the call runs the stub on the calling
+    /// thread in kernel mode; otherwise it is the call of the export (<see cref="Call"/>: the export's own hook, else
+    /// <paramref name="direct"/>).
+    /// </summary>
+    public uint CallImport(string module, uint libNid, uint nid, Func<uint> direct, params ReadOnlySpan<uint> args)
+    {
+        if (!IsImportPatched(module, libNid, nid) || GuestThread.Current is not { } thread)
+        {
+            return Call(libNid, nid, direct, args);
+        }
+
+        return RunGuest(thread, ImportStubOf(module, libNid, nid), args);
+    }
+
+    private static uint RunGuest(GuestThread thread, uint address, ReadOnlySpan<uint> args)
+    {
+        bool wasKernel = thread.KernelMode;
+        thread.KernelMode = true;
+        try
+        {
+            return thread.CallGuest(address, args);
+        }
+        finally
+        {
+            thread.KernelMode = wasKernel;
+        }
+    }
+
+    /// <summary>
+    /// A call of the firmware's function <paramref name="nid"/> of library <paramref name="libNid"/> the way the firmware
+    /// makes it, by its address: when guest code hooked the function, the call runs the guest code at its entry on the
+    /// calling thread, in kernel mode (as the kernel runs a syscall's driver call) and returns its r0; otherwise
+    /// <paramref name="direct"/>, the HLE function itself, with no guest round trip.
+    /// </summary>
+    public uint Call(uint libNid, uint nid, Func<uint> direct, params ReadOnlySpan<uint> args)
+    {
+        if (!IsPatched(libNid, nid) || GuestThread.Current is not { } thread)
+        {
+            return direct();
+        }
+
+        return RunGuest(thread, EntryOf(libNid, nid), args);
+    }
+
+    /// <summary>
+    /// A relocatable SCE module (ET_SCE_RELEXEC, one read/write/execute segment) with the firmware module's
+    /// module_info and export tables and a 16-byte entry per exported function; the pointers in the tables carry
+    /// R_ARM_ABS32 relocations so the loader places it anywhere in the kernel region; the module's imports are
+    /// 0x34-byte import entries with a 16-byte stub per function, which the loader links. Returns the ELF, where each
+    /// exported function's entry is in the segment, and where each import stub is.
+    /// </summary>
+    private static (byte[] Elf, List<(int Library, int Function, uint Offset)> Stubs, List<(int Library, int Function, uint Offset)> ImportStubs) BuildShell(
+        string name, uint moduleNid, ushort attributes, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
+        List<(string Library, uint LibNid, uint[] FuncNids)> imports)
+    {
+        const int InfoSize = 0x5C, ExportSize = 0x20, ImportSize = 0x34, StubSize = 0x10;
+        int functions = libraries.Sum(l => l.FuncNids.Length);
+        int importedFunctions = imports.Sum(i => i.FuncNids.Length);
+        int exportsAt = (InfoSize + 0xF) & ~0xF;
+        int importsAt = exportsAt + libraries.Count * ExportSize;
+        int tablesAt = importsAt + imports.Count * ImportSize;
+        int stringsAt = tablesAt + (functions + importedFunctions) * 8;
+        int stringBytes = libraries.Sum(l => Encoding.ASCII.GetByteCount(l.Library) + 1) + imports.Sum(i => Encoding.ASCII.GetByteCount(i.Library) + 1);
+        int stubsAt = (stringsAt + stringBytes + 0xF) & ~0xF;
+        int importStubsAt = stubsAt + functions * StubSize;
+        int size = (importStubsAt + importedFunctions * StubSize + 0xFFF) & ~0xFFF;
+
+        byte[] segment = new byte[size];
+        var relocations = new List<(uint Offset, uint Value)>();
+        var stubs = new List<(int Library, int Function, uint Offset)>();
+        var importStubs = new List<(int Library, int Function, uint Offset)>();
+        void Pointer(int at, uint target)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(at), target);
+            relocations.Add(((uint)at, target));
+        }
+
+        // module_info
+        BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(0), attributes);
+        BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(2), 0x0101);
+        Encoding.ASCII.GetBytes(name.Length > 26 ? name[..26] : name).CopyTo(segment, 4);
+        BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(0x24), (uint)exportsAt);
+        BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(0x28), (uint)importsAt);
+        BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(0x2C), (uint)importsAt);
+        BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(0x30), (uint)tablesAt);
+        BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(0x34), moduleNid);
+
+        int table = tablesAt, strings = stringsAt, stub = stubsAt;
+        for (int i = 0; i < libraries.Count; i++)
+        {
+            (string library, uint libNid, ushort libraryAttributes, uint[] nids) = libraries[i];
+            int export = exportsAt + i * ExportSize;
+            int nidTable = table;
+            int entryTable = table + nids.Length * 4;
+            table += nids.Length * 8;
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(export), ExportSize);
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(export + 2), 1);
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(export + 4), libraryAttributes);
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(export + 6), (ushort)nids.Length);
+            BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(export + 0x10), libNid);
+            Encoding.ASCII.GetBytes(library).CopyTo(segment, strings);
+            Pointer(export + 0x14, (uint)strings);
+            strings += Encoding.ASCII.GetByteCount(library) + 1;
+            Pointer(export + 0x18, (uint)nidTable);
+            Pointer(export + 0x1C, (uint)entryTable);
+            for (int k = 0; k < nids.Length; k++)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(nidTable + k * 4), nids[k]);
+                Pointer(entryTable + k * 4, (uint)stub);
+                stubs.Add((i, k, (uint)stub));
+                stub += StubSize;
+            }
+        }
+
+        int importStub = importStubsAt;
+        for (int i = 0; i < imports.Count; i++)
+        {
+            (string library, uint libNid, uint[] nids) = imports[i];
+            int import = importsAt + i * ImportSize;
+            int nidTable = table;
+            int entryTable = table + nids.Length * 4;
+            table += nids.Length * 8;
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(import), ImportSize);
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(import + 2), 1);
+            BinaryPrimitives.WriteUInt16LittleEndian(segment.AsSpan(import + 6), (ushort)nids.Length);
+            BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(import + 0x10), libNid);
+            Encoding.ASCII.GetBytes(library).CopyTo(segment, strings);
+            Pointer(import + 0x14, (uint)strings);
+            strings += Encoding.ASCII.GetByteCount(library) + 1;
+            Pointer(import + 0x1C, (uint)nidTable);
+            Pointer(import + 0x20, (uint)entryTable);
+            for (int k = 0; k < nids.Length; k++)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(segment.AsSpan(nidTable + k * 4), nids[k]);
+                Pointer(entryTable + k * 4, (uint)importStub);
+                importStubs.Add((i, k, (uint)importStub));
+                importStub += StubSize;
+            }
+        }
+
+        // the ELF: header, PT_LOAD and PT_SCE_RELA (format 0 entries: R_ARM_ABS32 within segment 0), the segment, the
+        // relocations
+        const int HeaderSize = 0x100;
+        byte[] rela = new byte[relocations.Count * 12];
+        for (int i = 0; i < relocations.Count; i++)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12), 2u << 8);
+            BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12 + 4), relocations[i].Value);
+            BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12 + 8), relocations[i].Offset);
+        }
+
+        byte[] elf = new byte[HeaderSize + size + rela.Length];
+        Span<byte> header = elf;
+        header[0] = 0x7F;
+        header[1] = (byte)'E';
+        header[2] = (byte)'L';
+        header[3] = (byte)'F';
+        header[4] = 1;
+        header[5] = 1;
+        header[6] = 1;
+        BinaryPrimitives.WriteUInt16LittleEndian(header[16..], 0xFE04);
+        BinaryPrimitives.WriteUInt16LittleEndian(header[18..], 0x28);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[20..], 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[24..], 0);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[28..], 0x34);
+        BinaryPrimitives.WriteUInt16LittleEndian(header[40..], 0x34);
+        BinaryPrimitives.WriteUInt16LittleEndian(header[42..], 0x20);
+        BinaryPrimitives.WriteUInt16LittleEndian(header[44..], 2);
+        ProgramHeader(header, 0x34, 1, HeaderSize, (uint)size, 7);
+        ProgramHeader(header, 0x54, 0x60000000, (uint)(HeaderSize + size), (uint)rela.Length, 0);
+        segment.CopyTo(elf, HeaderSize);
+        rela.CopyTo(elf, HeaderSize + size);
+        return (elf, stubs, importStubs);
+    }
+
+    private static void ProgramHeader(Span<byte> header, int at, uint type, uint offset, uint size, uint flags)
+    {
+        BinaryPrimitives.WriteUInt32LittleEndian(header[at..], type);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 4)..], offset);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 16)..], size);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 20)..], size);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 24)..], flags);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 28)..], 0x10);
+    }
+}

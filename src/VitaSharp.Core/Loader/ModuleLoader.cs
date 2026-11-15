@@ -512,9 +512,11 @@ public static class ModuleLoader
     /// Loads a module: segments, relocations, module info, exports and imports. A kernel module
     /// (<paramref name="kernel"/>) goes to the kernel region, which every address space maps, at any free address (the
     /// kernel loader relocates its modules); its exports are kernel exports except the libraries marked as syscall
-    /// exports, and its imports bind only to kernel exports.
+    /// exports, and its imports bind only to kernel exports. <paramref name="syscallsForUsers"/> false keeps a kernel
+    /// module's syscall libraries out of the user modules' linking (the firmware modules shown for HLE code: user code
+    /// already reaches those functions through its HLE stubs, the emulator's syscall table).
     /// </summary>
-    public static LoadedModule Load(byte[] elf, string path, GuestMemory mem, Linker linker, int uid, bool kernel = false)
+    public static LoadedModule Load(byte[] elf, string path, GuestMemory mem, Linker linker, int uid, bool kernel = false, bool syscallsForUsers = true)
     {
         ReadOnlySpan<byte> e = elf;
         if (U32LE(e, 0) != 0x464C457F)
@@ -639,7 +641,7 @@ public static class ModuleLoader
             uint[] nids = GuestMemory.Span<uint>(nidTable, total).ToArray();
             uint[] entries = GuestMemory.Span<uint>(entryTable, total).ToArray();
             m.Exports.Add((GuestMemory.ReadCString(libName), libNid, nids[..nfunc], nids[nfunc..]));
-            ExportScope scope = !kernel ? ExportScope.User : (attr & Linker.SyscallExportAttr) != 0 ? ExportScope.Syscall : ExportScope.Kernel;
+            ExportScope scope = !kernel ? ExportScope.User : (attr & Linker.SyscallExportAttr) != 0 && syscallsForUsers ? ExportScope.Syscall : ExportScope.Kernel;
             linker.RegisterExports(m, libNid, nids, entries, nfunc, scope);
             if (size == 0)
             {

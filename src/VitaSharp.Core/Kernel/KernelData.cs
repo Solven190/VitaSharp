@@ -7,9 +7,10 @@ namespace VitaSharp.Core.Kernel;
 /// </summary>
 public sealed class KernelData : KernelObject
 {
-    public const string Heap = "heap", ClassObject = "object", ProcEventHandler = "procevent";
+    public const string Heap = "heap", ClassObject = "object", ProcEventHandler = "procevent", SysEventHandler = "sysevent";
 
-    /// <summary>What the object is (<see cref="Heap"/>, <see cref="ClassObject"/>, <see cref="ProcEventHandler"/>).</summary>
+    /// <summary>What the object is (<see cref="Heap"/>, <see cref="ClassObject"/>, <see cref="ProcEventHandler"/>,
+    /// <see cref="SysEventHandler"/>: Address the handler, Aux its argument).</summary>
     public string Kind { get; init; } = "";
 
     /// <summary>Its guest memory (the object's body, the heap's first block, the handler table).</summary>

@@ -180,6 +180,10 @@ public static class Program
                 // hle-implemented [--vitasdk=<vitasdk-user-functions.tsv>]: every NID with an HLE implementation, as
                 // docs/hle/data/vitasharp-implemented.tsv (nid, name, module, library, "vh" when the VitaSDK lists it).
                 return ListHleImplemented(args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..]);
+            case "kernel-census":
+                // kernel-census [--root=<repository>]: the HLE status of every FW 3.74 kernel export in
+                // docs/hle/data/kernel-exports.tsv and the per-library table of docs/hle/kernel-exports.md
+                return KernelCensus(OptValue(args, "--root") ?? Directory.GetCurrentDirectory());
             case "hle-coverage":
                 return HleCoverage(args.Skip(1).FirstOrDefault(a => a.StartsWith("--out="))?["--out=".Length..],
                     args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..],
@@ -809,6 +813,21 @@ public static class Program
         return 0;
     }
 
+    /// <summary>kernel-census: updates the census of the FW 3.74 kernel exports from this build's HLE
+    /// (<see cref="VitaSharp.Core.Firmware.KernelCensus"/>).</summary>
+    static int KernelCensus(string root)
+    {
+        string? error = VitaSharp.Core.Firmware.KernelCensus.Update(root, out string summary);
+        if (error != null)
+        {
+            Console.Error.WriteLine($"kernel-census: {error}");
+            return 1;
+        }
+
+        Console.WriteLine(summary);
+        return 0;
+    }
+
     static int ListHleImplemented(string? vitasdkTsv)
     {
         var vitasdk = new HashSet<uint>();
@@ -899,6 +918,7 @@ public static class Program
         Console.WriteLine("  rerun <capture folder> [--from=preroll|start] [--window] [--rerun-gpu-dump]  replay a Gravar tudo capture's input from its save state");
         Console.WriteLine("  run options: --nav=<file> [--nav-live] [--nav-out=<dir>]  screen-driven input script (NavScript: tap/press/stable/shot/quit)");
         Console.WriteLine("  hle-implemented [--vitasdk=<tsv>]   list every NID the HLE implements (docs/hle/data/vitasharp-implemented.tsv)");
+        Console.WriteLine("  kernel-census [--root=<repo>]       HLE status of the FW 3.74 kernel exports (docs/hle/data/kernel-exports.tsv, kernel-exports.md)");
         Console.WriteLine("  audio-devices [--audio-device=<name>]  list the audio outputs and show the one a game opens");
         Console.WriteLine("  hle-coverage [--out=<tsv>] [--vitasdk=<tsv>] [--status=<repo>]  HLE coverage of every function the installed firmware exports (games/system/general)");
         Console.WriteLine("  imports <TITLEID|folder> [x.self] [--tsv=<file>]   list the system functions a title (or one of its executables) needs; --tsv: who provides each one");

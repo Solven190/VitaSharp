@@ -52,6 +52,13 @@ os outros.
   SceModulemgrForKernel, SceCpuForDriver...): o VitaSharp as implementa com o comportamento e os códigos de erro do
   firmware. Programas de usuário só chegam a um módulo de kernel pelas bibliotecas exportadas como syscall; módulos de
   kernel nunca se ligam a código de usuário.
+- Os módulos de kernel do próprio firmware (todos os `os0:kd/*.skprx` e os módulos dentro do `bootimage.skprx`)
+  estão na lista de módulos do processo do kernel antes do primeiro outro módulo de kernel carregar, com nome, NID de
+  módulo e tabelas de exportação e importação (`ksceKernelGetModuleList`, `ksceKernelGetModuleCB`). As importações de
+  um módulo de kernel se ligam às entradas de exportação deles, que são código ARM de verdade (um `svc` para a função
+  do HLE): código que um módulo de kernel escreve por cima de uma entrada roda para quem chama por ela no kernel. Os
+  programas de usuário continuam chegando às exportações de syscall pelos stubs do HLE. Precisa do firmware instalado
+  (`os0` do PSVUPDAT.PUP); sem ele nenhum módulo do firmware aparece.
 - A CPU emulada não tem níveis de privilégio, então a checagem de permissão das cópias usuário/kernel é feita pela
   biblioteca do kernel: o intervalo do usuário tem de ser memória do próprio chamador, não memória do kernel.
 

@@ -85,6 +85,9 @@ public enum ContentKind
     /// <summary>An application's work folder, &lt;title id&gt; (cache0:, sceAppMgrWorkDirMountById 205; a runtime a PSM
     /// title carries keeps its safe memory there).</summary>
     ApplicationCache,
+    /// <summary>The kernel's modules (os0:kd: sysmem, modulemgr, processmgr... and bootimage.skprx, the kernel image
+    /// with appmgr, NpDrm and the other kernel modules inside).</summary>
+    KernelModules,
 }
 
 /// <summary>A folder of the firmware's layout: a device and the folder on it.</summary>
@@ -148,6 +151,10 @@ public static class FirmwareLayout
     public static readonly FirmwareFolder Picture = new(ContentKind.Picture, "ux0", "picture");
     public static readonly FirmwareFolder ShellDatabase = new(ContentKind.ShellDatabase, "ur0", "shell/db");
     public static readonly FirmwareFolder ApplicationCache = new(ContentKind.ApplicationCache, "ux0", "cache");
+    public static readonly FirmwareFolder KernelModules = new(ContentKind.KernelModules, "os0", "kd");
+
+    /// <summary>The kernel image in <see cref="KernelModules"/>.</summary>
+    public const string KernelImage = "bootimage.skprx";
 
     /// <summary>Every folder of the layout.</summary>
     public static readonly IReadOnlyList<FirmwareFolder> All =
@@ -155,7 +162,7 @@ public static class FirmwareLayout
         Applications, SystemApplications, GameCardApplications, PspEmulator, PspGames, PspSaveData, PspLicenses, PspThemes,
         PsmTitles, Patches, GameCardPatches, AddCont, GameCardAddCont, Themes, Licenses, ApplicationLicenses,
         AddContLicenses, ThemeLicenses, ApplicationMetadata, SystemMetadata, SaveData, SystemSaveData, Music, Video,
-        Picture, ShellDatabase, ApplicationCache,
+        Picture, ShellDatabase, ApplicationCache, KernelModules,
     ];
 
     /// <summary>

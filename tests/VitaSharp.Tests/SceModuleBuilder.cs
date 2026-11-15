@@ -5,18 +5,20 @@ namespace VitaSharp.Tests;
 
 /// <summary>
 /// Builds a small relocatable SCE module (an ELF of type ET_SCE_RELEXEC with one segment and a PT_SCE_RELA stream) for
-/// loader tests: Thumb functions that return a constant or call an import, exported in named libraries with chosen
-/// attributes, and imported libraries with their stubs. Everything is position independent except the table pointers,
+/// loader tests: Thumb functions that return a constant or call an import, A32 functions of any code, exported in
+/// named libraries with chosen attributes, and imported libraries with their stubs. Everything is position independent except the table pointers,
 /// which carry relocations, so the module loads anywhere (the kernel loader relocates its modules).
 /// </summary>
 public sealed class SceModuleBuilder(string name)
 {
     private const uint NidModuleStart = 0x935CD196;
-    private const int CodeAt = 0x0, InfoAt = 0x400, ExportsAt = 0x500, ImportsAt = 0x700, StubsAt = 0x900, DataAt = 0xA00, Size = 0x1000;
+    private const int CodeAt = 0x0, InfoAt = 0x400, ExportsAt = 0x500, ImportsAt = 0x700, StubsAt = 0x900, DataAt = 0xA00, ArmAt = 0xC00, Size = 0x1000;
 
     private readonly List<(string Name, uint Nid, ushort Attr, List<(uint Nid, int Function)> Functions)> _exports = [];
     private readonly List<(string Name, uint Nid, uint[] Functions)> _imports = [];
     private readonly List<ushort[]> _code = [];
+    private readonly Dictionary<int, (int Offset, uint[] Words)> _arm = [];
+    private int _armUsed;
     private int _startFunction = -1;
 
     /// <summary>A Thumb function returning <paramref name="value"/> (0..255); returns its index.</summary>
@@ -34,6 +36,26 @@ public sealed class SceModuleBuilder(string name)
         _code.Add([0xB510, 0x4B01, 0x4798, 0xBD10, (ushort)(importIndex << 8 | functionIndex), 0xFFFF]);
         return _code.Count - 1;
     }
+
+    /// <summary>An A32 function of <paramref name="words"/> (its literals included), placed in the module's A32 code
+    /// area; returns its index (<see cref="AddressOf"/> gives its address).</summary>
+    public int Arm(params uint[] words)
+    {
+        _code.Add([]);
+        _arm[_code.Count - 1] = (ArmAt + _armUsed, words);
+        _armUsed += words.Length * 4;
+        if (ArmAt + _armUsed > Size)
+        {
+            throw new InvalidOperationException("A32 code area full");
+        }
+
+        return _code.Count - 1;
+    }
+
+    /// <summary>The address of function <paramref name="index"/> (Thumb bit set for a Thumb one) in a module loaded at
+    /// <paramref name="segmentBase"/>.</summary>
+    public uint AddressOf(uint segmentBase, int index) =>
+        _arm.TryGetValue(index, out (int Offset, uint[] Words) arm) ? segmentBase + (uint)arm.Offset : FunctionAddress(segmentBase, index);
 
     /// <summary>module_start: the function returns this value (0 = SCE_KERNEL_START_SUCCESS).</summary>
     public SceModuleBuilder Start(byte status)
@@ -77,10 +99,24 @@ public sealed class SceModuleBuilder(string name)
 
         // code: each function at a 16-byte slot
         var functionAt = new List<int>();
+        var entryOf = new List<uint>();
         for (int i = 0; i < _code.Count; i++)
         {
+            if (_arm.TryGetValue(i, out (int Offset, uint[] Words) arm))
+            {
+                functionAt.Add(arm.Offset);
+                entryOf.Add((uint)arm.Offset);
+                for (int k = 0; k < arm.Words.Length; k++)
+                {
+                    W32(arm.Offset + k * 4, arm.Words[k]);
+                }
+
+                continue;
+            }
+
             int at = CodeAt + i * 0x10;
             functionAt.Add(at);
+            entryOf.Add((uint)at | 1);
             ushort[] words = _code[i];
             bool call = words.Length == 6;
             for (int k = 0; k < (call ? 4 : words.Length); k++)
@@ -100,12 +136,12 @@ public sealed class SceModuleBuilder(string name)
         var libs = new List<(string? Name, uint Nid, ushort Attr, List<(uint Nid, uint Addr)> F)>();
         if (_startFunction >= 0)
         {
-            libs.Add((null, 0, 0x8000, [(NidModuleStart, (uint)functionAt[_startFunction] | 1)]));
+            libs.Add((null, 0, 0x8000, [(NidModuleStart, entryOf[_startFunction])]));
         }
 
         foreach ((string Name, uint Nid, ushort Attr, List<(uint Nid, int Function)> Functions) e in _exports)
         {
-            libs.Add((e.Name, e.Nid, e.Attr, e.Functions.Select(f => (f.Nid, (uint)functionAt[f.Function] | 1)).ToList()));
+            libs.Add((e.Name, e.Nid, e.Attr, e.Functions.Select(f => (f.Nid, entryOf[f.Function])).ToList()));
         }
 
         int exp = ExportsAt;
@@ -170,7 +206,7 @@ public sealed class SceModuleBuilder(string name)
         W32(InfoAt + 0x2C, ImportsAt);
         W32(InfoAt + 0x30, (uint)imp0);
         W32(InfoAt + 0x34, 0x12345678);
-        W32(InfoAt + 0x44, _startFunction >= 0 ? (uint)functionAt[_startFunction] | 1 : 0);
+        W32(InfoAt + 0x44, _startFunction >= 0 ? entryOf[_startFunction] : 0);
         W32(InfoAt + 0x48, 0xFFFFFFFF);
 
         // the ELF: header, 2 program headers (PT_LOAD, PT_SCE_RELA), the segment, the relocations (format 0, R_ARM_ABS32)

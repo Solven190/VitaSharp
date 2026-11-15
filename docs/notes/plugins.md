@@ -49,6 +49,12 @@ modules of a section load in file order, and one that fails does not stop the ot
   SceModulemgrForKernel, SceCpuForDriver, ...): VitaSharp implements them with the firmware's behaviour and error codes.
   User programs reach a kernel module only through its syscall-exported libraries; kernel modules never link against
   user code.
+- The firmware's own kernel modules (every `os0:kd/*.skprx` and the modules inside `bootimage.skprx`) are in the
+  kernel process's module list before the first other kernel module loads, with their names, module NIDs and export
+  and import tables (`ksceKernelGetModuleList`, `ksceKernelGetModuleCB`). A kernel module's imports bind to their
+  export entries, which are real ARM code (an `svc` into the HLE function), so code a kernel module writes over an
+  entry runs for the kernel callers that go through it. User programs keep reaching the syscall exports through their
+  HLE stubs. This needs the firmware installed (`os0` from PSVUPDAT.PUP); without it no firmware module is listed.
 - The emulated CPU has no privilege levels, so the permission check of the user/kernel copies is done by the kernel
   library: a user range must be the caller's own memory, not kernel memory.
 

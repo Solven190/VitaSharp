@@ -29,7 +29,7 @@ public sealed partial class SystemServicesVsh : HleModule
         if (!_errorsLoaded)
         {
             _errorsLoaded = true;
-            _errors = Emu.Vfs.Resolve("os0:kd/error_table.bin") is { } p && File.Exists(p) ? ErrorTable.Parse(File.ReadAllBytes(p)) : null;
+            _errors = Emu.Vfs.Resolve(Io.FirmwareLayout.KernelModules.Guest("error_table.bin")) is { } p && File.Exists(p) ? ErrorTable.Parse(File.ReadAllBytes(p)) : null;
         }
         GuestMemory.WriteCString(buf, ErrorTable.Format(_errors, (uint)error), 0x10);
         return 0;

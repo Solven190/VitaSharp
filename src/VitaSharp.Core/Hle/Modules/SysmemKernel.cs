@@ -855,6 +855,18 @@ public sealed partial class SysmemKernel : HleModule
 
     int ThreadKey => GuestThread.Current?.Uid ?? 0;
 
+    /// <summary>The calling thread masked interrupts (ksceKernelCpuSuspendIntr / DisableInterrupts): it may not wait.</summary>
+    internal bool InterruptsMaskedForCurrentThread
+    {
+        get
+        {
+            lock (_interruptMasks)
+            {
+                return (_interruptMasks.GetValueOrDefault(ThreadKey) & InterruptsMasked) != 0;
+            }
+        }
+    }
+
     /// <summary>Masks interrupts for the calling thread and returns the previous mask (0 or the CPSR I bit).
     /// VitaSharp has no interrupt controller: the mask is state only (the HLE devices do not interrupt guest code).</summary>
     int MaskInterrupts()
