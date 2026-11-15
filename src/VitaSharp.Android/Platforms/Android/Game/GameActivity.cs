@@ -65,13 +65,24 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
     /// </summary>
     public const string ExtraWakeScreen = "wakeScreen";
 
-    /// <summary>Starts a game from the UI process.</summary>
-    public static void Launch(Context context, string titleId, bool wakeScreen = false)
+    /// <summary>The save state slot (1-6) the game opens in: a slot tapped on the game page, the desktop's --load-state.</summary>
+    public const string ExtraLoadSlot = "loadSlot";
+
+    /// <summary>Starts a game from the UI process; <paramref name="loadSlot"/> 1-6 opens it already in that save state.</summary>
+    public static void Launch(Context context, string titleId, bool wakeScreen = false, int loadSlot = 0)
     {
         var intent = new Intent(context, typeof(GameActivity));
         intent.PutExtra(ExtraTitleId, titleId);
         if (wakeScreen)
+        {
             intent.PutExtra(ExtraWakeScreen, true);
+        }
+
+        int slot = GameStates.LaunchSlot(loadSlot);
+        if (slot > 0)
+        {
+            intent.PutExtra(ExtraLoadSlot, slot);
+        }
         if (context is not Activity)
             intent.AddFlags(ActivityFlags.NewTask);
         context.StartActivity(intent);
@@ -201,15 +212,28 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
 #if VITASHARP_DEVELOPER
         Developer.UiScript.Start(this, ".game");
 #endif
-        _ = StartSessionAsync(game);
+        int loadSlot = system ? 0 : GameStates.LaunchSlot(Intent?.GetIntExtra(ExtraLoadSlot, 0) ?? 0);
+        _ = StartSessionAsync(game, loadSlot);
     }
 
-    async Task StartSessionAsync(GameEntry game)
+    /// <summary>The running game started again from its page with a save state slot (singleTask: the same activity):
+    /// that state is loaded into it, as picking the slot in the pause menu does.</summary>
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        int slot = GameStates.LaunchSlot(intent?.GetIntExtra(ExtraLoadSlot, 0) ?? 0);
+        if (slot > 0 && _session is { } session && intent?.GetStringExtra(ExtraTitleId) == session.Game.TitleId)
+        {
+            ScriptedState(save: false, slot);
+        }
+    }
+
+    async Task StartSessionAsync(GameEntry game, int loadSlot)
     {
         string password = await AppServices.RpcnPasswordAsync();
         try
         {
-            _session = new EmulationSession(game, _input!, password);
+            _session = new EmulationSession(game, _input!, password, loadSlot);
         }
         catch (Exception e)
         {

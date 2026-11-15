@@ -84,6 +84,21 @@
   <data name="CameraPictureFileType" xml:space="preserve">
     <value>Pictures (PNG, JPEG)</value>
   </data>
+  <data name="MCameras" xml:space="preserve">
+    <value>Cameras</value>
+  </data>
+  <data name="MCameraPhone" xml:space="preserve">
+    <value>The phone's camera</value>
+  </data>
+  <data name="MCameraFrontDetail" xml:space="preserve">
+    <value>What the Vita's front camera shows: the phone's front camera, a picture or grey. Applies when a game starts</value>
+  </data>
+  <data name="MCameraBackDetail" xml:space="preserve">
+    <value>What the Vita's back camera shows: the phone's back camera, a picture or grey. Applies when a game starts</value>
+  </data>
+  <data name="MCameraPictureInvalid" xml:space="preserve">
+    <value>Pick a PNG or JPEG picture.</value>
+  </data>
   <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
@@ -2730,6 +2745,15 @@
   <data name="MEmptyLower" xml:space="preserve">
     <value>empty</value>
   </data>
+  <data name="MStatesOpenHint" xml:space="preserve">
+    <value>tap to play from it</value>
+  </data>
+  <data name="MRecordingDetail" xml:space="preserve">
+    <value>{0} · {1:0.0} MB</value>
+  </data>
+  <data name="MNoRecordingsYet" xml:space="preserve">
+    <value>No recording of this game yet. In the game: pause menu, Record everything.</value>
+  </data>
   <data name="MFile" xml:space="preserve">
     <value>file</value>
   </data>
@@ -2918,6 +2942,12 @@
   </data>
   <data name="MRes200" xml:space="preserve">
     <value>2x (1920x1088, sharper, about 4x the GPU work)</value>
+  </data>
+  <data name="MRes300" xml:space="preserve">
+    <value>3x (2880x1632, about 9x the GPU work)</value>
+  </data>
+  <data name="MRes400" xml:space="preserve">
+    <value>4x (3840x2176, about 16x the GPU work)</value>
   </data>
   <data name="MInternalResolutionDetail" xml:space="preserve">
     <value>Below native is faster on a busy GPU, and softer; 2x is sharper but costs about four times the GPU work</value>

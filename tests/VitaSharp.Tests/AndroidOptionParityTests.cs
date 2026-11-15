@@ -60,6 +60,55 @@ public sealed class AndroidOptionParityTests : IDisposable
     }
 
     [Fact]
+    public void EveryDesktopInternalResolutionIsOfferedOnAndroidWithTheSameScale()
+    {
+        foreach ((int factor, string _) in GameOptions.ResScales)
+        {
+            if (factor == 1)
+            {
+                continue; // native: the empty value on both sides
+            }
+
+            string value = factor.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Contains(SettingsChoices.ResScales, c => c.Value == value);
+            var effective = EffectiveSettings.Resolve(new AppPreferences(), new GameSettings { ResScale = value });
+            Assert.Equal(factor, effective.ResScaleValue);
+            Assert.Contains($"--res-scale={factor}", new GameOptions { ResScale = factor }.RunOptions());
+        }
+    }
+
+    [Fact]
+    public void StartupViewHasTheDesktopValuesAndDefault()
+    {
+        Assert.Equal(new LauncherSettings().StartupView, new AppPreferences().StartupView);
+        Assert.Equal(LauncherSettings.StartLibrary, StartupViews.Library);
+        Assert.Equal(LauncherSettings.StartSystem, StartupViews.System);
+        Assert.Equal([StartupViews.Library, StartupViews.System], StartupViews.Choices.Select(c => c.Value));
+    }
+
+    [Theory]
+    [InlineData("system", true, false, false, true)]
+    [InlineData("library", true, false, false, false)]
+    [InlineData("system", false, false, false, false)] // no firmware shell: the screens
+    [InlineData("system", true, true, false, false)] // the activity restored by Android: no second boot
+    [InlineData("system", true, false, true, false)] // a shortcut or adb opens a game instead
+    [InlineData(null, true, false, false, false)]
+    public void TheSystemOpensOnlyOnARealStartWithTheShellInstalled(string? setting, bool shell, bool restored, bool game, bool expected)
+    {
+        Assert.Equal(expected, StartupViews.OpensSystem(setting, shell, restored, game));
+    }
+
+    [Fact]
+    public void StartupViewSurvivesTheSettingsFile()
+    {
+        string path = Path.Combine(_folder, "app.json");
+        File.WriteAllText(path, "{\"VSync\":true}");
+        Assert.Equal(StartupViews.Library, AppPreferences.Load(path).StartupView);
+        new AppPreferences { StartupView = StartupViews.System }.Save(path);
+        Assert.Equal(StartupViews.System, AppPreferences.Load(path).StartupView);
+    }
+
+    [Fact]
     public void KernelPluginsOptionExistsOnBothSidesAndIsOffByDefault()
     {
         Assert.False(new AppPreferences().KernelPlugins);

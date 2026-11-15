@@ -69,9 +69,10 @@ public sealed partial class EmulationSession : IDisposable
     /// <summary>Thread placement, ADPF and the game's frame rate (for the display refresh rate).</summary>
     public GamePerformance Performance { get; }
 
-    public EmulationSession(GameEntry game, AndroidInput input, string rpcnPassword)
+    public EmulationSession(GameEntry game, AndroidInput input, string rpcnPassword, int startSlot = 0)
     {
         _game = game;
+        _startSlot = GameStates.LaunchSlot(startSlot);
         var data = AppServices.Data;
         var prefs = AppServices.Prefs;
         _settings = EffectiveSettings.Resolve(prefs, AppServices.GameSettingsFor(game.TitleId));
@@ -251,14 +252,19 @@ public sealed partial class EmulationSession : IDisposable
         _emu.Host.TextInput = keyboard;
     }
 
-    /// <summary>The phone's (or a controller's) motion sensors for SceMotion and the phone's cameras for SceCamera
+    /// <summary>The phone's (or a controller's) motion sensors for SceMotion and, for SceCamera, what Ajustes chose for
+    /// each Vita camera (the phone's camera of that side, a picture, nothing), as the desktop's camera options
     /// (GameSensors). The motion source set before (the keyboard's tilt keys) becomes the fallback.</summary>
     public void SetSensors(AndroidMotion motion, VitaSharp.Core.Host.ICameraSource camera)
     {
         if (!ReferenceEquals(_emu.Host.Motion, motion))
+        {
             motion.Fallback ??= _emu.Host.Motion;
+        }
+
         _emu.Host.Motion = motion;
-        _emu.Host.Camera = camera;
+        var prefs = AppServices.Prefs;
+        _emu.Host.Camera = VitaSharp.Core.Host.FacingCameras.FromSettings(prefs.CameraFront, prefs.CameraBack, (_, _) => camera, AppServices.Data.Root);
     }
 
     /// <summary>surfaceCreated: the first one boots the game, later ones re-attach the renderer.</summary>
@@ -298,11 +304,12 @@ public sealed partial class EmulationSession : IDisposable
             }
             Log.Info($"Renderer: {_renderer.DeviceName}");
             _emu.Gpu.Backend = _renderer;
-            _emu.LoadTitle(_game.AppDir, _game.TitleId == GameActivity.SystemTitleId ? Emulator.ShellSelf : "eboot.bin");
+            _emu.LoadTitle(_game.AppDir, BootExecutable());
             _framesAtStart = VitaSharp.Core.Hle.Modules.Display.FramesPresented;
             _played.Start();
             _emu.Start();
             _emuStarted = true;
+            LoadStartSlot();
             ScheduleGpuDump();
 #if VITASHARP_DEVELOPER
             // VITASHARP_CAPTURE=KIND@START:STOP (seconds after the game starts): the pause menu's capture, scripted

@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=5c2981795ed5998c5ddbe151ad7d260c19da3c84510864cdfea3af89563c96ba -->
+<!-- pair: README.md sha256=b6ee9bde7d19e66047e45857bf1f7cff4f31a1f5ecf75042d2c3d3e99d900321 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -284,6 +284,9 @@ Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os
 conectado), e um teclado físico usa as teclas do desktop. **Controles** remapeia os botões de cada controle (toque
 no controle da lista e aperte o botão no controle; **Restaurar padrão** volta ao padrão) e ajusta a troca O/X, zona morta, opacidade,
 vibração (a cada toque, também com o outro dedo no analógico; fraca, média ou forte) e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
+**Ajustes > Sistema > Ao abrir o emulador** pode dar boot no Sistema do Vita (o shell do firmware) ao abrir o app,
+como no desktop. **Ajustes > Câmeras** escolhe o que cada câmera do Vita mostra, como as opções de câmera do desktop: a câmera do
+celular daquele lado (o padrão), uma imagem PNG/JPEG ou nenhuma (quadros cinza).
 
 **Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:
 **Continuar**, **Salvar estado** / **Carregar estado** (6 slots com imagem), **Ajustes** (toque traseiro, controles na
@@ -291,7 +294,12 @@ tela, MSAA, taxa de quadros, pré-gravação), **Recentralizar** (movimento), **
 relatório de bug do F8 do desktop (save state, entrada, GPU dump, quadros, áudio e log) em `captures/` até **Parar
 gravação**; envie o `.zip` como em [Relatar um bug](#relatar-um-bug).
 
-**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa ou 2x), MSAA, taxa de quadros
+**Estados e gravações na página do jogo.** Os detalhes do jogo mostram os 6 slots com a imagem e a data; tocar num
+slot abre o jogo já carregando aquele estado (como o `--load-state` do desktop; com o jogo aberto, carrega nele). Logo
+abaixo ficam as gravações do **Gravar tudo** do jogo, com data e tamanho; tocar numa compartilha o `.zip`. Pelo adb:
+`am start ... --es titleId <ID> --ei loadSlot <1-6>`.
+
+**Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa, 2x, 3x ou 4x, como no desktop), MSAA, taxa de quadros
 (**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`
 do desktop; também no menu de pausa, vale na hora, e aparece ao lado do contador de FPS), VSync, o contador de FPS,
 backend de CPU, clock e perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).

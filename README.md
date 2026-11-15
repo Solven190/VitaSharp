@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=5e6967377c63b5e0d010a0b903b665414b025beb516a91318ab6f5f35bfd2267 -->
+<!-- pair: README.pt-BR.md sha256=e467301f04b3d0b26efa7ec707a54df30e3737abd4fc591ee3afd1859accc887 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -280,6 +280,9 @@ USB controllers are detected on their own with the desktop's positional layout (
 is connected), and a hardware keyboard uses the desktop's keys. **Controles** remaps each controller's buttons (tap a
 control, then press the button on the controller; **Restore defaults** goes back), and sets the O/X swap, deadzone, opacity,
 vibration (on every press, also with the other thumb on the stick; weak, medium or strong) and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
+**Ajustes > Sistema > Ao abrir o emulador** can boot the Vita system (the firmware's shell) as the app opens, as on
+the desktop. **Ajustes > Câmeras** chooses what each Vita camera shows, as the desktop's camera options: the phone's camera of
+that side (the default), a PNG/JPEG picture or none (grey frames).
 
 **Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game
 started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear
@@ -287,7 +290,12 @@ touch, on-screen controls, MSAA, frame rate, pre-recording), **Recentralizar** (
 tudo** records the same bug report as the desktop's F8 (save state, input, GPU dump, frames, audio and log) into
 `captures/` until **Parar gravação**; send the `.zip` as in [Report a bug](#report-a-bug).
 
-**Per-game settings.** In the game's details: internal resolution (50%, 75%, native or 2x), MSAA, frame rate (**Nativo**, the
+**States and recordings on the game page.** The game's details show the 6 slots with their picture and date; tapping a
+slot opens the game already loading that state (as the desktop's `--load-state`; with the game open, it loads into
+it). Below them are the game's **Gravar tudo** recordings with their date and size; tapping one shares the `.zip`.
+From adb: `am start ... --es titleId <ID> --ei loadSlot <1-6>`.
+
+**Per-game settings.** In the game's details: internal resolution (50%, 75%, native, 2x, 3x or 4x, as the desktop's), MSAA, frame rate (**Nativo**, the
 game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
 the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
 GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).

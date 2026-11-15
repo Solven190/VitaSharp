@@ -163,18 +163,18 @@ public sealed class AndroidAppTests : IDisposable
     }
 
     [Fact]
-    public void InternalResolutionOffersHalfToDouble()
+    public void InternalResolutionOffersHalfToQuadruple()
     {
         var app = new AppPreferences();
         Assert.Equal(0f, EffectiveSettings.Resolve(app, null).ResScaleValue); // native by default
-        foreach (string scale in new[] { "0.5", "0.75", "2" })
+        foreach (string scale in new[] { "0.5", "0.75", "2", "3", "4" })
         {
             var settings = EffectiveSettings.Resolve(app, new GameSettings { ResScale = scale });
             Assert.Equal(float.Parse(scale, System.Globalization.CultureInfo.InvariantCulture), settings.ResScaleValue);
         }
         // a factor the option does not offer stays native
-        Assert.Equal(0f, EffectiveSettings.Resolve(app, new GameSettings { ResScale = "3" }).ResScaleValue);
-        Assert.Equal(new[] { "", "0.75", "0.5", "2" }, SettingsChoices.ResScales.Select(c => c.Value));
+        Assert.Equal(0f, EffectiveSettings.Resolve(app, new GameSettings { ResScale = "8" }).ResScaleValue);
+        Assert.Equal(new[] { "", "0.75", "0.5", "2", "3", "4" }, SettingsChoices.ResScales.Select(c => c.Value));
     }
 
     [Fact]

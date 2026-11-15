@@ -5,6 +5,7 @@ using Android.OS;
 using Android.Views;
 using Android.Widget;
 using VitaSharp.Core.Util;
+using VitaSharp.Mobile.Core.Library;
 using AView = Android.Views.View;
 using Color = Android.Graphics.Color;
 using ScrollView = Android.Widget.ScrollView;
@@ -14,11 +15,12 @@ namespace VitaSharp.Android.Game;
 /// <summary>Scripted save state steps; the slot pages of the pause menu are in GameActivity.PauseMenu.cs.</summary>
 public sealed partial class GameActivity
 {
-    /// <summary>A scripted <c>savestate</c>/<c>loadstate</c> step (VITASHARP_ANDROID_INPUT[_LIVE]): what picking the slot in
-    /// the pause menu does (menu picture, pause, save or load in the background, resume when the dialog closes).</summary>
+    /// <summary>A scripted <c>savestate</c>/<c>loadstate</c> step (VITASHARP_ANDROID_INPUT[_LIVE]), or a slot tapped on the
+    /// game page while the game runs: what picking the slot in the pause menu does (menu picture, pause, save or load in
+    /// the background, resume when the dialog closes).</summary>
     void ScriptedState(bool save, int slot)
     {
-        if (_session is not { } session || slot < 1 || slot > EmulationSession.StateSlots)
+        if (_session is not { } session || GameStates.LaunchSlot(slot) == 0)
             return;
         if (save)
             session.CaptureMenuThumbnail();

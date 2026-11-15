@@ -56,6 +56,15 @@ public sealed class AppPreferences
     /// <summary>"Movimento": what drives SceMotion, "" = automatic (the phone's sensors when it has them, else a
     /// controller's), "phone", "controller" or "off" (Input.AndroidMotionModes).</summary>
     public string Motion { get; set; } = "";
+    /// <summary>"Camera frontal": what the Vita's front camera shows, as the desktop launcher's option of the same name
+    /// (--camera-front=, Core.Host.CameraSpec): "" = the phone's front camera, "none" = grey frames, a .png/.jpg picture
+    /// (relative to the data folder: the one picked in Ajustes is copied to camera/, <see cref="CameraSettings"/>).</summary>
+    public string CameraFront { get; set; } = "";
+    /// <summary>"Camera traseira": the same for the Vita's back camera (--camera-back=; "" = the phone's back camera).</summary>
+    public string CameraBack { get; set; } = "";
+    /// <summary>"Ao abrir o emulador": "library" (the default) or "system" (the shell boots when the app opens), the
+    /// desktop launcher's option (<see cref="StartupViews"/>).</summary>
+    public string StartupView { get; set; } = StartupViews.Library;
     /// <summary>"Som de trofeu": a chime with the in-game trophy notification (the firmware's notice sound, else a
     /// built-in one; same as the desktop launcher's option, --trophy-sound=).</summary>
     public bool TrophySound { get; set; } = true;
@@ -90,9 +99,9 @@ public sealed class GameSettings
     public string? GpuProfile { get; set; }
     public bool? VSync { get; set; }
     public bool? ShowFps { get; set; }
-    /// <summary>"Resolucao interna": render-target scale, "0.75", "0.5" or "2" (null = native; per game only,
-    /// VulkanRenderer.ResScale.cs). Lower is faster on GPU-bound games, and softer; 2x is sharper and costs about four
-    /// times the GPU work.</summary>
+    /// <summary>"Resolucao interna": render-target scale, "0.75", "0.5", "2", "3" or "4" (null = native; per game
+    /// only, VulkanRenderer.ResScale.cs; 2-4 are the desktop launcher's choices). Lower is faster on GPU-bound games, and
+    /// softer; 2x is sharper and costs about four times the GPU work, 3x nine, 4x sixteen.</summary>
     public string? ResScale { get; set; }
     /// <summary>"MSAA": "off" renders the game's multisampled scenes with one sample (faster on the GPU, edges alias);
     /// null = native (as the game asks, 2x/4x). Per game only.</summary>
@@ -192,6 +201,8 @@ public static class SettingsChoices
         new("0.75", Loc.Get("MRes75")),
         new("0.5", Loc.Get("MRes50")),
         new("2", Loc.Get("MRes200")),
+        new("3", Loc.Get("MRes300")),
+        new("4", Loc.Get("MRes400")),
     ];
 
     /// <summary>"Taxa de quadros" (values of Hle/Modules/Display.cs FrameRate.Parse; "" = native).</summary>
