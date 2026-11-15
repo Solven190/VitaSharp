@@ -557,14 +557,17 @@ public sealed unsafe class CpuCore : IDisposable
     private bool _pendingIndirect;
     /// <summary>Profiling (VITASHARP_NATIVE_COUNTERS=1): VFP/NEON ops and conditional branches run in native code.</summary>
     public long SimdOps, CondBranches;
-    /// <summary>Guest instructions this thread ran per execution tier: native code (its interpreter callouts
-    /// included), IL blocks, and the interpreter (cold blocks, verification, VFP vector mode). Flushed into
-    /// <see cref="TierTotals"/> whenever <see cref="Run"/> returns.</summary>
-    public long NativeInstructions, IlInstructions, InterpInstructions;
+    /// <summary>Guest cycles (the block cost model, ~1 per instruction) this thread ran per execution tier: native code
+    /// (its interpreter callouts included), IL blocks, and the interpreter (cold blocks, verification, VFP vector
+    /// mode). Counted by the dispatcher from the cycle budget every native run keeps, so they hold in every build:
+    /// ARM64 native code does not count its instructions by default (<see cref="Native.Arm64Emitter.A64Opt.NoBlockCounts"/>),
+    /// and counting instructions read 0% native on every phone run. Flushed into <see cref="TierTotals"/> whenever
+    /// <see cref="Run"/> returns.</summary>
+    public long NativeCycles, IlCycles, InterpCycles;
     private long _flushedNative, _flushedIl, _flushedInterp;
 
-    /// <summary>Process-wide totals of <see cref="NativeInstructions"/>, <see cref="IlInstructions"/> and
-    /// <see cref="InterpInstructions"/> (all guest threads, also the ones that ended): [native, il, interp].</summary>
+    /// <summary>Process-wide totals of <see cref="NativeCycles"/>, <see cref="IlCycles"/> and
+    /// <see cref="InterpCycles"/> (all guest threads, also the ones that ended): [native, il, interp].</summary>
     public static readonly long[] TierTotals = new long[3];
 
     /// <summary>Interpreted guest instructions of blocks with no compiled code, by <see cref="Block.JitState"/>: 0 not
@@ -572,27 +575,57 @@ public sealed unsafe class CpuCore : IDisposable
     /// (a native block that returned before running), 3 rejected by every backend. All threads, racy (statistics).</summary>
     public static readonly long[] InterpByJitState = new long[4];
 
-    /// <summary>One line: where the executed guest instructions ran (CPU backend report).</summary>
+    /// <summary>One line: where the executed guest code ran (CPU backend report).</summary>
     public static string TierReport()
     {
-        long n = Volatile.Read(ref TierTotals[0]), il = Volatile.Read(ref TierTotals[1]), it = Volatile.Read(ref TierTotals[2]);
-        long all = Math.Max(1, n + il + it), callouts = Native.NativeRuntime.CalloutHits.Sum();
-        long[] st = InterpByJitState;
-        double si = Math.Max(1, st.Sum()) / 100.0;
-        return $"CPU tiers: executed guest instructions {all / 1_000_000} M: native {100.0 * n / all:F2}% " +
-               $"(of which {100.0 * callouts / all:F2}% in interpreter callouts), il {100.0 * il / all:F2}%, interpreter {100.0 * it / all:F2}% " +
-               $"(blocks without compiled code, by state: not hot yet {st[0] / si:F1}%, queued {st[1] / si:F1}%, compiled but interpreted {st[2] / si:F1}%, " +
-               $"rejected {st[3] / si:F1}%; verification and VFP vector mode not included)";
+        long native = Volatile.Read(ref TierTotals[0]);
+        long il = Volatile.Read(ref TierTotals[1]);
+        long interp = Volatile.Read(ref TierTotals[2]);
+        return FormatTierReport(native, il, interp, Native.NativeRuntime.CalloutHits.Sum(), InterpByJitState);
+    }
+
+    /// <summary>The <see cref="TierReport"/> line from the tier cycle totals, the interpreter callouts run from native
+    /// code and the interpreted instructions by <see cref="Block.JitState"/>.</summary>
+    public static string FormatTierReport(long nativeCycles, long ilCycles, long interpCycles, long callouts, ReadOnlySpan<long> interpByState)
+    {
+        long all = Math.Max(1, nativeCycles + ilCycles + interpCycles);
+        long stateSum = 0;
+        foreach (long count in interpByState)
+        {
+            stateSum += count;
+        }
+
+        double si = Math.Max(1, stateSum) / 100.0;
+        return $"CPU tiers: executed guest cycles {all / 1_000_000} M: native {100.0 * nativeCycles / all:F2}% " +
+               $"(of which ~{100.0 * callouts / all:F2}% in interpreter callouts), il {100.0 * ilCycles / all:F2}%, interpreter {100.0 * interpCycles / all:F2}% " +
+               $"(blocks without compiled code, by state: not hot yet {interpByState[0] / si:F1}%, queued {interpByState[1] / si:F1}%, compiled but interpreted {interpByState[2] / si:F1}%, " +
+               $"rejected {interpByState[3] / si:F1}%; verification and VFP vector mode not included)";
+    }
+
+    /// <summary>
+    /// The bookkeeping after a native run: the blocks and instructions the generated code counted (none on ARM64 by
+    /// default) and the guest cycles it spent from the budget it always keeps (<c>CycleAcc</c>, which started at
+    /// <paramref name="sinceCheck"/>), which also make the native tier's share. Returns the new cycles since the last
+    /// pacing check.
+    /// </summary>
+    public long AccountNativeRun(CpuState* s, long sinceCheck)
+    {
+        long cycles = s->CycleAcc - sinceCheck;
+        BlocksExecuted += s->NBlocks;
+        InstructionsExecuted += s->NInstr;
+        BlockCycles += cycles;
+        NativeCycles += cycles;
+        return s->CycleAcc;
     }
 
     private void FlushTierCounts()
     {
-        Interlocked.Add(ref TierTotals[0], NativeInstructions - _flushedNative);
-        _flushedNative = NativeInstructions;
-        Interlocked.Add(ref TierTotals[1], IlInstructions - _flushedIl);
-        _flushedIl = IlInstructions;
-        Interlocked.Add(ref TierTotals[2], InterpInstructions - _flushedInterp);
-        _flushedInterp = InterpInstructions;
+        Interlocked.Add(ref TierTotals[0], NativeCycles - _flushedNative);
+        _flushedNative = NativeCycles;
+        Interlocked.Add(ref TierTotals[1], IlCycles - _flushedIl);
+        _flushedIl = IlCycles;
+        Interlocked.Add(ref TierTotals[2], InterpCycles - _flushedInterp);
+        _flushedInterp = InterpCycles;
     }
 
     /// <summary>
@@ -671,7 +704,7 @@ public sealed unsafe class CpuCore : IDisposable
                 InterpretVector(s, b);
                 BlocksExecuted++;
                 InstructionsExecuted += b.Insts.Length;
-                InterpInstructions += b.Insts.Length;
+                InterpCycles += b.Cycles;
                 sinceCheck += b.Cycles;
                 BlockCycles += b.Cycles;
                 goto ran;
@@ -716,7 +749,7 @@ public sealed unsafe class CpuCore : IDisposable
                 Native.NativeVerifier.Run(s, b);
                 BlocksExecuted++;
                 InstructionsExecuted += b.Insts.Length;
-                InterpInstructions += b.Insts.Length;
+                InterpCycles += b.Cycles;
                 sinceCheck += b.Cycles;
                 BlockCycles += b.Cycles;
             }
@@ -775,11 +808,7 @@ public sealed unsafe class CpuCore : IDisposable
                     Native.NativeRuntime.ThrowPendingFault(s);
                 }
 
-                BlocksExecuted += s->NBlocks;
-                InstructionsExecuted += s->NInstr;
-                NativeInstructions += s->NInstr;
-                BlockCycles += s->CycleAcc - sinceCheck;
-                sinceCheck = s->CycleAcc;
+                sinceCheck = AccountNativeRun(s, sinceCheck);
                 if (s->LastExitSlot != 0)
                 {
                     LinkExit(s);
@@ -805,12 +834,12 @@ public sealed unsafe class CpuCore : IDisposable
                 else if (fn != null && Native.NativeVerifier.Enabled)
                 {
                     Native.NativeVerifier.RunCompiled(s, b, fn);
-                    IlInstructions += b.Insts.Length;
+                    IlCycles += b.Cycles;
                 }
                 else if (fn != null)
                 {
                     fn(s);
-                    IlInstructions += b.Insts.Length;
+                    IlCycles += b.Cycles;
                     if (Backends.IlJitCompiler.CountExecutions)
                     {
                         b.ExecCount++; // IL dump index (racy: statistics)
@@ -819,7 +848,7 @@ public sealed unsafe class CpuCore : IDisposable
                 else
                 {
                     Interpret(s, b);
-                    InterpInstructions += b.Insts.Length;
+                    InterpCycles += b.Cycles;
                     InterpByJitState[b.JitState & 3] += b.Insts.Length; // racy on purpose: statistics only
                     if (++b.ExecCount >= Jit.MinExecutions && b.JitState == 0 && (long)b.ExecCount * b.Insts.Length >= b.HotAt)
                     {

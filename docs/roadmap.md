@@ -870,6 +870,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   é descartada. Falta: confirmação no celular. Diferenças que ficaram: com som, o firmware responde em CurrentTime o
   tempo do último áudio entregue (aqui ainda o da última imagem); o reinício do MediaCodec com a profundidade
   própria do SPS não muda a ordem de saída do libavc (precisaria recriar o codec)
+- [ ] Minecraft (PCSE00491) fica com a tela preta no boot no celular (só com o JIT ARM64; o x64 e o interpretador
+  passam): boot do zero, sem state, ~2 em 3 ficam pretos (interpretador 6/6; o APK 11390d36 também falha, não é
+  regressão de 14-15/11). Dois pontos de parada (`VITASHARP_THREAD_STATES=1`): (A) 'Toolkit::NP' chama sceNpInit e
+  sai (sceKernelExitThread), e a main espera para sempre em sceKernelWaitLwCond "Np Toolkit Condition Variable";
+  num boot bom essa thread fica viva esperando nessa condvar; (B) depois de '(4J) Trophy List' a main segue
+  apresentando quadros pretos sem criar '(4J) Load OptionsData'. Descartados: libSceFt2 pré-carregado ou em HLE
+  (`VITASHARP_HLE_MODULES=libSceFt2` 1/5), as rotinas lw em código guest (`VITASHARP_HLE_GUEST_CODE=nolw`), a junção
+  de barreiras (`VITASHARP_NATIVE_A64_NOOPT=fence` 1/5) e as chamadas HLE de dentro do código nativo
+  (`VITASHARP_NATIVE_HLE_CALLOUT=off` 0/5). Próximo: APK de teste com o modo de depuração (retornos de erro das
+  HLE por thread e as últimas 16 chamadas de cada thread na captura) para ver o que o Toolkit::NP recebe antes de sair
+- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
+  (0 fps logo depois de criar 'Toolkit::NP'): alguma combinação das opções desligadas está errada; achar qual
+  (desligar uma a uma) e cobrir com teste do backend no sandbox
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:
