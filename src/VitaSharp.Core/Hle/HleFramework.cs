@@ -226,6 +226,12 @@ public sealed partial class HleRegistry : IImportResolver
 {
     readonly Emulator _emu;
     readonly List<HleFunction> _functions = [new HleFunction { Nid = 0, Name = "<invalid>" }];
+    /// <summary>The slot of an index another process gave out and this one has not used yet.</summary>
+    static readonly HleFunction s_unbound = new() { Nid = 0, Name = "<unbound>" };
+    HleIndexTable? _ownIndexes;
+
+    /// <summary>The emulated Vita's index table (a registry of an emulator made without one, in tests, keeps its own).</summary>
+    HleIndexTable Indexes => _emu.Vita is { } vita ? vita.HleIndexes : _ownIndexes ??= new HleIndexTable();
     readonly Dictionary<uint, int> _indexByNid = new();
     readonly Dictionary<uint, Action<HleContext>> _impls = new();
     readonly Dictionary<uint, string> _implNames = new();
@@ -349,9 +355,27 @@ public sealed partial class HleRegistry : IImportResolver
     {
         lock (_functions)
         {
-            _functions.Add(new HleFunction { Nid = 0, Name = name, Library = "host", Invoke = body });
-            return (uint)(_functions.Count - 1);
+            int index = Indexes.NewHostIndex();
+            if (index < _functions.Count && !ReferenceEquals(_functions[index], s_unbound))
+            {
+                // this process's table differs from the shared one (a state of an older build): a slot of its own
+                index = _functions.Count;
+            }
+
+            Place(index, new HleFunction { Nid = 0, Name = name, Library = "host", Invoke = body });
+            return (uint)index;
         }
+    }
+
+    /// <summary>Puts <paramref name="function"/> at <paramref name="index"/>, the slots before it unbound.</summary>
+    void Place(int index, HleFunction function)
+    {
+        while (_functions.Count <= index)
+        {
+            _functions.Add(s_unbound);
+        }
+
+        _functions[index] = function;
     }
 
     public uint GetHleFunctionIndex(uint nid, uint libNid, string libName)
@@ -359,6 +383,14 @@ public sealed partial class HleRegistry : IImportResolver
         lock (_functions)
         {
             if (_indexByNid.TryGetValue(nid, out var idx)) return (uint)idx;
+            // the index every process uses for the NID; a table that differs from the shared one (a state of an
+            // older build) gets a slot of its own
+            int index = Indexes.IndexOf(nid);
+            if (index < _functions.Count && !ReferenceEquals(_functions[index], s_unbound))
+            {
+                index = _functions.Count;
+            }
+
             var info = NidDatabase.Lookup(nid);
             var f = new HleFunction
             {
@@ -374,9 +406,9 @@ public sealed partial class HleRegistry : IImportResolver
                 Declare(f, declaration);
             }
 
-            _functions.Add(f);
-            _indexByNid[nid] = _functions.Count - 1;
-            return (uint)(_functions.Count - 1);
+            Place(index, f);
+            _indexByNid[nid] = index;
+            return (uint)index;
         }
     }
 
@@ -415,7 +447,29 @@ public sealed partial class HleRegistry : IImportResolver
         function.IsCallbackWait = declaration.CallbackWait;
     }
 
-    public HleFunction GetFunction(uint index) => index < _functions.Count ? _functions[(int)index] : _functions[0];
+    public HleFunction GetFunction(uint index)
+    {
+        if (index < _functions.Count && !ReferenceEquals(_functions[(int)index], s_unbound))
+        {
+            return _functions[(int)index];
+        }
+
+        return Unbound(index);
+    }
+
+    /// <summary>An index another process gave out (a stub in shared kernel memory, a hook's trampoline): this process's
+    /// function for the same NID, made on its first call.</summary>
+    HleFunction Unbound(uint index)
+    {
+        uint nid = Indexes.NidAt(index);
+        if (nid == 0)
+        {
+            return _functions[0];
+        }
+
+        uint mine = GetHleFunctionIndex(nid, 0, NidDatabase.Lookup(nid)?.Library ?? "");
+        return mine == index ? _functions[(int)index] : _functions[(int)mine];
+    }
 
 }
 
