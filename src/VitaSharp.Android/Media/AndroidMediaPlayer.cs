@@ -178,6 +178,7 @@ public sealed unsafe class AndroidMediaPlayer : MediaPlayerBase
                     _video?.Flush();
                     PushDecoded();
                     DrainAudio(endOfStream: true);
+                    EndJump();
                     if (Loop)
                     {
                         Rewind(0);
@@ -236,6 +237,11 @@ public sealed unsafe class AndroidMediaPlayer : MediaPlayerBase
     void DecodeVideo(ReadOnlySpan<byte> sample, long pts, bool key)
     {
         int n = H264AnnexB.BuildAccessUnit(sample, key ? _csd : [], ref _au);
+        if (SkipBeforeJump(_au.AsSpan(0, n), pts))
+        {
+            return;
+        }
+
         _video!.Send(_au.AsSpan(0, n), pts);
         PushDecoded();
     }

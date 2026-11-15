@@ -161,6 +161,7 @@ public sealed unsafe class MediaPlayer : MediaPlayerBase
                     Drain(_video, frame, true);
                     DrainDecoder();
                     Drain(_audio, frame, false);
+                    EndJump();
                     if (Loop)
                     {
                         ffmpeg.av_seek_frame(_formatContext, -1, 0, ffmpeg.AVSEEK_FLAG_BACKWARD);
@@ -275,10 +276,20 @@ public sealed unsafe class MediaPlayer : MediaPlayerBase
         {
             bool key = (pkt->flags & ffmpeg.AV_PKT_FLAG_KEY) != 0;
             int n = Mp4Demuxer.ToAnnexB(data, _nalLengthSize, key ? _annexBHeader : null, ref _annexB);
+            if (SkipBeforeJump(_annexB.AsSpan(0, n), ToUs(pts, _videoTb)))
+            {
+                return;
+            }
+
             _videoDecoder!.Send(_annexB.AsSpan(0, n), pts);
         }
         else
         {
+            if (SkipBeforeJump(data, ToUs(pts, _videoTb)))
+            {
+                return;
+            }
+
             _videoDecoder!.Send(data, pts);
         }
 

@@ -32,6 +32,32 @@ public sealed partial class AvPlayer
         }
     }
 
+    /// <summary>
+    /// A movie's host path saved in a state, on the device that loads it: a state saved on another device (a phone's
+    /// "Gravar tudo" capture re-run on the desktop) names that device's data folder, so a path that does not exist here
+    /// is looked up again by its part under the saved fs folder ("fs/ux0/app/..."), in this device's
+    /// <paramref name="fsRoot"/>. A movie spooled from the game's callbacks (a temp file) stays as it is.
+    /// </summary>
+    internal static string HostPathOnThisDevice(string savedPath, string fsRoot)
+    {
+        if (savedPath.Length == 0 || File.Exists(savedPath))
+        {
+            return savedPath;
+        }
+
+        string normalized = savedPath.Replace('\\', '/');
+        // the data folder's own layout (<data>/fs/<partition>): a fixed name of VitaSharp's, the first one is it
+        int fs = normalized.IndexOf("/fs/", StringComparison.Ordinal);
+        if (fs < 0)
+        {
+            return savedPath;
+        }
+
+        string relative = normalized[(fs + 4)..];
+        string candidate = Path.Combine(fsRoot, relative.Replace('/', Path.DirectorySeparatorChar));
+        return File.Exists(candidate) ? candidate : savedPath;
+    }
+
     void BeforeSnapshotLoad()
     {
         lock (_players)
@@ -47,6 +73,7 @@ public sealed partial class AvPlayer
                 p.ClockOffsetUs = Math.Max(0, p.RestoreUs);
                 if (p.RestoreRunning) p.Clock.Start();
                 if (p.RestoreUs < 0) continue;
+                p.SourcePath = HostPathOnThisDevice(p.SourcePath, Emu.Vfs.FsRoot);
                 p.Media = MediaPlayers.Open(p.SourcePath);
                 if (p.Media == null) { Log.Warn($"Load state: AvPlayer cannot reopen {p.SourcePath}"); continue; }
                 p.Media.Loop = p.Looping;

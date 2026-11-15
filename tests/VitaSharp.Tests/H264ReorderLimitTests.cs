@@ -69,6 +69,30 @@ public sealed class H264ReorderLimitTests
     }
 
     [Fact]
+    public void TheReferenceFrameBoundStatesTheSpsOwnReferenceFrames()
+    {
+        // both synthetic SPSs state max_num_ref_frames = 1: the bound gives 1, with or without a VUI before it
+        byte[] idr = SyntheticH264.Stream(1)[0].AccessUnit;
+        Assert.Equal(1, H264ReorderLimit.StatedReorderFrames(H264ReorderLimit.Apply(idr, H264ReorderLimit.ReorderUpToRefFrames)));
+        Assert.Equal(1, H264ReorderLimit.StatedReorderFrames(H264ReorderLimit.Apply(SpsWithVui(), H264ReorderLimit.ReorderUpToRefFrames)));
+    }
+
+    [Fact]
+    public void NonReferencePicturesAreRecognised()
+    {
+        // NAL header: nal_ref_idc in bits 5-6; a B frame of a Vita movie is 0x01, its P frames 0x41, IDR 0x65
+        Assert.True(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x01, 0x9E, 0x80]));
+        Assert.False(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x41, 0x9A, 0x80]));
+        Assert.False(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x21, 0x9A, 0x80])); // nal_ref_idc 1
+        Assert.False(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x65, 0x88, 0x80]));
+        // an SEI (nal_ref_idc 0) in front does not make the picture a non-reference one, nor does a unit without a slice
+        Assert.False(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x06, 0x05, 0x01, 0x80, 0, 0, 0, 1, 0x41, 0x9A, 0x80]));
+        Assert.True(H264ReorderLimit.IsNonReference([0, 0, 0, 1, 0x06, 0x05, 0x01, 0x80, 0, 0, 1, 0x01, 0x9E, 0x80]));
+        Assert.False(H264ReorderLimit.IsNonReference(SyntheticH264.ParameterSets()));
+        Assert.False(H264ReorderLimit.IsNonReference(SyntheticH264.Stream(1)[0].AccessUnit));
+    }
+
+    [Fact]
     public void BSlicesAreRecognised()
     {
         // first_mb_in_slice 0 ('1'), slice_type ue: B = 1 ('010'), P = 0 ('1'), I = 7 ('0001000'), B = 6 ('00111')

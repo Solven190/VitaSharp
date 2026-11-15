@@ -785,6 +785,40 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e IDR da unidade. A/B no celular pendente: padrão x MAX_IN_FLIGHT=8 x `VITASHARP_MEDIACODEC_SOFTWARE=0`; ritmo
   ajudando -> vira padrão com o teste; só o hardware ajudando -> bug do libavc com o fluxo, trocar de decodificador
   depois do primeiro travamento
+- [ ] Vídeo da campanha do KZ lento no Android (24 -> 0,7 fps, só a imagem; o som do jogo segue normal), correção
+  feita, não confirmada no celular. Causa provável: sceAvPlayerJumpToTime em espiral. O KZ
+  importa JumpToTime (e não SetLooping) e manda 2-3x mais unidades que os quadros do filme (captura
+  `PCSC00045_20261114_164447_tudo`: 6022 unidades em 70 s de filme; o M02, sem lentidão, é 1:1). Nosso JumpToTime
+  põe o relógio no alvo, volta o vídeo ao IDR anterior (até 5 s) e entrega esses quadros, então CurrentTime fica
+  para trás e o jogo pula de novo. No libsceavplayer 3.74 (decompilado, só estudo): JumpToTime devolve 0x806a0002
+  enquanto o player ainda está no estado de pulo ("Jump attempted while still in jump State"), e o demux descarta
+  as unidades até o "New PTS start" (DiscardAU); CurrentTime = relógio de sincronia (áudio, se houver, senão o
+  vídeo). No PC (FFmpeg rápido) o re-run da captura não pula nenhuma vez: o pulo só vem com o vídeo atrasado.
+  Feito (fix/android-bugs-14): o JumpToTime segue o firmware: devolve 0x806a0002 enquanto um pulo não chegou ao
+  seu tempo (`MediaPlayerBase.JumpInProgress`), e nada de antes do tempo do pulo chega ao jogo (quadros e áudio
+  descartados); unidades não-referência (nal_ref_idc 0) antes do alvo nem vão ao decodificador
+  (`H264ReorderLimit.IsNonReference`); log "AvPlayer: jump N to X ms"; o save state reabre o filme em outro aparelho
+  pelo caminho sob `fs/` (`HostPathOnThisDevice`); chaves A/B `VITASHARP_AVPLAYER_JUMP=old` (o comportamento antigo)
+  e `VITASHARP_MEDIACODEC_REORDER=refs`. Testes: `AvPlayerJumpTests` (descarte, pulo recusado, fim do arquivo,
+  unidades puladas, cenário do jogo que sincroniza pelo próprio áudio com decodificador lento) falham sem a correção.
+  Falta: a confirmação no celular (APK com as duas chaves; A = JUMP=old com o log dos pulos, B = padrão, C = padrão +
+  REORDER=refs; abertura, campanha inteira, M02 ~70 s), pausada pelo usuário em 14/11
+  Cadência (fix/android-bugs-14): com o laço do scanner certo, a imagem do filme mudava só 3-6x/s a 30 fps. O jogo lê
+  CurrentTime todo quadro e só chama GetVideoData quando ela está >200 ms atrás do tempo dele; nosso GetVideoData
+  entregava a imagem mais nova vencida e descartava as outras, a CurrentTime pulava para o relógio e o jogo pedia
+  de novo ~7 quadros depois (re-run da captura B2: 3 GetVideoData/s, 2,7 imagens/s, 27/s descartadas). No
+  libsceavplayer 3.74: uma imagem por chamada, a próxima na ordem mesmo atrasada, quando o relógio do stream chega
+  nela; sem som o relógio é o próprio vídeo e CurrentTime = a última imagem entregue. Aqui a próxima vale quando o
+  relógio do player passa o tempo dela (o jogo chama GetVideoData em laço quando fica >200 ms atrás; um portão de
+  20 ms desde a imagem anterior fazia esse laço girar milhares de vezes por segundo). Feito assim (`MediaPlayerBase.TakeNextVideo`, `AvPlayer.NextPictureDue`), chave A/B
+  `VITASHARP_AVPLAYER_PACING=newest`, log "AvPlayer: pictures ..." a cada 10 s; testes em `AvPlayerJumpTests`.
+  No celular (A/B, 14/11): antigo 7,5-8/s distintas, com a cadência 16,6-16,9/s. Os quadros sem perda da captura
+  mostraram as imagens indo para frente e para trás: o decodificador do Android (libavc com max_num_reorder_frames 0,
+  que segue depois do flush do reinício) dá as imagens B depois da P seguinte. A fila do player agora fica em ordem de
+  exibição (`MediaPlayerBase.InsertInDisplayOrder`, como a do libsceavplayer); imagem mais velha que a já entregue
+  é descartada. Falta: confirmação no celular. Diferenças que ficaram: com som, o firmware responde em CurrentTime o
+  tempo do último áudio entregue (aqui ainda o da última imagem); o reinício do MediaCodec com a profundidade
+  própria do SPS não muda a ordem de saída do libavc (precisaria recriar o codec)
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:

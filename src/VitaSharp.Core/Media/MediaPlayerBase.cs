@@ -12,7 +12,9 @@ public abstract class MediaPlayerBase : IDisposable
     protected const int MaxVideoFrames = 12;
     protected const int MaxAudioChunks = 48;
 
-    protected readonly Queue<VideoFrame> VideoQueue = new();
+    /// <summary>Decoded pictures in display order (<see cref="Enqueue(VideoFrame)"/> keeps them sorted by time); guarded
+    /// by <see cref="SyncRoot"/>.</summary>
+    protected readonly List<VideoFrame> VideoQueue = new();
     protected readonly Queue<AudioChunk> AudioQueue = new();
     protected readonly object SyncRoot = new();
     protected volatile bool StopRequested;
@@ -39,21 +41,70 @@ public abstract class MediaPlayerBase : IDisposable
         lock (SyncRoot)
         {
             VideoFrame? videoFrame = null;
-            while (VideoQueue.Count > 0 && VideoQueue.Peek().TimeUs <= clockUs)
+            while (VideoQueue.Count > 0 && VideoQueue[0].TimeUs <= clockUs)
             {
                 if (videoFrame != null)
                 {
                     ReturnBuffer(FreeNv12, videoFrame.Nv12); // dropped late frame
+                    PicturesDroppedLate++;
                 }
 
-                videoFrame = VideoQueue.Dequeue();
+                videoFrame = VideoQueue[0];
+                VideoQueue.RemoveAt(0);
             }
             if (videoFrame != null)
             {
+                LastTakenUs = videoFrame.TimeUs;
+                PicturesTaken++;
+                LatenessUs += clockUs - videoFrame.TimeUs;
                 Monitor.PulseAll(SyncRoot);
             }
 
             return videoFrame;
+        }
+    }
+
+    /// <summary>
+    /// The next picture in decode order, or null when none is decoded yet: libsceavplayer (FW 3.74) hands out one
+    /// picture per sceAvPlayerGetVideoData call, the next one in its queue, also when it is late (it never skips to the
+    /// newest), so a movie whose pictures come out of the decoder in bursts still shows every one of them.
+    /// </summary>
+    public VideoFrame? TakeNextVideo(long clockUs)
+    {
+        lock (SyncRoot)
+        {
+            if (VideoQueue.Count == 0)
+            {
+                return null;
+            }
+
+            VideoFrame videoFrame = VideoQueue[0];
+            VideoQueue.RemoveAt(0);
+            LastTakenUs = videoFrame.TimeUs;
+            PicturesTaken++;
+            LatenessUs += Math.Max(0, clockUs - videoFrame.TimeUs);
+            Monitor.PulseAll(SyncRoot);
+            return videoFrame;
+        }
+    }
+
+    /// <summary>VITASHARP_AVPLAYER_PACING=newest (A/B on a device): each GetVideoData hands out the newest picture due on
+    /// the player's clock and drops the older ones, as before the firmware's pacing was followed. Tests set it.</summary>
+    internal static bool NewestPicturePacing { get; set; } = Environment.GetEnvironmentVariable(Util.EnvVars.AvPlayerPacing) == "newest";
+
+    /// <summary>Statistics (the AvPlayer's delivery line): pictures handed out, pictures dropped because a later one
+    /// was already due, and the sum of how late the handed-out ones were (microseconds); guarded by SyncRoot.</summary>
+    public long PicturesTaken, PicturesDroppedLate, LatenessUs;
+
+    /// <summary>Pictures decoded and waiting (statistics).</summary>
+    public int QueuedPictures
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return VideoQueue.Count;
+            }
         }
     }
 
@@ -115,7 +166,7 @@ public abstract class MediaPlayerBase : IDisposable
     {
         lock (SyncRoot)
         {
-            return VideoQueue.Count > 0 ? VideoQueue.Peek().TimeUs : -1;
+            return VideoQueue.Count > 0 ? VideoQueue[0].TimeUs : -1;
         }
     }
 
@@ -136,10 +187,69 @@ public abstract class MediaPlayerBase : IDisposable
         lock (SyncRoot)
         {
             SeekRequestUs = Math.Max(0, timeUs);
+            JumpTargetUs = LegacyJumps ? -1 : SeekRequestUs;
             VideoQueue.Clear();
+            LastTakenUs = -1;
             AudioQueue.Clear();
             DemuxDone = false;
             Monitor.PulseAll(SyncRoot);
+        }
+    }
+
+    /// <summary>
+    /// The time a jump goes to while its first picture is not out yet (-1 = none; guarded by <see cref="SyncRoot"/>).
+    /// The firmware's player (libsceavplayer, FW 3.74) demuxes again from the sync sample before the jump time and
+    /// discards what comes before it ("DiscardAU ... New PTS start"), and refuses another sceAvPlayerJumpToTime while
+    /// it is still in its jump state. A player that handed those pictures out made a game that keeps its movie in step
+    /// with its own audio see the movie further behind after each jump, and jump again: Killzone: Mercenary's campaign
+    /// intro on the phone's software decoder went from 24 to 0.7 fps, decoding the same seconds again and again
+    /// (6022 units for 70 s of a 30 fps movie, 14/11/2026).
+    /// </summary>
+    protected long JumpTargetUs = -1;
+
+    /// <summary>VITASHARP_AVPLAYER_JUMP=old (A/B on a device): a jump hands out what comes before its time and another
+    /// jump is accepted at once, as before the firmware's jump state was followed.
+    /// Tests set it to show the old behaviour.</summary>
+    internal static bool LegacyJumps { get; set; } = Environment.GetEnvironmentVariable(Util.EnvVars.AvPlayerJump) == "old";
+
+    /// <summary>A jump (<see cref="Seek"/>) has not reached its time yet: the firmware's jump state.</summary>
+    public bool JumpInProgress
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return JumpTargetUs >= 0;
+            }
+        }
+    }
+
+    /// <summary>The longest a picture before a jump's time may start and still be the jump's first picture: one frame
+    /// (the picture on screen at the jump time).</summary>
+    protected long FrameDurationUs => FrameRate > 0 ? (long)(1_000_000 / FrameRate) : 33_367;
+
+    /// <summary>
+    /// True when the decoder thread may leave the access unit out while a jump decodes up to its time: a picture before
+    /// the jump time that no other picture predicts from (every slice with nal_ref_idc 0, a B frame of a Vita movie)
+    /// is never shown and never needed, so the way to the jump time costs only the reference pictures.
+    /// </summary>
+    protected bool SkipBeforeJump(ReadOnlySpan<byte> accessUnit, long timeUs)
+    {
+        long target;
+        lock (SyncRoot)
+        {
+            target = JumpTargetUs;
+        }
+
+        return target >= 0 && timeUs + FrameDurationUs <= target && H264ReorderLimit.IsNonReference(accessUnit);
+    }
+
+    /// <summary>The end of the file came before the jump time: the jump is over (nothing is left to discard).</summary>
+    protected void EndJump()
+    {
+        lock (SyncRoot)
+        {
+            JumpTargetUs = -1;
         }
     }
 
@@ -190,10 +300,66 @@ public abstract class MediaPlayerBase : IDisposable
                 Monitor.Wait(SyncRoot, 50);
             }
 
-            if (SeekRequestUs < 0)
+            if (SeekRequestUs >= 0)
             {
-                VideoQueue.Enqueue(videoFrame);
+                return;
             }
+
+            if (JumpTargetUs >= 0)
+            {
+                if (videoFrame.TimeUs + FrameDurationUs <= JumpTargetUs)
+                {
+                    // before the jump time: decoded only as a reference, never shown (the firmware's DiscardAU)
+                    ReturnBufferLocked(FreeNv12, videoFrame.Nv12);
+                    return;
+                }
+
+                JumpTargetUs = -1;
+            }
+
+            InsertInDisplayOrder(videoFrame);
+        }
+    }
+
+    /// <summary>The time of the last picture handed out (-1 = none since the start or a seek); guarded by
+    /// <see cref="SyncRoot"/>.</summary>
+    protected long LastTakenUs = -1;
+
+    /// <summary>Pictures this far apart in time are not reordered against each other: a looping movie that starts over
+    /// (its first picture after its last one) is a new run, not a picture out of order.</summary>
+    private const long ReorderWindowUs = 1_000_000;
+
+    /// <summary>
+    /// The queue is in display order, as libsceavplayer's (its decoder gives pictures out in display order): a picture
+    /// a decoder gives out after a later one (Android's software H.264 decoder with a reorder limit of 0 kept after a
+    /// flush gave a B picture after the P picture that follows it, so Killzone: Mercenary's campaign intro on the phone
+    /// went forward and back and showed ~18 of its 30 pictures a second, 14/11/2026) goes before it; one older than the
+    /// picture already handed out is dropped, as a late picture.
+    /// </summary>
+    private void InsertInDisplayOrder(VideoFrame videoFrame)
+    {
+        long timeUs = videoFrame.TimeUs;
+        if (LastTakenUs >= 0 && timeUs <= LastTakenUs && LastTakenUs - timeUs < ReorderWindowUs)
+        {
+            ReturnBufferLocked(FreeNv12, videoFrame.Nv12);
+            PicturesDroppedLate++;
+            return;
+        }
+
+        int at = VideoQueue.Count;
+        while (at > 0 && VideoQueue[at - 1].TimeUs > timeUs && VideoQueue[at - 1].TimeUs - timeUs < ReorderWindowUs)
+        {
+            at--;
+        }
+
+        VideoQueue.Insert(at, videoFrame);
+    }
+
+    private static void ReturnBufferLocked<T>(Stack<T[]> free, T[] buffer)
+    {
+        if (free.Count < 4)
+        {
+            free.Push(buffer);
         }
     }
 
@@ -206,10 +372,25 @@ public abstract class MediaPlayerBase : IDisposable
                 Monitor.Wait(SyncRoot, 50);
             }
 
-            if (SeekRequestUs < 0)
+            if (SeekRequestUs >= 0)
             {
-                AudioQueue.Enqueue(chunk);
+                return;
             }
+
+            long chunkUs = chunk.SampleRate > 0 && chunk.Channels > 0 ? chunk.Samples.Length / chunk.Channels * 1_000_000L / chunk.SampleRate : 0;
+            if (JumpTargetUs >= 0 && chunk.TimeUs + chunkUs <= JumpTargetUs)
+            {
+                // sound before the jump time is discarded with the pictures
+                ReturnBufferLocked(FreeSamples, chunk.Samples);
+                return;
+            }
+
+            if (JumpTargetUs >= 0 && !HasVideo)
+            {
+                JumpTargetUs = -1;
+            }
+
+            AudioQueue.Enqueue(chunk);
         }
     }
 
