@@ -121,6 +121,13 @@ public sealed class VitaSystem
     /// once, at boot; a later process does not load (or retry) them.</summary>
     internal bool KernelPluginsLoaded { get; set; }
 
+    /// <summary>marlin_hci.skprx's "SceMarlinHciMutex" (one kernel module for every process): 0 until the first
+    /// SceMarlinHci call makes the one the module's boot start creates, -1 after the module's stop entry deleted it.
+    /// Guarded by <see cref="MarlinHciGate"/>.</summary>
+    internal int MarlinHciMutex { get; set; }
+
+    internal object MarlinHciGate { get; } = new();
+
     private readonly object _lock = new();
     private readonly List<Emulator> _processes = new();
     private Emulator? _foreground;
