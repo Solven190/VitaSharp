@@ -736,7 +736,7 @@ public static class Program
     /// installed firmware exports to user code (user modules, syscall libraries of the kernel modules), split into the
     /// ones the installed games import, the ones the system programs/modules import (not already counted for games) and
     /// the rest; --out writes one line per firmware function (nid, name, library, module, group, implemented, one
-    /// importer). --status=&lt;repository root&gt; writes the README status (docs/hle/data/hle-status.tsv, the badges and
+    /// importer, how many games and how many system programs/modules import it). --status=&lt;repository root&gt; writes the README status (docs/hle/data/hle-status.tsv, the badges and
     /// progress map in docs/assets/status, docs/hle/progress.md; see HleStatusReport).</summary>
     static int HleCoverage(string? outTsv, string? vitasdkTsv = null, string? statusRoot = null)
     {
@@ -801,9 +801,9 @@ public static class Program
         if (outTsv != null)
         {
             File.WriteAllLines(outTsv, rows.OrderBy(r => r.Library, StringComparer.Ordinal).ThenBy(r => NidDatabase.NameOf(r.Nid), StringComparer.Ordinal)
-                .Select(r => $"0x{r.Nid:X8}	{NidDatabase.NameOf(r.Nid)}	{r.Library}	{r.Module}	{r.Group}	{(r.Default ? "default" : r.Lle ? "lle" : r.Impl ? "impl" : "-")}	{Importer(r.Nid)}")
+                .Select(r => $"0x{r.Nid:X8}	{NidDatabase.NameOf(r.Nid)}	{r.Library}	{r.Module}	{r.Group}	{(r.Default ? "default" : r.Lle ? "lle" : r.Impl ? "impl" : "-")}	{Importer(r.Nid)}	{c.GameImporterCount.GetValueOrDefault(r.Nid)}	{c.SystemImporterCount.GetValueOrDefault(r.Nid)}")
                 .Concat(c.GameImports.Concat(c.SystemImports).Where(e => !c.Exported.ContainsKey(e.Key)).DistinctBy(e => e.Key)
-                    .Select(e => $"0x{e.Key:X8}	{NidDatabase.NameOf(e.Key)}	{NidDatabase.Lookup(e.Key)?.Library ?? "-"}	{e.Value}	not-exported	{(impl.TryGetValue(e.Key, out var v) ? v.Default ? "default" : "impl" : lle.Contains(e.Key) ? "lle" : "-")}	{Importer(e.Key)}")));
+                    .Select(e => $"0x{e.Key:X8}	{NidDatabase.NameOf(e.Key)}	{NidDatabase.Lookup(e.Key)?.Library ?? "-"}	{e.Value}	not-exported	{(impl.TryGetValue(e.Key, out var v) ? v.Default ? "default" : "impl" : lle.Contains(e.Key) ? "lle" : "-")}	{Importer(e.Key)}	{c.GameImporterCount.GetValueOrDefault(e.Key)}	{c.SystemImporterCount.GetValueOrDefault(e.Key)}")));
         }
 
         return 0;

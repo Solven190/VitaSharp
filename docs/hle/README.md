@@ -31,6 +31,7 @@ Fonte da comparação (2026-10-18):
 | [G1-media-libs.md](G1-media-libs.md) | P2: Atrac, Sas, Voice, G729, Audioenc, Jpeg*, Videoenc, Mp4Recorder, Pgf, Pvf, Ime, Handwriting |
 | [G2-support-libs.md](G2-support-libs.md) | P2: Ult, Json, Xml, Sqlite, utilitários de sistema, debug/perf |
 | [kernel-exports.md](kernel-exports.md) | Exportações de kernel do FW 3.74 (`*ForDriver`/`*ForKernel` dos `os0:kd`): censo e situação no HLE |
+| [user-exports.md](user-exports.md) | Exportações de usuário do FW 3.74 (syscalls, `os0:us`, bibliotecas de `vs0:` servidas pelo HLE): censo dos buracos e ordem dos lotes |
 | [H-psm.md](H-psm.md) | PlayStation Mobile: censo dos imports dos runtimes (PCSI00011) e quem fornece cada função |
 | [data/](data/) | TSVs brutos: funções do VitaSDK com status, implementadas no VitaSharp, faltantes por jogo |
 
