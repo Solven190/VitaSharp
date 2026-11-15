@@ -12,10 +12,10 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,124 | 2,118 | 6 | 0 | 2,124 | 100% |
-| System imports | 6,080 | 5,892 | 188 | 0 | 7,327 | 82.9% |
-| General | 8,178 | 7,997 | 181 | 0 | 9,955 | 82.1% |
-| All firmware 3.74 exports | 16,382 | 4,674 | 375 | 11,333 | 19,406 | 84.4% |
-| VitaSDK user functions | 6,997 | 4,488 | 385 | 2,124 | 7,006 | 99.8% |
+| System imports | 6,103 | 5,895 | 208 | 0 | 7,327 | 83.2% |
+| General | 8,191 | 7,997 | 194 | 0 | 9,955 | 82.2% |
+| All firmware 3.74 exports | 16,418 | 4,677 | 408 | 11,333 | 19,406 | 84.6% |
+| VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
 
@@ -291,8 +291,8 @@ VitaSDK user functions provided by LLE (the modules the installed games ship in 
 | SceMarlin | `vs0:sys/external/libmln.suprx` | 42 / 42 | 100% | - | - | 29 / 29 |
 | SceMarlinHci | `os0:kd/marlin_hci.skprx` | 0 / 44 | 0% | - | - | 0 / 20 |
 | SceMetaGen | `vs0:vsh/common/mms/meta_gen.suprx` | 0 / 16 | 0% | - | - | 0 / 12 |
-| SceMgVideo | `os0:kd/mgvideo.skprx` | 0 / 29 | 0% | - | - | 0 / 20 |
-| SceMgVideoForMiniApp | `os0:kd/mgvideo.skprx` | 0 / 4 | 0% | - | - | - |
+| SceMgVideo | `os0:kd/mgvideo.skprx` | 29 / 29 | 100% | 29 | - | 20 / 20 |
+| SceMgVideoForMiniApp | `os0:kd/mgvideo.skprx` | 4 / 4 | 100% | 4 | - | - |
 | SceModulemgr | `os0:kd/modulemgr.skprx` | 16 / 16 | 100% | - | 1 / 1 | 15 / 15 |
 | SceMotion | `os0:us/driver_us.suprx` | 41 / 41 | 100% | - | 17 / 17 | 15 / 15 |
 | SceMotionDev | `os0:kd/bootimage.skprx/SceMotionDev` | 32 / 32 | 100% | 5 | - | 26 / 26 |
@@ -369,7 +369,7 @@ VitaSDK user functions provided by LLE (the modules the installed games ship in 
 | ScePsp2Compat | `vs0:data/external/webcore/ScePsp2Compat.suprx` | 160 / 1047 | 15.2% | - | - | 109 / 537 |
 | ScePspnetAdhoc | `vs0:sys/external/pspnet_adhoc.suprx` | 28 / 32 | 87.5% | - | 10 / 10 | 0 / 3 |
 | ScePvf | `vs0:sys/external/libpvf.suprx` | 43 / 43 | 100% | - | 22 / 22 | 2 / 2 |
-| SceRegMgr | `os0:kd/bootimage.skprx/SceRegistryMgr` | 19 / 22 | 86.3% | - | - | 17 / 20 |
+| SceRegMgr | `os0:kd/bootimage.skprx/SceRegistryMgr` | 22 / 22 | 100% | - | - | 20 / 20 |
 | SceRegMgrForGame | `os0:kd/bootimage.skprx/SceRegistryMgr` | 7 / 7 | 100% | - | 2 / 2 | 4 / 4 |
 | SceRegMgrForSDK | `os0:kd/bootimage.skprx/SceRegistryMgr` | 6 / 6 | 100% | - | - | 3 / 3 |
 | SceRegMgrService | `os0:kd/bootimage.skprx/SceRegistryMgr` | 5 / 5 | 100% | - | - | 4 / 4 |
