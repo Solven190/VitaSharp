@@ -25,20 +25,57 @@ public sealed class KernelTwinsTests(GuestMemoryFixture fixture) : IDisposable
         .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
         .Where(m => m.GetCustomAttributes<HleAttribute>().Any());
 
-    /// <summary>The user NID a twin forwards to: the constant of its <c>Forward(context, nid)</c> call (IL
-    /// <c>ldc.i4 nid</c> followed by <c>call</c>).</summary>
-    private static uint ForwardedNid(MethodInfo twin)
+    private static readonly MethodInfo s_forward = typeof(KernelTwins).GetMethod("Forward", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+    /// <summary>The user NID a twin forwards to: the constant of its <c>Forward(context, nid)</c> call.</summary>
+    private static uint ForwardedNid(MethodInfo twin) => ConstantPassedTo(twin, s_forward);
+
+    /// <summary>The 32-bit constant <paramref name="method"/> passes as the last argument of its call to
+    /// <paramref name="callee"/> (IL <c>ldc.i4 constant</c> right before <c>call callee</c>). The call is matched by its
+    /// method token, not taken as the first <c>ldc.i4</c>/<c>call</c> pair: a coverage run (coverlet) instruments every
+    /// sequence point with <c>ldc.i4 hitIndex; call RecordHit</c> ahead of the method's own code.</summary>
+    private static uint ConstantPassedTo(MethodInfo method, MethodInfo callee)
     {
-        byte[] il = twin.GetMethodBody()!.GetILAsByteArray()!;
-        for (int i = 0; i + 5 < il.Length; i++)
+        if (method.Module != callee.Module)
         {
-            if (il[i] == 0x20 && il[i + 5] == 0x28)
+            throw new ArgumentException($"{callee.Name} is not defined in the module of {method.Name}", nameof(callee));
+        }
+
+        byte[] il = method.GetMethodBody()!.GetILAsByteArray()!;
+        for (int i = 5; i + 5 <= il.Length; i++)
+        {
+            if (il[i] == 0x28 && il[i - 5] == 0x20 && BitConverter.ToInt32(il, i + 1) == callee.MetadataToken)
             {
-                return BitConverter.ToUInt32(il, i + 1);
+                return BitConverter.ToUInt32(il, i - 4);
             }
         }
 
-        throw new InvalidOperationException($"{twin.Name} has no Forward call");
+        throw new InvalidOperationException($"{method.Name} has no {callee.Name} call with a constant");
+    }
+
+    /// <summary>Stand-in for an instrumented twin: a call with a constant ahead of the forwarding call, the shape
+    /// coverlet gives every method.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining | System.Runtime.CompilerServices.MethodImplOptions.NoOptimization)]
+    private static void InstrumentedShape()
+    {
+        RecordHitStandIn(0x0001B667);
+        ForwardStandIn(null, 0xDCC90EDB);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RecordHitStandIn(int hitIndex) => GC.KeepAlive(hitIndex);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void ForwardStandIn(object? context, uint userNid) => GC.KeepAlive(context ?? userNid);
+
+    [Fact]
+    public void ForwardedNidIsTheForwardCallsConstantEvenWithACallAheadOfIt()
+    {
+        MethodInfo shape = typeof(KernelTwinsTests).GetMethod(nameof(InstrumentedShape), BindingFlags.Static | BindingFlags.NonPublic)!;
+        MethodInfo forward = typeof(KernelTwinsTests).GetMethod(nameof(ForwardStandIn), BindingFlags.Static | BindingFlags.NonPublic)!;
+        MethodInfo hit = typeof(KernelTwinsTests).GetMethod(nameof(RecordHitStandIn), BindingFlags.Static | BindingFlags.NonPublic)!;
+        Assert.Equal(0xDCC90EDBu, ConstantPassedTo(shape, forward));
+        Assert.Equal(0x0001B667u, ConstantPassedTo(shape, hit));
     }
 
     /// <summary>The user function a twin's name stands for: the name without the kernel prefix "k"; the SceCpuForDriver
