@@ -46,6 +46,9 @@ public sealed partial class PluginFramework : HleModule
 
     readonly List<Injection> _injections = new();
 
+    /// <summary>Guards the injections and the hooks (one patch map per process, as the framework keeps).</summary>
+    readonly object _patchLock = new();
+
     bool Enabled => Emu.KernelPluginsEnabled;
 
     /// <summary>The NIDs of the functions this module offers (read once from its [Hle] declarations).</summary>
@@ -317,6 +320,12 @@ public sealed partial class PluginFramework : HleModule
             return 0;
         }
 
+        return ModuleImportStub(pid, namePtr, libraryNid, functionNid, stubOut);
+    }
+
+    /// <summary>The import stub of a function in a module's import table, written to <paramref name="stubOut"/>.</summary>
+    int ModuleImportStub(int pid, uint namePtr, uint libraryNid, uint functionNid, uint stubOut)
+    {
         string? name = namePtr == 0 ? null : GuestMemory.ReadCString(namePtr, MaxNameLength);
         if (FindModule(pid, name, IgnoreNid, out LoadedModule? module) != Success)
         {
@@ -391,11 +400,19 @@ public sealed partial class PluginFramework : HleModule
             Saved = GuestMemory.ReadSpan(destination, (int)size).ToArray(),
             Name = "plugin inject",
         };
-        lock (_injections)
+        lock (_patchLock)
         {
             foreach (Injection other in _injections)
             {
                 if (other.Pid == pid && destination < other.Address + (uint)other.Saved.Length && other.Address < destination + size)
+                {
+                    return ErrorPatchExists;
+                }
+            }
+
+            lock (_patchLock)
+            {
+                if (_hooks.Any(h => h.Pid == pid && destination < h.Address + (uint)h.Saved.Length && h.Address < destination + size))
                 {
                     return ErrorPatchExists;
                 }
@@ -422,7 +439,7 @@ public sealed partial class PluginFramework : HleModule
     /// <summary>Writes the original bytes of injection <paramref name="uid"/> back.</summary>
     int ReleaseInjection(int uid)
     {
-        lock (_injections)
+        lock (_patchLock)
         {
             if (K.Objects.Get<Injection>(uid) is not { } injection || !_injections.Remove(injection))
             {

@@ -167,7 +167,7 @@ public static class EnvVars
     /// <summary>Default of --net=off|real (real internet for SceNet/SceHttp, off by default; see Hle/NetConfig.cs).</summary>
     public const string Net = "VITASHARP_NET";
     /// <summary>=1: the emulator option "Enable Kernel Plugins" (--kernel-plugins=on|off, the launcher's and the Android
-    /// app's switch win over it): the plugins of ur0:tai / ux0:tai config.txt are loaded. Default off: the pure firmware,
+    /// app's switch win over it): the plugins of kernel_plugins/config.txt (else ur0:tai / ux0:tai config.txt) are loaded. Default off: the pure firmware,
     /// no plugin.</summary>
     public const string KernelPlugins = "VITASHARP_KERNEL_PLUGINS";
     /// <summary>Default of --net-allow=host,host: with real internet, only these hosts (names or addresses) are reachable.</summary>

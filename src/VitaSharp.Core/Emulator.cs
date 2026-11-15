@@ -45,6 +45,9 @@ public sealed class EmulatorOptions
     /// the screen): on, the emulator reads the plugin configuration (ur0:tai / ux0:tai config.txt) and loads the plugins
     /// it lists; off (the default), the pure firmware runs and no plugin loads. Null: VITASHARP_KERNEL_PLUGINS=1.</summary>
     public bool? KernelPlugins { get; init; }
+    /// <summary>The emulator's plugin folder (the plugin binaries, apart from the Vita's file system); null:
+    /// &lt;DataRoot&gt;/kernel_plugins, next to <see cref="FsRoot"/>.</summary>
+    public string? KernelPluginsDir { get; init; }
     /// <summary>An existing guest address space to run in (there is one per process: unit tests that boot an
     /// emulator share the test fixture's). Null: the emulator creates it.</summary>
     public GuestMemory? Memory { get; init; }
@@ -1190,10 +1193,14 @@ public sealed class Emulator : IDisposable
     /// the <c>*KERNEL</c> plugins) goes to the kernel region and belongs to the kernel process
     /// (<see cref="KernelSpace.KernelPid"/>), as on the Vita, where the kernel and its modules outlive every process.
     /// </summary>
-    public LoadedModule LoadModule(string vitaPath, bool kernel)
+    public LoadedModule LoadModule(string vitaPath, bool kernel) => LoadModule(vitaPath, kernel, null);
+
+    /// <summary>Loads a module known by <paramref name="vitaPath"/> from <paramref name="hostFile"/> (null: the file at
+    /// that path of the Vita's file system).</summary>
+    internal LoadedModule LoadModule(string vitaPath, bool kernel, string? hostFile)
     {
         // a missing file or folder is the guest's error (the callers return it), never a host exception that ends the thread
-        string host = Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath);
+        string host = hostFile ?? (Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath));
         byte[] elf = SelfDecryptor.ToElf(File.ReadAllBytes(host), Klicensee);
         if (kernel)
         {
@@ -1272,8 +1279,93 @@ public sealed class Emulator : IDisposable
             return [];
         }
 
+        MigratePluginConfiguration();
         return LoadPlugins();
     }
+
+    /// <summary>The emulator's plugin folder, apart from the Vita's file system: the plugin configuration (config.txt)
+    /// and the plugins' binaries (kernel_plugins next to the fs folder of the data folder, or
+    /// <see cref="EmulatorOptions.KernelPluginsDir"/>).</summary>
+    public string KernelPluginsFolder => Options.KernelPluginsDir
+        ?? Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Options.FsRoot))) ?? Options.FsRoot, "kernel_plugins");
+
+    /// <summary>The configuration in the emulator's plugin folder.</summary>
+    string PluginFolderConfig => Path.Combine(KernelPluginsFolder, "config.txt");
+
+    /// <summary>A configuration line without a device (no ':'): a file of the emulator's plugin folder, relative to it.</summary>
+    static bool InPluginFolder(string path) => !path.Contains(':', StringComparison.Ordinal);
+
+    /// <summary>
+    /// Once, with the option on and no configuration in the emulator's plugin folder yet: moves the Vita's plugin
+    /// configuration (ux0:tai, else ur0:tai) and the kernel plugins it lists from ur0:tai / ux0:tai into the folder,
+    /// keeping a copy of the original as config.txt.bak, and writes the moved plugins' lines as paths relative to the
+    /// folder. The plugin framework's own file (a module that exports the libraries the emulator provides), user plugins
+    /// and the plugins' data files are not moved. Nothing is deleted except by moving.
+    /// </summary>
+    internal void MigratePluginConfiguration()
+    {
+        if (File.Exists(PluginFolderConfig))
+        {
+            return;
+        }
+
+        string? source = PluginConfig.Paths.Select(p => Vfs.Resolve(p)).FirstOrDefault(h => h != null && File.Exists(h));
+        if (source == null)
+        {
+            return;
+        }
+
+        string text = File.ReadAllText(source);
+        if (!PluginConfig.IsValid(text))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(KernelPluginsFolder);
+        var moved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in PluginConfig.ModulesFor(text, "KERNEL"))
+        {
+            if (InPluginFolder(path) || Vfs.Resolve(path) is not { } file || !File.Exists(file) || IsPluginFrameworkFile(path))
+            {
+                continue;
+            }
+
+            string target = Path.Combine(KernelPluginsFolder, Path.GetFileName(file));
+            if (!File.Exists(target))
+            {
+                File.Move(file, target);
+                Log.Info($"plugins: moved {path} to the emulator's plugin folder ({KernelPluginsFolder})");
+            }
+
+            moved.Add(path);
+        }
+
+        string rewritten = string.Join("\n", text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
+            .Select(line => moved.Contains(line.Trim()) ? Path.GetFileName(Vfs.Resolve(line.Trim()) ?? line.Trim()) : line));
+        File.WriteAllText(PluginFolderConfig, rewritten);
+        File.Move(source, PluginFolderConfig + ".bak", overwrite: true);
+        Log.Info($"plugins: moved the plugin configuration to the emulator's plugin folder ({PluginFolderConfig}; the original is config.txt.bak)");
+    }
+
+    /// <summary>True when the module at <paramref name="vitaPath"/> exports the plugin framework libraries the emulator
+    /// provides (it is loaded to read its export table, then unloaded).</summary>
+    bool IsPluginFrameworkFile(string vitaPath)
+    {
+        try
+        {
+            LoadedModule module = LoadModule(vitaPath, kernel: true);
+            bool framework = ExportsPluginFramework(module);
+            UnloadModule(module);
+            return framework;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
+    bool ExportsPluginFramework(LoadedModule module) =>
+        module.Exports.Any(e => e.FuncNids.Any(Hle.Modules.OfType<Hle.Modules.PluginFramework>().First().Provides));
 
     /// <summary>The emulator option "Enable Kernel Plugins" (<see cref="EmulatorOptions.KernelPlugins"/>, else
     /// VITASHARP_KERNEL_PLUGINS=1); off by default.</summary>
@@ -1297,13 +1389,15 @@ public sealed class Emulator : IDisposable
         return results;
     }
 
-    /// <summary>The plugin configuration's text: ux0:tai/config.txt, or ur0:tai/config.txt only when the first does not
-    /// exist (the plugin loader's order); null without one or when the plugin loader would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
+    /// <summary>The plugin configuration's text: the emulator's plugin folder's config.txt, else ux0:tai/config.txt, or
+    /// ur0:tai/config.txt only when that does not exist (the plugin loader's order); null without one or when the plugin
+    /// loader would refuse it (<see cref="PluginConfig.IsValid"/>).</summary>
     private string? ReadPluginConfig()
     {
-        foreach (string path in PluginConfig.Paths)
+        foreach (string path in PluginConfig.Paths.Prepend(PluginFolderConfig))
         {
-            if (Vfs.Resolve(path) is not { } host || !File.Exists(host))
+            string? host = path == PluginFolderConfig ? path : Vfs.Resolve(path);
+            if (host == null || !File.Exists(host))
             {
                 continue;
             }
@@ -1379,16 +1473,17 @@ public sealed class Emulator : IDisposable
         LoadedModule loadedModule;
         try
         {
-            loadedModule = LoadModule(path, kernel);
+            loadedModule = LoadModule(path, kernel, InPluginFolder(path) ? Path.Combine(KernelPluginsFolder, path) : null);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
+            Log.Warn($"plugin {path}: not loaded, it is neither in the emulator's plugin folder nor at its path ({e.Message})");
             return $"not loaded ({e.Message})";
         }
 
         // the emulator offers the plugin framework libraries itself: a listed module that exports them (the user's copy of
         // the framework) is not loaded
-        if (loadedModule.Exports.Any(e => e.FuncNids.Any(Hle.Modules.OfType<Hle.Modules.PluginFramework>().First().Provides)))
+        if (ExportsPluginFramework(loadedModule))
         {
             UnloadModule(loadedModule);
             return "not loaded (the emulator provides its libraries)";

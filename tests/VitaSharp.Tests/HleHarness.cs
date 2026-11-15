@@ -24,7 +24,7 @@ public sealed class HleHarness : IDisposable
         _tag = tag;
         Root = Path.Combine(Path.GetTempPath(), $"vitasharp-{tag}-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Root);
-        Emu = new Emulator(new EmulatorOptions { FsRoot = Root, Memory = fixture.Memory, EnableJit = false, CpuBackend = "interp", KernelPlugins = kernelPlugins });
+        Emu = new Emulator(new EmulatorOptions { FsRoot = Root, Memory = fixture.Memory, EnableJit = false, CpuBackend = "interp", KernelPlugins = kernelPlugins, KernelPluginsDir = Path.Combine(Root, "kernel_plugins") });
     }
 
     public void Dispose()

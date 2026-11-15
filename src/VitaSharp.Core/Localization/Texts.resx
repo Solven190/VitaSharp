@@ -2533,13 +2533,13 @@
     <value>Enable Kernel Plugins</value>
   </data>
   <data name="KernelPluginsDetail" xml:space="preserve">
-    <value>An emulator option (the Vita has none): loads the plugins listed in ur0:tai/config.txt and ux0:tai/config.txt, as a console with the homebrew environment set up. Off: the pure firmware, no plugin</value>
+    <value>An emulator option (the Vita has none): loads the plugins of the emulator's kernel_plugins folder (config.txt; else ur0:tai/config.txt), as a console with the homebrew environment set up. Off: the pure firmware, no plugin</value>
   </data>
   <data name="MKernelPlugins" xml:space="preserve">
     <value>Enable Kernel Plugins</value>
   </data>
   <data name="MKernelPluginsDetail" xml:space="preserve">
-    <value>Loads the plugins of ur0:tai/config.txt in the next game. Off: the pure firmware</value>
+    <value>Loads the plugins of kernel_plugins/config.txt in the next game. Off: the pure firmware</value>
   </data>
   <data name="MDebugMode" xml:space="preserve">
     <value>Debug mode</value>

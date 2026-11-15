@@ -159,16 +159,6 @@ de comando: `install-firmware <PSVUPDAT.PUP>`.
 instalados e LiveArea. Um jogo aberto pela LiveArea roda como um segundo processo; o botão PS (tecla Home) volta ao
 sistema e **Continuar** retoma o jogo. Detalhes e o que falta em [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** Desligados por padrão: o VitaSharp roda o firmware puro e não carrega nenhum plugin. A opção do emulador
-**Ativar Plugins do Kernel** (Configurações > Avançado; Android: Configurações > Depuração; linha de comando
-`--kernel-plugins=on`; ambiente `VITASHARP_KERNEL_PLUGINS=1`) é uma configuração do emulador, como pausar ou gravar a
-tela, que o Vita não tem: ligada, o VitaSharp lê o `fs/ur0/tai/config.txt` (ou `fs/ux0/tai/config.txt`; copiado do seu
-Vita, listado como no Vita: `*KERNEL` para os plugins de kernel `.skprx`, carregados uma vez quando o sistema inicia,
-`*ALL` / `*TITLEID` para os de usuário `.suprx`, `*main` é a tela inicial), carrega os plugins e oferece a eles as
-bibliotecas do framework de plugins que eles importam (informação de módulo, busca de exports e imports, injeção de
-dados), como um console com o ambiente homebrew instalado. O arquivo do próprio framework não é carregado: o emulador
-oferece as bibliotecas dele. Detalhes em [`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
-
 **Android.** Veja [Android](#android).
 
 **Idioma.** O launcher e a janela do jogo seguem o idioma do sistema (inglês ou português do Brasil);
@@ -178,6 +168,30 @@ Os dados ficam em `%APPDATA%\VitaSharp` no Windows (`~/.local/share/VitaSharp` n
 `~/Library/Application Support/VitaSharp` no macOS; `--data=<pasta>` ou `VITASHARP_DATA` trocam a pasta): jogos em
 `fs/ux0/app`, firmware em `fs/os0`... , `logs/`, `savestates/`, `captures/` (Gravar tudo), `gpudumps/`,
 `diagnostics/`, `shadercache/`.
+
+### Plugins do kernel
+
+Uma opção do emulador, **Ativar Plugins do Kernel**, como pausar ou gravar a tela (o Vita não tem essa configuração).
+**Desligada por padrão: roda o firmware puro e nenhum plugin carrega.** Ligada, o VitaSharp carrega os plugins que a
+configuração lista e oferece a eles as bibliotecas do framework de plugins que eles importam (informação de módulo,
+busca de exports e imports, injeção de dados, hooks de função), como um console com o ambiente homebrew instalado.
+
+- **Como ligar:** launcher **Configurações > Avançado**; Android **Configurações > Depuração**; linha de comando
+  `--kernel-plugins=on|off`; ambiente `VITASHARP_KERNEL_PLUGINS=1` (as chaves valem sobre a variável).
+- **Pasta:** `kernel_plugins/`, ao lado de `fs/` na pasta de dados (igual no Windows, Linux, macOS e Android), guarda o
+  `config.txt` e os plugins de kernel (`.skprx`). Uma linha sem dispositivo (`kubridge.skprx`) é um arquivo dessa pasta;
+  uma com dispositivo (`ur0:tai/x.skprx`) é um caminho do Vita. Seções como no Vita: `*KERNEL` para os plugins de
+  kernel, `*ALL` / `*TITLEID` para os de usuário, `*main` é a tela inicial.
+- **Alternativa:** sem `kernel_plugins/config.txt`, é lido o `fs/ux0/tai/config.txt` do Vita (senão
+  `fs/ur0/tai/config.txt`), como copiado de um Vita.
+- **Mudança automática:** na primeira vez com a opção ligada, o `config.txt` do Vita e os plugins de kernel que ele lista
+  vão para `kernel_plugins/` (o original guardado como `kernel_plugins/config.txt.bak`, as linhas movidas reescritas); o
+  arquivo do próprio framework e os arquivos de dados dos plugins ficam em `ur0:tai`, onde os plugins os leem. O
+  arquivo do próprio framework nunca é carregado: o emulador oferece as bibliotecas dele.
+- **Log:** uma linha por plugin, `kernel plugin <caminho>: loaded and started (<nome>)`, `... not started: no module
+  provides ...` ou `... not loaded (...)`.
+
+Detalhes em [`docs/notes/plugins.pt-BR.md`](docs/notes/plugins.pt-BR.md).
 
 ## Teclas
 

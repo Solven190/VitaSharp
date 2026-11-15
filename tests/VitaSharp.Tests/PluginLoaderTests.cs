@@ -37,7 +37,7 @@ public sealed class PluginLoaderTests(GuestMemoryFixture fx, Xunit.Abstractions.
         string tai = Path.Combine(_root, "ur0", "tai");
         Directory.CreateDirectory(tai);
         File.WriteAllText(Path.Combine(tai, "config.txt"), config);
-        return new Emulator(new EmulatorOptions { FsRoot = _root, Memory = fx.Memory, EnableJit = false, CpuBackend = "interp" });
+        return new Emulator(new EmulatorOptions { FsRoot = _root, Memory = fx.Memory, EnableJit = false, CpuBackend = "interp", KernelPluginsDir = Path.Combine(_root, "kernel_plugins") });
     }
 
     [Fact]

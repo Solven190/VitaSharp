@@ -156,16 +156,6 @@ runs the firmware's `shell.self`: initial setup the first time, lock screen, hom
 LiveArea. A game opened from the LiveArea runs as a second process; the PS button (Home key) goes back to the system
 and **Continue** resumes the game. Details and what is missing in [`docs/notes/system-apps.md`](docs/notes/system-apps.md).
 
-**Plugins.** Off by default: VitaSharp runs the pure firmware and loads no plugin. The emulator option **Enable Kernel
-Plugins** (Settings > Advanced; Android: Settings > Debugging; command line `--kernel-plugins=on`; environment
-`VITASHARP_KERNEL_PLUGINS=1`) is a setting of the emulator, like pausing or recording the screen, that the Vita does not
-have: on, VitaSharp reads `fs/ur0/tai/config.txt` (or `fs/ux0/tai/config.txt`; copied from your Vita, listed as on the
-Vita: `*KERNEL` for `.skprx` kernel plugins, loaded once when the system starts, `*ALL` / `*TITLEID` for `.suprx` user
-plugins, `*main` is the home screen), loads the plugins and offers them the plugin framework libraries they import
-(module information, export and import lookups, data injections), as a console with the homebrew environment set up.
-The framework's own file is not loaded: the emulator provides its libraries. Details in
-[`docs/notes/plugins.md`](docs/notes/plugins.md).
-
 **Android.** See [Android](#android).
 
 **Language.** The launcher and the game window follow the system's language (English or Brazilian Portuguese);
@@ -175,6 +165,30 @@ Data lives in `%APPDATA%\VitaSharp` on Windows (`~/.local/share/VitaSharp` on Li
 `~/Library/Application Support/VitaSharp` on macOS; `--data=<folder>` or `VITASHARP_DATA` change the folder): games in
 `fs/ux0/app`, firmware in `fs/os0`... , `logs/`, `savestates/`, `captures/` (Record everything), `gpudumps/`,
 `diagnostics/`, `shadercache/`.
+
+### Kernel plugins
+
+An emulator option, **Enable Kernel Plugins**, like pausing or recording the screen (the Vita has no such setting).
+**Off by default: the pure firmware runs and no plugin loads.** On, VitaSharp loads the plugins the configuration lists
+and offers them the plugin framework libraries they import (module information, export and import lookups, data
+injections, function hooks), as a console with the homebrew environment set up.
+
+- **Turn it on:** launcher **Settings > Advanced**; Android **Settings > Debugging**; command line
+  `--kernel-plugins=on|off`; environment `VITASHARP_KERNEL_PLUGINS=1` (the switches win over the variable).
+- **Folder:** `kernel_plugins/`, next to `fs/` in the data folder (same on Windows, Linux, macOS and Android), holds
+  `config.txt` and the kernel plugins (`.skprx`). A line without a device (`kubridge.skprx`) is a file of that folder; a
+  line with one (`ur0:tai/x.skprx`) is a path of the Vita. Sections as on the Vita: `*KERNEL` for kernel plugins,
+  `*ALL` / `*TITLEID` for user plugins, `*main` is the home screen.
+- **Fallback:** without `kernel_plugins/config.txt`, the Vita's `fs/ux0/tai/config.txt` (else `fs/ur0/tai/config.txt`)
+  is read, as copied from a Vita.
+- **Automatic move:** the first time the option is on, the Vita's `config.txt` and the kernel plugins it lists move into
+  `kernel_plugins/` (the original kept as `kernel_plugins/config.txt.bak`, the moved lines rewritten); the framework's
+  own file and the plugins' data files stay in `ur0:tai`, where the plugins read them. The framework's own file is
+  never loaded: the emulator provides its libraries.
+- **Log:** one line per plugin, `kernel plugin <path>: loaded and started (<name>)`, `... not started: no module
+  provides ...` or `... not loaded (...)`.
+
+Details in [`docs/notes/plugins.md`](docs/notes/plugins.md).
 
 ## Keys
 

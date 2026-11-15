@@ -379,9 +379,19 @@ public sealed partial class HleRegistry : IImportResolver
         }
     }
 
+    readonly System.Collections.Concurrent.ConcurrentDictionary<uint, uint> _redirects = new();
+
+    /// <summary>Import stubs bound to HLE function <paramref name="nid"/> from now on jump to <paramref name="target"/>
+    /// (a plugin's hook on the firmware export of the function, emulator option "Enable Kernel Plugins").</summary>
+    public void Redirect(uint nid, uint target) => _redirects[nid] = target;
+
+    /// <summary>Import stubs of <paramref name="nid"/> bind to the HLE function again.</summary>
+    public void ClearRedirect(uint nid) => _redirects.TryRemove(nid, out _);
+
     /// <summary>A guest-code implementation (<see cref="HleGuestCode"/>) of an implemented NID, placed in the calling
     /// thread's address space; 0 when there is none (or VITASHARP_HLE_GUEST_CODE=0).</summary>
-    public uint GetHleGuestCode(uint nid) => _impls.ContainsKey(nid) ? HleGuestCode.AddressOf(nid, _emu.Memory, n => GetHleFunctionIndex(n, 0, NidDatabase.Lookup(n)?.Library ?? ""), this) : 0;
+    public uint GetHleGuestCode(uint nid) => _redirects.TryGetValue(nid, out uint redirect) ? redirect
+        : _impls.ContainsKey(nid) ? HleGuestCode.AddressOf(nid, _emu.Memory, n => GetHleFunctionIndex(n, 0, NidDatabase.Lookup(n)?.Library ?? ""), this) : 0;
 
     /// <summary>After a save state load: places this build's guest-code routines again (<see cref="HleGuestCode.Replace"/>).</summary>
     public Func<uint, bool> ReplaceGuestCode() => HleGuestCode.Replace(_emu.Memory, n => GetHleFunctionIndex(n, 0, NidDatabase.Lookup(n)?.Library ?? ""), this);

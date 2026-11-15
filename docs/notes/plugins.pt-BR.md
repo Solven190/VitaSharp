@@ -30,6 +30,17 @@ ux0:tai/algum_plugin.suprx
 
 Sem `config.txt`, ou com a opção desligada, nenhum plugin é carregado.
 
+A configuração e os plugins de kernel ficam na pasta do próprio emulador, `kernel_plugins/` ao lado de `fs/` na pasta
+de dados (Windows, Linux, macOS e Android igual): `kernel_plugins/config.txt`, lido com as mesmas regras, em que uma
+linha sem dispositivo (`kubridge.skprx`) é um arquivo dessa pasta (caminho relativo à configuração) e uma com
+dispositivo (`ur0:tai/x.skprx`) é um caminho do Vita; um arquivo que não está lá é pulado com um aviso no log. Sem o
+`kernel_plugins/config.txt` é lida a configuração do Vita acima. Só o carregador do emulador lê a configuração. Na
+primeira vez com a opção ligada e sem configuração na pasta, o `config.txt` do Vita e os plugins de kernel que o
+`*KERNEL` dele lista em `ur0:tai` / `ux0:tai` vão para `kernel_plugins/` (a configuração original guardada como
+`kernel_plugins/config.txt.bak`, as linhas dos plugins movidos reescritas com o nome do arquivo; o log diz cada
+movimento); o arquivo do próprio framework, os plugins de usuário e os arquivos de dados dos plugins ficam onde estão
+(os plugins leem seus dados pelo caminho do Vita). Nada é apagado.
+
 O arquivo é lido com as regras do parser e do carregador de plugins do próprio ambiente homebrew: só
 um arquivo vale (`ux0:tai/config.txt`, senão `ur0:tai/config.txt`); `#` começa um comentário, `*` uma seção, e
 qualquer outra linha é o caminho de um módulo (sem os espaços do começo e do fim); os nomes de seção são comparados
