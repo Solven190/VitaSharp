@@ -64,7 +64,7 @@ public sealed class GameFirmwarePreloadTests(GuestMemoryFixture fixture) : IDisp
     [Fact]
     public void ImportersGetTheFirmwareModuleOfLibrariesTheHleDoesNotEmulate()
     {
-        var hle = _harness.Emu.Hle;
+        VitaSharp.Core.Hle.HleRegistry hle = _harness.Emu.Hle;
         MethodInfo method = hle.GetType().GetMethod("FirmwareServesImporters")
             ?? throw new MissingMethodException(hle.GetType().Name, "FirmwareServesImporters");
         bool Serves(string library) => (bool)method.Invoke(hle, [library])!;

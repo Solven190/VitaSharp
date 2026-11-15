@@ -1015,7 +1015,7 @@ public sealed class Emulator : IDisposable
     /// </summary>
     private void PreloadFirmwareModulesForGame(uint preloadDisabled)
     {
-        Firmware.FirmwareLibraries firmware = Firmware.FirmwareLibraries.For(Options.FsRoot);
+        var firmware = Firmware.FirmwareLibraries.For(Options.FsRoot);
         if (MainModule == null)
         {
             return;
