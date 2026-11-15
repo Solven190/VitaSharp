@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <psp2/appmgr.h>
 #include <psp2/apputil.h>
 #include <psp2/common_dialog.h>
 #include <psp2/display.h>
@@ -339,6 +340,20 @@ static void check_psm_only_module(void)
     }
 }
 
+/*
+ * SceAppMgr calls kept for system programs: this app is a safe homebrew (the game class on a real console too), so
+ * the kernel refuses them before touching its application slot.
+ */
+static void check_appmgr(void)
+{
+    int suspendResult = sceAppMgrSuspendUntilActivated();
+    result_check(AREA, "appmgr_suspend_until_activated_refused", suspendResult == (int)0x8080201F, "0x%08X",
+                 (unsigned int)suspendResult);
+    int coredumpResult = sceAppMgrEnableCoredumpForTest();
+    result_check(AREA, "appmgr_enable_coredump_for_test_refused", coredumpResult == (int)0x8080201F, "0x%08X",
+                 (unsigned int)coredumpResult);
+}
+
 void test_system_run(bool withDialogs)
 {
     if (!withDialogs)
@@ -352,6 +367,7 @@ void test_system_run(bool withDialogs)
         check_network();
         check_registry_system_only();
         check_psm_only_module();
+        check_appmgr();
         return;
     }
     app_show_progress("System", "message dialog ...");
