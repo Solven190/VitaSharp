@@ -80,7 +80,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   tabela lixo virava listas de milhões de entradas e o cache estático de programas (`GxmProgramInfo`) segurava todos
   os programas de todas as sessões. Agora as contagens param no tamanho do programa e o cache acaba com o sistema
   emulado (`GxpProgramLifetimeTests`): as mesmas classes + Gxm/shader/save state (155 testes) com pico de 0,52 GB e
-  1 m 20 s. Falta: medir a suíte inteira de novo e atacar o tempo das classes mais lentas.
+  1 m 20 s. Tempo (15/11/2026, bugB): o fuzz NEON do NativeJitTests criava um Unicorn novo para cada palavra
+  rejeitada (785 s da suíte); agora reaproveita a instância. Suíte inteira 16 m 26 s -> 6 m 09 s, pico 1,59 GB (máquina
+  a 100%). Falta (< 5 min): a coleção "guest" é serial e é o caminho crítico (366 s); os maiores dela agora são
+  NpCommerce2Firmware (cada parser do firmware rodava 2x, corrigido), NativeJit 46 s, Ngs 25 s, ThreadMgr 21 s,
+  CpuFuzz 21 s (um Unicorn novo por iteração, como o NEON).
 - [ ] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
