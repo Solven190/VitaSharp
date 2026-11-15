@@ -35,12 +35,33 @@ public static class AppServices
     /// file log and loads the settings. The UI process logs to logs/app.log; the game process opens
     /// the log per title (SessionLog).
     /// </summary>
+    /// <summary>Reads the settings file again (the other process may have changed it) and applies the texts'
+    /// language: every text looked up from now on follows it.</summary>
+    public static void RefreshPreferences()
+    {
+        lock (Lock)
+        {
+            if (!Initialized)
+            {
+                return;
+            }
+
+            Prefs = AppPreferences.Load(Data.AppSettingsFile);
+            VitaSharp.Core.Localization.Loc.SetLanguage(Prefs.Language);
+        }
+    }
+
     public static void Initialize(Context context, bool gameProcess)
     {
         lock (Lock)
         {
             if (Initialized)
+            {
+                // Android keeps the process for the next activity (a game after another one, the screens after a
+                // game): the settings saved meanwhile by the other process (the language above all) apply now
+                RefreshPreferences();
                 return;
+            }
             AppContext = context.ApplicationContext ?? context;
             LogcatSink.Install();
             string root = context.GetExternalFilesDir(null)?.AbsolutePath is { Length: > 0 } ext ? ext : context.FilesDir!.AbsolutePath;
