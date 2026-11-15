@@ -70,11 +70,13 @@ public sealed class NpCommerce2FirmwareTests(GuestMemoryFixture fx, ITestOutputH
         using var h = new C2Harness(fx, C2Firmware.ModulePath);
         var bad = new List<string>();
         var golden = new StringBuilder();
+        var firmwareHashes = new Dictionary<uint, string>();
         foreach (C2Harness.Parser p in C2Harness.Parsers)
         {
             List<string> lle = h.Run(p, lle: true);
             List<string> hle = h.Run(p, lle: false);
-            golden.AppendLine($"        [0x{p.Nid:X8}] = \"{C2Harness.Hash(lle)}\", // {p.Method.Name}");
+            firmwareHashes[p.Nid] = C2Harness.Hash(lle); // each firmware run once (they are the slow part)
+            golden.AppendLine($"        [0x{p.Nid:X8}] = \"{firmwareHashes[p.Nid]}\", // {p.Method.Name}");
             int i = 0;
             while (i < lle.Count && i < hle.Count && lle[i] == hle[i])
             {
@@ -89,7 +91,7 @@ public sealed class NpCommerce2FirmwareTests(GuestMemoryFixture fx, ITestOutputH
         output.WriteLine(golden.ToString());
         Assert.True(bad.Count == 0, $"{bad.Count} of {C2Harness.Parsers.Count} parsers differ from the firmware:\n" + string.Join("\n", bad.Take(20)));
         // the hashes the HLE test checks without the module must be these firmware logs
-        var stale = C2Harness.Parsers.Where(p => NpCommerce2FirmwareGolden.Hashes.GetValueOrDefault(p.Nid) != C2Harness.Hash(h.Run(p, lle: true))).ToList();
+        var stale = C2Harness.Parsers.Where(p => NpCommerce2FirmwareGolden.Hashes.GetValueOrDefault(p.Nid) != firmwareHashes[p.Nid]).ToList();
         Assert.True(stale.Count == 0, $"{stale.Count} firmware hashes in NpCommerce2FirmwareGolden are out of date; the table:\n" + golden);
     }
 }
