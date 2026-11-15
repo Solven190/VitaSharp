@@ -288,8 +288,12 @@ public sealed class AppMgrHleTests(GuestMemoryFixture fixture) : IDisposable
         Assert.True(File.Exists(host));
         GuestMemory.W32(save, 0x48);
         Assert.Equal(ERR_STRUCT, Call<int>(mgr, "sceAppMgrSaveDataDataSave2", save));
+        // the remove items are SceAppUtilSaveDataRemoveItem (0x2C: dataPath*, mode, reserved zero; FW 3.74 SceAppMgr)
+        uint removeItem = Alloc(0x2C);
+        GuestMemory.Fill(removeItem, 0, 0x2C);
+        GuestMemory.W32(removeItem, name);
         uint del = Sized(0x44);
-        GuestMemory.W32(del + 0x2C, files);
+        GuestMemory.W32(del + 0x2C, removeItem);
         GuestMemory.W32(del + 0x30, 1);
         Assert.Equal(0, Call<int>(mgr, "sceAppMgrSaveDataDataRemove2", del));
         Assert.False(File.Exists(host));

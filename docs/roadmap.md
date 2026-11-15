@@ -2299,6 +2299,23 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   formato 1 do celular continuam aceitos (`SaveStateLegacyTests`; tirar o campo os recusaria). Teste:
   `ModuleReferenceSnapshotTests` (falha sem a correção: "AppUtil._appMgr: a load left a AppMgr that is not the
   emulator's module").
+- [x] Remoção de save (`sceAppUtilSaveDataDataRemove` / `sceAppMgrSaveDataDataRemove`) como no firmware (bugA2,
+  15/11/2026; apputil.suprx 3.74 0x81000D2C/0x81001D6C/0x81001BEC e SceAppMgr 0x81029E3C/0x8102AF54/0x8102B1B4, só
+  estudo). Uma exceção do `File`/`Directory.Delete` do host (arquivo preso por outro programa, sem permissão) subia
+  pela chamada HLE e parava o guest: agora vira erro de E/S (EBUSY/EACCES), como o iofilemgr responderia. O apputil
+  confere a lista inteira antes de apagar algo: NOT_INITIALIZED antes do `sceAppUtilInit`; PARAMETER para lista
+  NULL, 0 ou mais de 5 itens, caminho com caractere fora de letras/dígitos/-/_/./barras (inclusive o prefixo
+  `savedata0:`), "..", mais de 3 separadores, nome `sce_`, modo fora de DEFAULT/NO_SLOT, reservados não zerados,
+  ponto de montagem diferente de `savedata0:`, ou slot com param novo junto com item 0 que apaga o slot. Caminho vazio
+  é aceito pelos dois e quer dizer o próprio savedata0: o conteúdo some, a raiz e os dados do sistema (`sce_sys` e os
+  `SlotParam_*.bin` que guardamos) ficam; antes a raiz inteira era apagada. `sceAppMgrSaveDataDataRemove` lia os
+  itens de 0x40 em 0x40 bytes (Vita3K); o firmware usa 0x2C (o mesmo item do apputil) e recusa pedido de tamanho
+  diferente de 0x44 (0x80800001). Testes: `AppUtilSaveDataTests.DataRemoveChecksTheWholeListBeforeRemovingAnything`,
+  `DataRemoveOfTheEmptyPathEmptiesSaveDataButKeepsTheSystemData`,
+  `DataRemoveReturnsAnErrorWhenTheHostRefusesTheDelete`, `AppMgrDataRemoveReadsItemsOfTheApputilLayout` (falham
+  sem a correção). Correção feita, ainda não confirmada no Killzone ("deleted saves" trava: falta a captura do
+  usuário para saber se é este o caminho). Pendente: o `sceAppMgrSaveDataDataRemove` chamado direto ainda não apaga
+  o slot (no firmware é o kernel que apaga), e o `sceAppUtilSaveDataDataSave` ainda aceita caminho com `savedata0:`.
 
 - [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
