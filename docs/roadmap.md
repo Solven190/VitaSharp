@@ -3716,7 +3716,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
 - [ ] [P2][M] Um load state que falha depois de parar as threads ("thread X did not stop", erro no meio da carga)
   deixa o jogo parado ("reinicie o jogo"): guardar um estado em memória antes de carregar e voltar a ele se a carga
   falhar (como o "desfazer carregamento" do Dolphin), no desktop e no Android
-- [ ] [P2][M] Android: o vídeo de abertura do F1 2011 (PCSE00002) pisca (relato do usuário, 09/11/2026, APK com todos os
+- [x] (15/11/2026, usuário: duplicata do item dos filmes do boot do F1, já corrigido em c2c6255b) [P2][M] Android: o vídeo de abertura do F1 2011 (PCSE00002) pisca (relato do usuário, 09/11/2026, APK com todos os
   ganhos, perf/android-all 577bce4): quadros pretos (a imagem inteira com luma 0 entre pictures de luma 16) e pictures
   fora de ordem. A captura do usuário (`PCSE00002_20261109_185836_tudo`, 3º filme, jogo a 20 fps) tem 13 piscadas
   pretas e 7 pictures fora de ordem em 8 s. Perguntar ao lab se o gameplay também pisca. **Restrição do usuário: a
