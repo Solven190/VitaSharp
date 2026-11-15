@@ -140,7 +140,7 @@ SceLiveAreaUtil	vs0:sys/external/livearea_util.suprx	14	14	6	6	6	6	0	0	0	0
 SceLiveAreaUtilBgApp	vs0:sys/external/livearea_util.suprx	1	1	0	0	0	0	0	0	0	0
 SceLsdb	vs0:vsh/shell/livespace_db.suprx	199	199	0	0	162	162	0	0	0	199
 SceMarlin	vs0:sys/external/libmln.suprx	42	42	0	0	29	29	0	0	0	42
-SceMarlinHci	os0:kd/marlin_hci.skprx	44	0	0	0	20	0	0	0	0	0
+SceMarlinHci	os0:kd/marlin_hci.skprx	44	44	0	0	20	20	34	0	17	0
 SceMetaGen	vs0:vsh/common/mms/meta_gen.suprx	16	0	0	0	12	0	0	0	0	0
 SceMgVideo	os0:kd/mgvideo.skprx	29	29	0	0	20	20	29	0	20	0
 SceMgVideoForMiniApp	os0:kd/mgvideo.skprx	4	4	0	0	0	0	4	0	0	0

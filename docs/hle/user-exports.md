@@ -53,9 +53,21 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
   nível de reset >= 5 e nível de backup abaixo do pedido vão com o padrão de fábrica. Restore: chaves de nível de
   backup 5 ficam com o valor do aparelho, as outras recebem o do backup ou o padrão. O arquivo de backup usa o formato
   do armazenamento do VitaSharp (o registro não é o `system.dreg` do firmware).
-- Pendente: SceMarlinHci (44 exportações, 20 importadas): o `marlin_hci.skprx` é a biblioteca HCI do Marlin em
-  software (cripto do SceKernelUtils, chaves em arquivos), capacidade bit 0x80 (SceSblACMgrForDriver_F5AE24AC);
-  descompilado, falta o estudo das funções internas.
+## Lote 15b (15/11/2026, feat/marlin-hci)
+
+- SceMarlinHci (44 exportações, as 20 importadas e o segundo conjunto de 24 que chama o primeiro com buffers próprios),
+  lido no `os0:kd/marlin_hci.skprx` 3.74 (descompilado e desmontado, só estudo): toda entrada pede o bit 0x80 da
+  capacidade (SceSblACMgrForDriver_F5AE24AC, senão 0x80010058); os blocos de parâmetros e os pares (tamanho, ponteiro)
+  de 1 a 0xFFFF bytes são copiados do usuário; o motor roda numa pilha de 0x4000 e os erros dele são positivos (3
+  argumento ou handle desconhecido, 2 sem memória, 0x1106xxxx arquivo, 0x2311xxxx motor), então a entrada grava 0 na
+  palavra de saída e devolve o resultado dessa cópia. Todo objeto do motor sai das chaves do aparelho em
+  `tm0:nphome/sdata/P0000000/P0000001.DAT` (P0000004.DAT para o segundo tipo), decifradas com a chave do aparelho;
+  handles numa tabela de 32 (índice | 0x1000). Reais: início e parada do módulo (mutex novo / mutex apagado), lock e
+  unlock do `SceMarlinHciMutex` (uma thread espera a outra), a checagem dos tipos 0/1 e a remoção do arquivo de chaves.
+  O VitaSharp não tem a chave do aparelho: a leitura do arquivo responde como sem arquivo (0x11060002), então nenhum
+  handle é criado, e a gravação de chaves responde 0x11060001 (arquivo que não pode ser gravado). Marcadas Default.
+  Teste: `MarlinHciTests`. Sem caso no TestGame: o VitaSDK não tem stub do SceMarlinHci.
+
 ## Jogos de volta a 100% e LLE das bibliotecas que o HLE não emula (15/11/2026, docs/hle-status-15)
 
 - Por que a coluna "jogos" caiu de 100% (2.049/2.049) para 99,1% (2.105/2.124): o status anterior (eef84396, 11/11) foi
