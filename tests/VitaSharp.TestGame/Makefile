@@ -26,7 +26,7 @@ LDFLAGS     := -Wl,-q
 
 LIBS := \
 	-lSceGxm_stub -lSceDisplay_stub -lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub \
-	-lSceAudio_stub -lSceAvPlayer_stub -lSceCommonDialog_stub -lSceAppUtil_stub -lSceAppMgr_stub -lSceSysmodule_stub -lSceRegMgr_stub \
+	-lSceAudio_stub -lSceAvPlayer_stub -lSceCommonDialog_stub -lSceAppUtil_stub -lSceAppMgr_stub -lSceSysmodule_stub -lSceRegistryMgr_stub \
 	-lScePower_stub -lSceRtc_stub -lSceNetCtl_stub -lSceNet_stub -lSceLibKernel_stub \
 	-lSceKernelThreadMgr_stub -lSceIofilemgr_stub -lSceSysmem_stub -lSceProcessmgr_stub \
 	-lm
