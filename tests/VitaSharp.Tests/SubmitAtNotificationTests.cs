@@ -95,7 +95,14 @@ public sealed class SubmitAtNotificationTests(GuestMemoryFixture fx)
         Assert.Equal(0, Call(g, "sceGxmSetVisibilityBuffer", ctx, visibility, 64u));
         return new Setup
         {
-            G = g, Ctx = ctx, Rt = rt, Color = color, Vp = GuestMemory.R32(vp), Fp = GuestMemory.R32(fpo), Verts = verts, Idx = idx,
+            G = g,
+            Ctx = ctx,
+            Rt = rt,
+            Color = color,
+            Vp = GuestMemory.R32(vp),
+            Fp = GuestMemory.R32(fpo),
+            Verts = verts,
+            Idx = idx,
             Visibility = visibility,
         };
     }
