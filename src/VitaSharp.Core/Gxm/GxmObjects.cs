@@ -24,6 +24,16 @@ public sealed class GxmProgramInfo
 
     private static readonly ConcurrentDictionary<uint, GxmProgramInfo> s_cache = new();
 
+    /// <summary>Programs parsed so far (tests).</summary>
+    internal static int CachedCount => s_cache.Count;
+
+    /// <summary>
+    /// Forgets every parsed program: the emulated system that loaded them ended (<see cref="Emulator.Dispose"/> of the
+    /// first process). Keyed by guest address and static (one emulated system per host process), the cache otherwise
+    /// kept the programs of every earlier session alive: each renderer test of the suite left its programs behind.
+    /// </summary>
+    public static void Clear() => s_cache.Clear();
+
     public static GxmProgramInfo Get(uint address)
     {
         if (s_cache.TryGetValue(address, out GxmProgramInfo? info))

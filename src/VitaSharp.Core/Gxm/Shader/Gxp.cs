@@ -107,7 +107,8 @@ public sealed class GxpProgram
 
         int pbase = Rel(0x28);
         var ps = new List<GxpParameter>();
-        for (int i = 0; i < ParameterCount; i++)
+        int parameterCount = Fit(ParameterCount, pbase, 16);
+        for (int i = 0; i < parameterCount; i++)
         {
             int p = pbase + i * 16;
             int nameOff = (int)U32(p);
@@ -119,7 +120,8 @@ public sealed class GxpProgram
 
         var cs = new List<GxpContainer>();
         int cbase = Rel(0x94);
-        for (int i = 0; i < ContainerCount; i++)
+        int containerCount = Fit(ContainerCount, cbase, 8);
+        for (int i = 0; i < containerCount; i++)
         {
             cs.Add(new GxpContainer(U16(cbase + i * 8), U16(cbase + i * 8 + 4), U16(cbase + i * 8 + 6)));
         }
@@ -128,7 +130,8 @@ public sealed class GxpProgram
 
         var ls = new List<GxpLiteral>();
         int lbase = Rel(0x74);
-        for (int i = 0; i < LiteralsCount; i++)
+        int literalCount = Fit(LiteralsCount, lbase, 8);
+        for (int i = 0; i < literalCount; i++)
         {
             ls.Add(new GxpLiteral(U32(lbase + i * 8), F32(lbase + i * 8 + 4)));
         }
@@ -137,7 +140,8 @@ public sealed class GxpProgram
 
         var ub = new List<GxpUniformBufferInfo>();
         int ubase = Rel(0x7C);
-        for (int i = 0; i < UniformBufferCount; i++)
+        int uniformBufferCount = Fit(UniformBufferCount, ubase, 8);
+        for (int i = 0; i < uniformBufferCount; i++)
         {
             ub.Add(new GxpUniformBufferInfo(U16(ubase + i * 8), U16(ubase + i * 8 + 2), (int)U32(ubase + i * 8 + 4)));
         }
@@ -146,12 +150,29 @@ public sealed class GxpProgram
 
         var ds = new List<GxpDependentSampler>();
         int dbase = Rel(0x84);
-        for (int i = 0; i < DependentSamplerCount; i++)
+        int dependentSamplerCount = Fit(DependentSamplerCount, dbase, 4);
+        for (int i = 0; i < dependentSamplerCount; i++)
         {
             ds.Add(new GxpDependentSampler(U16(dbase + i * 4), U16(dbase + i * 4 + 2)));
         }
 
         DependentSamplers = ds;
+    }
+
+    /// <summary>
+    /// The entries of a table at <paramref name="tableStart"/> that lie inside the program: a count field is never
+    /// trusted past the program's own size. A program whose header holds garbage there (a test's synthetic program, a
+    /// program read from memory that does not hold one) made lists of millions of zero entries: ~500 MB per program,
+    /// kept by the program cache.
+    /// </summary>
+    private int Fit(uint count, int tableStart, int entryBytes)
+    {
+        if (tableStart < 0 || tableStart >= Data.Length)
+        {
+            return 0;
+        }
+
+        return (int)Math.Min(count, (uint)((Data.Length - tableStart) / entryBytes));
     }
 
     public static GxpProgram FromGuest(uint address)
