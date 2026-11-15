@@ -225,9 +225,21 @@ public sealed partial class SystemServicesVsh
 public sealed partial class Sensors
 {
     // ---- SceMotion's Ext forms (driver_us): the same library with a port, 0 the built-in sensors, 1..4 the external
-    // controllers of a PS TV (none here: the driver's "no such controller" 0x80360202), above 4 out of range.
+    // controllers of a PS TV (none here: the driver's "no such controller" 0x80360202), above 4 out of range
+    // (0x8036020B); a negative port passes the range check and finds no controller.
     const int ERR_EXT_NO_PORT = unchecked((int)0x80360202);
-    static int Port(int port) => port == 0 ? 0 : ERR_EXT_NO_PORT;
+    const int ERR_EXT_PORT_RANGE = unchecked((int)0x8036020B);
+
+    static int Port(int port)
+    {
+        if (port == 0)
+        {
+            return 0;
+        }
+
+        return port > 4 ? ERR_EXT_PORT_RANGE : ERR_EXT_NO_PORT;
+    }
+
     [Hle] int sceMotionInitLibraryExt(int port) => 0;
     [Hle] int sceMotionTermLibraryExt(int port) => 0;
     [Hle] int sceMotionStartSamplingExt(int port) => port == 0 ? sceMotionStartSampling() : Port(port);
@@ -235,9 +247,27 @@ public sealed partial class Sensors
     [Hle] int sceMotionResetExt(int port) => port == 0 ? sceMotionReset() : Port(port);
     [Hle] int sceMotionSetTiltCorrectionExt(int port, int e) => port == 0 ? sceMotionSetTiltCorrection(e) : Port(port);
     [Hle] int sceMotionSetDeadbandExt(int port, int e) => port == 0 ? sceMotionSetDeadband(e) : Port(port);
-    /// <summary>(int port, SceMotionState *state): sceMotionGetState of a port.</summary>
-    [Hle("sceMotion_D87E2B64", Nid = 0xD87E2B64, Library = "SceMotion")] int sceMotionGetStateExt(int port, uint state) => port == 0 ? sceMotionGetState(state) : Port(port);
-    [Hle] int sceMotionGetStateInternal(uint state) => sceMotionGetState(state);
+    /// <summary>(int port, SceMotionState *state): sceMotionGetState of a port; for an external port the driver checks
+    /// the range (0x8036020B), then the pointer (0x80360209), then the controller (0x80360202).</summary>
+    [Hle("sceMotion_D87E2B64", Nid = 0xD87E2B64, Library = "SceMotion")]
+    int sceMotionGetStateExt(int port, uint state)
+    {
+        if (port == 0)
+        {
+            return sceMotionGetState(state);
+        }
+
+        if (port <= 4 && state == 0)
+        {
+            return ERR_NULL_PARAMETER;
+        }
+
+        return Port(port);
+    }
+    /// <summary>(SceMotionState *state): the location service's sceMotionGetState: driver_us 3.74 answers it only while
+    /// that client's sampling is on (NID_ACEFA121; 0x80360206 before), a NULL state 0x80360209.</summary>
+    [Hle]
+    int sceMotionGetStateInternal(uint state) => WriteClientState(_locationSampling, state);
 
     // ---- SceMotionDev: sampling switches of the sensor driver (the emulated sensors are always sampled)
     [Hle] int sceMotionDevSamplingStart() => 0;

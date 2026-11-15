@@ -80,6 +80,21 @@ public sealed class MotionDevice
     /// <summary>Basic orientation as of the last update (at rest: lying flat, screen up).</summary>
     public Vector3 BasicOrientation { get { lock (_lock) return _live ? Fusion.BasicOrientation : new Vector3(0, 0, 1); } }
 
+    /// <summary>The acceleration (G) and angular velocity (rad/s) sceMotionGetState reports now (at rest: lying flat,
+    /// screen up, still).</summary>
+    public (Vector3 Acceleration, Vector3 AngularVelocity) CurrentMotion()
+    {
+        lock (_lock)
+        {
+            if (!_live)
+            {
+                return (new Vector3(0, 0, -1), Vector3.Zero);
+            }
+
+            return (Fusion.Acceleration, Fusion.AngularVelocity);
+        }
+    }
+
     /// <summary>Writes SceMotionState (0xF8 bytes).</summary>
     public void WriteState(uint state, long guestNowUs)
     {
