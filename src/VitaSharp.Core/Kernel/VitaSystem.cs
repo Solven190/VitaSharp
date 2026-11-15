@@ -128,6 +128,10 @@ public sealed class VitaSystem
 
     internal object MarlinHciGate { get; } = new();
 
+    /// <summary>The SVC numbers of the HLE functions, the same in every process (kernel memory, whose stubs hold
+    /// them, is shared).</summary>
+    public Hle.HleIndexTable HleIndexes { get; } = new();
+
     private readonly object _lock = new();
     private readonly List<Emulator> _processes = new();
     private Emulator? _foreground;
