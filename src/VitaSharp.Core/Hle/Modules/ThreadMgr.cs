@@ -666,18 +666,28 @@ public sealed partial class ThreadMgr : HleModule
     {
         var m = LwMutexOf(work);
         if (m == null) return SceError.UNKNOWN_LW_MUTEX_ID;
-        Span<byte> f = stackalloc byte[0x40]; // SceKernelLwMutexInfo
-        f.Clear();
-        lock (m)
-        {
-            KernelInfo.Header(f, m.Uid, m.Name, m.Attr);
-            KernelInfo.Put(f, 0x2C, work);
-            KernelInfo.Put(f, 0x30, m.InitCount);
-            KernelInfo.Put(f, 0x34, m.LockCount);
-            KernelInfo.Put(f, 0x38, m.Owner?.Uid ?? 0);
-            KernelInfo.Put(f, 0x3C, m.Waiters);
-        }
+        Span<byte> f = stackalloc byte[(int)LwMutexInfoSize];
+        FillLwMutexInfo(m, f);
         return KernelInfo.Write(info, f);
+    }
+
+    /// <summary>SceKernelLwMutexInfo's size.</summary>
+    internal const uint LwMutexInfoSize = 0x40;
+
+    /// <summary>SceKernelLwMutexInfo (0x40): the header, +0x2C work area, +0x30 initial count, +0x34 lock count, +0x38
+    /// owner thread, +0x3C waiting threads.</summary>
+    internal static void FillLwMutexInfo(Mutex mutex, Span<byte> fields)
+    {
+        fields.Clear();
+        lock (mutex)
+        {
+            KernelInfo.Header(fields, mutex.Uid, mutex.Name, mutex.Attr);
+            KernelInfo.Put(fields, 0x2C, mutex.WorkArea);
+            KernelInfo.Put(fields, 0x30, mutex.InitCount);
+            KernelInfo.Put(fields, 0x34, mutex.LockCount);
+            KernelInfo.Put(fields, 0x38, mutex.Owner?.Uid ?? 0);
+            KernelInfo.Put(fields, 0x3C, mutex.Waiters);
+        }
     }
 
     [Hle] int sceKernelGetLwMutexInfoById(int uid, uint info) => Obj<Mutex>(uid) is { } m ? sceKernelGetLwMutexInfo(m.WorkArea, info) : SceError.UNKNOWN_LW_MUTEX_ID;
@@ -737,16 +747,26 @@ public sealed partial class ThreadMgr : HleModule
     {
         var c = Obj<CondVar>(uid);
         if (c == null || c.WorkArea == 0) return SceError.UNKNOWN_LW_COND_ID;
-        Span<byte> f = stackalloc byte[0x38];
-        f.Clear();
-        lock (c)
-        {
-            KernelInfo.Header(f, uid, c.Name, c.Attr);
-            KernelInfo.Put(f, 0x2C, c.WorkArea);
-            KernelInfo.Put(f, 0x30, c.Mutex.WorkArea);
-            KernelInfo.Put(f, 0x34, c.Waiters);
-        }
+        Span<byte> f = stackalloc byte[(int)LwCondInfoSize];
+        FillLwCondInfo(c, f);
         return KernelInfo.Write(info, f);
+    }
+
+    /// <summary>SceKernelLwCondInfo's size.</summary>
+    internal const uint LwCondInfoSize = 0x38;
+
+    /// <summary>SceKernelLwCondInfo (0x38): the header, +0x2C work area, +0x30 lw mutex work area, +0x34 waiting
+    /// threads.</summary>
+    internal static void FillLwCondInfo(CondVar cond, Span<byte> fields)
+    {
+        fields.Clear();
+        lock (cond)
+        {
+            KernelInfo.Header(fields, cond.Uid, cond.Name, cond.Attr);
+            KernelInfo.Put(fields, 0x2C, cond.WorkArea);
+            KernelInfo.Put(fields, 0x30, cond.Mutex.WorkArea);
+            KernelInfo.Put(fields, 0x34, cond.Waiters);
+        }
     }
 
     [Hle]
