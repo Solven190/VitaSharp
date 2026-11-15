@@ -19,8 +19,9 @@ history.
 - **Measured** on the Redmi Note 14 (Helio G99, Mali-G57): Killzone: Mercenary about 22-25 fps in the campaign,
   Uncharted: Golden Abyss 30 fps in the Prologue, F1 2011 30 fps in the race (all three native 30). Other games have
   not been measured on the phone yet.
-- **Install**: once the current CI PR is merged, each CI run publishes the artifact
-  `VitaSharp-android-arm64-nativeaot`; otherwise build it as in [Building](#building). The APK is signed with a debug
+- **Install**: download `VitaSharp-<version>-android-arm64.apk` from the Releases page (versions and the automatic
+  `build-<commit>` prereleases), or the artifact `VitaSharp-android-arm64-packages` of a CI run; otherwise build it
+  as in [Building](#building). The APK is signed with a debug
   key, so switching to a build signed with another key needs an uninstall, which deletes the data folder (games,
   saves, settings; see [Storage](#storage)): copy `fs/ux0/user/00/savedata` out first.
 - **Known limitations**: Killzone: Mercenary's movies can play slowly for a while before they catch up; Minecraft loses
@@ -73,8 +74,9 @@ Every system (`adb` comes with the Android SDK's platform-tools):
 adb install -r src/VitaSharp.Android/bin/Release/net10.0-android/io.github.vitasharp-Signed.apk
 ```
 
-Or open the APK on the phone. Once the current CI PR is merged, each CI run also publishes the APK as the artifact
-`VitaSharp-android-arm64-nativeaot`. The APK is signed with a debug key: a build signed with another key (another PC,
+Or open the APK on the phone. Each CI run also publishes the APK as the artifact
+`VitaSharp-android-arm64-packages`, and the Releases page carries it as `VitaSharp-<version>-android-arm64.apk`.
+The APK is signed with a debug key: a build signed with another key (another PC,
 or the CI) does not install over it, and uninstalling first deletes the data folder ([Storage](#storage)); copy
 `fs/ux0/user/00/savedata` out before switching.
 
@@ -114,10 +116,11 @@ ABI inside (`AndroidApkContentsTests`), and `build/check-dev-gating` fails with 
 (`platforms;android-36`, `build-tools;36.0.0`) and the NDK r30 (`ndk;30.0.16248370`; `ANDROID_NDK_HOME` or
 `ANDROID_NDK_ROOT` picks it, else the newest under the SDK), git. The CI job **Android APK (android-arm64, Native
 AOT)** (`.github/workflows/ci.yml`, ubuntu-latest, every push and pull request) runs it and uploads the artifact
-**VitaSharp-android-arm64-nativeaot**; it caches NuGet, the NDK and the compiled native libraries (about 15-20
+**VitaSharp-android-arm64-packages** (release.yml publishes its APK on the Releases page);
+it caches NuGet, the NDK and the compiled native libraries (about 15-20
 minutes warm, 25-35 cold). The APK is signed with the debug keystore .NET creates on the fly (no secret): APKs of
 different runs or machines have different keys, so replacing one with another needs an uninstall first. Only arm64
-for now (no x86_64 artifact); the Releases page does not carry the APK yet.
+for now (no x86_64 artifact).
 
 `-r android-arm64` (phones) or `-r android-x64` (the emulator) builds and AOT-compiles one ABI (the csproj narrows
 `RuntimeIdentifiers` to it; before 09/11/2026 the other ABI was still LLVM-compiled, doubling the time), into `bin/Release/net10.0-android/<rid>/`

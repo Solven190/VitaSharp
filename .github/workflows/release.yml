@@ -6,8 +6,9 @@
 #     as the prerelease "VitaSharp <version>+<commit>" (tag build-<commit>) without building them again; only the
 #     newest KEEP_BUILDS automatic releases are kept.
 # A version with a suffix (0.2.0-alpha, 0.2.0-dev.1) or the "prerelease" checkbox makes a prerelease. The packages come
-# from the CI workflow (tests first, then the Native AOT packages of win-x64, linux-x64 and osx-arm64) built with the
-# version, which also becomes the app's version ("VitaSharp 0.1.0+<commit>" in the log).
+# from the CI workflow (tests first, then the Native AOT packages of win-x64, linux-x64 and osx-arm64, and the Android
+# APK for arm64 phones) built with the version, which also becomes the app's version ("VitaSharp 0.1.0+<commit>" in
+# the log).
 name: Release
 
 on:
@@ -155,8 +156,8 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      # one artifact per platform, VitaSharp-aot-<rid>-packages (a future VitaSharp-<rid>-packages, such as the
-      # Android APK, is collected the same way); every file must be VitaSharp-<version>-<rid>.<ext> or -setup.exe
+      # one artifact per platform: VitaSharp-aot-<rid>-packages for the desktop, VitaSharp-android-arm64-packages for
+      # the APK; every file must be VitaSharp-<version>-<rid>.<ext> or -setup.exe
       - name: Collect the packages
         run: |
           mkdir -p release
@@ -179,7 +180,7 @@ jobs:
             done
           done
           [ -n "$(ls -A release)" ] || { echo "::error::no packages were built"; exit 1; }
-          for want in win-x64.zip win-x64-setup.exe linux-x64.tar.gz linux-x64.AppImage osx-arm64.app.zip osx-arm64.dmg; do
+          for want in win-x64.zip win-x64-setup.exe linux-x64.tar.gz linux-x64.AppImage osx-arm64.app.zip osx-arm64.dmg android-arm64.apk; do
             [ -f "release/VitaSharp-$VERSION-$want" ] || { echo "::error::missing package VitaSharp-$VERSION-$want"; exit 1; }
           done
           ls -l release

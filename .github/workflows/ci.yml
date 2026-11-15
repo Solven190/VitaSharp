@@ -346,11 +346,12 @@ jobs:
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # the runtime is in the name (the other runtimes, mono-aot-llvm or coreclr, are local builds only); not a
-      # *-packages artifact, so release.yml does not publish it yet
+      # a VitaSharp-<rid>-packages artifact holding VitaSharp-<version>-android-arm64.apk: release.yml publishes it
+      # with the desktop packages (the runtime is Native AOT, said in the summary above; the other runtimes,
+      # mono-aot-llvm or coreclr, are local builds only)
       - uses: actions/upload-artifact@v4
         with:
-          name: VitaSharp-android-arm64-nativeaot
+          name: VitaSharp-android-arm64-packages
           path: artifacts/android/packages
           compression-level: 0
           if-no-files-found: error
