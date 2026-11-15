@@ -185,7 +185,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceSysclibForDriver | SceSysmem (0x7EE45391) | 51 | 51 | 51 | 0 | 0 | 0 | 0 |
 | SceSysconForDriver | SceSyscon (0x60A35F64) | 311 | 0 | 0 | 0 | 311 | 198 | 239 |
 | SceSysmemForDriver | SceSysmem (0x6F25E18A) | 114 | 52 | 52 | 0 | 62 | 27 | 14 |
-| SceSysmemForKernel | SceSysmem (0x02451F0F) | 169 | 2 | 2 | 0 | 167 | 75 | 140 |
+| SceSysmemForKernel | SceSysmem (0x02451F0F) | 169 | 8 | 8 | 0 | 161 | 69 | 140 |
 | SceSysrootForDriver | SceSysmem (0x2ED7F97A) | 181 | 124 | 124 | 0 | 57 | 46 | 156 |
 | SceSysrootForKernel | SceSysmem (0x3691DA45) | 143 | 48 | 48 | 0 | 95 | 51 | 105 |
 | SceSystimerForDriver | SceSystimer (0xA47EB09A) | 14 | 0 | 0 | 0 | 14 | 8 | 4 |
@@ -204,5 +204,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **917** | **860** | **57** | **3001** | **1646** | **2037** |
+| **Total** | | **3918** | **923** | **866** | **57** | **2995** | **1640** | **2037** |
 
