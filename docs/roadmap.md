@@ -131,7 +131,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
-- [ ] [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram  só para comparação; vale para quem troca de runtime; 09/11/2026, laboratório): um estado salvo por um APK
+- [ ] [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
+  só para comparação; vale para quem troca de runtime; 09/11/2026, laboratório): um estado salvo por um APK
   CoreCLR carrega em APKs
   Mono LLVM e NativeAOT do mesmo código, mas um APK mono-aot sem LLVM recusa ("salvo por outra versão", StateOtherVersion)
   embora o hash de SnapshotSchema seja igual na compilação: o hash em tempo de execução depende do runtime/AOT (ordem de
@@ -288,7 +289,8 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   modo ao lado do FPS no overlay ("30 FPS · Fixo em 30"); cada sessão começa no modo do jogo, senão no
   `VITASHARP_FRAME_RATE` do env.txt, senão nativo (um modo nunca passa de um jogo para o outro). Teste:
   AndroidAppTests.FrameRateIsAPerGameSettingThatStartsEverySession. Falta o usuário conferir no celular
-- [ ] [P3][M] Reflexão o mínimo possível (desktop e Android; ajuda o Native AOT, o Mono AOT e o tempo de início). Hoje  (31/10/2026): `GetMethod(s)`/`GetProperty(s)` em 3 arquivos, `GetField(s)` em 1, `GetCustomAttribute` em 2,
+- [ ] [P3][M] Reflexão o mínimo possível (desktop e Android; ajuda o Native AOT, o Mono AOT e o tempo de início). Hoje
+  (31/10/2026): `GetMethod(s)`/`GetProperty(s)` em 3 arquivos, `GetField(s)` em 1, `GetCustomAttribute` em 2,
   `Enum.GetValues/GetNames/Parse` em 5, `Assembly.GetTypes/GetExecutingAssembly` em 1 e `Reflection.Emit` em 3 (o
   backend IL do JIT, que precisa dele). Análises e trocas:
   - [x] Auditar cada uso e trocar por geradores de código (source generators) ou tabelas fixas: atributos lidos em
@@ -2255,7 +2257,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] Minecraft (PCSE00491) no Android fica mais lento com o tempo: duplicado (15/11/2026), junto no item "Minecraft
   (PCSE00491) fica lento jogando no celular" da seção Android. Nota que só estava aqui: no desktop o UC passou 18 s em
   sceAvcdecDeleteDecoder na tela de título com o main num PC só (f1567), a conferir
-- [ ] [P3][P] `AppUtil._appMgr` (um cache do módulo AppMgr) é salvo como state aninhado: o load cria um AppMgr solto em vez de  achar o do emulador. Marcar como `[SnapshotIgnore]` (com a recusa de formato 1 tratada) e testar.
+- [x] `AppUtil._appMgr` (um cache do módulo AppMgr) é salvo como state aninhado: o load cria um AppMgr solto em vez de
+  achar o do emulador. Marcar como `[SnapshotIgnore]` (com a recusa de formato 1 tratada) e testar.
+  Feito (fix/snapshot-module-refs-15, bugA) no mecanismo: o gerador de snapshot grava vazio todo campo cujo tipo é um
+  módulo HLE salvo (caches como o do AppUtil) e o pula no load, mantendo a referência ao módulo do emulador: os
+  módulos são do emulador, um de cada, e o load restaura neles. O campo continua no layout, então os estados de
+  formato 1 do celular continuam aceitos (`SaveStateLegacyTests`; tirar o campo os recusaria). Teste:
+  `ModuleReferenceSnapshotTests` (falha sem a correção: "AppUtil._appMgr: a load left a AppMgr that is not the
+  emulator's module").
 
 - [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
@@ -3516,7 +3525,8 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   andando: nenhuma alternância (o brilho da região só muda com o movimento da câmera). Provas:
   `and8_runs/flick_base.mp4`, `flick_s100.mp4`, `flick_kz_base.mp4`, `flick_kz_walk2.mp4`. Pausado a pedido
   do usuário (desempenho primeiro): falta saber de qual jogo/cena/APK é o relato para bissecar
-- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;  06/11/2026, perf/android-8, APK LLVM dev
+- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
+  06/11/2026, perf/android-8, APK LLVM dev
   db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
   `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
   11 s depois, "Não foi possível carregar o estado: thread 'PadThread' did not stop (in ); restart the game"; daí em
@@ -3594,7 +3604,8 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
     `H264ReorderLimitTests`, `AndroidMediaDriverTests` (SynchronousOutput); paridade no celular:
     `build/android-media-parity.sh` (vídeo do Android idêntico e na mesma ordem que o FFmpeg do PC, primeira picture
     na chamada 0; o código antigo dava a primeira na chamada 18). Logs: `<scratchpad>\a1\runs\f1_v5`.
-- [ ] [P1][M] Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o  Release é NativeAOT desde 09/11/2026, sem o SGen do Mono, então o sintoma abaixo não se repete igual; fica aberto
+- [ ] [P1][M] Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o
+  Release é NativeAOT desde 09/11/2026, sem o SGen do Mono, então o sintoma abaixo não se repete igual; fica aberto
   até uma série de loads no NativeAOT mostrar se a escrita fora do lugar continua): SIGSEGV
   (SEGV_ACCERR) na thread `SGen worker` (libmonosgen-2.0.so) 1 s depois de "Estado do slot 1 carregado"
   (`and8_runs/crash_B1_sgen.txt`, log `log_B1.txt`); de novo às 16:01 (`VITASHARP_MSAA=off`), 1 s depois da
