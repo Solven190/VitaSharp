@@ -1129,7 +1129,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] Comparar o desempenho com o Vita3K no mesmo celular (pedido do usuário, 04/11/2026): Minecraft (instalado nos
   dois, mas não roda no Vita3K do celular, segundo o usuário) e Uncharted quando o usuário instalar no Vita3K; gameplay no mesmo ponto, resolução nativa e 0,5, fps mediano
   e 1% mais baixo pelo contador do sistema, prints; só leitura, nada gravado na pasta do Vita3K
-- [ ] Resolução interna reduzida (0.75 / 0.5, por jogo, desligada por padrão) para o Uncharted no Mali-G57 (GPU ~40 ms
+- [x] (15/11/2026: replay de 391 quadros de 7 dumps UC/KZ/MC a 0.75 e 0.5 sem erro estrutural, res15; usuário fechou; falta só um olhar no celular com o UC a 0.5) Resolução interna reduzida (0.75 / 0.5, por jogo, desligada por padrão) para o Uncharted no Mali-G57 (GPU ~40 ms
   por quadro em a92710b): precisa de trabalho no espaço de coordenadas. As cópias de região, as cópias de profundidade,
   os writebacks e a reinterpretação do G-buffer pelo espelho da CDRAM (bytes no layout do convidado) usam pixels do
   convidado; o caminho de supersample (2x) só aumenta a escala (04/11/2026)
