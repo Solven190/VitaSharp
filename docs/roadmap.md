@@ -75,6 +75,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   velocidade só é impressa) e `RendererDeviceHandoffTests` (acha o repositório pelo caminho do fonte, funciona com
   `-o` fora do repo). Junto: a thread do codificador da captura lia `_queue` depois de um stop logo após o start e
   derrubava o testhost inteiro (NullReferenceException), coberto por `PreRollDisarmedBeforeTheEncoderThreadRunsKeepsItsQueue`.
+- [ ] [P2][M] **Suíte rápida: testhost < 4 GB e `Category!=Slow` < 8 min.** Feito (15/11/2026, bugB): os testes do
+  renderer seguravam ~0,5 GB cada (só as 24 classes do renderer chegavam a 11,1 GB): um programa GXP com contagens de
+  tabela lixo virava listas de milhões de entradas e o cache estático de programas (`GxmProgramInfo`) segurava todos
+  os programas de todas as sessões. Agora as contagens param no tamanho do programa e o cache acaba com o sistema
+  emulado (`GxpProgramLifetimeTests`): as mesmas classes + Gxm/shader/save state (155 testes) com pico de 0,52 GB e
+  1 m 20 s. Falta: medir a suíte inteira de novo e atacar o tempo das classes mais lentas.
 - [ ] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
