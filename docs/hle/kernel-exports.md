@@ -60,6 +60,14 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
   e `strtoul` com os prefixos do firmware e sem checagem de estouro, `strtoll` padrão, o formatador `__prnt` (sem
   ponto flutuante; sinal e "0x" contam na precisão), os auxiliares RTABI (divisão por zero como o `__aeabi_idiv0` do
   firmware) e os `_chk`/`__stack_chk_fail` que param o sistema (BKPT 0x81). Teste `KernelSysclibTests`.
+- Fast mutexes do SceThreadmgrForDriver (6 funções): o estado na área de 0x40 bytes do chamador como o firmware
+  guarda (magic 0xA35DB473, UID, contagem, dono), recursão só com o atributo 0x2, prioridade teto (0x4), já travado
+  (0x8), passagem para quem espera no unlock e os códigos de erro 0x80028162-0x80028168. Teste `KernelFastMutexTests`.
+- Eventos de sistema do SceKernelSuspendForDriver (registro, remoção e despacho na ordem de registro, parando no
+  handler que falha quando o chamador pede o UID dele). Teste `KernelSysEventTests`.
+- Saída de debug do kernel (SceDebugForDriver/SceDebugForKernel): kprintf pelo formatador `__prnt` para o anel de
+  TTY de 4 KB (`ksceKernelGetTtyInfo`) e para o handler de putchar, handler de kprintf registrável, filtros de nível,
+  prefixo "with info", asserção que imprime e segue, pânico que para o sistema. Teste `KernelDebugPrintTests`.
 - Censo regenerado por `VitaSharp.Desktop kernel-census` (a tabela abaixo e o `.tsv`).
 
 ## Por biblioteca (gerado por `VitaSharp.Desktop kernel-census`; "antes" é o censo anterior)
@@ -87,8 +95,8 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceCpuForKernel | SceSysmem (0xA5195D20) | 39 | 3 | 3 | 0 | 36 | 6 | 5 |
 | SceCsiForDriver | SceLowio (0xD85C8E44) | 6 | 0 | 0 | 0 | 6 | 6 | 6 |
 | SceCtrlForDriver | SceCtrl (0x7823A5D1) | 40 | 11 | 11 | 0 | 29 | 21 | 8 |
-| SceDebugForDriver | SceSysmem (0x88758561) | 16 | 1 | 1 | 0 | 15 | 7 | 0 |
-| SceDebugForKernel | SceSysmem (0x13D793B7) | 17 | 0 | 0 | 0 | 17 | 6 | 11 |
+| SceDebugForDriver | SceSysmem (0x88758561) | 16 | 1 | 13 | 0 | 3 | 2 | 0 |
+| SceDebugForKernel | SceSysmem (0x13D793B7) | 17 | 0 | 7 | 0 | 10 | 4 | 11 |
 | SceDebugLedForDriver | SceSysmem (0x7BC05EAD) | 9 | 4 | 4 | 0 | 5 | 1 | 0 |
 | SceDipswForDriver | SceSysmem (0xC9E26388) | 4 | 3 | 3 | 0 | 1 | 1 | 0 |
 | SceDisplayForDriver | SceDisplay (0x9FED47AC) | 53 | 18 | 18 | 0 | 35 | 19 | 4 |
@@ -109,7 +117,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceIntrmgrForDriver | SceKernelIntrMgr (0x9DF04041) | 23 | 0 | 0 | 0 | 23 | 13 | 1 |
 | SceIntrmgrForKernel | SceKernelIntrMgr (0xDF44892E) | 21 | 0 | 0 | 0 | 21 | 12 | 20 |
 | SceIofilemgrForDriver | SceIofilemgr (0x40FD29C7) | 148 | 47 | 47 | 0 | 101 | 75 | 18 |
-| SceKernelSuspendForDriver | SceSysmem (0x7290B21C) | 28 | 1 | 4 | 0 | 24 | 9 | 24 |
+| SceKernelSuspendForDriver | SceSysmem (0x7290B21C) | 28 | 4 | 4 | 0 | 24 | 9 | 24 |
 | SceKernelUtilsForDriver | SceSysmem (0x496AD8B4) | 57 | 1 | 1 | 0 | 56 | 33 | 14 |
 | SceLcdForDriver | SceLcd (0xFA916D71) | 23 | 0 | 0 | 0 | 23 | 13 | 15 |
 | SceLedForDriver | ScePower (0x282C1323) | 1 | 0 | 0 | 0 | 1 | 1 | 0 |
@@ -165,7 +173,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceSysrootForDriver | SceSysmem (0x2ED7F97A) | 181 | 0 | 0 | 0 | 181 | 111 | 156 |
 | SceSysrootForKernel | SceSysmem (0x3691DA45) | 143 | 2 | 2 | 0 | 141 | 65 | 105 |
 | SceSystimerForDriver | SceSystimer (0xA47EB09A) | 14 | 0 | 0 | 0 | 14 | 8 | 4 |
-| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 94 | 94 | 0 | 154 | 67 | 136 |
+| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 94 | 95 | 0 | 153 | 66 | 136 |
 | SceThreadmgrForKernel | SceKernelThreadMgr (0x7F8593BA) | 64 | 0 | 0 | 0 | 64 | 15 | 63 |
 | SceTouchForDriver | SceTouch (0xA4A7DAFC) | 29 | 15 | 15 | 0 | 14 | 8 | 10 |
 | SceUartForKernel | SceSysmem (0x1CCD9BA3) | 4 | 0 | 0 | 0 | 4 | 1 | 0 |
@@ -180,5 +188,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **613** | **559** | **57** | **3302** | **1799** | **2037** |
+| **Total** | | **3918** | **616** | **579** | **57** | **3282** | **1791** | **2037** |
 

@@ -173,7 +173,7 @@ public sealed partial class ThreadmgrKernel : HleModule
 
     /// <summary>ksceKernelFinalizeFastMutex(work): deletes the kernel object and clears the work area; a locked fast
     /// mutex is not finalized.</summary>
-    [Hle(Library = "SceThreadmgrForDriver")]
+    [Hle(Nid = 0x11FE84A1, Library = "SceThreadmgrForDriver")] // ksceKernelDeleteFastMutex in the NID list
     int ksceKernelFinalizeFastMutex(uint work)
     {
         if (FastMutexOf(work) is not { } mutex)
