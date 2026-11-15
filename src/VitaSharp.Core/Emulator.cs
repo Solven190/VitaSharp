@@ -1403,10 +1403,10 @@ public sealed class Emulator : IDisposable
         ?? Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Options.FsRoot))) ?? Options.FsRoot, "kernel_plugins");
 
     /// <summary>The configuration in the emulator's plugin folder.</summary>
-    string PluginFolderConfig => Path.Combine(KernelPluginsFolder, "config.txt");
+    private string PluginFolderConfig => Path.Combine(KernelPluginsFolder, "config.txt");
 
     /// <summary>A configuration line without a device (no ':'): a file of the emulator's plugin folder, relative to it.</summary>
-    static bool InPluginFolder(string path) => !path.Contains(':', StringComparison.Ordinal);
+    private static bool InPluginFolder(string path) => !path.Contains(':', StringComparison.Ordinal);
 
     /// <summary>
     /// With the option on: the first time (no configuration in the emulator's plugin folder yet), moves the Vita's plugin
@@ -1437,7 +1437,7 @@ public sealed class Emulator : IDisposable
 
     /// <summary>The plugins an earlier version moved into the folder go back to the Vita paths of config.txt.bak, and
     /// their lines name those paths again.</summary>
-    void ReturnMovedPlugins()
+    private void ReturnMovedPlugins()
     {
         string backup = PluginFolderConfig + ".bak";
         if (!File.Exists(backup))
@@ -1453,7 +1453,7 @@ public sealed class Emulator : IDisposable
 
         string text = File.ReadAllText(PluginFolderConfig);
         bool changed = false;
-        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        string[] lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i].Trim();
@@ -1480,7 +1480,7 @@ public sealed class Emulator : IDisposable
         }
     }
 
-    bool ExportsPluginFramework(LoadedModule module) =>
+    private bool ExportsPluginFramework(LoadedModule module) =>
         module.Exports.Any(e => e.FuncNids.Any(Hle.Modules.OfType<Hle.Modules.PluginFramework>().First().Provides));
 
     /// <summary>The emulator option "Enable Kernel Plugins" (<see cref="EmulatorOptions.KernelPlugins"/>, else

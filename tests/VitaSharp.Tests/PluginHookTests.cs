@@ -37,7 +37,7 @@ public sealed class PluginHookTests(GuestMemoryFixture fixture) : IDisposable
     /// <summary>A module exporting a function that returns 7 and one that calls an import (a PC-relative literal).</summary>
     private (uint Returns7, uint CallsImport) LoadTarget()
     {
-        var builder = new SceModuleBuilder("HookTarget").Import("SceThreadmgrForDriver", ThreadmgrForDriver, GetThreadId);
+        SceModuleBuilder builder = new SceModuleBuilder("HookTarget").Import("SceThreadmgrForDriver", ThreadmgrForDriver, GetThreadId);
         int returns7 = builder.ReturnConstant(7);
         int callsImport = builder.CallImport(0, 0);
         builder.Export("HookTargetLib", TargetLib, 0x0001, (TargetNid, returns7));
@@ -165,7 +165,7 @@ public sealed class PluginHookTests(GuestMemoryFixture fixture) : IDisposable
         Assert.True(uid > 0, $"hook returned 0x{uid:X8}");
 
         // a module loaded after the hook imports the same function: its stub runs the hook too
-        var later = new SceModuleBuilder("LaterClient").Import("SceThreadmgrForDriver", ThreadmgrForDriver, GetThreadId);
+        SceModuleBuilder later = new SceModuleBuilder("LaterClient").Import("SceThreadmgrForDriver", ThreadmgrForDriver, GetThreadId);
         int call = later.CallImport(0, 0);
         LoadedModule laterModule = Load("later.skprx", later);
         uint laterCall = SceModuleBuilder.FunctionAddress(laterModule.Segments[0].Address, call);
