@@ -100,6 +100,7 @@ public sealed partial class EmulationSession : IDisposable
             Psn = psn,
             Net = net,
             Rpcn = rpcn,
+            KernelPlugins = prefs.KernelPlugins,
         });
         _emu.Fatal += (t, e) =>
         {

@@ -2,14 +2,19 @@
 
 *English: [plugins.md](plugins.md).*
 
-O VitaSharp carrega os plugins que um Vita com homebrew carrega, pela mesma configuração de plugins, e roda o código
-original deles: nada no emulador é escrito para um plugin ou homebrew específico, e nenhum plugin é trocado por uma
-imitação feita no emulador.
+Os plugins são uma opção do emulador, **Ativar Plugins do Kernel**, desligada por padrão (o Vita não tem essa
+configuração, como pausar ou gravar a tela). Desligada, roda o firmware puro e nenhum plugin carrega. Ligada, o
+VitaSharp carrega os plugins que um Vita com homebrew carrega, pela mesma configuração de plugins, roda o código
+original deles e oferece a eles as bibliotecas do framework de plugins que eles importam. Nada no emulador é escrito
+para um plugin ou homebrew específico.
+
+Ligue em Configurações > Avançado (Android: Configurações > Depuração), com `--kernel-plugins=on` na linha de comando
+ou `VITASHARP_KERNEL_PLUGINS=1`; a chave do launcher e a do app valem sobre a variável.
 
 ## Como configurar
 
 Copie os plugins do seu próprio Vita para a pasta de dados (`ur0:tai` é `fs/ur0/tai` nela) e liste-os em
-`fs/ur0/tai/config.txt` (ou `fs/ux0/tai/config.txt`, que vale quando os dois existem), o arquivo que o taiHEN lê no
+`fs/ur0/tai/config.txt` (ou `fs/ux0/tai/config.txt`, que vale quando os dois existem), o arquivo que o ambiente homebrew lê no
 Vita:
 
 ```
@@ -23,14 +28,24 @@ ur0:tai/algum_plugin_de_kernel.skprx
 ux0:tai/algum_plugin.suprx
 ```
 
-Sem `config.txt` nenhum plugin é carregado.
+Sem `config.txt`, ou com a opção desligada, nenhum plugin é carregado.
 
-O arquivo é lido com as regras do próprio taiHEN (o parser dele, taihen-parser, e o `plugin.c`/`hen.c` do taiHEN): só
+A configuração fica na pasta do próprio emulador, `kernel_plugins/` ao lado de `fs/` na pasta de dados (Windows,
+Linux, macOS e Android igual): `kernel_plugins/config.txt`, lido com as mesmas regras. As linhas dele são caminhos do
+Vita (`ur0:tai/kubridge.skprx`): os plugins ficam em `ur0:tai` / `ux0:tai`, onde os homebrews conferem os arquivos;
+uma linha sem dispositivo (`meu.skprx`) é um arquivo de `kernel_plugins/` (caminho relativo à configuração); um arquivo
+que não está lá é pulado com um aviso no log. Sem o `kernel_plugins/config.txt` é lida a configuração do Vita acima.
+Só o carregador do emulador lê a configuração. Na primeira vez com a opção ligada e sem configuração na pasta, o
+`config.txt` do Vita vai para `kernel_plugins/` sem mudanças (uma cópia fica como `kernel_plugins/config.txt.bak`; o
+log avisa); um plugin que uma versão anterior tinha movido para a pasta volta para o caminho do Vita que o `.bak` indica.
+Os plugins, o arquivo do próprio framework e os arquivos de dados dos plugins nunca são movidos. Nada é apagado.
+
+O arquivo é lido com as regras do parser e do carregador de plugins do próprio ambiente homebrew: só
 um arquivo vale (`ux0:tai/config.txt`, senão `ur0:tai/config.txt`); `#` começa um comentário, `*` uma seção, e
 qualquer outra linha é o caminho de um módulo (sem os espaços do começo e do fim); os nomes de seção são comparados
 exatos, com maiúsculas e minúsculas (`*main` é o shell, os outros nomes são IDs de título); `*ALL` vale para todo
 programa, mas não para `*KERNEL`; uma seção escrita `*!NOME` que bate termina a leitura na próxima seção; uma linha de
-256 caracteres ou mais, um caminho antes da primeira seção ou uma seção sem nome faz o taiHEN recusar o arquivo
+256 caracteres ou mais, um caminho antes da primeira seção ou uma seção sem nome faz o carregador de plugins recusar o arquivo
 inteiro, e aí nenhum plugin carrega. Os módulos de uma seção carregam na ordem do arquivo, e um que falha não impede
 os outros.
 
@@ -41,9 +56,9 @@ os outros.
   de novo, como faz o gerenciador de módulos do firmware. O log diz o que aconteceu com cada um
   (`kernel plugin ...: loaded and started`, `... module_start of X returned 0x2, unloaded`).
 - Os módulos de `*KERNEL` carregam uma vez, com o primeiro processo da sessão (o shell quando o sistema inicia, como o
-  taiHEN os carrega no boot); um processo depois os encontra carregados.
-- Os módulos de `*ALL` e `*TITLEID` são carregados no processo de todo programa, também nos do próprio sistema (o taiHEN
-  os carrega no gancho de `sceKernelStartPreloadedModules`, depois dos módulos pré-carregados do processo), e iniciam
+  carregador de plugins os carrega no boot); um processo depois os encontra carregados.
+- Os módulos de `*ALL` e `*TITLEID` são carregados no processo de todo programa, também nos do próprio sistema (o carregador
+  de plugins os carrega depois dos módulos pré-carregados do processo), e iniciam
   antes da thread principal. A seção é o ID de título do processo no kernel: `main` para o shell, o NPXS de um app do
   sistema.
 - Um módulo que importa uma biblioteca que ninguém fornece (nenhum módulo carregado e nenhuma biblioteca do firmware que
@@ -62,21 +77,16 @@ os outros.
 - A CPU emulada não tem níveis de privilégio, então a checagem de permissão das cópias usuário/kernel é feita pela
   biblioteca do kernel: o intervalo do usuário tem de ser memória do próprio chamador, não memória do kernel.
 
-## O taiHEN, e o que precisa dele
+## As bibliotecas do framework de plugins
 
-No Vita, o taiHEN (`taihen.skprx`) é carregado primeiro pela cadeia de boot do homebrew e fornece o carregador de
-plugins e a API de hooks que os outros plugins importam (`taihenForKernel`, `taihenModuleUtils`) e que os homebrews
-chamam (`taihen`, `taihenUnsafe`). Listado no `config.txt`, o VitaSharp carrega o `taihen.skprx` real como qualquer
-módulo de kernel: as importações dele se ligam às bibliotecas de kernel do firmware e o próprio `module_start` dele
-roda. Ele então falha sozinho (devolve SCE_KERNEL_START_FAILED), porque o início dele instala patches nas checagens de
-assinatura e de DRM do firmware, que o VitaSharp não faz funcionar, e é descarregado.
-
-Por isso nada que precise do taiHEN roda, como num Vita sem ele:
-
-- plugins de kernel feitos sobre o taiHEN, como o **kubridge** e o **fd_fix** (`not started: no module provides
-  taihenForKernel`);
-- homebrews que chamam a API de usuário do taiHEN ou precisam de um desses plugins, entre eles o **Dead Space** (o port
-  de Android com so_loader precisa do kubridge) e o port do **Sonic Mania** (as buscas de módulo do taiHEN).
+No Vita o módulo do framework do ambiente homebrew carrega primeiro e fornece o carregador de plugins e as bibliotecas
+que os outros plugins e os homebrews importam. Com a opção ligada, o VitaSharp oferece ele mesmo essas bibliotecas
+(declaradas só na tabela de NIDs): informação de módulo por nome ou NID de módulo (o registro de 0x38 bytes, do módulo
+mais novo para o mais antigo), deslocamentos nos segmentos de um módulo, as entradas de exportação e importação dele,
+injeção de dados (os bytes originais guardados e escritos de volta na liberação) e os códigos de erro do framework
+(0x9001xxxx). Um módulo listado que exporta essas bibliotecas (a cópia do framework do usuário) não é carregado: o log
+diz `not loaded (the emulator provides its libraries)`. Com a opção desligada as funções não fazem nada, como
+importações que ninguém fornece. Os hooks de função são o próximo passo.
 
 ## Limites
 
