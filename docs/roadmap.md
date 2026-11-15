@@ -142,7 +142,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
-- [ ] [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
+- [x] (15/11/2026, não se aplica ao que se distribui: o Release é NativeAOT único, docs/android/README.md; só vale para trocar de runtime em builds de comparação) [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
   só para comparação; vale para quem troca de runtime; 09/11/2026, laboratório): um estado salvo por um APK
   CoreCLR carrega em APKs
   Mono LLVM e NativeAOT do mesmo código, mas um APK mono-aot sem LLVM recusa ("salvo por outra versão", StateOtherVersion)
@@ -843,11 +843,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     o F1 na corrida não tem limitador próprio (1 `sceDisplayWaitVblankStart` por quadro, o do callback) e com EARLY
     passava de 30 para 36-39 fps no celular. No PC, sem EARLY, o F1 já roda a corrida a 60 fps: manter jogos sem
     limitador no ritmo do Vita num host rápido é outra decisão (modo nativo = ritmo do jogo; fixo 30 existe)
-- [ ] Som dos filmes do F1 2011 no celular (era subitem de "Velocidade nativa no celular"): um quadro AAC de silêncio
+- [x] (15/11/2026, confirmado pelo usuário) Som dos filmes do F1 2011 no celular (era subitem de "Velocidade nativa no celular"): um quadro AAC de silêncio
   a cada quatro (o player do jogo recebe o áudio devagar pelo SceMp4/MediaExtractor + SceAudiodec/MediaCodec; no PC, com FFmpeg, sem buracos); imagem dos filmes já
   corrigida (31/10: fila de quadros do MediaCodec, pts da unidade, sem flashes pretos)
 
-- [ ] Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
+- [x] (15/11/2026, confirmado pelo usuário) Gatilho do travamento do decodificador H.264 de software do Android (c2.android.avc.decoder, Redmi Note 14):
   no meio de um filme ele para de devolver buffers de entrada (200 ms sem nenhum, com a saída drenada a cada
   tentativa). Visto no Killzone (vídeo da campanha, 3:20 de reprodução contínua; M02_Intro, 4 s depois de o jogo
   começar a ler). Desde fix/kz-avplayer-end o decodificador é reaberto e continua do último IDR (o filme não congela
@@ -1201,7 +1201,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] God of War Collection (PCSA00126) no celular: o Kratos aparece com problemas de textura (31/10/2026, branch
   perf/android-phone-2: atributos de vértice desalinhados (stride 19, F16 nos offsets 3 e 11) que a NVIDIA aceita e a
   Mali lê errado; agora lidos como bytes e remontados no shader. Só no celular; `docs/notes/gow-textures.md`)
-- [ ] Flicker no celular em todos os jogos testados (Knightin'+, Devious Dungeon, F1 2011, Uncharted, God of War
+- [x] (15/11/2026, confirmado pelo usuário) Flicker no celular em todos os jogos testados (Knightin'+, Devious Dungeon, F1 2011, Uncharted, God of War
   Collection): sequências de 10+ quadros seguidos (`screencap`/`screenrecord`) comparadas com o desktop na mesma cena
   e zero quadro piscando; o que falta hoje: o quadro escuro do Uncharted (1 a cada volta do filme do título) e
   conferir o God of War
@@ -1221,7 +1221,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   via adb) onde vai o tempo (cálculo, texturas, leitura/gravação de tiles, vértices) e reduzir: shaders em 16 bits
   onde o Vita usa `half` (mediump na Mali), menos load/store de tiles entre etapas, MSAA/superfícies extras no perfil
   Mali, shaders traduzidos mais enxutos e uma opção de resolução interna menor (75%/50%)
-- [ ] Uncharted no celular: na tela de título, um quadro escuro e velho do filme de fundo a cada ~5 s (não é o caso
+- [x] (15/11/2026, confirmado pelo usuário) Uncharted no celular: na tela de título, um quadro escuro e velho do filme de fundo a cada ~5 s (não é o caso
   "decodificador sem quadro"; 30/10/2026, Redmi Note 14); achar de onde vem o quadro velho (ring de buffers do
   player do jogo com a CPU lenta, ou o cache de texturas da imagem YUV)
   12/11/2026 (A1): provável a mesma causa do F1 (item "o vídeo de abertura do F1 2011 pisca"): o stream do filme
@@ -1300,7 +1300,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (.PUP) pelo seletor (30/10/2026: pasta específica do app como raiz de dados, VPK/PUP/driver pelo seletor do sistema,
   lidos no lugar; o motivo de não usar uma pasta do SAF como raiz está em `docs/android/README.md`)
 
-- [ ] Ferramentas de desenvolvedor (`-p:VitaSharpDeveloper=true`, `tools/dev/README.md`): bench da GPU com fixtures e
+- [x] (15/11/2026, trabalho contínuo, segue nas regras/ferramentas) Ferramentas de desenvolvedor (`-p:VitaSharpDeveloper=true`, `tools/dev/README.md`): bench da GPU com fixtures e
   variantes em tempo de execução, teste de flicker no aparelho (replay e `VITASHARP_FLICKER_CHECK` no jogo), Perfetto,
   snapshots de desenvolvedor e o gravador de voo (últimos N s com um botão)
 - [ ] Próxima fase, quando Uncharted e F1 estiverem sólidos no celular (fps nativo, sem flicker nem quadro escuro, som
@@ -1333,7 +1333,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   sensibilidade, inverter eixo Y, zona morta/curva de resposta e retorno ao centro quando o mouse para; opção no
   perfil de controle (`input.json`) e na tela de controles do launcher. Hoje o mouse só move o giroscópio
   (`HostInput.MouseLook`, com o botão do meio)
-  - [ ] Modo do mouse escolhido no mapeamento: giroscópio, analógico direito, analógico esquerdo ou desligado
+  - [x] (15/11/2026, confirmado pelo usuário) Modo do mouse escolhido no mapeamento: giroscópio, analógico direito, analógico esquerdo ou desligado
     (qualquer analógico pode ser o alvo), com um botão/tecla de atalho para alternar entre os modos com o jogo rodando
     (aviso na tela com o modo atual) e o modo salvo por jogo no perfil de controle
   Feito (05/11/2026, agente C, fix/bugs-games-5; falta validar a captura na janela): `MouseSettings` no perfil do
@@ -2802,7 +2802,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     ou arquivo no log. Uma tentativa só; próximo: `--trace-hle-only=sceIo+sceFios+sceKernelSignalCond` nesse boot para
     ver se a operação chegou ao sceIo e quem deveria acordar o escalonador do FIOS (pode ser o mesmo tipo de corrida
     da trava do MGS3).
-- [ ] [P2][M] Android, controle conectado no celular (relato do usuário, 10/11/2026): (1) o L2 não funciona (conferir o
+- [x] [P2][M] (15/11/2026, confirmado pelo usuário; parte (1), o L2, corrigido em c7ab6b57/4402b87a) Android, controle conectado no celular (relato do usuário, 10/11/2026): (1) o L2 não funciona (conferir o
   mapeamento do eixo/botão do gatilho: no Android o L2 pode chegar como AXIS_LTRIGGER/AXIS_BRAKE ou KEYCODE_BUTTON_L2,
   conforme o controle; o Vita não tem L2, então conferir para o que o VitaSharp o mapeia (toque traseiro/atalho) e se
   isso funciona); (2) com controle de PS4, o touchpad do controle vira mouse no Android e esse ponteiro se mistura com o
@@ -3788,7 +3788,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
     `H264ReorderLimitTests`, `AndroidMediaDriverTests` (SynchronousOutput); paridade no celular:
     `build/android-media-parity.sh` (vídeo do Android idêntico e na mesma ordem que o FFmpeg do PC, primeira picture
     na chamada 0; o código antigo dava a primeira na chamada 18). Logs: `<scratchpad>\a1\runs\f1_v5`.
-- [ ] [P1][M] Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o
+- [x] [P1][M] (15/11/2026, obsoleto, confirmado pelo usuário: o Release é NativeAOT, sem o SGen do Mono) Android: crash do GC do Mono logo depois de um load state (06/11/2026, perf/android-8, Killzone; a conferir: o
   Release é NativeAOT desde 09/11/2026, sem o SGen do Mono, então o sintoma abaixo não se repete igual; fica aberto
   até uma série de loads no NativeAOT mostrar se a escrita fora do lugar continua): SIGSEGV
   (SEGV_ACCERR) na thread `SGen worker` (libmonosgen-2.0.so) 1 s depois de "Estado do slot 1 carregado"
@@ -5132,7 +5132,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   Dispatcher) nunca compilavam um bloco. Agora o emulador devolve o estado no `Dispose` e os testes que precisam de
   blocos compilados ligam o JIT na duração deles (`JitTestState.Enable`). Reproduzido na main (`<scratchpad>\bB6\runs\t1`:
   1558/1562, 3 falhas) e verde depois em 3 suítes completas seguidas
-- [ ] [P2][M] Filmes no celular ainda mais lentos que no PC (31/10/2026, perf/android-phone-2): o primeiro filme do F1 2011 leva
+- [x] [P2][M] (15/11/2026, duplicata do item "Som dos filmes do F1 2011 no celular" e já corrigido, confirmado pelo usuário) Filmes no celular ainda mais lentos que no PC (31/10/2026, perf/android-phone-2): o primeiro filme do F1 2011 leva
   5,6 s contra 4,8 s no PC (45 grãos de silêncio no som do filme; Uncharted 40 por volta do filme do título), já com o
   decodificador H.264 do próprio Android (o da MediaTek segurava quadros: 6,25 s, 75 lacunas). Os decodificadores não
   são o gargalo (AAC 5 ms, H.264 12,8 ms por chamada, MediaExtractor 0,4 ms); falta ver as threads do player do jogo
