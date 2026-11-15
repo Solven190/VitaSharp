@@ -33,22 +33,53 @@ public sealed partial class Sensors : HleModule
     [Hle] int sceMotionMagnetometerOn() { _magnetometer = true; return 0; }
     [Hle] int sceMotionMagnetometerOff() { _magnetometer = false; return 0; }
     [Hle] int sceMotionGetMagnetometerState() => _magnetometer ? 1 : 0;
-    [Hle] int sceMotionSetTiltCorrection(int e) { Fusion.TiltCorrection = e != 0; return 0; }
-    [Hle] int sceMotionGetTiltCorrection() => Fusion.TiltCorrection ? 1 : 0;
-    [Hle] int sceMotionSetDeadband(int e) { Fusion.Deadband = e != 0; return 0; }
-    [Hle] int sceMotionGetDeadband() => Fusion.Deadband ? 1 : 0;
+    /// <summary>The library keeps the value it was given (any non-zero turns the correction on) and gives it back.</summary>
+    [Hle]
+    int sceMotionSetTiltCorrection(int enable)
+    {
+        _tiltCorrectionSetting = enable;
+        Fusion.TiltCorrection = enable != 0;
+        return 0;
+    }
+
+    [Hle]
+    int sceMotionGetTiltCorrection() => Setting(_tiltCorrectionSetting, Fusion.TiltCorrection);
+
+    /// <summary>The library keeps the value it was given (any non-zero turns the deadband on) and gives it back.</summary>
+    [Hle]
+    int sceMotionSetDeadband(int enable)
+    {
+        _deadbandSetting = enable;
+        Fusion.Deadband = enable != 0;
+        return 0;
+    }
+
+    [Hle]
+    int sceMotionGetDeadband() => Setting(_deadbandSetting, Fusion.Deadband);
     [Hle] int sceMotionSetGyroBiasCorrection(int e) { Fusion.GyroBiasCorrection = e != 0; return 0; }
     [Hle] int sceMotionGetGyroBiasCorrection() => Fusion.GyroBiasCorrection ? 1 : 0;
 
+    /// <summary>
+    /// Sets the three basic-orientation thresholds of the library to <paramref name="angle"/> degrees. driver_us 3.74
+    /// keeps only 0 &lt; angle &lt;= 45 (two ordered compares: 0 itself, a negative angle and NaN are 0x8036020A too).
+    /// </summary>
     [Hle]
     int sceMotionSetAngleThreshold(float angle)
     {
-        if (float.IsNaN(angle) || angle < 0 || angle > 45.0f) return ERR_ANGLE_OUT_OF_RANGE;
+        if (!(angle > 0f && angle <= MaxAngleThreshold))
+        {
+            return ERR_ANGLE_OUT_OF_RANGE;
+        }
+
+        Fusion.AngleThresholdPlane = angle;
+        Fusion.AngleThresholdCone = angle;
         Fusion.AngleThreshold = angle;
         return 0;
     }
 
-    [Hle] float sceMotionGetAngleThreshold() => Fusion.AngleThreshold;
+    /// <summary>The third threshold (the one sceMotionSetAngleThreshold and NID_CA0A798B set last).</summary>
+    [Hle]
+    float sceMotionGetAngleThreshold() => Fusion.AngleThreshold;
 
     /// <summary>Turns the reference heading of the fused orientation about the vertical axis.</summary>
     [Hle] int sceMotionRotateYaw(float radians) { _device.RotateYaw(radians); return 0; }
@@ -82,13 +113,26 @@ public sealed partial class Sensors : HleModule
     /// <summary>
     /// Raw accelerometer/gyro records (SceMotionSensorState, 0x40 each), oldest first: the latest host samples, or at
     /// rest synthetic records whose counters and timestamps advance. 64 records must be accepted (Invizimals reads
-    /// 64). Like sceMotionGetState this stays permissive when sampling was not started.
+    /// 64). driver_us 3.74 checks the sampling (0x80360206), then the count (1..64, 0x80360205), then the pointer.
     /// </summary>
     [Hle]
     int sceMotionGetSensorState(uint states, int numRecords)
     {
-        if (states == 0) return ERR_NULL_PARAMETER;
-        if (numRecords is <= 0 or > MotionDevice.MaxRecords) return ERR_OUT_OF_BOUNDS;
+        if (!_sampling)
+        {
+            return ERR_NOT_SAMPLING;
+        }
+
+        if (numRecords is <= 0 or > MotionDevice.MaxRecords)
+        {
+            return ERR_OUT_OF_BOUNDS;
+        }
+
+        if (states == 0)
+        {
+            return ERR_NULL_PARAMETER;
+        }
+
         Poll();
         _device.WriteSensorStates(states, numRecords, NowUs);
         return 0;
@@ -97,10 +141,23 @@ public sealed partial class Sensors : HleModule
     internal static void WriteSensorStates(uint states, int numRecords, long nowUs, uint counter)
         => MotionDevice.WriteRestSensorStates(states, numRecords, nowUs, counter);
 
+    /// <summary>
+    /// SceMotionState (0xF8) of the fused sensors. As driver_us 3.74 does, only while the program's sampling is on
+    /// (sceMotionStartSampling; 0x80360206 before), and a NULL state is 0x80360209.
+    /// </summary>
     [Hle]
     int sceMotionGetState(uint state)
     {
-        if (state == 0) return unchecked((int)0x80360001);
+        if (!_sampling)
+        {
+            return ERR_NOT_SAMPLING;
+        }
+
+        if (state == 0)
+        {
+            return ERR_NULL_PARAMETER;
+        }
+
         Poll();
         _device.WriteState(state, NowUs);
         return 0;
@@ -120,40 +177,11 @@ public sealed partial class Sensors : HleModule
         float p0 = GuestMemory.Read<float>(th), p1 = GuestMemory.Read<float>(th + 4), p2 = GuestMemory.Read<float>(th + 8);
         var a = new System.Numerics.Vector3(GuestMemory.Read<float>(accel), GuestMemory.Read<float>(accel + 4), GuestMemory.Read<float>(accel + 8));
         float px = GuestMemory.Read<float>(prev), py = GuestMemory.Read<float>(prev + 4), pz = GuestMemory.Read<float>(prev + 8);
-        var r = BasicOrientationStep(p0, p1, p2, a, new System.Numerics.Vector3(px, py, pz));
+        var r = MotionFusion.BasicOrientationStep(p0, p1, p2, a, new System.Numerics.Vector3(px, py, pz));
         GuestMemory.Write(outVec, r.X);
         GuestMemory.Write(outVec + 4, r.Y);
         GuestMemory.Write(outVec + 8, r.Z);
         return 0;
-    }
-
-    static float AcosDeg(float v) => (float)(MathF.Acos(v) * 180f / Math.PI);
-
-    internal static System.Numerics.Vector3 BasicOrientationStep(float p0, float p1, float p2, System.Numerics.Vector3 a, System.Numerics.Vector3 prev)
-    {
-        float len = a.Length();
-        if (len != 0 && !(len - 1f < 0.08f)) return prev;
-        var n = a / len;
-        float angZ = AcosDeg(n.Z);
-        if (angZ <= p1) return new(0, 0, -1);
-        if (angZ >= 180f - p1) return new(0, 0, 1);
-        float dz = MathF.Abs(angZ - 90f);
-        float x = prev.X, y = prev.Y;
-        bool fresh;
-        if (90f - p0 < dz)
-        {
-            if (prev.Z != 0) return prev;
-            fresh = x == 0 && y == 0;
-        }
-        else if (prev.Z == 0) fresh = x == 0 && y == 0;
-        else { x = 0; y = 0; fresh = true; }
-        // the in-plane direction (Z dropped)
-        var v = System.Numerics.Vector2.Normalize(new System.Numerics.Vector2(a.X, a.Y));
-        float angX = AcosDeg(v.X), angY = AcosDeg(v.Y);
-        float dx = MathF.Abs(angX - 90f);
-        if (!fresh && !(p2 >= dx) && 90f - p2 > dx) return new(x, y, 0);
-        if (dx > 45f) return angX < 90f ? new(-1, 0, 0) : new(1, 0, 0);
-        return angY < 90f ? new(0, -1, 0) : new(0, 1, 0);
     }
 
     // ---- SceMotionDev (the kernel sensor driver, bootimage SceMotionDev, FW 3.74): the shell's calibration updater

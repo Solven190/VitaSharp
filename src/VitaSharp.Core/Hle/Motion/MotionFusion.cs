@@ -35,7 +35,17 @@ public sealed class MotionFusion
     public bool TiltCorrection { get; set; } = true;
     public bool Deadband { get; set; } = true;
     public bool GyroBiasCorrection { get; set; } = true;
-    /// <summary>Degrees (0..45) the device must rotate beyond the 45 degree midpoint before the basic orientation changes.</summary>
+    /// <summary>
+    /// The three basic-orientation thresholds of driver_us 3.74, in degrees, as the library stores them (20 each at
+    /// start; sceMotionSetAngleThreshold sets all three): <see cref="AngleThresholdPlane"/> is how far from the screen
+    /// plane gravity may be and still give an in-plane axis once an in-plane axis is set (the routine is given 90
+    /// minus it), <see cref="AngleThresholdCone"/> the cone about the screen normal that gives +Z / -Z, and
+    /// <see cref="AngleThreshold"/> the hysteresis between X and Y (the one sceMotionGetAngleThreshold answers).
+    /// </summary>
+    public float AngleThresholdPlane { get; set; } = 20f;
+
+    public float AngleThresholdCone { get; set; } = 20f;
+
     public float AngleThreshold { get; set; } = 20f;
 
     Vector3 _bias, _integral, _error;
@@ -115,20 +125,90 @@ public sealed class MotionFusion
     }
 
     /// <summary>
-    /// The device axis pointing up. It only changes once the device is tilted 45 degrees + the angle threshold away
-    /// from the current one (hysteresis, so it does not flicker at the midpoint), then the dominant axis is taken.
+    /// The device axis pointing up, updated with each accelerometer sample by the library's routine
+    /// (<see cref="BasicOrientationStep"/>) with its three thresholds.
     /// </summary>
-    void UpdateBasicOrientation()
+    private void UpdateBasicOrientation()
     {
-        float len = Acceleration.Length();
-        if (len < 0.5f) return; // free fall / no data: keep the last one
-        var up = -Acceleration / len;
-        float limit = (45f + Math.Clamp(AngleThreshold, 0f, 45f)) * MathF.PI / 180f;
-        if (BasicOrientation != Vector3.Zero && Vector3.Dot(up, BasicOrientation) >= MathF.Cos(limit) - 1e-6f) return;
-        float ax = MathF.Abs(up.X), ay = MathF.Abs(up.Y), az = MathF.Abs(up.Z);
-        BasicOrientation = az >= ax && az >= ay ? new Vector3(0, 0, MathF.Sign(up.Z))
-            : ax >= ay ? new Vector3(MathF.Sign(up.X), 0, 0)
-            : new Vector3(0, MathF.Sign(up.Y), 0);
+        // no sample yet (a real sensor never reads exactly zero): keep the last one
+        if (Acceleration == Vector3.Zero)
+        {
+            return;
+        }
+
+        BasicOrientation = BasicOrientationStep(90f - AngleThresholdPlane, AngleThresholdCone, AngleThreshold,
+            Acceleration, BasicOrientation);
+    }
+
+    private static float AcosDegrees(float value) => (float)(MathF.Acos(value) * 180f / Math.PI);
+
+    /// <summary>
+    /// The basic orientation of one accelerometer sample with hysteresis (driver_us 3.74, also exported as
+    /// SceMotion NID_A408BC69). <paramref name="planeBand"/>, <paramref name="cone"/> and <paramref name="switchBand"/>
+    /// are degrees. A sample more than 0.08 g over 1 g keeps <paramref name="previous"/>; an acceleration within the
+    /// cone of +Z / -Z gives (0, 0, -1) / (0, 0, 1); otherwise the dominant of X / Y in the screen plane, keeping the
+    /// previous axis inside the bands.
+    /// </summary>
+    public static Vector3 BasicOrientationStep(float planeBand, float cone, float switchBand, Vector3 acceleration, Vector3 previous)
+    {
+        float length = acceleration.Length();
+        if (length != 0 && !(length - 1f < 0.08f))
+        {
+            return previous;
+        }
+
+        Vector3 unit = acceleration / length;
+        float angleZ = AcosDegrees(unit.Z);
+        if (angleZ <= cone)
+        {
+            return new Vector3(0, 0, -1);
+        }
+
+        if (angleZ >= 180f - cone)
+        {
+            return new Vector3(0, 0, 1);
+        }
+
+        float fromPlane = MathF.Abs(angleZ - 90f);
+        float x = previous.X;
+        float y = previous.Y;
+        bool fresh;
+        if (90f - planeBand < fromPlane)
+        {
+            if (previous.Z != 0)
+            {
+                return previous;
+            }
+
+            fresh = x == 0 && y == 0;
+        }
+        else if (previous.Z == 0)
+        {
+            fresh = x == 0 && y == 0;
+        }
+        else
+        {
+            x = 0;
+            y = 0;
+            fresh = true;
+        }
+
+        // the in-plane direction (Z dropped)
+        Vector2 inPlane = Vector2.Normalize(new Vector2(acceleration.X, acceleration.Y));
+        float angleX = AcosDegrees(inPlane.X);
+        float angleY = AcosDegrees(inPlane.Y);
+        float fromY = MathF.Abs(angleX - 90f);
+        if (!fresh && !(switchBand >= fromY) && 90f - switchBand > fromY)
+        {
+            return new Vector3(x, y, 0);
+        }
+
+        if (fromY > 45f)
+        {
+            return angleX < 90f ? new Vector3(-1, 0, 0) : new Vector3(1, 0, 0);
+        }
+
+        return angleY < 90f ? new Vector3(0, -1, 0) : new Vector3(0, 1, 0);
     }
 
     /// <summary>Column-major 4x4 rotation matrix (SceFMatrix4 rows x, y, z, w = the device axes in world space),

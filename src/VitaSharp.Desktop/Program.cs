@@ -681,7 +681,7 @@ public static class Program
 
     /// <summary>The same, also giving the HLE's "the firmware module serves every importer" test, from the one emulator
     /// the scan makes (only one guest memory can exist per process).</summary>
-    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareForEveryImporter,
+    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareServesImporters,
         out Func<uint, bool> servedByHle)
     {
         SortedDictionary<uint, (string Name, string Module, bool Default)> byNid = HleBindingNids();
@@ -692,7 +692,7 @@ public static class Program
         {
             using var emu = new Emulator(new EmulatorOptions { FsRoot = tmp, EnableJit = false });
             var hle = emu.Hle;
-            firmwareForEveryImporter = hle.FirmwareForEveryImporter;
+            firmwareServesImporters = hle.FirmwareServesImporters;
             servedByHle = hle.ServesFunction;
             foreach (var nid in emu.Hle.VariableNids)
             {
@@ -747,8 +747,8 @@ public static class Program
     static int HleCoverage(string? outTsv, string? vitasdkTsv = null, string? statusRoot = null)
     {
         Log.Level = LogLevel.Warn;
-        var impl = HleImplementedNids(out var firmwareForEveryImporter, out var servedByHle);
-        HashSet<uint> installed = LleLibraries.InstalledNids(FsRoot, firmwareForEveryImporter);
+        var impl = HleImplementedNids(out var firmwareServesImporters, out var servedByHle);
+        HashSet<uint> installed = LleLibraries.InstalledNids(FsRoot, firmwareServesImporters);
         var c = VitaSharp.Core.Firmware.FunctionCensus.Scan(FsRoot);
         // per function: the HLE's (real or default), or a real module's (LLE: the games' own modules, the firmware modules
         // the loader serves to every importer, and the firmware modules the HLE only stands in for as a fallback)

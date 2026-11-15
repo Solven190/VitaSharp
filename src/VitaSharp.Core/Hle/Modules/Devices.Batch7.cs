@@ -133,11 +133,16 @@ public sealed partial class SystemServicesVsh
         return 0;
     }
 
-    // ---- SceUdcd: the USB device side (cable unplugged); system programs only (0x80010058)
+    // ---- SceUdcd: the USB device side (cable unplugged). The SceUdcd driver asks the access control manager
+    // (ksceSblACMgrIsSystemProgram; the QA mini settings and USB serial capabilities pass too, none a retail
+    // application's): others get 0x80010058.
     /// <summary>(SceUdcdDeviceInfo *info 0x40): the info of the active driver: none is active (0x8024300A).</summary>
-    [Hle] int sceUdcdGetDeviceInfo(uint info) => Emu.IsSystemProgram ? unchecked((int)0x8024300A) : unchecked((int)0x80010058);
+    [Hle]
+    int sceUdcdGetDeviceInfo(uint info) => Emu.Access.IsSystemProgram ? unchecked((int)0x8024300A) : unchecked((int)0x80010058);
+
     /// <summary>(const char *driverName): the state of a USB function driver: not registered/active (0x8024300A).</summary>
-    [Hle] int sceUdcdGetDrvState(uint name) => Emu.IsSystemProgram ? unchecked((int)0x8024300A) : unchecked((int)0x80010058);
+    [Hle]
+    int sceUdcdGetDrvState(uint name) => Emu.Access.IsSystemProgram ? unchecked((int)0x8024300A) : unchecked((int)0x80010058);
 }
 
 public sealed partial class VshBridge

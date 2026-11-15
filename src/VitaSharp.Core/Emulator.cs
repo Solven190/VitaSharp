@@ -834,6 +834,11 @@ public sealed class Emulator : IDisposable
                 LoadModule($"app0:sce_module/{name}.suprx");
             }
         }
+        if (!IsSystemProgram)
+        {
+            PreloadFirmwareModulesForGame(preloadDisabled);
+        }
+
         if (IsSystemProgram)
         {
             PreloadFirmwareModules(preloadDisabled);
@@ -985,8 +990,9 @@ public sealed class Emulator : IDisposable
 
     /// <summary>
     /// The modules the Vita's module manager loads into every process before its main thread, unless the process
-    /// parameters' preload-disabled bits exclude them (bit, file in vs0:sys/external; same list as Vita3K). Games keep
-    /// VitaSharp's HLE for these (only copies shipped in app0:sce_module are loaded); system programs get the firmware's.
+    /// parameters' preload-disabled bits exclude them (bit, file in vs0:sys/external; same list as Vita3K). System programs
+    /// get the firmware's; games keep VitaSharp's HLE for the ones it emulates (and their own app0:sce_module libc,
+    /// libfios2, libSceFt2, libpvf), see <see cref="PreloadFirmwareModulesForGame"/>.
     /// </summary>
     private static readonly (uint Bit, string Name)[] s_processPreloads =
     [
@@ -1019,6 +1025,88 @@ public sealed class Emulator : IDisposable
             _startFirst.AddRange(LoadFirmwareDependencies(loadedModule));
             _startFirst.Add(loadedModule);
         }
+    }
+
+    /// <summary>
+    /// The module manager preloads its list into every process, games included, and takes libSceFt2, libpvf,
+    /// libshellsvc, libcdlg and apputil only from vs0:sys/external (modulemgr 3.74 has an app0:sce_module path for libc
+    /// and libfios2 only). A game keeps VitaSharp's HLE for the ones the HLE emulates; it gets the firmware's module
+    /// when <see cref="GameTakesFirmwarePreload"/> says so (the PSM runtime's libpsm calls libSceFt2's FreeType, its
+    /// eboot IPMI::Client::create of libshellsvc).
+    /// </summary>
+    private void PreloadFirmwareModulesForGame(uint preloadDisabled)
+    {
+        var firmware = Firmware.FirmwareLibraries.For(Options.FsRoot);
+        if (MainModule == null)
+        {
+            return;
+        }
+
+        IEnumerable<(string Library, uint[] Nids)> mainImports = MainModule.Imports
+            .Where(i => i.Library != null)
+            .Select(i => (i.Library, i.FuncNids ?? []));
+        foreach ((uint bit, string? name) in s_processPreloads)
+        {
+            if ((preloadDisabled & bit) != 0 || KeepOnHle(name))
+            {
+                continue;
+            }
+
+            string path = $"vs0:sys/external/{name}.suprx";
+            Firmware.FirmwareLibraries.Module? module = firmware.Modules
+                .FirstOrDefault(m => string.Equals(m.VitaPath, path, StringComparison.OrdinalIgnoreCase));
+            if (module == null || Vfs.Resolve(path) is not { } host || !File.Exists(host))
+            {
+                continue;
+            }
+
+            if (Kernel.Modules.Values.Any(m => string.Equals(m.Path, $"app0:sce_module/{name}.suprx", StringComparison.OrdinalIgnoreCase)
+                                                || string.Equals(m.Path, path, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            if (!GameTakesFirmwarePreload(module.Libraries.Select(l => l.Library).ToList(), mainImports, Hle.KnowsLibrary,
+                    HleServesLibrary, Hle.Implements))
+            {
+                continue;
+            }
+
+            LoadedModule loadedModule = LoadModule(path);
+            Log.Info($"  {path} preloaded for {MainModule.Name} (LLE)");
+            _startFirst.AddRange(LoadFirmwareDependencies(loadedModule));
+            _startFirst.Add(loadedModule);
+        }
+    }
+
+    /// <summary>
+    /// Whether a game gets the firmware's copy of a preloaded module that exports <paramref name="moduleLibraries"/>:
+    /// when the HLE knows none of them (only the real module can serve them), or when the program imports, from one
+    /// the HLE has only as a firmware fallback (not <paramref name="serves"/>), a function the HLE does not have.
+    /// </summary>
+    internal static bool GameTakesFirmwarePreload(IReadOnlyList<string> moduleLibraries,
+        IEnumerable<(string Library, uint[] Nids)> imports, Func<string, bool> knows, Func<string, bool> serves,
+        Func<uint, bool> implements)
+    {
+        if (moduleLibraries.Count == 0)
+        {
+            return false;
+        }
+
+        if (moduleLibraries.All(library => !knows(library)))
+        {
+            return true;
+        }
+
+        foreach ((string library, uint[] nids) in imports)
+        {
+            if (moduleLibraries.Contains(library) && !serves(library) && nids.Any(nid => !implements(nid)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private HashSet<string>? _keepHle;

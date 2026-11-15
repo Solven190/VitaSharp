@@ -36,6 +36,42 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
 - Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv) (os buracos: biblioteca, NID, nome, tipo,
   importadores, se está no VitaSDK).
 
+## Jogos de volta a 100% e LLE das bibliotecas que o HLE não emula (15/11/2026, docs/hle-status-15)
+
+- Por que a coluna "jogos" caiu de 100% (2.049/2.049) para 99,1% (2.105/2.124): o status anterior (eef84396, 11/11) foi
+  gerado com 52 jogos; depois entraram o runtime do PSM (PCSI00011), o TestGame (VSTEST001) e o vkQuake (VKQUAKE02), que
+  importam 75 funções que nenhum outro jogo importa (66 do PCSI00011). O 908e583c só regenerou o status já com eles. As
+  19 não cobertas eram todas do PCSI00011: SceFt2 (14, o FreeType do libSceFt2, chamadas pelo libpsm), SceDrmPsmKdc (4,
+  o psmkdc que o runtime carrega pelo sysmodule) e `IPMI::Client::create` (SceIpmi do libshellsvc, chamado pelo eboot).
+- Como o console faz: o modulemgr 3.74 pré-carrega em todo processo o libSceFt2, o libpvf, o libshellsvc, o libcdlg e o
+  apputil só de `vs0:sys/external` (só libc e libfios2 têm caminho em `app0:sce_module`); o sysmodule carrega o psmkdc
+  do firmware.
+- Carregador: um jogo recebe o módulo do firmware de um pré-carregamento quando o HLE não conhece nenhuma das bibliotecas
+  dele (libSceFt2) ou quando o programa importa, de uma biblioteca que o HLE só tem como substituto do firmware, uma
+  função que o HLE não tem (libshellsvc, pelo `IPMI::Client::create`); `GameFirmwarePreloadTests`.
+- Contagem: as funções de bibliotecas que o HLE não emula contam como LLE (o software do sistema recebe o módulo pelas
+  dependências, o jogo pelos pré-carregamentos e pelas dependências do sysmodule: `HleRegistry.FirmwareServesImporters`).
+  Antes elas contavam como faltando, mesmo rodando do módulo real.
+- Resultado: jogos 2.124/2.124 (100%; real 1.654, default 6, LLE 464); sistema 6.080/7.327; geral 8.178/9.955; total
+  16.382/19.406 (real 4.674, default 375, LLE 11.333). Os buracos que chegam ao HLE (a tabela deste censo) não mudam.
+
+## Lote 14c (14/11/2026, feat/user-hle-14c)
+
+- Cobertas 9.452 de 19.406 (HLE de verdade 4.674, default 375, LLE 4.403): +12 funções, todas lidas no módulo do
+  FW 3.74 (SceAppMgr e SceCamera/SceUdcd do `bootimage.skprx`, SceMotion do `driver_us.suprx`).
+- SceAppMgr: `sceAppMgrSuspendUntilActivated`, `sceAppMgrEnableCoredumpForTest`. SceCamera `NID_99B5FB62` (conjunto de
+  buffers da câmera do processo), SceUdcd `NID_FCD876FB` (modo de energia do USB). SceMotion: `sceMotionGetStateExt`
+  (forma empacotada de 10 bits), `sceMotionGetDeadbandExt`, `sceMotionGetTiltCorrectionExt`, os três limiares da
+  orientação básica (`NID_CA0A798B`/`NID_F4E9D62E`), o zero do acelerômetro (`NID_02AC0F4B`) e as leituras dos outros
+  dois clientes de movimento (`NID_D23686B0`, `NID_D66D5192`).
+- Revalidado no SceMotion: `sceMotionGetState`/`GetSensorState` só respondem com a amostragem ligada (0x80360206) e
+  NULL é 0x80360209; `sceMotionGetStateInternal` é a leitura do cliente de localização; `sceMotionSetAngleThreshold`
+  aceita só 0 < ângulo <= 45; deadband e correção de inclinação guardam o valor recebido; porta Ext acima de 4 é
+  0x8036020B.
+- Ainda chegam ao HLE sem implementação e são importadas: 95 funções — SceGpuEs4User (41), SceMarlinHci (20),
+  SceMgVideo (20), SceGpuEs4UserForVsh (5), SceRegMgr (3), SceGpuEs4ForUser (3), SceThreadmgr
+  (`_sceKernelExitCallback`), SceDrmBridge e SceDrmBridgeUser (1 cada).
+
 ## Depois da regra do carregador (14/11/2026, release 82eec041 + esta branch)
 
 - Cobertas 9.440 de 19.406: HLE de verdade 4.662, default 375, LLE 4.403 (com os substitutos `FirmwareFallbackOnly`

@@ -5,7 +5,8 @@ namespace VitaSharp.Core.Hle;
 /// libraries an installed module really exports, found by scanning (no fixed list). The modules the loader runs for a
 /// program count: the modules a game ships in app0:sce_module (decrypted with its work.bin or licence), the user
 /// modules programs load by path from the ur0:/ux0: data (<see cref="DataModules"/>), and the firmware modules the
-/// loader gives every program that imports their library (<see cref="HleModule.FirmwareForEveryImporter"/>). Their functions are emulated, so the coverage counts them as
+/// loader gives the programs that import their library (<see cref="HleRegistry.FirmwareServesImporters"/>: a library the
+/// HLE does not emulate, or one whose module is <see cref="HleModule.FirmwareForEveryImporter"/>). Their functions are emulated, so the coverage counts them as
 /// covered, shown apart as "LLE" (like "default"). The loader decides by its own rules; this only measures.
 /// </summary>
 public static class LleLibraries
