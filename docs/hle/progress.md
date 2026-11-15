@@ -146,6 +146,132 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 
 VitaSDK user functions provided by LLE (the modules the installed games ship in app0:sce_module): 2,124.
 
+## Kernel (114 libraries)
+
+The functions the kernel modules of firmware 3.74 export to other kernel code (`*ForDriver`, `*ForKernel`...: what a kernel plugin can import), from the census in [kernel-exports.md](kernel-exports.md) (`VitaSharp.Desktop kernel-census`, `data/kernel-exports.tsv`). "Imported" are the ones some firmware kernel module or installed kernel plugin imports: the order of the work.
+
+| Kernel exports | Covered | Real | Default | Total | % |
+|---|---:|---:|---:|---:|---:|
+| All | 729 | 672 | 57 | 3,918 | 18.6% |
+| Imported | 319 | - | - | 2,062 | 15.4% |
+
+| Library | Implemented / total | % | Default | Imported |
+|---|---:|---:|---:|---:|
+| SceAVConfigForDriver | 0 / 6 | 0% | - | 0 / 2 |
+| SceAppMgrForDriver | 3 / 76 | 3.9% | - | 0 / 24 |
+| SceAudioForDriver | 3 / 20 | 15% | - | 1 / 11 |
+| SceAudioInForDriver | 4 / 10 | 40% | - | 1 / 6 |
+| SceAvcodecForDriver | 23 / 105 | 21.9% | - | 0 / 1 |
+| SceBacktraceForDriver | 1 / 3 | 33.3% | - | - |
+| SceBbmcForDriver | 0 / 63 | 0% | - | 0 / 14 |
+| SceBtForDriver | 52 / 54 | 96.2% | 45 | 16 / 17 |
+| SceBusErrorForKernel | 0 / 1 | 0% | - | - |
+| SceCameraForDriver | 0 / 25 | 0% | - | 0 / 2 |
+| SceCdramForDriver | 0 / 3 | 0% | - | - |
+| SceClockgenForDriver | 0 / 14 | 0% | - | 0 / 8 |
+| SceCodecEngineWrapperForDebugger | 0 / 1 | 0% | - | - |
+| SceCodecEngineWrapperForDriver | 0 / 50 | 0% | - | 0 / 47 |
+| SceCodecForDriver | 0 / 9 | 0% | - | 0 / 7 |
+| SceCompatForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceCoredumpForDriver | 0 / 21 | 0% | - | 0 / 19 |
+| SceCpuForDriver | 103 / 104 | 99% | - | 34 / 35 |
+| SceCpuForKernel | 39 / 39 | 100% | - | 6 / 6 |
+| SceCsiForDriver | 0 / 6 | 0% | - | 0 / 6 |
+| SceCtrlForDriver | 11 / 40 | 27.5% | - | 2 / 23 |
+| SceDebugForDriver | 13 / 16 | 81.2% | - | 6 / 8 |
+| SceDebugForKernel | 7 / 17 | 41.1% | - | 2 / 6 |
+| SceDebugLedForDriver | 4 / 9 | 44.4% | - | 2 / 3 |
+| SceDipswForDriver | 3 / 4 | 75% | - | 1 / 2 |
+| SceDisplayForDriver | 18 / 53 | 33.9% | - | 8 / 27 |
+| SceDmacmgrForDriver | 2 / 15 | 13.3% | - | 1 / 11 |
+| SceDsiForDriver | 0 / 15 | 0% | - | 0 / 10 |
+| SceExcpmgrForKernel | 1 / 17 | 5.8% | - | 1 / 6 |
+| SceFios2KernelForDriver | 0 / 20 | 0% | - | 0 / 9 |
+| SceGpioForDriver | 0 / 10 | 0% | - | 0 / 7 |
+| SceGpsForDriver | 0 / 7 | 0% | - | 0 / 6 |
+| SceGpuEs4ForDriver | 0 / 31 | 0% | - | 0 / 28 |
+| SceGrabForDriver | 0 / 8 | 0% | - | 0 / 5 |
+| SceHdmiForDriver | 0 / 25 | 0% | - | 0 / 19 |
+| SceHidForDriver | 28 / 30 | 93.3% | - | 0 / 1 |
+| SceHpremoteForDriver | 0 / 11 | 0% | - | 0 / 6 |
+| SceI2cForDriver | 0 / 8 | 0% | - | 0 / 3 |
+| SceIdStorageForDriver | 0 / 17 | 0% | - | 0 / 16 |
+| SceIftuForDriver | 0 / 9 | 0% | - | 0 / 9 |
+| SceIntrmgrForDriver | 0 / 23 | 0% | - | 0 / 13 |
+| SceIntrmgrForKernel | 0 / 21 | 0% | - | 0 / 12 |
+| SceIofilemgrForDriver | 47 / 148 | 31.7% | - | 21 / 96 |
+| SceKernelSuspendForDriver | 4 / 28 | 14.2% | - | 4 / 13 |
+| SceKernelUtilsForDriver | 1 / 57 | 1.7% | - | 0 / 33 |
+| SceLcdForDriver | 0 / 23 | 0% | - | 0 / 13 |
+| SceLedForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceMagicGateForDriver | 0 / 48 | 0% | - | 0 / 37 |
+| SceModulemgrForDriver | 9 / 15 | 60% | - | 9 / 13 |
+| SceModulemgrForKernel | 5 / 48 | 10.4% | - | 1 / 24 |
+| SceMotionDevForDriver | 9 / 23 | 39.1% | 3 | 2 / 9 |
+| SceMsifForDriver | 0 / 12 | 0% | - | 0 / 8 |
+| SceMtpIfForDriver | 0 / 17 | 0% | - | 0 / 11 |
+| SceNetPsForDriver | 12 / 20 | 60% | - | 0 / 3 |
+| SceNpDrmForDriver | 0 / 26 | 0% | - | 0 / 20 |
+| SceOledForDriver | 0 / 21 | 0% | - | 0 / 12 |
+| ScePervasiveForDriver | 0 / 156 | 0% | - | 0 / 88 |
+| ScePfsFacadeForKernel | 0 / 6 | 0% | - | 0 / 6 |
+| ScePfsMgrForKernel | 0 / 14 | 0% | - | 0 / 11 |
+| ScePmMgrForDriver | 0 / 2 | 0% | - | 0 / 1 |
+| ScePowerForDriver | 36 / 109 | 33% | - | 16 / 52 |
+| SceProcEventForDriver | 2 / 3 | 66.6% | - | 2 / 3 |
+| SceProcessmgrForDriver | 10 / 46 | 21.7% | - | 7 / 32 |
+| SceProcessmgrForKernel | 3 / 60 | 5% | - | 0 / 30 |
+| ScePsmDrmForDriver | 1 / 6 | 16.6% | 1 | 1 / 3 |
+| ScePwmForDriver | 0 / 5 | 0% | - | 0 / 3 |
+| SceQafMgrForDriver | 0 / 25 | 0% | - | 0 / 23 |
+| SceRegMgrForDebugger | 0 / 9 | 0% | - | - |
+| SceRegMgrForDriver | 25 / 25 | 100% | - | 7 / 7 |
+| SceRegMgrForTool | 0 / 13 | 0% | - | - |
+| SceRegMgrServiceForDriver | 5 / 5 | 100% | - | - |
+| SceRtcForDriver | 16 / 65 | 24.6% | - | 5 / 30 |
+| SceSblACMgrForDriver | 1 / 45 | 2.2% | - | 1 / 40 |
+| SceSblACMgrForKernel | 0 / 47 | 0% | - | 0 / 12 |
+| SceSblAIMgrForDriver | 0 / 17 | 0% | - | 0 / 17 |
+| SceSblAuthMgrForDriver | 0 / 3 | 0% | - | 0 / 3 |
+| SceSblAuthMgrForKernel | 0 / 9 | 0% | - | 0 / 7 |
+| SceSblFwLoaderForDriver | 0 / 3 | 0% | - | 0 / 3 |
+| SceSblGcAuthMgrDrmBBForDriver | 0 / 20 | 0% | - | 0 / 7 |
+| SceSblGcAuthMgrGcAuthForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceSblGcAuthMgrMlnpsnlForDriver | 0 / 2 | 0% | - | 0 / 2 |
+| SceSblGcAuthMgrMsSaveBBForDriver | 0 / 6 | 0% | - | 0 / 6 |
+| SceSblGcAuthMgrPkgForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
+| SceSblGcAuthMgrPsmactForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceSblGcAuthMgrSclkForDriver | 0 / 2 | 0% | - | - |
+| SceSblMgKeyMgrForDriver | 0 / 14 | 0% | - | 0 / 2 |
+| SceSblPostSsMgrForDriver | 5 / 44 | 11.3% | 5 | 0 / 25 |
+| SceSblSmCommForKernel | 0 / 4 | 0% | - | 0 / 4 |
+| SceSblSmSchedProxyForKernel | 0 / 16 | 0% | - | 0 / 9 |
+| SceSblSsMgrForDriver | 0 / 40 | 0% | - | 0 / 33 |
+| SceSblSsMgrForKernel | 0 / 5 | 0% | - | 0 / 5 |
+| SceSdifForDriver | 0 / 59 | 0% | - | 0 / 31 |
+| SceSysclibForDriver | 51 / 51 | 100% | - | 31 / 31 |
+| SceSysconForDriver | 0 / 311 | 0% | - | 0 / 198 |
+| SceSysmemForDriver | 52 / 114 | 45.6% | - | 52 / 79 |
+| SceSysmemForKernel | 2 / 169 | 1.1% | - | 2 / 77 |
+| SceSysrootForDriver | 0 / 181 | 0% | - | 0 / 111 |
+| SceSysrootForKernel | 2 / 143 | 1.3% | - | 2 / 67 |
+| SceSystimerForDriver | 0 / 14 | 0% | - | 0 / 8 |
+| SceThreadmgrForDriver | 95 / 248 | 38.3% | - | 69 / 135 |
+| SceThreadmgrForKernel | 0 / 64 | 0% | - | 0 / 15 |
+| SceTouchForDriver | 15 / 29 | 51.7% | - | 1 / 9 |
+| SceUartForKernel | 0 / 4 | 0% | - | 0 / 1 |
+| SceUdcdForDriver | 3 / 47 | 6.3% | - | 2 / 33 |
+| SceUlobjMgrForDriver | 0 / 19 | 0% | - | 0 / 12 |
+| SceUsbAudioForDriver | 0 / 5 | 0% | - | - |
+| SceUsbEtherRtlForDriver | 0 / 3 | 0% | - | - |
+| SceUsbMassForDriver | 0 / 6 | 0% | - | 0 / 6 |
+| SceUsbMtpForDriver | 0 / 12 | 0% | - | 0 / 12 |
+| SceUsbServForDriver | 2 / 7 | 28.5% | 2 | 2 / 6 |
+| SceUsbdForDriver | 0 / 21 | 0% | - | 0 / 20 |
+| SceUsbstorForDriver | 0 / 9 | 0% | - | 0 / 7 |
+| SceWlanBtForDriver | 0 / 4 | 0% | - | 0 / 2 |
+| SceZlibForDriver | 0 / 65 | 0% | - | 0 / 6 |
+
 ## Per library (308)
 
 | Library | Module | Implemented / total | % | Default | Games | System |

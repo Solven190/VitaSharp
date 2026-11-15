@@ -1,5 +1,6 @@
 # Regenerates the README's HLE status from the installed firmware and games: docs/hle/data/hle-status.tsv (per-library
-# summary), the badges and progress map in docs/assets/status, and docs/hle/progress.md
+# summary), the badges (the kernel one from the committed docs/hle/data/kernel-exports.tsv), the progress map in
+# docs/assets/status and docs/hle/progress.md
 # (VitaSharp.Desktop hle-coverage --status; HleStatusReportTests checks the committed files match the summary).
 # -Data: the data folder with the firmware (os0/vs0) and the games (ux0:app); default VitaSharp's own (only read).
 # -Exe: a built VitaSharp.Desktop to use; default: build one into -Out (default: a folder in the temp directory).

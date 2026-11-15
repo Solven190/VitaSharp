@@ -36,10 +36,43 @@ public static class HleStatusReport
     }
 
     public const string TsvPath = "docs/hle/data/hle-status.tsv";
+    /// <summary>The kernel export census (<c>VitaSharp.Desktop kernel-census</c>): every function the kernel modules export
+    /// to other kernel code, with its status. The kernel badge and section of the status come from it.</summary>
+    public const string KernelTsvPath = "docs/hle/data/kernel-exports.tsv";
     public const string ProgressPath = "docs/hle/progress.md";
     public const string AssetDir = "docs/assets/status";
 
     private static readonly CultureInfo s_inv = CultureInfo.InvariantCulture;
+
+    /// <summary>One kernel library of the census: exported functions, the covered ones (HLE, defaults included), the
+    /// defaults, and the same counts for the functions some kernel module (or installed kernel plugin) imports.</summary>
+    public sealed record KernelLibrary(string Name, int Total, int Impl, int Default, int Imported, int ImportedImpl);
+
+    /// <summary>The per-library kernel counts of the census table (library, nid, name, status impl/default/missing,
+    /// method, importers).</summary>
+    public static IReadOnlyList<KernelLibrary> ParseKernel(string tsv)
+    {
+        var rows = new List<(string Library, string Status, bool Imported)>();
+        foreach (string raw in tsv.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (raw.Length == 0 || raw[0] == '#' || raw.StartsWith("library\t", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string[] c = raw.Split('\t');
+            rows.Add((c[0], c[3], c.Length > 5 && c[5].Length > 0));
+        }
+
+        return rows.GroupBy(r => r.Library, StringComparer.Ordinal)
+            .Select(g => new KernelLibrary(g.Key, g.Count(), g.Count(r => r.Status != "missing"), g.Count(r => r.Status == "default"),
+                g.Count(r => r.Imported), g.Count(r => r.Imported && r.Status != "missing")))
+            .OrderBy(l => l.Name, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>The kernel badge: the census's covered exports (HLE and defaults) of every exported kernel function.</summary>
+    public static (string Label, int Impl, int Total, int Default) KernelBadge(string firmware, IReadOnlyList<KernelLibrary> kernel) =>
+        ($"firmware {firmware} kernel exports", kernel.Sum(l => l.Impl), kernel.Sum(l => l.Total), kernel.Sum(l => l.Default));
 
     /// <summary>Per-library summary from hle-coverage rows (group: games/system/general; rows of NIDs no firmware
     /// module exports are not passed in).</summary>
@@ -142,20 +175,30 @@ public static class HleStatusReport
 
     private static string Count(int n) => n.ToString("N0", s_inv);
 
-    /// <summary>Every generated file: repository-relative path (forward slashes) to its content (LF line ends).</summary>
-    public static IReadOnlyDictionary<string, string> Render(Status s)
+    /// <summary>Every generated file: repository-relative path (forward slashes) to its content (LF line ends).
+    /// <paramref name="kernel"/>: the kernel census (<see cref="ParseKernel"/>), for the kernel badge and section.</summary>
+    public static IReadOnlyDictionary<string, string> Render(Status s, IReadOnlyList<KernelLibrary>? kernel = null)
     {
         var files = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach ((string? id, string? label, int n, int total, int d, int lle) in BadgesWithParts(s))
         {
-            files[$"{AssetDir}/badge-{id}.svg"] = Badge(label, $"{PctText(n, total)} ({Count(n)}/{Count(total)}{(d > 0 ? $", {Count(d)} default" : "")}{(lle > 0 ? $", {Count(lle)} LLE" : "")})", BadgeColor(Pct(n, total)));
+            files[$"{AssetDir}/badge-{id}.svg"] = Badge(label, BadgeValue(n, total, d, lle), BadgeColor(Pct(n, total)));
+        }
+
+        if (kernel is { Count: > 0 })
+        {
+            (string label, int n, int total, int d) = KernelBadge(s.Firmware, kernel);
+            files[$"{AssetDir}/badge-kernel.svg"] = Badge(label, BadgeValue(n, total, d, 0), BadgeColor(Pct(n, total)));
         }
 
         files[$"{AssetDir}/progress-map.svg"] = Map(s, dark: true);
         files[$"{AssetDir}/progress-map-light.svg"] = Map(s, dark: false);
-        files[ProgressPath] = ProgressPage(s);
+        files[ProgressPath] = ProgressPage(s, kernel);
         return files;
     }
+
+    private static string BadgeValue(int n, int total, int d, int lle) =>
+        $"{PctText(n, total)} ({Count(n)}/{Count(total)}{(d > 0 ? $", {Count(d)} default" : "")}{(lle > 0 ? $", {Count(lle)} LLE" : "")})";
 
     public static IEnumerable<(string Id, string Label, int Impl, int Total)> Badges(Status s) =>
         BadgesWithDefault(s).Select(b => (b.Id, b.Label, b.Impl, b.Total));
@@ -329,7 +372,7 @@ public static class HleStatusReport
         return b.ToString();
     }
 
-    private static string ProgressPage(Status s)
+    private static string ProgressPage(Status s, IReadOnlyList<KernelLibrary>? kernel)
     {
         var b = new StringBuilder();
         b.Append("# HLE progress\n\n");
@@ -359,6 +402,11 @@ public static class HleStatusReport
 
         b.Append(s_inv, $"\nVitaSDK user functions provided by LLE (the modules the installed games ship in app0:sce_module): {Count(s.VitaSdkLle)}.\n");
 
+        if (kernel is { Count: > 0 })
+        {
+            KernelSection(b, s.Firmware, kernel);
+        }
+
         b.Append(s_inv, $"\n## Per library ({s.Libraries.Count})\n\n");
         b.Append("| Library | Module | Implemented / total | % | Default | Games | System |\n|---|---|---:|---:|---:|---:|---:|\n");
         foreach (Library l in s.Libraries)
@@ -367,5 +415,26 @@ public static class HleStatusReport
         }
 
         return b.ToString();
+    }
+
+    /// <summary>The kernel side (docs/hle/kernel-exports.md has the method and the history): totals and the table per
+    /// library, generated from the census table.</summary>
+    private static void KernelSection(StringBuilder b, string firmware, IReadOnlyList<KernelLibrary> kernel)
+    {
+        int total = kernel.Sum(l => l.Total);
+        int impl = kernel.Sum(l => l.Impl);
+        int def = kernel.Sum(l => l.Default);
+        int imported = kernel.Sum(l => l.Imported);
+        int importedImpl = kernel.Sum(l => l.ImportedImpl);
+        b.Append(s_inv, $"\n## Kernel ({kernel.Count} libraries)\n\n");
+        b.Append(s_inv, $"The functions the kernel modules of firmware {firmware} export to other kernel code (`*ForDriver`, `*ForKernel`...: what a kernel plugin can import), from the census in [kernel-exports.md](kernel-exports.md) (`VitaSharp.Desktop kernel-census`, `data/kernel-exports.tsv`). \"Imported\" are the ones some firmware kernel module or installed kernel plugin imports: the order of the work.\n\n");
+        b.Append("| Kernel exports | Covered | Real | Default | Total | % |\n|---|---:|---:|---:|---:|---:|\n");
+        b.Append(s_inv, $"| All | {Count(impl)} | {Count(impl - def)} | {Count(def)} | {Count(total)} | {PctText(impl, total)} |\n");
+        b.Append(s_inv, $"| Imported | {Count(importedImpl)} | - | - | {Count(imported)} | {PctText(importedImpl, imported)} |\n");
+        b.Append("\n| Library | Implemented / total | % | Default | Imported |\n|---|---:|---:|---:|---:|\n");
+        foreach (KernelLibrary l in kernel)
+        {
+            b.Append(s_inv, $"| {l.Name} | {l.Impl} / {l.Total} | {PctText(l.Impl, l.Total)} | {(l.Default == 0 ? "-" : Count(l.Default))} | {(l.Imported == 0 ? "-" : $"{l.ImportedImpl} / {l.Imported}")} |\n");
+        }
     }
 }

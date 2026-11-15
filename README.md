@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=1c8b8af5b6733bfba4f5cd57b97ae7b0802828a859862608ddf70ca75c8790c1 -->
+<!-- pair: README.pt-BR.md sha256=9846050812d0123958c47caaaeb581ba9d7a37f8c7b911ac5132a2cc41c6c1da -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -79,6 +79,7 @@ started from them. It is a research project under active development, all in C#.
 [![system imports](docs/assets/status/badge-system.svg)](docs/hle/progress.md)
 [![VitaSDK functions](docs/assets/status/badge-vitasdk.svg)](docs/hle/progress.md)
 [![firmware 3.74 exports](docs/assets/status/badge-overall.svg)](docs/hle/progress.md)
+[![firmware 3.74 kernel exports](docs/assets/status/badge-kernel.svg)](docs/hle/progress.md)
 
 <a href="docs/hle/progress.md">
 <picture>
@@ -97,7 +98,9 @@ service the emulator does not have and return the firmware's own result for that
 apart). "LLE": functions of libraries the emulator provides by loading and running the real module the program brings
 (a game's own libsmart/libface, the libshacccg.suprx the user extracts from their console, the firmware module of a
 library the emulator loads for every importer; also counted, shown apart;
-list in [`docs/hle/progress.md`](docs/hle/progress.md)). Refreshed with `build/hle-status.ps1`.</sub>
+list in [`docs/hle/progress.md`](docs/hle/progress.md)). "Kernel exports": the functions the kernel modules export to
+other kernel code (what a kernel plugin can import), from the census in
+[`docs/hle/kernel-exports.md`](docs/hle/kernel-exports.md). Refreshed with `build/hle-status.ps1`.</sub>
 
 ## Games
 

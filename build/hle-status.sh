@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Regenerates the README's HLE status from the installed firmware and games: docs/hle/data/hle-status.tsv (per-library
-# summary), the badges and progress map in docs/assets/status, and docs/hle/progress.md
+# summary), the badges (the kernel one from the committed docs/hle/data/kernel-exports.tsv), the progress map in
+# docs/assets/status and docs/hle/progress.md
 # (VitaSharp.Desktop hle-coverage --status; HleStatusReportTests checks the committed files match the summary).
 # Usage: build/hle-status.sh [data folder]   (same as build/hle-status.ps1)
 #   data folder: the firmware (os0/vs0) and the games (ux0:app); default VitaSharp's own (only read).
@@ -14,7 +15,7 @@ readonly ROOT
 
 main() {
   if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-    sed -n '3,8s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
+    sed -n '3,9s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
     return 0
   fi
   local data="${1:-}"

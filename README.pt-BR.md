@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=5d7a4d8639c8fe226c29697a58029d1b3d2437cea416a13457dfffefe71c38ce -->
+<!-- pair: README.md sha256=efb8f0ac104c8453bb222510bb8a4a30b18329bae5745f507d5b5e60d9549566 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -79,6 +79,7 @@ LiveArea e jogos abertos por elas. É um projeto de pesquisa em desenvolvimento 
 [![system imports](docs/assets/status/badge-system.svg)](docs/hle/progress.md)
 [![VitaSDK functions](docs/assets/status/badge-vitasdk.svg)](docs/hle/progress.md)
 [![firmware 3.74 exports](docs/assets/status/badge-overall.svg)](docs/hle/progress.md)
+[![firmware 3.74 kernel exports](docs/assets/status/badge-kernel.svg)](docs/hle/progress.md)
 
 <a href="docs/hle/progress.md">
 <picture>
@@ -97,7 +98,9 @@ implementadas que precisam de hardware ou serviço que o emulador não tem e dev
 para esse caso (contam na porcentagem, mostradas à parte). "LLE": funções de bibliotecas que o emulador fornece
 carregando e rodando o módulo de verdade que o programa traz (a libsmart/libface do próprio jogo, a libshacccg.suprx que
 o usuário extrai do console, o módulo do firmware de uma biblioteca que o emulador carrega para todo importador; também contam, mostradas à parte; lista em [`docs/hle/progress.md`](docs/hle/progress.md)).
-Atualizado com `build/hle-status.ps1`.</sub>
+"Kernel exports": as funções que os módulos do kernel exportam para outro código de kernel (o que um plugin de kernel
+pode importar), do censo em [`docs/hle/kernel-exports.md`](docs/hle/kernel-exports.md). Atualizado com
+`build/hle-status.ps1`.</sub>
 
 ## Jogos
 

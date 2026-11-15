@@ -792,7 +792,10 @@ public static class Program
             }
             var status = VitaSharp.Core.Firmware.HleStatusReport.Build(VitaSharp.Core.Firmware.FirmwareInfo.Read(FsRoot)?.Version ?? "?", c.Games, sdkTotal, sdkImpl,
                 rows.Select(r => (r.Library, r.Module, r.Group, r.Impl, r.Default, r.Lle)), sdkDefault, sdkLle);
-            var files = new Dictionary<string, string>(VitaSharp.Core.Firmware.HleStatusReport.Render(status))
+            // the kernel side comes from the committed kernel census (VitaSharp.Desktop kernel-census writes it)
+            string kernelTsv = Path.Combine(statusRoot, VitaSharp.Core.Firmware.HleStatusReport.KernelTsvPath.Replace('/', Path.DirectorySeparatorChar));
+            var kernel = File.Exists(kernelTsv) ? VitaSharp.Core.Firmware.HleStatusReport.ParseKernel(File.ReadAllText(kernelTsv)) : null;
+            var files = new Dictionary<string, string>(VitaSharp.Core.Firmware.HleStatusReport.Render(status, kernel))
             {
                 [VitaSharp.Core.Firmware.HleStatusReport.TsvPath] = VitaSharp.Core.Firmware.HleStatusReport.ToTsv(status),
             };
