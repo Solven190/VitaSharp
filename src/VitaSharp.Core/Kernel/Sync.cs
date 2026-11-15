@@ -88,11 +88,21 @@ public static class Wait
                     int a = abort(state);
                     if (a != 0)
                     {
+                        if (TakeCoreBack(sync, self))
+                        {
+                            continue; // the lock was left: look again with the core
+                        }
+
                         return a;
                     }
                 }
                 if (ready(state))
                 {
+                    if (TakeCoreBack(sync, self))
+                    {
+                        continue; // the lock was left: another thread may have taken the object meanwhile
+                    }
+
                     woken = waited;
                     // woken by, or found ready after, the object's last signaller: it is this thread's waker
                     if (self != null && sync is KernelObject kernelObject)
@@ -114,6 +124,11 @@ public static class Wait
 
                 if (self != null && self.CanRunCallbacks && Volatile.Read(ref self.PendingCallbacks) > 0 && GuestThread.CallbackProcessor != null)
                 {
+                    if (TakeCoreBack(sync, self))
+                    {
+                        continue;
+                    }
+
                     Monitor.Exit(sync);
                     try
                     {
@@ -136,6 +151,11 @@ public static class Wait
                     long leftUs = limitUs.Value - ElapsedUs(start);
                     if (leftUs <= 0)
                     {
+                        if (TakeCoreBack(sync, self))
+                        {
+                            continue; // ready may have come while the lock was left
+                        }
+
                         timeout.TrySet(0);
                         return SceError.WAIT_TIMEOUT;
                     }
@@ -162,18 +182,10 @@ public static class Wait
                 Interlocked.Increment(ref BlockingWaits);
                 Monitor.Wait(sync, sliceMs);
                 waited = true;
-                if (self != null && !self.HasCore)
-                {
-                    Monitor.Exit(sync);
-                    try
-                    {
-                        Scheduler.Acquire(self);
-                    }
-                    finally
-                    {
-                        Monitor.Enter(sync);
-                    }
-                }
+                // no core is taken back just to look again: on the Vita a waiting thread uses no core until it is woken
+                // or times out. Taking one after every 50 ms slice put every waiting thread of the process back in the
+                // core queue, and under strict priority the low-priority threads never got the core (the shell on its
+                // one system core: ScePafJobDefault and its job queues 94-100% waiting for a core, no frame after 30 s)
             }
         }
         finally
@@ -185,6 +197,33 @@ public static class Wait
                 self.CurrentWaitSync = null;
             }
         }
+    }
+
+    /// <summary>
+    /// The waiting thread takes an emulated core back before it leaves the wait (or runs callbacks): never while it
+    /// holds <paramref name="sync"/>, or a core-holding signaller that wants the lock could deadlock against it. True
+    /// when it had to leave the lock: the caller then looks at the object again (with the core), because another
+    /// thread may have changed it meanwhile (a mutex seen free and taken by a running thread: the TestGame's two-thread
+    /// mutex lost increments when the first look was trusted).
+    /// </summary>
+    private static bool TakeCoreBack(object sync, GuestThread? self)
+    {
+        if (self == null || self.HasCore)
+        {
+            return false;
+        }
+
+        Monitor.Exit(sync);
+        try
+        {
+            Scheduler.Acquire(self);
+        }
+        finally
+        {
+            Monitor.Enter(sync);
+        }
+
+        return true;
     }
 
     private static long ElapsedUs(long startTicks) => (long)((GuestClock.Ticks - startTicks) * 1_000_000 / Stopwatch.Frequency * TimeScale.Wait);
