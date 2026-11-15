@@ -427,7 +427,8 @@ public static class GpuBench
             "dontcare" => AttachmentStoreOp.DontCare,
             _ => null
         };
-        GpuBenchState.FullBarriers = p.GetValueOrDefault("barrier") == "full";
+        GpuBenchState.FullBarriers = p.GetValueOrDefault("barrier") is { Length: > 0 } barrier && barrier != "none";
+        GpuBenchState.BarrierKind = p.GetValueOrDefault("barrier") is { } kind && kind != "full" ? kind : null;
         GpuBenchState.Stamps = p.GetValueOrDefault("stamps") == "1";
         log($"[bench] {spec.FixtureName} variant {spec.Variant}: " + string.Join(' ', p.Select(kv => $"{kv.Key}={kv.Value}"))
             + (GpuBenchState.ShaderDir != null ? $" shaders from {GpuBenchState.ShaderDir}" : "") + "; env " + string.Join(' ', env.Select(kv => $"{kv.Key}={kv.Value}")));

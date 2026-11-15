@@ -241,15 +241,43 @@ public sealed unsafe partial class VulkanRenderer
     }
 
     /// <summary>bench barrier=full: a full memory barrier after every tiled rendering (what a barrier costs).</summary>
-    void DevAfterRendering(CommandBuffer cmd)
+    void DevAfterRendering(CommandBuffer cmd, bool final)
     {
-        if (!GpuBenchState.FullBarriers)
+        if (!GpuBenchState.FullBarriers || (GpuBenchState.BarrierKind == "mid" && final) || (GpuBenchState.BarrierKind == "final" && !final))
         {
             return;
         }
 
-        var mb = new MemoryBarrier { SType = StructureType.MemoryBarrier, SrcAccessMask = AccessFlags.MemoryWriteBit, DstAccessMask = AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit };
-        _vk.CmdPipelineBarrier(cmd, PipelineStageFlags.AllCommandsBit, PipelineStageFlags.AllCommandsBit, 0, 1, &mb, 0, null, 0, null);
+        PipelineStageFlags src = PipelineStageFlags.AllCommandsBit, dst = PipelineStageFlags.AllCommandsBit;
+        AccessFlags srcAccess = AccessFlags.MemoryWriteBit, dstAccess = AccessFlags.MemoryReadBit | AccessFlags.MemoryWriteBit;
+        switch (GpuBenchState.BarrierKind)
+        {
+            case "srccolor":
+                (src, srcAccess) = (PipelineStageFlags.ColorAttachmentOutputBit, AccessFlags.ColorAttachmentWriteBit);
+                break;
+            case "srcdepth":
+                (src, srcAccess) = (PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit, AccessFlags.DepthStencilAttachmentWriteBit);
+                break;
+            case "dstshader":
+                (dst, dstAccess) = (PipelineStageFlags.VertexShaderBit | PipelineStageFlags.FragmentShaderBit, AccessFlags.ShaderReadBit | AccessFlags.InputAttachmentReadBit);
+                break;
+            case "dsttransfer":
+                (dst, dstAccess) = (PipelineStageFlags.TransferBit, AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit);
+                break;
+            case "dstattach":
+                (dst, dstAccess) = (PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit,
+                    AccessFlags.ColorAttachmentReadBit | AccessFlags.ColorAttachmentWriteBit | AccessFlags.DepthStencilAttachmentReadBit | AccessFlags.DepthStencilAttachmentWriteBit);
+                break;
+            case "dsthost":
+                (dst, dstAccess) = (PipelineStageFlags.HostBit, AccessFlags.HostReadBit);
+                break;
+            case "exec":
+                (srcAccess, dstAccess) = (0, 0);
+                break;
+        }
+
+        var mb = new MemoryBarrier { SType = StructureType.MemoryBarrier, SrcAccessMask = srcAccess, DstAccessMask = dstAccess };
+        _vk.CmdPipelineBarrier(cmd, src, dst, 0, 1, &mb, 0, null, 0, null);
     }
 
     void DevDestroy()
