@@ -217,6 +217,8 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
             return;
         }
         _session.Failed += msg => RunOnUiThread(() => ShowFatal(msg));
+        // the game quit by itself: back to the screens, as the Vita goes back to its home screen
+        _session.Exited += () => RunOnUiThread(Leave);
         _displayTuning = GameDisplayTuning.Start(this, _view!, _session.Performance);
         _session.TrophyUnlocked += e => RunOnUiThread(() => ShowTrophy(e));
         // "Gravar tudo": started, saving, saved (with the folder), failed

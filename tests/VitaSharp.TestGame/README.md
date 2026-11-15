@@ -107,6 +107,11 @@ VitaSDK runs inside WSL 2 (Debian or Ubuntu; `wsl --install -d Debian`). Inside 
   frame N`), so the steps above, timed in presented frames, land inside it. Firmware is optional: with the
   `os0`, `vs0` and `sa0` folders of an installed firmware in the scratch folder (junctions or copies) the run is the
   same.
+- **Exit after the run**: with a file `ux0:data/VSTEST/exit_after_run` (any content; on VitaSharp
+  `<scratch folder>/fs/ux0/data/VSTEST/exit_after_run`) the app calls `sceKernelExitProcess(0)` right after the
+  automatic run, as a game's Quit does. A real Vita goes back to the LiveArea; VitaSharp without the shell ends the
+  session: the window closes, a headless run stops well before its `--seconds` and the log has `VSTEST exit after the
+  run` followed by `the game exited (0x0)`. A run that keeps going until `--seconds` is the regression.
 
 ## Folder layout
 
