@@ -303,6 +303,135 @@ static void check_message_pipe(void)
     sceKernelDeleteMsgPipe(g_msgPipe);
 }
 
+/*
+ * A message pipe created with size 0 has no buffer (threadmgr 3.74): a send hands its data straight to a waiting
+ * receiver and a receiver, a polling one too, takes it from a waiting sender. With nobody on the other side a Try
+ * send moves nothing. Before, such a pipe had a 1-byte buffer and refused every larger message.
+ */
+#define UNBUFFERED_MESSAGE_SIZE 16
+#define UNBUFFERED_SENDER_SIZE 32
+#define UNBUFFERED_POLL_SIZE 10
+#define UNBUFFERED_TRIES 500
+
+static uint8_t g_unbufferedReceived[UNBUFFERED_SENDER_SIZE];
+static volatile int g_unbufferedResult;
+static volatile unsigned int g_unbufferedSize;
+
+static int unbuffered_receiver(SceSize argumentSize, void *argument)
+{
+    (void)argumentSize;
+    (void)argument;
+    unsigned int received = 0;
+    SceUInt timeout = 2000000;
+    g_unbufferedResult = sceKernelReceiveMsgPipe(g_msgPipe, g_unbufferedReceived, UNBUFFERED_MESSAGE_SIZE,
+                                                 MSGPIPE_MODE_FULL, &received, &timeout);
+    g_unbufferedSize = received;
+    return 0;
+}
+
+static int unbuffered_sender(SceSize argumentSize, void *argument)
+{
+    (void)argumentSize;
+    (void)argument;
+    uint8_t message[UNBUFFERED_SENDER_SIZE];
+    for (int index = 0; index < UNBUFFERED_SENDER_SIZE; index++)
+    {
+        message[index] = (uint8_t)(0x80 + index);
+    }
+    unsigned int sent = 0;
+    SceUInt timeout = 2000000;
+    g_unbufferedResult = sceKernelSendMsgPipe(g_msgPipe, message, sizeof(message), MSGPIPE_MODE_FULL, &sent,
+                                              &timeout);
+    g_unbufferedSize = sent;
+    return 0;
+}
+
+static void check_message_pipe_unbuffered(void)
+{
+    g_msgPipe = sceKernelCreateMsgPipe("vstest_pipe0", 0x40, 0, 0, NULL);
+    result_check(AREA, "msgpipe0_create", g_msgPipe >= 0, "0x%08X", (unsigned int)g_msgPipe);
+    if (g_msgPipe < 0)
+    {
+        return;
+    }
+
+    uint8_t message[UNBUFFERED_MESSAGE_SIZE];
+    for (int index = 0; index < UNBUFFERED_MESSAGE_SIZE; index++)
+    {
+        message[index] = (uint8_t)(index + 1);
+    }
+    unsigned int sent = 0;
+    int alone = sceKernelTrySendMsgPipe(g_msgPipe, message, sizeof(message), MSGPIPE_MODE_FULL, &sent);
+    result_check(AREA, "msgpipe0_try_send_alone_full", alone < 0 && sent == 0, "0x%08X sent %u",
+                 (unsigned int)alone, sent);
+
+    /* a receiver waits: a Try send goes straight to it (retried until the receiver is waiting) */
+    memset(g_unbufferedReceived, 0, sizeof(g_unbufferedReceived));
+    g_unbufferedResult = 1;
+    g_unbufferedSize = 0;
+    SceUID receiver = start_thread("vstest_pipe0_rx", unbuffered_receiver, 0);
+    int trySend = -1;
+    for (int attempt = 0; attempt < UNBUFFERED_TRIES && trySend < 0; attempt++)
+    {
+        sent = 0;
+        trySend = sceKernelTrySendMsgPipe(g_msgPipe, message, sizeof(message), MSGPIPE_MODE_FULL, &sent);
+        if (trySend < 0)
+        {
+            sceKernelDelayThread(1000);
+        }
+    }
+    wait_and_delete(receiver);
+    bool handed = trySend >= 0 && sent == UNBUFFERED_MESSAGE_SIZE && g_unbufferedResult >= 0 &&
+                  g_unbufferedSize == UNBUFFERED_MESSAGE_SIZE &&
+                  memcmp(g_unbufferedReceived, message, UNBUFFERED_MESSAGE_SIZE) == 0;
+    result_check(AREA, "msgpipe0_send_to_waiting_receiver", handed, "send 0x%08X sent %u receive 0x%08X got %u",
+                 (unsigned int)trySend, sent, (unsigned int)g_unbufferedResult, g_unbufferedSize);
+
+    /* a sender waits with 32 bytes: a polling receive takes 10 of them, a blocking one the other 22 */
+    g_unbufferedResult = 1;
+    g_unbufferedSize = 0;
+    SceUID sender = start_thread("vstest_pipe0_tx", unbuffered_sender, 0);
+    uint8_t taken[UNBUFFERED_SENDER_SIZE];
+    memset(taken, 0, sizeof(taken));
+    unsigned int polled = 0;
+    int tryReceive = -1;
+    for (int attempt = 0; attempt < UNBUFFERED_TRIES && tryReceive < 0; attempt++)
+    {
+        polled = 0;
+        tryReceive = sceKernelTryReceiveMsgPipe(g_msgPipe, taken, UNBUFFERED_POLL_SIZE, MSGPIPE_MODE_FULL, &polled);
+        if (tryReceive < 0)
+        {
+            sceKernelDelayThread(1000);
+        }
+    }
+    unsigned int rest = 0;
+    SceUInt timeout = 2000000;
+    int restResult = sceKernelReceiveMsgPipe(g_msgPipe, taken + UNBUFFERED_POLL_SIZE,
+                                             UNBUFFERED_SENDER_SIZE - UNBUFFERED_POLL_SIZE, MSGPIPE_MODE_FULL, &rest,
+                                             &timeout);
+    wait_and_delete(sender);
+    bool inOrder = true;
+    for (int index = 0; index < UNBUFFERED_SENDER_SIZE; index++)
+    {
+        if (taken[index] != (uint8_t)(0x80 + index))
+        {
+            inOrder = false;
+        }
+    }
+    bool takenFromSender = tryReceive >= 0 && polled == UNBUFFERED_POLL_SIZE && restResult >= 0 &&
+                           rest == UNBUFFERED_SENDER_SIZE - UNBUFFERED_POLL_SIZE && g_unbufferedResult >= 0 &&
+                           g_unbufferedSize == UNBUFFERED_SENDER_SIZE && inOrder;
+    result_check(AREA, "msgpipe0_receive_from_waiting_sender", takenFromSender,
+                 "poll 0x%08X got %u rest 0x%08X got %u send 0x%08X sent %u", (unsigned int)tryReceive, polled,
+                 (unsigned int)restResult, rest, (unsigned int)g_unbufferedResult, g_unbufferedSize);
+
+    uint8_t nothing[4];
+    unsigned int received = 0;
+    int tryEmpty = sceKernelTryReceiveMsgPipe(g_msgPipe, nothing, sizeof(nothing), MSGPIPE_MODE_FULL, &received);
+    result_check(AREA, "msgpipe0_nothing_left", tryEmpty < 0 && received == 0, "0x%08X", (unsigned int)tryEmpty);
+    sceKernelDeleteMsgPipe(g_msgPipe);
+}
+
 static int cond_signaller(SceSize argumentSize, void *argument)
 {
     (void)argumentSize;
@@ -388,6 +517,7 @@ void test_threads_run(void)
     app_show_progress("Threads and sync", "event flags, message pipes, condition variables, timers ...");
     check_event_flags();
     check_message_pipe();
+    check_message_pipe_unbuffered();
     check_condition_variable();
     check_timing();
 }

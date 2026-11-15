@@ -25,6 +25,16 @@ public sealed class AppPreferences
     /// <summary>"Carregamento rapido" of every game without its own choice: storage reads with no speed limit
     /// (Core/Util/IoTiming.cs FastLoading). Off by default: games load at the Vita memory card's speed, which some need.</summary>
     public bool FastLoading { get; set; }
+    /// <summary>"Compilacao rapida de shaders": shaderc without optimisation ("zero", fewer hitches when new shaders
+    /// appear) or with it ("perf"); the desktop launcher's option of the same name (--shaderc-opt=, VITASHARP_SHADERC_OPT
+    /// in env.txt wins).</summary>
+    public bool FastShaderCompile { get; set; } = true;
+    /// <summary>"Compilar shaders em segundo plano": shaders and pipelines prepared on worker threads (the desktop's
+    /// --async-shaders=, VITASHARP_ASYNC_SHADERS in env.txt wins).</summary>
+    public bool BackgroundShaderCompile { get; set; } = true;
+    /// <summary>The shaderc level of <see cref="FastShaderCompile"/>, as the renderer's ShaderOptimization option.</summary>
+    [JsonIgnore]
+    public string ShaderOptimization => FastShaderCompile ? "zero" : "perf";
     /// <summary>GPU profile: "" = the real device (quirks from its vendor/driver), "desktop", "adreno" or "mali"
     /// (--gpu-profile=, docs/notes/mobile-gpu.md).</summary>
     public string GpuProfile { get; set; } = "";

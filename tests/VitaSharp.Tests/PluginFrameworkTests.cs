@@ -140,7 +140,7 @@ public sealed class PluginFrameworkTests(GuestMemoryFixture fixture) : IDisposab
         string dir = Path.Combine(harness.Root, "ur0", "tai");
         Directory.CreateDirectory(dir);
         // a plugin importing a framework function (module information) starts
-        var user = new SceModuleBuilder("FrameworkUser").Import("PluginLib", 0x12345678, 0x6E931197u).Start(0);
+        SceModuleBuilder user = new SceModuleBuilder("FrameworkUser").Import("PluginLib", 0x12345678, 0x6E931197u).Start(0);
         user.CallImport(0, 0);
         File.WriteAllBytes(Path.Combine(dir, "user.skprx"), user.Build());
         // a module that exports the framework's functions is the user's copy of the framework: not loaded

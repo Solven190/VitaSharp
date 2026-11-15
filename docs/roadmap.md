@@ -75,6 +75,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   velocidade só é impressa) e `RendererDeviceHandoffTests` (acha o repositório pelo caminho do fonte, funciona com
   `-o` fora do repo). Junto: a thread do codificador da captura lia `_queue` depois de um stop logo após o start e
   derrubava o testhost inteiro (NullReferenceException), coberto por `PreRollDisarmedBeforeTheEncoderThreadRunsKeepsItsQueue`.
+- [ ] [P2][M] **Suíte rápida: testhost < 4 GB e `Category!=Slow` < 8 min.** Feito (15/11/2026, bugB): os testes do
+  renderer seguravam ~0,5 GB cada (só as 24 classes do renderer chegavam a 11,1 GB): um programa GXP com contagens de
+  tabela lixo virava listas de milhões de entradas e o cache estático de programas (`GxmProgramInfo`) segurava todos
+  os programas de todas as sessões. Agora as contagens param no tamanho do programa e o cache acaba com o sistema
+  emulado (`GxpProgramLifetimeTests`): as mesmas classes + Gxm/shader/save state (155 testes) com pico de 0,52 GB e
+  1 m 20 s. Falta: medir a suíte inteira de novo e atacar o tempo das classes mais lentas.
 - [ ] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
@@ -622,6 +628,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
+- [ ] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
+  e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
+  compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
+  dois (conferido no mesmo teste). Falta, nesta ordem: remapear botões e teclas por controle (hoje o Mapeamento do
+  Android só mostra), página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
+  (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
+  no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
   "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
   (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua
@@ -2281,6 +2294,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Bugs em aberto
 
+- [ ] [P2][M] Falha intermitente 0xC0000005 (vista 2 vezes, 15/11/2026: uma em `VulkanRenderer.UniformSet`, na thread da
+  GPU, durante a suíte; uma dentro do coreclr no Dead Space). Não reproduziu (bugA2, timebox): 4 corridas das classes
+  Renderer/Vulkan/RetireWake/UniformSet (30 testes cada, SwiftShader, com a máquina carregada), 0 falhas. Pistas para
+  quem pegar: dentro do `UniformSet` o único código nativo é o `vkUpdateDescriptorSets` sobre um set recém-alocado,
+  com handles de buffer que vêm do `DescriptorBufferInfo` do draw. Um AV ali aponta para um buffer/set destruído
+  (o `Dispose` do renderer não para a thread que chama o `Draw`, e um teste que solta o renderer com a thread da
+  GPU ainda desenhando cairia assim) ou para um device compartilhado entre testes. Próximo passo: guardar o log do
+  testhost / `--blame-crash` (curto, apagando o dump) na próxima vez que acontecer e ver qual teste estava rodando.
 - [x] Minecraft (PCSE00491) no Android fica mais lento com o tempo: duplicado (15/11/2026), junto no item "Minecraft
   (PCSE00491) fica lento jogando no celular" da seção Android. Nota que só estava aqui: no desktop o UC passou 18 s em
   sceAvcdecDeleteDecoder na tela de título com o main num PC só (f1567), a conferir
@@ -2292,6 +2313,23 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   formato 1 do celular continuam aceitos (`SaveStateLegacyTests`; tirar o campo os recusaria). Teste:
   `ModuleReferenceSnapshotTests` (falha sem a correção: "AppUtil._appMgr: a load left a AppMgr that is not the
   emulator's module").
+- [x] Remoção de save (`sceAppUtilSaveDataDataRemove` / `sceAppMgrSaveDataDataRemove`) como no firmware (bugA2,
+  15/11/2026; apputil.suprx 3.74 0x81000D2C/0x81001D6C/0x81001BEC e SceAppMgr 0x81029E3C/0x8102AF54/0x8102B1B4, só
+  estudo). Uma exceção do `File`/`Directory.Delete` do host (arquivo preso por outro programa, sem permissão) subia
+  pela chamada HLE e parava o guest: agora vira erro de E/S (EBUSY/EACCES), como o iofilemgr responderia. O apputil
+  confere a lista inteira antes de apagar algo: NOT_INITIALIZED antes do `sceAppUtilInit`; PARAMETER para lista
+  NULL, 0 ou mais de 5 itens, caminho com caractere fora de letras/dígitos/-/_/./barras (inclusive o prefixo
+  `savedata0:`), "..", mais de 3 separadores, nome `sce_`, modo fora de DEFAULT/NO_SLOT, reservados não zerados,
+  ponto de montagem diferente de `savedata0:`, ou slot com param novo junto com item 0 que apaga o slot. Caminho vazio
+  é aceito pelos dois e quer dizer o próprio savedata0: o conteúdo some, a raiz e os dados do sistema (`sce_sys` e os
+  `SlotParam_*.bin` que guardamos) ficam; antes a raiz inteira era apagada. `sceAppMgrSaveDataDataRemove` lia os
+  itens de 0x40 em 0x40 bytes (Vita3K); o firmware usa 0x2C (o mesmo item do apputil) e recusa pedido de tamanho
+  diferente de 0x44 (0x80800001). Testes: `AppUtilSaveDataTests.DataRemoveChecksTheWholeListBeforeRemovingAnything`,
+  `DataRemoveOfTheEmptyPathEmptiesSaveDataButKeepsTheSystemData`,
+  `DataRemoveReturnsAnErrorWhenTheHostRefusesTheDelete`, `AppMgrDataRemoveReadsItemsOfTheApputilLayout` (falham
+  sem a correção). Correção feita, ainda não confirmada no Killzone ("deleted saves" trava: falta a captura do
+  usuário para saber se é este o caminho). Pendente: o `sceAppMgrSaveDataDataRemove` chamado direto ainda não apaga
+  o slot (no firmware é o kernel que apaga), e o `sceAppUtilSaveDataDataSave` ainda aceita caminho com `savedata0:`.
 
 - [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado

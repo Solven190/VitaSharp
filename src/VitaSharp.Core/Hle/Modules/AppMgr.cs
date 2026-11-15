@@ -690,7 +690,7 @@ public sealed partial class AppMgr : HleModule
     // ------------------------------------------------------------------ save data (AppMgr variant)
     // SceAppMgrSaveDataData (0x4C): size, slotId, slotParam*, reserved[32], files* (+0x2C), fileNum (+0x30),
     // mountPoint (+0x34), requiredSizeKB* (+0x44). SceAppMgrSaveDataDataDelete (0x44): same up to mountPoint, items of
-    // 0x40 bytes (SceAppUtilSaveDataFile, dataPath* first; Vita3K). SceAppMgrSaveDataSlot (0x418): size, slotId, embedded
+    // 0x2C bytes (SceAppUtilSaveDataRemoveItem; FW 3.74 SceAppMgr, not the 0x40 of Vita3K). SceAppMgrSaveDataSlot (0x418): size, slotId, embedded
     // SceAppUtilSaveDataSlotParam (+8), mountPoint (+0x3C8). SceAppMgrSaveDataSlotDelete (0x18): size, slotId, mountPoint.
 
     [Hle]
@@ -705,12 +705,23 @@ public sealed partial class AppMgr : HleModule
         return 0;
     }
 
+    /// <summary>SceAppMgrSaveDataDataDelete (0x44, the size first; FW 3.74 SceAppMgr 0x81029E3C refuses another size
+    /// with 0x80800001): files* at +0x2C and fileNum at +0x30, items of 0x2C bytes (SceAppUtilSaveDataRemoveItem, as
+    /// apputil passes them), removed by <see cref="AppUtil.RemoveItems"/>.</summary>
     [Hle]
     int sceAppMgrSaveDataDataRemove(uint data)
     {
-        if (data == 0) return ERR_NULL_POINTER;
-        AppUtil.RemoveFiles(GuestMemory.R32(data + 0x2C), GuestMemory.R32(data + 0x30), 0x40);
-        return 0;
+        if (data == 0)
+        {
+            return ERR_NULL_POINTER;
+        }
+
+        if (GuestMemory.R32(data) != 0x44)
+        {
+            return AppUtil.ERR_APPMGR_INVALID;
+        }
+
+        return AppUtil.RemoveItems(GuestMemory.R32(data + 0x2C), GuestMemory.R32(data + 0x30));
     }
 
     [Hle]

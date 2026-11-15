@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,124 | 2,118 | 6 | 0 | 2,124 | 100% |
-| System imports | 6,103 | 5,895 | 208 | 0 | 7,327 | 83.2% |
-| General | 8,191 | 7,997 | 194 | 0 | 9,955 | 82.2% |
-| All firmware 3.74 exports | 16,418 | 4,677 | 408 | 11,333 | 19,406 | 84.6% |
+| System imports | 6,123 | 5,898 | 225 | 0 | 7,327 | 83.5% |
+| General | 8,215 | 8,004 | 211 | 0 | 9,955 | 82.5% |
+| All firmware 3.74 exports | 16,462 | 4,687 | 442 | 11,333 | 19,406 | 84.8% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -289,7 +289,7 @@ VitaSDK user functions provided by LLE (the modules the installed games ship in 
 | SceLiveAreaUtilBgApp | `vs0:sys/external/livearea_util.suprx` | 1 / 1 | 100% | - | - | - |
 | SceLsdb | `vs0:vsh/shell/livespace_db.suprx` | 199 / 199 | 100% | - | - | 162 / 162 |
 | SceMarlin | `vs0:sys/external/libmln.suprx` | 42 / 42 | 100% | - | - | 29 / 29 |
-| SceMarlinHci | `os0:kd/marlin_hci.skprx` | 0 / 44 | 0% | - | - | 0 / 20 |
+| SceMarlinHci | `os0:kd/marlin_hci.skprx` | 44 / 44 | 100% | 34 | - | 20 / 20 |
 | SceMetaGen | `vs0:vsh/common/mms/meta_gen.suprx` | 0 / 16 | 0% | - | - | 0 / 12 |
 | SceMgVideo | `os0:kd/mgvideo.skprx` | 29 / 29 | 100% | 29 | - | 20 / 20 |
 | SceMgVideoForMiniApp | `os0:kd/mgvideo.skprx` | 4 / 4 | 100% | 4 | - | - |

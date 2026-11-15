@@ -212,6 +212,83 @@ static void check_savedata(void)
     result_check(AREA, "slot_get_param", sameTitle, "0x%08X", (unsigned int)getResult);
 }
 
+/*
+ * sceAppUtilSaveDataDataRemove as apputil 3.74: the whole list is checked before anything is removed (an empty list,
+ * a "savedata0:" prefix, "sce_" names and ".." are refused with SCE_APPUTIL_ERROR_PARAMETER and nothing goes, the
+ * valid items in the same list included); a path that does not exist is not an error; the empty path empties
+ * savedata0: but keeps its root, sce_sys and the slot params. Runs after check_savedata (slot 0 exists).
+ */
+#define REMOVE_DIR "savedata0:vstest_rm"
+#define REMOVE_FILE_A REMOVE_DIR "/a.bin"
+#define REMOVE_FILE_B REMOVE_DIR "/b.bin"
+
+static bool path_exists(const char *path)
+{
+    SceIoStat stat;
+    memset(&stat, 0, sizeof(stat));
+    return sceIoGetstat(path, &stat) >= 0;
+}
+
+static void set_remove_item(SceAppUtilSaveDataRemoveItem *item, const char *path)
+{
+    memset(item, 0, sizeof(*item));
+    item->dataPath = path;
+    item->mode = SCE_APPUTIL_SAVEDATA_DATA_REMOVE_MODE_NO_SLOT;
+}
+
+static void check_savedata_remove(void)
+{
+    const char *content = "remove me";
+    sceIoMkdir(REMOVE_DIR, 0777);
+    int writtenA = write_whole_file(REMOVE_FILE_A, content, (int)strlen(content));
+    int writtenB = write_whole_file(REMOVE_FILE_B, content, (int)strlen(content));
+    bool prepared = writtenA > 0 && writtenB > 0;
+
+    SceAppUtilSaveDataRemoveItem items[2];
+    set_remove_item(&items[0], "vstest_rm/a.bin");
+    int emptyList = sceAppUtilSaveDataDataRemove(NULL, items, 0, NULL);
+    const char *badPaths[3] = {"sce_sys", "savedata0:vstest_rm", "vstest_rm/../.."};
+    bool badRefused = true;
+    for (int index = 0; index < 3; index++)
+    {
+        set_remove_item(&items[1], badPaths[index]);
+        int result = sceAppUtilSaveDataDataRemove(NULL, items, 2, NULL);
+        if (result != (int)SCE_APPUTIL_ERROR_PARAMETER)
+        {
+            badRefused = false;
+        }
+    }
+    bool nothingRemoved = path_exists(REMOVE_FILE_A) && path_exists(REMOVE_FILE_B);
+    result_check(AREA, "savedata_remove_bad_list_refused",
+                 prepared && emptyList == (int)SCE_APPUTIL_ERROR_PARAMETER && badRefused && nothingRemoved,
+                 "empty list 0x%08X bad items %s files %s", (unsigned int)emptyList, badRefused ? "refused" : "taken",
+                 nothingRemoved ? "kept" : "removed");
+
+    set_remove_item(&items[1], "vstest_rm/missing.bin");
+    int removed = sceAppUtilSaveDataDataRemove(NULL, items, 2, NULL);
+    bool onlyA = !path_exists(REMOVE_FILE_A) && path_exists(REMOVE_FILE_B);
+    result_check(AREA, "savedata_remove_items", removed >= 0 && onlyA, "0x%08X a %s b %s", (unsigned int)removed,
+                 path_exists(REMOVE_FILE_A) ? "kept" : "gone", path_exists(REMOVE_FILE_B) ? "kept" : "gone");
+
+    bool hadSystemFolder = path_exists("savedata0:sce_sys");
+    set_remove_item(&items[0], "");
+    int emptied = sceAppUtilSaveDataDataRemove(NULL, items, 1, NULL);
+    SceAppUtilSaveDataSlotParam slotParam;
+    memset(&slotParam, 0, sizeof(slotParam));
+    int slotResult = sceAppUtilSaveDataSlotGetParam(0, &slotParam, NULL);
+    SceUID root = sceIoDopen("savedata0:");
+    if (root >= 0)
+    {
+        sceIoDclose(root);
+    }
+    bool systemKept = !hadSystemFolder || path_exists("savedata0:sce_sys");
+    bool contentsGone = !path_exists(REMOVE_DIR) && !path_exists("savedata0:vstest.bin");
+    result_check(AREA, "savedata_remove_root_keeps_system", emptied >= 0 && contentsGone && root >= 0 &&
+                 systemKept && slotResult >= 0,
+                 "0x%08X root 0x%08X sce_sys %s slot 0x%08X", (unsigned int)emptied, (unsigned int)root,
+                 hadSystemFolder ? (systemKept ? "kept" : "gone") : "absent", (unsigned int)slotResult);
+}
+
 static int save_dialog_status(void)
 {
     return sceSaveDataDialogGetStatus();
@@ -288,5 +365,6 @@ void test_files_run(void)
     check_app0();
     app_show_progress("Files and saves", "savedata0: and save slots ...");
     check_savedata();
+    check_savedata_remove();
     check_save_dialog();
 }
