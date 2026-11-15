@@ -10,7 +10,7 @@ changed to bisect a glitch.
 | How | What |
 |---|---|
 | **Ctrl+F8** in the game window | starts a recording at the next present; Ctrl+F8 again stops it at the next present (it also stops by itself after 1800 frames, ~60 s at 30 fps). Works with or without debug mode |
-| `--gpu-dump-at=F1:F2[:file]` (`run`, `test`, scenario `args=`) or `VITASHARP_GPU_DUMP_AT=F1:F2[:file]` | records frames F1..F2 exactly (frame N = the frame ending with renderer present N, the number in `frame_N.png`) |
+| `--gpu-dump-at=F1:F2[:file]` (`run`, `test`, scenario `args=`) or `VITASHARP_GPU_DUMP_AT=F1:F2[:file]` | records frames F1..F2 exactly (frame N = the frame ending with renderer present N, the number in `frame_N.png`; armed before the title runs, so fast first frames never make it start late, and the header is written when it starts; a late start is logged as `[gpudump] started late`) |
 
 Files go to `<DataRoot>/gpudumps/<TITLEID>_<yyyyMMdd_HHmmss>.vsgd` unless a file is given. The log gets
 `[gpudump] armed ...`, `[gpudump] exported N render targets`, `[gpudump] recording to ...` and, once the file is

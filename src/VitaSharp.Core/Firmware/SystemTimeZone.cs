@@ -51,12 +51,41 @@ public static class SystemTimeZone
     /// <summary>Vita time zone id of the host's time zone, read once.</summary>
     public static int Host { get; } = FromTimeZone(TimeZoneInfo.Local);
 
-    /// <summary>The zone of the same city (IANA id, also from a Windows id), else the first one with the same
-    /// standard offset, else the one with the nearest offset.</summary>
+    /// <summary>The zone of the same city, else the zone CLDR names for the host zone's Windows zone (a city the tz
+    /// database renamed, as Asia/Kolkata for the Asia/Calcutta of the table, or another city of that zone), else the
+    /// first one with the same standard offset, else the one with the nearest offset. Only the zone's id (an IANA or a
+    /// Windows id) and its standard offset are used, never the host's time zone database: a Linux without the tz
+    /// database's old names (no America/Buenos_Aires file) maps its zones the same way.</summary>
     public static int FromTimeZone(TimeZoneInfo timeZoneInfo)
     {
-        string iana = timeZoneInfo.HasIanaId ? timeZoneInfo.Id
-            : TimeZoneInfo.TryConvertWindowsIdToIanaId(timeZoneInfo.Id, out string? i) ? i : "";
+        string id = timeZoneInfo.Id;
+        if (City(id) is int same)
+        {
+            return same;
+        }
+
+        // a Windows id (Windows hosts): the IANA zone CLDR gives it
+        if (TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out string? fromWindows) && City(fromWindows) is int windowsCity)
+        {
+            return windowsCity;
+        }
+
+        // an IANA id the table does not name (Linux and macOS hosts use the tz database's current names): the zone CLDR
+        // gives its Windows zone
+        if (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out string? windowsId)
+            && TimeZoneInfo.TryConvertWindowsIdToIanaId(windowsId, out string? cldrZone)
+            && City(cldrZone) is int zoneCity)
+        {
+            return zoneCity;
+        }
+
+        int minutes = (int)timeZoneInfo.BaseUtcOffset.TotalMinutes;
+        return s_zones.MinBy(z => Math.Abs(z.Minutes - minutes)).Id;
+    }
+
+    /// <summary>The Vita time zone of the city an IANA id names (the table's names are CLDR's), null when none.</summary>
+    private static int? City(string iana)
+    {
         foreach ((int Id, int Minutes, string Iana) z in s_zones)
         {
             if (string.Equals(z.Iana, iana, StringComparison.OrdinalIgnoreCase))
@@ -65,8 +94,7 @@ public static class SystemTimeZone
             }
         }
 
-        int minutes = (int)timeZoneInfo.BaseUtcOffset.TotalMinutes;
-        return s_zones.MinBy(z => Math.Abs(z.Minutes - minutes)).Id;
+        return null;
     }
 
     /// <summary>Standard offset in minutes of a Vita time zone id; null for an unknown id.</summary>

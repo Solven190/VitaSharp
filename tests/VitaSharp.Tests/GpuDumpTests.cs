@@ -312,4 +312,84 @@ public sealed class GpuDumpTests(GuestMemoryFixture fixture) : IDisposable
         // first read: the whole page; second read: only the 4 changed bytes; idle points may come in between
         Assert.Equal(["state 3", "mem 0+4096=11", "Draw", $"mem {buf + 0x120 - page:X}+4=22", "Draw", "present 2", "present 3"], seen.Where(s => s != "Idle"));
     }
+
+    /// <summary>
+    /// --gpu-dump-at=F1:F2 arms the recorder before the title runs (no title id, no renderer yet), so it starts exactly
+    /// after present F1-1 however fast the title's first frames come; the header (the title, the renderer) is built when
+    /// it starts. It used to be armed by a thread that waited for the title and the renderer and built the header
+    /// first: on a slow CI runner (macOS) the title's frames ran past F1 meanwhile, the dump started late and missed the
+    /// frames it was asked for.
+    /// </summary>
+    [Fact]
+    public async Task ScheduledDumpIsArmedBeforeTheTitleRunsAndStartsAtItsFrame()
+    {
+        var emu = new VitaSharp.Core.Emulator(new VitaSharp.Core.EmulatorOptions { FsRoot = _dir, Memory = fixture.Memory, EnableJit = false, CpuBackend = "interp" });
+        try
+        {
+            Directory.CreateDirectory(_dir);
+            string path = Path.Combine(_dir, "scheduled.vsgd");
+            VitaSharp.Desktop.GpuDumpControl.StartScheduled(emu, () => null, [$"--gpu-dump-at=3:4:{path}"]);
+            GpuDumpRecorder? rec = GpuDumpRecorder.Current;
+            Assert.NotNull(rec); // armed when the call returns, before the title is loaded
+            Assert.Equal((2L, 2L), (rec.Options.StartAfterPresent, rec.Options.MaxFrames));
+            emu.TitleId = "VSTS00001"; // the title loads after the recorder is armed
+
+            using var queue = new GpuQueue();
+            queue.Backend = new FakeBackend();
+            var frame = new DisplayFrame(0x60000000, 960, 960, 544, 0);
+            for (int i = 0; i < 6; i++)
+            {
+                queue.Submit(new PresentCommand { Frame = frame }); // the title's frames, as fast as they come
+            }
+
+            GpuDumpResult result = await rec.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Null(result.Error);
+            Assert.Equal(2, result.Frames);
+            using var r = new GpuDumpReader(path);
+            Assert.Equal("2", r.Header["first-present"]); // presents 3 and 4
+            Assert.Equal("VSTS00001", r.Header["title-id"]);
+        }
+        finally
+        {
+            GpuDumpRecorder.Current?.StopNow();
+            emu.Dispose();
+        }
+    }
+
+    /// <summary>A recording armed after the present it should start after starts at the next present and says so.</summary>
+    [Fact]
+    public async Task ARecordingArmedLateStartsAtTheNextPresent()
+    {
+        using var queue = new GpuQueue();
+        var backend = new FakeBackend();
+        queue.Backend = backend;
+        var frame = new DisplayFrame(0x60000000, 960, 960, 544, 0);
+        for (int i = 0; i < 3; i++)
+        {
+            queue.Submit(new PresentCommand { Frame = frame });
+        }
+
+        queue.WaitIdle();
+        Directory.CreateDirectory(_dir);
+        string path = Path.Combine(_dir, "late.vsgd");
+        int headers = 0;
+        var rec = GpuDumpRecorder.Start(new GpuDumpOptions
+        {
+            Path = "",
+            PathAtStart = () => path,
+            HeaderAtStart = () => new GpuDumpHeader { ["title-id"] = $"LATE{++headers}" },
+            StartAfterPresent = 1,
+            MaxFrames = 1,
+        });
+        Assert.NotNull(rec);
+        Assert.Equal(0, headers); // built when the recording starts, not when it is armed
+        queue.Submit(new PresentCommand { Frame = frame });
+        queue.Submit(new PresentCommand { Frame = frame });
+        GpuDumpResult result = await rec.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Null(result.Error);
+        Assert.Equal((path, 1L), (result.Path, result.Frames));
+        using var r = new GpuDumpReader(path);
+        Assert.Equal("4", r.Header["first-present"]);
+        Assert.Equal("LATE1", r.Header["title-id"]);
+    }
 }
