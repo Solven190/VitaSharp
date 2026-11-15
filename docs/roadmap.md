@@ -2288,6 +2288,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Bugs em aberto
 
+- [ ] [P2][M] Falha intermitente 0xC0000005 (vista 2 vezes, 15/11/2026: uma em `VulkanRenderer.UniformSet`, na thread da
+  GPU, durante a suíte; uma dentro do coreclr no Dead Space). Não reproduziu (bugA2, timebox): 4 corridas das classes
+  Renderer/Vulkan/RetireWake/UniformSet (30 testes cada, SwiftShader, com a máquina carregada), 0 falhas. Pistas para
+  quem pegar: dentro do `UniformSet` o único código nativo é o `vkUpdateDescriptorSets` sobre um set recém-alocado,
+  com handles de buffer que vêm do `DescriptorBufferInfo` do draw. Um AV ali aponta para um buffer/set destruído
+  (o `Dispose` do renderer não para a thread que chama o `Draw`, e um teste que solta o renderer com a thread da
+  GPU ainda desenhando cairia assim) ou para um device compartilhado entre testes. Próximo passo: guardar o log do
+  testhost / `--blame-crash` (curto, apagando o dump) na próxima vez que acontecer e ver qual teste estava rodando.
 - [x] Minecraft (PCSE00491) no Android fica mais lento com o tempo: duplicado (15/11/2026), junto no item "Minecraft
   (PCSE00491) fica lento jogando no celular" da seção Android. Nota que só estava aqui: no desktop o UC passou 18 s em
   sceAvcdecDeleteDecoder na tela de título com o main num PC só (f1567), a conferir
