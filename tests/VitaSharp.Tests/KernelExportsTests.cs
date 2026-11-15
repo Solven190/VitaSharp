@@ -302,20 +302,20 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
 
             // interrupt masking nests: suspend returns the previous state, resume puts it back
             Assert.Equal(0, Call(Sysmem, "ksceKernelCpuSuspendIntr"));
-            Assert.Equal(0x80, Call(Sysmem, "ksceKernelCpuDisableInterrupts"));
-            Invoke(Sysmem, "ksceKernelCpuEnableInterrupts", 0x80);
+            Assert.Equal(0x80, Call(Sysmem, "ksceKernelCpuSuspendIntr"));
+            Call(Sysmem, "ksceKernelCpuResumeIntr", 0x80);
             Assert.Equal(0x80, Call(Sysmem, "ksceKernelCpuSuspendIntr"));
             Call(Sysmem, "ksceKernelCpuResumeIntr", 0);
             Assert.Equal(0, Call(Sysmem, "ksceKernelCpuSuspendIntr"));
             Call(Sysmem, "ksceKernelCpuResumeIntr", 0);
 
-            // spinlocks: the word holds the holder, 0 when free
+            // the write lock of a reader-writer spinlock holds 0x80000000, 0 when free
             uint lockWord = _harness.Alloc(4);
-            Assert.Equal(0, Call(Sysmem, "ksceKernelCpuLockSuspendIntrStoreFlag", lockWord));
-            Assert.Equal(1u, GuestMemory.R32(lockWord));
-            Invoke(Sysmem, "ksceKernelCpuUnlockResumeIntrStoreFlag", lockWord, 0);
+            Assert.Equal(0, Call(Sysmem, "ksceKernelRWSpinlockLowWriteLockCpuSuspendIntr", lockWord));
+            Assert.Equal(0x80000000u, GuestMemory.R32(lockWord));
+            Invoke(Sysmem, "ksceKernelRWSpinlockLowWriteUnlockCpuResumeIntr", lockWord, 0);
             Assert.Equal(0u, GuestMemory.R32(lockWord));
-            Assert.Equal(SceError.ILLEGAL_ADDR, Call(Sysmem, "ksceKernelCpuLockSuspendIntrStoreFlag", 0u));
+            Assert.Throws<GuestFaultException>(() => Call(Sysmem, "ksceKernelRWSpinlockLowWriteLockCpuSuspendIntr", 0u));
         });
     }
 
@@ -332,9 +332,9 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
                 t.Core.State->R[14] = 0x81001235;
             }
 
-            Invoke(Sysmem, "ksceKernelCpuLockStoreLR", t.Hle);
+            Invoke(Sysmem, "ksceKernelSpinlockLowLock", t.Hle);
             Assert.Equal(0x81001235u, GuestMemory.R32(lockWord));
-            Invoke(Sysmem, "ksceKernelCpuUnlockStoreLR", lockWord);
+            Invoke(Sysmem, "ksceKernelSpinlockLowUnlock", lockWord);
             Assert.Equal(0u, GuestMemory.R32(lockWord));
         });
     }

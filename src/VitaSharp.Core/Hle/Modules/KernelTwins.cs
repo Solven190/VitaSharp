@@ -371,6 +371,11 @@ public sealed partial class KernelTwins : HleModule
 
     // ------------------------------------------------------------------ SceCpuForDriver
 
+    /// <summary>ksceKernelCpuId (SceCpuForDriver 0x5E4D5DE1): sceKernelGetCpuId (one function in FW 3.74, exported
+    /// under both NIDs).</summary>
+    [Hle]
+    void ksceKernelCpuId(HleContext context) => Forward(context, 0x2704CFEE);
+
     /// <summary>ksceKernelCpuAtomicAddAndGet16 (SceCpuForDriver 0x59F74E94): sceKernelAtomicAddAndGet16.</summary>
     [Hle]
     void ksceKernelCpuAtomicAddAndGet16(HleContext context) => Forward(context, 0x495C52EC);
