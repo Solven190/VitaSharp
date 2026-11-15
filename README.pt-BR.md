@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=55412c948fd0473978880cb8e963952a930353c8b954a2c2fc54130198884bcd -->
+<!-- pair: README.md sha256=b6ee9bde7d19e66047e45857bf1f7cff4f31a1f5ecf75042d2c3d3e99d900321 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -284,7 +284,8 @@ Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os
 conectado), e um teclado físico usa as teclas do desktop. **Controles** remapeia os botões de cada controle (toque
 no controle da lista e aperte o botão no controle; **Restaurar padrão** volta ao padrão) e ajusta a troca O/X, zona morta, opacidade,
 vibração (a cada toque, também com o outro dedo no analógico; fraca, média ou forte) e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
-**Ajustes > Câmeras** escolhe o que cada câmera do Vita mostra, como as opções de câmera do desktop: a câmera do
+**Ajustes > Sistema > Ao abrir o emulador** pode dar boot no Sistema do Vita (o shell do firmware) ao abrir o app,
+como no desktop. **Ajustes > Câmeras** escolhe o que cada câmera do Vita mostra, como as opções de câmera do desktop: a câmera do
 celular daquele lado (o padrão), uma imagem PNG/JPEG ou nenhuma (quadros cinza).
 
 **Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:

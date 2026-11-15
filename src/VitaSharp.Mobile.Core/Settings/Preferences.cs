@@ -62,6 +62,9 @@ public sealed class AppPreferences
     public string CameraFront { get; set; } = "";
     /// <summary>"Camera traseira": the same for the Vita's back camera (--camera-back=; "" = the phone's back camera).</summary>
     public string CameraBack { get; set; } = "";
+    /// <summary>"Ao abrir o emulador": "library" (the default) or "system" (the shell boots when the app opens), the
+    /// desktop launcher's option (<see cref="StartupViews"/>).</summary>
+    public string StartupView { get; set; } = StartupViews.Library;
     /// <summary>"Som de trofeu": a chime with the in-game trophy notification (the firmware's notice sound, else a
     /// built-in one; same as the desktop launcher's option, --trophy-sound=).</summary>
     public bool TrophySound { get; set; } = true;

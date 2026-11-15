@@ -39,7 +39,14 @@ public sealed class MainActivity : MauiAppCompatActivity
 #if VITASHARP_DEVELOPER
         Developer.UiScript.Start(this);
 #endif
-        LaunchRequestedGame(Intent);
+        bool gameRequested = LaunchRequestedGame(Intent);
+        // "Ao abrir o emulador: Sistema do Vita": the firmware's shell boots, like turning the console on
+        bool shellInstalled = File.Exists(System.IO.Path.Combine(AppServices.Data.Fs, "vs0", "vsh", "shell", "shell.self"));
+        if (Mobile.Core.Settings.StartupViews.OpensSystem(AppServices.Prefs.StartupView, shellInstalled, savedInstanceState != null, gameRequested))
+        {
+            Core.Util.Log.Info("Startup view: Sistema do Vita");
+            Game.GameActivity.Launch(this, Game.GameActivity.SystemTitleId);
+        }
     }
 
     /// <summary>
@@ -95,8 +102,9 @@ public sealed class MainActivity : MauiAppCompatActivity
     /// A launcher intent with a "titleId" extra starts that game directly (home-screen shortcuts, and testing on a
     /// device: <c>adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p io.github.vitasharp
     /// --es titleId PCSB01240</c>; <c>--ei loadSlot 4</c> opens it already in save state slot 4).
+    /// Returns whether a game (or the developer bench) was started.
     /// </summary>
-    void LaunchRequestedGame(Intent? intent)
+    bool LaunchRequestedGame(Intent? intent)
     {
 #if VITASHARP_DEVELOPER
         // developer APK: a "bench" extra runs the GPU bench (Developer/BenchActivity) instead
@@ -104,18 +112,22 @@ public sealed class MainActivity : MauiAppCompatActivity
         {
             intent.RemoveExtra(Developer.BenchActivity.ExtraBench);
             Developer.BenchActivity.Launch(this, bench);
-            return;
+            return true;
         }
 #endif
 
         if (intent?.GetStringExtra(Game.GameActivity.ExtraTitleId) is not { Length: > 0 } titleId)
-            return;
+        {
+            return false;
+        }
+
         intent.RemoveExtra(Game.GameActivity.ExtraTitleId);
         // --ei loadSlot N: the game opens already in that save state, as a slot tapped on the game page
         int loadSlot = Mobile.Core.Library.GameStates.LaunchSlot(intent.GetIntExtra(Game.GameActivity.ExtraLoadSlot, 0));
         intent.RemoveExtra(Game.GameActivity.ExtraLoadSlot);
         Core.Util.Log.Info(loadSlot > 0 ? $"Launch intent: starting {titleId} in save state slot {loadSlot}" : $"Launch intent: starting {titleId}");
         Game.GameActivity.Launch(this, titleId, wakeScreen: true, loadSlot: loadSlot);
+        return true;
     }
 
     protected override void OnResume()

@@ -644,8 +644,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   num slot na página do jogo); fonte de cada câmera em Ajustes > Câmeras (aparelho, imagem fixa copiada para
   `<data>/camera`, nenhuma), com a regra do desktop em `FacingCameras.FromSettings` (feat/android-camera-source,
   `AndroidCameraSourceTests`; falta confirmar no celular num jogo com câmera); resolução interna 3x e 4x por jogo,
-  as do desktop (feat/android-res-3x4x, `AndroidOptionParityTests`). Falta: tela inicial do Sistema (tema, música,
-  sons, abrir em Biblioteca/Sistema, clique no jogo: jogar/LiveArea)
+  as do desktop (feat/android-res-3x4x, `AndroidOptionParityTests`); "Ao abrir o emulador" (Biblioteca ou Sistema do
+  Vita, que dá boot no shell.self ao abrir o app; feat/android-startup-view). Tema, música e sons da Home e o
+  "clique no jogo: LiveArea" não vão para o Android: no desktop são da tela inicial recriada, e no Sistema do Vita
+  real são ajustes do próprio firmware (Configurações > Tema e plano de fundo, Som)
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
   "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
   (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua

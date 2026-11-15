@@ -71,7 +71,11 @@ public sealed class SettingsView : Screen<SettingsState>
                             Game.GameActivity.Launch(MainActivity.Current!, Game.GameActivity.SystemTitleId);
                         else
                             Navigation?.PushAsync<FirmwarePage>();
-                    }, detail: Loc.Get("MShellDetail"))
+                    }, detail: Loc.Get("MShellDetail")),
+                    Divider(),
+                    Row(Loc.Get("StartupView"), SettingsChoices.LabelOf(StartupViews.Choices, p.StartupView),
+                        () => Pick(Loc.Get("StartupView"), StartupViews.Choices, v => p.StartupView = v),
+                        detail: Loc.Get("StartupViewDetail"))
                 ),
                 SectionTitle(Loc.Get("MCameras")),
                 Card(
