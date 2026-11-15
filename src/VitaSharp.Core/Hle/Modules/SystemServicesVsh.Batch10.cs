@@ -143,11 +143,11 @@ public sealed partial class SystemServicesVsh
     /// <summary>(SceUID *pid): the process woken by Wake-on-WLAN: none.</summary>
     [Hle] int sceWlanGetWakeOnTargetProcess(uint pid) { if (pid != 0) GuestMemory.W32(pid, 0); return 0; }
     [Hle] int sceUsbdUnregisterCallback(int id) => 0;
-    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlUnregisterBdRMCCallback(int cb) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceCtrlUnregisterBdRMCCallback(int cb) => 0;
     /// <summary>(int port): disconnects an external controller (PS TV); none is connected on the handheld.</summary>
-    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlDisconnect(int port) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceCtrlDisconnect(int port) => 0;
     /// <summary>(SceUID pid, uint *status): the controller-related state of a process (nothing intercepted: 0).</summary>
-    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlGetProcessStatus(int pid, uint status) { if (status == 0) return KERNEL_ERR_ILLEGAL_ADDR; GuestMemory.W32(status, 0); return 0; }
+    [Hle(Cost = HleCost.KernelEntry)] int sceCtrlGetProcessStatus(int pid, uint status) { if (status == 0) return KERNEL_ERR_ILLEGAL_ADDR; GuestMemory.W32(status, 0); return 0; }
     /// <summary>(int handle): clears the input buffer of a keyboard: no keyboard, nothing buffered.</summary>
     [Hle] int sceHidKeyboardClear(int handle) => 0;
     /// <summary>(SceUID callback, SceUID event): undoes sceKernelRegisterCallbackToEvent (and the All form, every

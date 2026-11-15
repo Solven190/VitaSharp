@@ -105,10 +105,10 @@ public sealed partial class SystemServicesVsh : HleModule
     [Hle] int sceHidKeyboardRegisterEnumHintCallback(int cb) => 0;
     [Hle] int sceHidKeyboardRegisterReadHintCallback(int cb) => 0;
     /// <summary>(SceUID cb): BD remote control events (PS TV); the handheld has none.</summary>
-    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlRegisterBdRMCCallback(int cb) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceCtrlRegisterBdRMCCallback(int cb) => 0;
     /// <summary>(const void *info): the accessibility button assignment from /CONFIG/ACCESSIBILITY/button_assign (or
     /// NULL for none). The host's own input mapping already decides which button is which.</summary>
-    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlSetButtonRemappingInfo(uint info) => 0;
+    [Hle(Cost = HleCost.KernelEntry)] int sceCtrlSetButtonRemappingInfo(uint info) => 0;
 
     // ------------------------------------------------------------------ SceRegMgrService (os0:kd registry manager)
 
