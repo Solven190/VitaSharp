@@ -14,6 +14,24 @@ public sealed partial class Mp4
         public string? HostPath;
     }
 
+    /// <summary>The bytes of the open movies spooled from the game's callbacks, written back on load before
+    /// <see cref="LoadExtra"/> reopens them (a field: loaded before the hand-written part).</summary>
+    [SnapshotMissing] // states of builds before it kept no movie bytes: they load as before
+    readonly SpooledMovieBytes _spooledMovies;
+
+    public Mp4()
+    {
+        _spooledMovies = new SpooledMovieBytes(OpenHostPaths);
+    }
+
+    IEnumerable<string?> OpenHostPaths()
+    {
+        lock (_files)
+        {
+            return _files.Values.Select(f => f.HostPath).ToList();
+        }
+    }
+
     void SaveExtra(SnapshotWriter w)
     {
         lock (_files)

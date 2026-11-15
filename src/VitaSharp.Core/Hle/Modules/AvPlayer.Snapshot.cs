@@ -9,6 +9,24 @@ namespace VitaSharp.Core.Hle.Modules;
 [GenerateSnapshot]
 public sealed partial class AvPlayer
 {
+    /// <summary>The bytes of the movies spooled from the game's callbacks, written back on load before
+    /// <see cref="AfterSnapshotLoad"/> reopens them.</summary>
+    [SnapshotMissing] // states of builds before it kept no movie bytes: they load as before
+    readonly SpooledMovieBytes _spooledMovies;
+
+    public AvPlayer()
+    {
+        _spooledMovies = new SpooledMovieBytes(OpenSourcePaths);
+    }
+
+    IEnumerable<string?> OpenSourcePaths()
+    {
+        lock (_players)
+        {
+            return _players.Values.Select(p => (string?)p.SourcePath).ToList();
+        }
+    }
+
     [GenerateSnapshot, SnapshotIgnoreFields("Media", "Clock", "LastFrame")]
     sealed partial class Player
     {

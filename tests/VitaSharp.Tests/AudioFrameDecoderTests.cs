@@ -8,6 +8,7 @@ namespace VitaSharp.Tests;
 /// one full frame of PCM per compressed frame (1152/576 samples for MP3, 1024 for AAC), the counts Android's MediaCodec
 /// decoder reproduces; and SceMp4's demuxer hook (<see cref="Mp4Demuxers"/>).
 /// </summary>
+[Collection("guest")] // with the other users of the static Mp4Demuxers.Backend hook (SpooledMovieStateTests)
 public sealed class AudioFrameDecoderTests(ITestOutputHelper output)
 {
     private static readonly byte[] s_mp3Mpeg1 = Mp3Frame(0xFB, 0x90, 0x00, 417);   // MPEG-1 layer III, 128 kbit/s, 44.1 kHz, stereo

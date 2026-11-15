@@ -146,6 +146,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   do controle) falha com "thread 'AudioOutput' did not stop (in ); restart the game" (09/11/2026, main 9f21653, APK
   CoreCLR; log `lab\f1_clr1\clr_0\last.log` no scratchpad do agente); em 60 s carrega e roda. O roteiro de medida
   (`build/android-perf-run.sh`) carrega o F1 em 60 s por isso.
+  Causa e correção (15/11/2026, bugB): o load pausa a emulação (o stream de áudio do Android pausa e o dispositivo
+  para de consumir) e depois para as threads do guest; a thread de áudio presa no `BufferedPcmStream.Submit` com o
+  buffer cheio esperava o Resume para sempre e ignorava o pedido de parada (o OpenAL do PC já checava, por isso não
+  reproduz no PC). Agora o grão é descartado quando a thread recebe o stop
+  (`AndroidMediaDriverTests.SubmitWaitingWhilePausedReturnsWhenItsThreadIsStopped`). Falta confirmar no celular.
 - [x] Save states mais visuais, no estilo do PCSX2 (pedido do usuário, 06/11/2026): uma tela de estados por cima do
   jogo pausado (desktop e Android), com uma grade/lista de slots, cada um com o print da tela no momento do
   salvamento, data e hora, tempo de jogo e a versão do VitaSharp; slot vazio identificado. Ações: salvar no slot
@@ -2277,6 +2282,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer
   param). O estado tem que ser autossuficiente: guardar o que precisa do filme (ou a referência ao arquivo do jogo que
   originou o filme) e reabrir dele. Teste: salvar com um filme aberto, apagar o temporário, carregar e seguir.
+  Correção feita (15/11/2026, bugB): o estado guarda os bytes dos filmes que o emulador copiou para o temporário
+  (SceMp4 e SceAvPlayer, `TempMovies.ReadForState`; os arquivos do próprio jogo continuam só pelo caminho) e o load
+  grava de novo o temporário no mesmo caminho quando ele sumiu; estados de antes continuam carregando
+  (`SpooledMovieStateTests`). Falta confirmar no Wipeout.
 - [ ] [P2][M] Travada de 0,3 a 1,4 s sob carga na fila de exibição (achado do agente P1, 13/11/2026, Wipeout na corrida): a
   thread da fila de exibição espera a fence da GPU enquanto o worker da GPU espera o buffer ser liberado; só o limite
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
@@ -2343,7 +2352,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   X11/Wayland/macOS não têm o estado "ativa e minimizada" (ativar mapeia/desminiaturiza). O log agora mostra
   estado/foco/framebuffer da janela e os resultados do acquire/present. Correção feita e conferida no repro
   (SwitchToThisWindow e Alt+Tab de verdade voltam à tela cheia, swapchain 1920x1080 recriada, foco de volta); falta a
-  confirmação do usuário no jogo.
+  confirmação do usuário no jogo. Corrigido em 34c0a021 (`FullscreenRestoreTests`), falta o usuário confirmar.
 - [x] Trocar entre o modo claro e o modo escuro demora muito (relato do usuário, 11/11/2026). Medir quanto leva a
   troca e onde o tempo vai (recriar a interface inteira, recarregar recursos/ícones/capas, refazer o layout da
   biblioteca) e fazer a troca só reaplicar as cores. Conferir no launcher do Desktop e no app Android.
