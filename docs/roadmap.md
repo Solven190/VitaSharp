@@ -2353,8 +2353,125 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   9 deixa arquivos com estilo próprio como estão até serem convertidos, e fazer num momento sem outros branches abertos
   (o diff toca quase todos os arquivos); `dotnet format` + analisadores no CI para não voltar
 
+## Corrigido, falta o usuário testar
+
+Itens com correção já na `main` que esperam só a confirmação do usuário no jogo/tela do relato; quem fecha (`[x]`) é o
+usuário. Se o teste falhar, o item volta para "Bugs em aberto".
+
+- [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
+  avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
+  congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer
+  param). O estado tem que ser autossuficiente: guardar o que precisa do filme (ou a referência ao arquivo do jogo que
+  originou o filme) e reabrir dele. Teste: salvar com um filme aberto, apagar o temporário, carregar e seguir.
+  Correção feita (15/11/2026, bugB): o estado guarda os bytes dos filmes que o emulador copiou para o temporário
+  (SceMp4 e SceAvPlayer, `TempMovies.ReadForState`; os arquivos do próprio jogo continuam só pelo caminho) e o load
+  grava de novo o temporário no mesmo caminho quando ele sumiu; estados de antes continuam carregando
+  (`SpooledMovieStateTests`). Falta confirmar no Wipeout.
+  Correção: a8d3e7e3 (15/11/2026). Teste: Wipeout, salvar o estado com o filme da corrida aberto, fechar o jogo, carregar.
+- [ ] [P1][M] PSM: o shell não enxerga a atualização 2.01 do runtime (relato do usuário, 12/11/2026, captura
+  `shell_20261112_030858_tudo`). Instalada em `ux0:patch/PCSI00011` (`runtime_version.txt` 2.01; o `ux0:app`
+  continua 1.00), mas ao tocar no Cave Squid (NPOA00239, PSM) o shell ainda pede a atualização do runtime e falha
+  no download (NW-8941-2, offline). Estudar como o firmware obtém a versão instalada do runtime (entrada do app.db
+  atualizada pelo promote/reconstrução ou leitura de arquivo; sobreposição de ux0:patch nas leituras de ux0:app) e
+  como o console instala uma atualização do PCSI00011 (ux0:patch ou substituição em ux0:app); corrigir com teste e
+  confirmar que o Cave Squid passa a abrir o runtime.
+  Em andamento (fix/system-bugs-13, B3). Como o console faz (FW 3.74 shell.self e appmgr, só estudo): o shell lê a
+  versão instalada do runtime da chave APP_VER (0xBCD7161E) do app.db do PCSI00011 (a do ux0:patch, 02.01: essa parte
+  já estava certa) e a compara com o runtime_version do app.info do título; o Cave Squid é um título Unity
+  (runtime_version 4.03, o runtime dele vem no pacote) e para esses o shell não usa o PCSI00011: o promote move o
+  "contents/runtime" do pacote para ux0:psm/<id>/runtime (fora do RO), guarda a licença dele (sce_sys/package/temp.bin)
+  em ux0:license/app/<id>, e o shell registra o título como categoria "mba" só quando ux0:psm/<id>/runtime/
+  sce_sys/param.sfo existe; sem isso o título vira "mb" e o shell exige PCSI00011 >= 4.03, que não existe (o pedido de
+  atualização). Causa: o instalador de PSM deixava o runtime em RO/runtime. Correção: o instalador põe o runtime onde
+  o promote põe e guarda a licença; uma migração move os já instalados (RO/runtime -> runtime) e faz o shell
+  reconstruir a base. Prova (cópia dos dados, `b3_out/shots4`): o Cave Squid não pede mais a atualização, e o shell
+  roda `ux0:psm/NPOA00239/runtime/eboot.bin` com o parâmetro "ux0:psm/NPOA00239". Falta: o runtime Unity (PCSI00010)
+  continua cifrado em PFS ("Not a SELF/ELF"): a licença dele (temp.bin, a mesma que todo título Unity traz, a
+  6488b73b...rif do NoPsmDrm) não tem a klicensee em claro, e a decifração de PFS do VitaSharp não acha nenhum arquivo
+  com ela; estudar como o NpDrm do console decifra a chave dessa licença (tipo 0xD, sem conta) antes de rodar o runtime.
+  Estudo feito (fix/app-launch-13, B5): o formato do PFS do runtime é o de jogo comum (files.db versão 4, image_spec 1
+  = gamedata, key_id 0, files_salt presente; unicv.db SCEIFTBL versão 1, sem dbseed), que o PfsDecryptor já cobre; o
+  que falta é a klicensee. A licença é genuína (aid 0, flags 0x000D, assinaturas ECDSA e RSA presentes, não é a
+  FAKE_AID 0x0123456789ABCDEF do NoNpDrm): a chave de +0x50 é cifrada. No FW 3.74 (SceNpDrm, ksceNpDrmGetRifVitaKey,
+  NID 0x723322B5) uma licença com flags 0xD não usa o act.dat: o módulo monta um pedido de 0x90 bytes (um bloco fixo de
+  0x20 bytes do próprio npdrm + os 0x70 primeiros bytes da licença) e chama ksceSblAuthMgrDecBindData (0x41DAEA12) sobre
+  a key2 (+0xA0); a decifração acontece no processador de segurança (F00D), com uma chave que não está em nenhum arquivo
+  do firmware nem nas chaves públicas que o VitaSharp usa. As licenças de conta (flags != 0xD) usam o act.dat do console
+  (tm0:npdrm/act.dat) e o mesmo serviço. Sem emular esse serviço do F00D não há como chegar à klicensee de uma licença
+  genuína; nada de contorno (NoNpDrm/NoPsmDrm). Além disso, a licença PSM do próprio título
+  (RO/License/6488b73b...rif) foi feita pelo NoPsmDrm (id de conta fixo do NoPsmDrm, área de assinatura vazia): o
+  conteúdo do jogo não tem licença genuína aqui, então este título fica parado (sem trabalho de PFS para ele). O VitaSharp trata a chave de +0x50 como klicensee em claro, o que só
+  vale para licenças do formato NoNpDrm. A falha agora aparece como no console: o shell mostra "Ocorreu um erro
+  (C1-2614-3)" (0x80025002) e volta ao LiveArea, em vez de ficar na tela "Powered by Unity".
+  Revalidação do modelo de atualização (appmgr): a pasta de atualização de um app do cartão é grw0:patch/<id> (o
+  VitaSharp usava sempre ux0:patch) e os apps do firmware (vs0) não recebem nenhuma; o param.sfo da atualização vale
+  por cima do app (APP_VER de sceAppUtilAppParamGetString, título, save state), e a Biblioteca mostra a versão e o
+  ícone da atualização; corrigidos com teste (`UpdateModelTests`).
+  Correção: 3b680a55 em 14c6f72d (12/11/2026). Teste: tocar no Cave Squid; não pede mais a atualização (o erro C1-2614-3 de licença é esperado e fica fora do escopo).
+- [ ] [P1][M] Desktop (Windows): em tela cheia, depois de tirar o foco do jogo (ir para outro aplicativo), não dá para
+  voltar: o Windows toca o som de erro e a janela do jogo não volta; só fechando o jogo (relato do usuário,
+  12/11/2026, "ainda está acontecendo"; ver o item de 04/11 do F11). Estudar o comportamento do GLFW em tela cheia
+  ao perder o foco (auto-iconify), as regras de ativação do Windows (janela desabilitada ou dona) e a perda do
+  swapchain; corrigir para Windows, Linux e macOS, com teste que falha antes.
+  Causa (fix/fullscreen-focus, reproduzido neste PC com o título sintético): o GLFW minimiza a janela em tela cheia
+  quando ela perde o foco (GLFW_AUTO_ICONIFY, ligado por padrão) e só a restaura no WM_SIZE/SIZE_RESTORED; o Alt+Tab
+  (e o SwitchToThisWindow que o Windows usa) ativou a janela minimizada **sem restaurá-la**: ficou IsIconic e em
+  primeiro plano, swapchain 0x0. Nesse estado o clique na barra de tarefas (na janela ativa) só minimiza de novo e
+  as teclas vão para a janela minimizada como WM_SYSKEYDOWN/WM_SYSCHAR, que o DefWindowProc responde com o bipe
+  padrão (o "ding"). Não era janela desabilitada nem dona (o launcher é outro processo; IsWindowEnabled verdadeiro,
+  sem dono) nem a swapchain (ela volta a 1920x1080 assim que a janela é restaurada). Correção: o laço da janela
+  (100 Hz) restaura a janela em tela cheia que o Windows ativou minimizada (`WindowHost.FullscreenNeedsRestore`);
+  X11/Wayland/macOS não têm o estado "ativa e minimizada" (ativar mapeia/desminiaturiza). O log agora mostra
+  estado/foco/framebuffer da janela e os resultados do acquire/present. Correção feita e conferida no repro
+  (SwitchToThisWindow e Alt+Tab de verdade voltam à tela cheia, swapchain 1920x1080 recriada, foco de volta); falta a
+  confirmação do usuário no jogo. Corrigido em 34c0a021 (`FullscreenRestoreTests`), falta o usuário confirmar.
+  Correção: 34c0a021 (12/11/2026). Teste: jogo em tela cheia (F11), Alt+Tab para outro aplicativo e voltar por Alt+Tab e pela barra de tarefas; volta em tela cheia, sem som de erro.
+- [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), novo relato (11/11/2026, build 2e7789b2): "várias texturas zuadas,
+  a tela do PC fica na frente do personagem, texturas popando". Captura `PCSE00020_20261111_224104_tudo` (dump da GPU
+  de 383 quadros; log: alvo 0x60E0CA00 amostrado enquanto é desenhado, cena sem superfície de cor, texturas P8;
+  findings [flash] e [picture-order]). Três sintomas: texturas decodificadas erradas, profundidade/ordem (tela do PC
+  na frente do personagem) e texturas aparecendo tarde ou mudando de um quadro para o outro. Continua o item abaixo.
+  - **Tela do PC na frente do personagem: correção feita (fix/mgs-gfx), validada no replay e no jogo rodando.** Os
+    monitores (e vidros/hélices) são desenhados na cena 4X 360x224 com teste GREATER_EQUAL contra a profundidade que
+    ela carrega da cena de 1 amostra 768x480; `SeedLoadedDepth` só copiava entre imagens com o mesmo número de
+    amostras. Agora os texels são empacotados nas amostras (`PackDepthSamples`, um desenho por amostra com máscara).
+    Replay do dump 224104: cabeças na frente dos monitores como no vídeo do Vita (GaPPb3zatq0, "Arm main parachute");
+    jogo rodando a partir do `state_start.vss`: idem. Teste `RendererSurfaceReuseTests` (falha sem a correção).
+  - **Fantasmas/efeitos atrasados ("texturas popando"): correção feita, validada no replay e no jogo rodando.** O
+    atlas 1024x512 de bloom/DOF em 0x60E0CA00 substitui a cada quadro o alvo 360x224 no mesmo endereço e começava da
+    memória do guest (um quadro ou mais atrasada): depois de um corte de câmera aparecia o capacete do plano anterior
+    por cima, e o texto do monitor ficava fantasma sobre a cabeça. Agora o alvo novo copia os pixels do substituído
+    (mesmo stride/formato/escala, CPU não escreveu depois). Teste no mesmo arquivo (falha sem a correção).
+  - **Cunhas vermelhas/azuis de um quadro ([flash]): correção feita (fix/mgs-wedges-2), validada no replay e no jogo
+    rodando.** Não eram vértices nem uniforms errados: no dump 224104 (quadro 3257) os dados de todos os desenhos estão
+    certos na GPU (cópias lidas de volta iguais), e com o id do desenho por pixel (`VITASHARP_DEBUG_TEX0=id`) a faixa da
+    esquerda mostra os desenhos 7/9 do começo da cena no lugar dos 66/72 que a cobrem: desenhos posteriores da cena
+    somem numa faixa por um quadro. Depende do tempo da GPU e de onde os dados caem no anel de upload (alinhar 256
+    bytes a mais no desenho 87 limpa, 16 ou 4096 piora), some com `VITASHARP_SCENE_BREAKS=strict` e não depende do
+    hoisting (`NOHOIST`), da fusão de renderings, de barreiras entre renderings nem de cache de conjuntos; a validação
+    (core e sincronização) não acusa nada. É o caminho que grava as renderings de 1 amostra em command buffers
+    secundários (adiadas e começadas no fim) em GPU desktop com dynamic rendering (GTX 1650): gravadas direto no
+    primário saem certas em todas as execuções. Correção: GPU desktop começa as renderings direto (como antes de
+    29751f94); tiler e caminho de render pass continuam adiando; `VITASHARP_SCENE_BREAKS=defer` volta o comportamento
+    antigo para A/B. Por que o secundário perde a faixa no driver da NVIDIA ficou sem explicação (sem VUID nem SYNC):
+    se outra GPU desktop mostrar faltas parecidas, comparar com `=defer`. Replay do quadro 3257: faixa vermelha
+    (2306 px) em 3 de 3 execuções da main, 0 em 3 com a correção. Jogo rodando (estado da 224104 com `@f2`, 300 quadros, 5 execuções de
+    cada, alternadas): cunhas vermelhas 0 nas 5 (com `=defer`: 1, 2, 4, 1, 1); flashes 0/5/0/7/2 contra 10/9/7/9/11;
+    fps mediana 30 nos dois. Teste `SceneBreakPolicyTests`.
+  - **VUID-vkCmdDrawIndexed-None-08114: correção feita.** O conjunto 0 não escrevia o binding 0 (UniformData) quando o
+    desenho não tem dados de uniform de vértice, mas programas com todos os slots divididos (9078D650) o declaram;
+    agora todo binding de um conjunto novo é escrito (o buffer dummy onde não há dados). Teste `UniformSetWritesTests`.
+  Correção: ea4910da + 2f785aca (11/11/2026, tela do PC na frente e fantasma do bloom), 69cc05b5 + 0ba2934c (12/11/2026, cunhas = texturas zuadas) e 3a978652 (12/11/2026, quadros alternados). Teste: MGS2/MGS3 no PC, nas cenas das capturas de 11/11 (PCSE00020_20261111_224104_tudo): monitores atrás da cabeça, sem capacete/texto fantasma, sem cunhas vermelhas/azuis. O escurecimento de 1 quadro só com --msaa=native fica em "Bugs em aberto".
+
 ## Bugs em aberto
 
+- [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), subitem que sobrou do relato de 11/11/2026 (o resto está em "Corrigido, falta o usuário testar"):
+  - **Ainda aberto: escurecimento de um quadro (cabeça do tripulante e bloom, flashes 2752-2778 da captura
+    010709; são os flashes que sobram com a correção acima).** No replay do dump 010709 (quadros 2740-2790) aparecem
+    quedas de um quadro em posições diferentes a cada execução, só com `--msaa=native` (3 de 5 execuções); com
+    `--msaa=off` e `--msaa=ss` nenhuma em 5. As cenas MSAA nativas ainda são gravadas em secundários
+    (`BeginMsaaRendering`), como as de 1 amostra eram: provável mesma causa. Próximo: gravar a rendering MSAA direto
+    no primário em GPU desktop (ops de store/resolve escolhidos no começo) e medir com o mesmo replay.
 - [x] A pasta da opção "Ativar Plugins do Kernel" fica dentro do ur0:, em `ur0:kernel_plugins/config.txt` (no host
   `fs/ur0/kernel_plugins`, igual em Windows, Linux, macOS e Android). Antes ficava em `<dados>/kernel_plugins`, ao
   lado de `fs/` (bugA2, 15/11/2026). A leitura continua: `ur0:kernel_plugins/config.txt`, senão o `config.txt` de
@@ -2412,15 +2529,6 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   imagem PFS e não têm equivalente numa pasta do host. O limite de tamanho do save (1 MiB, ou 10 MiB) também não é
   conferido.
 
-- [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
-  avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
-  congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer
-  param). O estado tem que ser autossuficiente: guardar o que precisa do filme (ou a referência ao arquivo do jogo que
-  originou o filme) e reabrir dele. Teste: salvar com um filme aberto, apagar o temporário, carregar e seguir.
-  Correção feita (15/11/2026, bugB): o estado guarda os bytes dos filmes que o emulador copiou para o temporário
-  (SceMp4 e SceAvPlayer, `TempMovies.ReadForState`; os arquivos do próprio jogo continuam só pelo caminho) e o load
-  grava de novo o temporário no mesmo caminho quando ele sumiu; estados de antes continuam carregando
-  (`SpooledMovieStateTests`). Falta confirmar no Wipeout.
 - [ ] [P2][M] Travada de 0,3 a 1,4 s sob carga na fila de exibição (achado do agente P1, 13/11/2026, Wipeout na corrida): a
   thread da fila de exibição espera a fence da GPU enquanto o worker da GPU espera o buffer ser liberado; só o limite
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
@@ -2432,62 +2540,6 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (perf/desktop-24, não medido) deixaria ele como a única chamada bloqueante fora da classe. O que falta é calibrar a
   classe inteira (no Wipeout, `avPlayer VideoDec` paga ~4,7 M ciclos por quadro em `DelayThread(30)`) contra uma
   referência de hardware, com A/B em gameplay, sem quebrar o tempo que o Havok do Killzone mede.
-- [ ] [P1][M] PSM: o shell não enxerga a atualização 2.01 do runtime (relato do usuário, 12/11/2026, captura
-  `shell_20261112_030858_tudo`). Instalada em `ux0:patch/PCSI00011` (`runtime_version.txt` 2.01; o `ux0:app`
-  continua 1.00), mas ao tocar no Cave Squid (NPOA00239, PSM) o shell ainda pede a atualização do runtime e falha
-  no download (NW-8941-2, offline). Estudar como o firmware obtém a versão instalada do runtime (entrada do app.db
-  atualizada pelo promote/reconstrução ou leitura de arquivo; sobreposição de ux0:patch nas leituras de ux0:app) e
-  como o console instala uma atualização do PCSI00011 (ux0:patch ou substituição em ux0:app); corrigir com teste e
-  confirmar que o Cave Squid passa a abrir o runtime.
-  Em andamento (fix/system-bugs-13, B3). Como o console faz (FW 3.74 shell.self e appmgr, só estudo): o shell lê a
-  versão instalada do runtime da chave APP_VER (0xBCD7161E) do app.db do PCSI00011 (a do ux0:patch, 02.01: essa parte
-  já estava certa) e a compara com o runtime_version do app.info do título; o Cave Squid é um título Unity
-  (runtime_version 4.03, o runtime dele vem no pacote) e para esses o shell não usa o PCSI00011: o promote move o
-  "contents/runtime" do pacote para ux0:psm/<id>/runtime (fora do RO), guarda a licença dele (sce_sys/package/temp.bin)
-  em ux0:license/app/<id>, e o shell registra o título como categoria "mba" só quando ux0:psm/<id>/runtime/
-  sce_sys/param.sfo existe; sem isso o título vira "mb" e o shell exige PCSI00011 >= 4.03, que não existe (o pedido de
-  atualização). Causa: o instalador de PSM deixava o runtime em RO/runtime. Correção: o instalador põe o runtime onde
-  o promote põe e guarda a licença; uma migração move os já instalados (RO/runtime -> runtime) e faz o shell
-  reconstruir a base. Prova (cópia dos dados, `b3_out/shots4`): o Cave Squid não pede mais a atualização, e o shell
-  roda `ux0:psm/NPOA00239/runtime/eboot.bin` com o parâmetro "ux0:psm/NPOA00239". Falta: o runtime Unity (PCSI00010)
-  continua cifrado em PFS ("Not a SELF/ELF"): a licença dele (temp.bin, a mesma que todo título Unity traz, a
-  6488b73b...rif do NoPsmDrm) não tem a klicensee em claro, e a decifração de PFS do VitaSharp não acha nenhum arquivo
-  com ela; estudar como o NpDrm do console decifra a chave dessa licença (tipo 0xD, sem conta) antes de rodar o runtime.
-  Estudo feito (fix/app-launch-13, B5): o formato do PFS do runtime é o de jogo comum (files.db versão 4, image_spec 1
-  = gamedata, key_id 0, files_salt presente; unicv.db SCEIFTBL versão 1, sem dbseed), que o PfsDecryptor já cobre; o
-  que falta é a klicensee. A licença é genuína (aid 0, flags 0x000D, assinaturas ECDSA e RSA presentes, não é a
-  FAKE_AID 0x0123456789ABCDEF do NoNpDrm): a chave de +0x50 é cifrada. No FW 3.74 (SceNpDrm, ksceNpDrmGetRifVitaKey,
-  NID 0x723322B5) uma licença com flags 0xD não usa o act.dat: o módulo monta um pedido de 0x90 bytes (um bloco fixo de
-  0x20 bytes do próprio npdrm + os 0x70 primeiros bytes da licença) e chama ksceSblAuthMgrDecBindData (0x41DAEA12) sobre
-  a key2 (+0xA0); a decifração acontece no processador de segurança (F00D), com uma chave que não está em nenhum arquivo
-  do firmware nem nas chaves públicas que o VitaSharp usa. As licenças de conta (flags != 0xD) usam o act.dat do console
-  (tm0:npdrm/act.dat) e o mesmo serviço. Sem emular esse serviço do F00D não há como chegar à klicensee de uma licença
-  genuína; nada de contorno (NoNpDrm/NoPsmDrm). Além disso, a licença PSM do próprio título
-  (RO/License/6488b73b...rif) foi feita pelo NoPsmDrm (id de conta fixo do NoPsmDrm, área de assinatura vazia): o
-  conteúdo do jogo não tem licença genuína aqui, então este título fica parado (sem trabalho de PFS para ele). O VitaSharp trata a chave de +0x50 como klicensee em claro, o que só
-  vale para licenças do formato NoNpDrm. A falha agora aparece como no console: o shell mostra "Ocorreu um erro
-  (C1-2614-3)" (0x80025002) e volta ao LiveArea, em vez de ficar na tela "Powered by Unity".
-  Revalidação do modelo de atualização (appmgr): a pasta de atualização de um app do cartão é grw0:patch/<id> (o
-  VitaSharp usava sempre ux0:patch) e os apps do firmware (vs0) não recebem nenhuma; o param.sfo da atualização vale
-  por cima do app (APP_VER de sceAppUtilAppParamGetString, título, save state), e a Biblioteca mostra a versão e o
-  ícone da atualização; corrigidos com teste (`UpdateModelTests`).
-- [ ] [P1][M] Desktop (Windows): em tela cheia, depois de tirar o foco do jogo (ir para outro aplicativo), não dá para
-  voltar: o Windows toca o som de erro e a janela do jogo não volta; só fechando o jogo (relato do usuário,
-  12/11/2026, "ainda está acontecendo"; ver o item de 04/11 do F11). Estudar o comportamento do GLFW em tela cheia
-  ao perder o foco (auto-iconify), as regras de ativação do Windows (janela desabilitada ou dona) e a perda do
-  swapchain; corrigir para Windows, Linux e macOS, com teste que falha antes.
-  Causa (fix/fullscreen-focus, reproduzido neste PC com o título sintético): o GLFW minimiza a janela em tela cheia
-  quando ela perde o foco (GLFW_AUTO_ICONIFY, ligado por padrão) e só a restaura no WM_SIZE/SIZE_RESTORED; o Alt+Tab
-  (e o SwitchToThisWindow que o Windows usa) ativou a janela minimizada **sem restaurá-la**: ficou IsIconic e em
-  primeiro plano, swapchain 0x0. Nesse estado o clique na barra de tarefas (na janela ativa) só minimiza de novo e
-  as teclas vão para a janela minimizada como WM_SYSKEYDOWN/WM_SYSCHAR, que o DefWindowProc responde com o bipe
-  padrão (o "ding"). Não era janela desabilitada nem dona (o launcher é outro processo; IsWindowEnabled verdadeiro,
-  sem dono) nem a swapchain (ela volta a 1920x1080 assim que a janela é restaurada). Correção: o laço da janela
-  (100 Hz) restaura a janela em tela cheia que o Windows ativou minimizada (`WindowHost.FullscreenNeedsRestore`);
-  X11/Wayland/macOS não têm o estado "ativa e minimizada" (ativar mapeia/desminiaturiza). O log agora mostra
-  estado/foco/framebuffer da janela e os resultados do acquire/present. Correção feita e conferida no repro
-  (SwitchToThisWindow e Alt+Tab de verdade voltam à tela cheia, swapchain 1920x1080 recriada, foco de volta); falta a
-  confirmação do usuário no jogo. Corrigido em 34c0a021 (`FullscreenRestoreTests`), falta o usuário confirmar.
 - [x] Trocar entre o modo claro e o modo escuro demora muito (relato do usuário, 11/11/2026). Medir quanto leva a
   troca e onde o tempo vai (recriar a interface inteira, recarregar recursos/ícones/capas, refazer o layout da
   biblioteca) e fazer a troca só reaplicar as cores. Conferir no launcher do Desktop e no app Android.
@@ -2648,47 +2700,6 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   fila do host esvaziou) era alarme falso: uma saída depois de uma pausa maior que 4 grains (mínimo 250 ms) conta como
   "começo depois de pausa", sem aviso, e aparece no resumo da porta (agente snd1, fix/shell-audio)
 
-- [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), novo relato (11/11/2026, build 2e7789b2): "várias texturas zuadas,
-  a tela do PC fica na frente do personagem, texturas popando". Captura `PCSE00020_20261111_224104_tudo` (dump da GPU
-  de 383 quadros; log: alvo 0x60E0CA00 amostrado enquanto é desenhado, cena sem superfície de cor, texturas P8;
-  findings [flash] e [picture-order]). Três sintomas: texturas decodificadas erradas, profundidade/ordem (tela do PC
-  na frente do personagem) e texturas aparecendo tarde ou mudando de um quadro para o outro. Continua o item abaixo.
-  - **Tela do PC na frente do personagem: correção feita (fix/mgs-gfx), validada no replay e no jogo rodando.** Os
-    monitores (e vidros/hélices) são desenhados na cena 4X 360x224 com teste GREATER_EQUAL contra a profundidade que
-    ela carrega da cena de 1 amostra 768x480; `SeedLoadedDepth` só copiava entre imagens com o mesmo número de
-    amostras. Agora os texels são empacotados nas amostras (`PackDepthSamples`, um desenho por amostra com máscara).
-    Replay do dump 224104: cabeças na frente dos monitores como no vídeo do Vita (GaPPb3zatq0, "Arm main parachute");
-    jogo rodando a partir do `state_start.vss`: idem. Teste `RendererSurfaceReuseTests` (falha sem a correção).
-  - **Fantasmas/efeitos atrasados ("texturas popando"): correção feita, validada no replay e no jogo rodando.** O
-    atlas 1024x512 de bloom/DOF em 0x60E0CA00 substitui a cada quadro o alvo 360x224 no mesmo endereço e começava da
-    memória do guest (um quadro ou mais atrasada): depois de um corte de câmera aparecia o capacete do plano anterior
-    por cima, e o texto do monitor ficava fantasma sobre a cabeça. Agora o alvo novo copia os pixels do substituído
-    (mesmo stride/formato/escala, CPU não escreveu depois). Teste no mesmo arquivo (falha sem a correção).
-  - **Cunhas vermelhas/azuis de um quadro ([flash]): correção feita (fix/mgs-wedges-2), validada no replay e no jogo
-    rodando.** Não eram vértices nem uniforms errados: no dump 224104 (quadro 3257) os dados de todos os desenhos estão
-    certos na GPU (cópias lidas de volta iguais), e com o id do desenho por pixel (`VITASHARP_DEBUG_TEX0=id`) a faixa da
-    esquerda mostra os desenhos 7/9 do começo da cena no lugar dos 66/72 que a cobrem: desenhos posteriores da cena
-    somem numa faixa por um quadro. Depende do tempo da GPU e de onde os dados caem no anel de upload (alinhar 256
-    bytes a mais no desenho 87 limpa, 16 ou 4096 piora), some com `VITASHARP_SCENE_BREAKS=strict` e não depende do
-    hoisting (`NOHOIST`), da fusão de renderings, de barreiras entre renderings nem de cache de conjuntos; a validação
-    (core e sincronização) não acusa nada. É o caminho que grava as renderings de 1 amostra em command buffers
-    secundários (adiadas e começadas no fim) em GPU desktop com dynamic rendering (GTX 1650): gravadas direto no
-    primário saem certas em todas as execuções. Correção: GPU desktop começa as renderings direto (como antes de
-    29751f94); tiler e caminho de render pass continuam adiando; `VITASHARP_SCENE_BREAKS=defer` volta o comportamento
-    antigo para A/B. Por que o secundário perde a faixa no driver da NVIDIA ficou sem explicação (sem VUID nem SYNC):
-    se outra GPU desktop mostrar faltas parecidas, comparar com `=defer`. Replay do quadro 3257: faixa vermelha
-    (2306 px) em 3 de 3 execuções da main, 0 em 3 com a correção. Jogo rodando (estado da 224104 com `@f2`, 300 quadros, 5 execuções de
-    cada, alternadas): cunhas vermelhas 0 nas 5 (com `=defer`: 1, 2, 4, 1, 1); flashes 0/5/0/7/2 contra 10/9/7/9/11;
-    fps mediana 30 nos dois. Teste `SceneBreakPolicyTests`.
-  - **Ainda aberto: escurecimento de um quadro (cabeça do tripulante e bloom, flashes 2752-2778 da captura
-    010709; são os flashes que sobram com a correção acima).** No replay do dump 010709 (quadros 2740-2790) aparecem
-    quedas de um quadro em posições diferentes a cada execução, só com `--msaa=native` (3 de 5 execuções); com
-    `--msaa=off` e `--msaa=ss` nenhuma em 5. As cenas MSAA nativas ainda são gravadas em secundários
-    (`BeginMsaaRendering`), como as de 1 amostra eram: provável mesma causa. Próximo: gravar a rendering MSAA direto
-    no primário em GPU desktop (ops de store/resolve escolhidos no começo) e medir com o mesmo replay.
-  - **VUID-vkCmdDrawIndexed-None-08114: correção feita.** O conjunto 0 não escrevia o binding 0 (UniformData) quando o
-    desenho não tem dados de uniform de vértice, mas programas com todos os slots divididos (9078D650) o declaram;
-    agora todo binding de um conjunto novo é escrito (o buffer dummy onde não há dados). Teste `UniformSetWritesTests`.
 - [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), abertura do MGS3 dentro do avião (relato do usuário, 10/11/2026;
   `captures\PCSE00020_20261110_214209_tudo`, `_214218_tudo` com dump da GPU, `_214309_tudo` com a trava). Agente B
   (fix/bugs-b-7). Referência do Vita de verdade: YouTube GaPPb3zatq0 (longplay, 1:45-4:00).
