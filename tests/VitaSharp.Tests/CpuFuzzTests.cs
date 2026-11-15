@@ -327,8 +327,15 @@ public sealed unsafe class CpuFuzzTests(GuestMemoryFixture fixture, ITestOutputH
             // ---- unicorn
             try
             {
-                uc.Close();
-                uc = NewUnicorn(thumb); // fresh instance: QEMU caches translated code per address
+                // fresh instance: QEMU caches translated code per address. A replay of one fixed encoding keeps the same
+                // code at the same address, so its cached translation stays right and the instance is reused (a new
+                // one per iteration made Replay take 17 s for 1,600 runs)
+                if (fixedIns == null || it == 0)
+                {
+                    uc.Close();
+                    uc = NewUnicorn(thumb);
+                }
+
                 uc.MemWrite(CodeBase, code);
                 uc.MemWrite(DataBase, data);
                 uc.RegWrite(UcArm.UC_ARM_REG_CPSR, (long)(flags | 0x10 | (thumb ? 0x20u : 0)));
