@@ -3,7 +3,7 @@ using VitaSharp.Core.Input;
 namespace VitaSharp.Mobile.Core.Input;
 
 /// <summary>
-/// "Aperte um botão" of Controles > Mapeamento: the next button, trigger, D-pad direction or stick direction pressed
+/// The press of Controles > Mapeamento: the next button, trigger, D-pad direction or stick direction pressed
 /// on one controller, as the binding the controller profile stores. The Android key and motion events go through the
 /// same translation as in a game (<see cref="AndroidGamepads"/>, the standard gamepad layout), and the press is found
 /// by the desktop launcher's rule (<see cref="InputCapture.Detect"/> against the state when the capture started), so a

@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=aea0ba717873bb0c25a29b90f4c2026da642e3b0ae6acebbe6c1023cbcd6cf75 -->
+<!-- pair: README.md sha256=5d7a4d8639c8fe226c29697a58029d1b3d2437cea416a13457dfffefe71c38ce -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -277,7 +277,8 @@ permissão não é dada, e num celular com root, os dados ficam em `Android/data
 **Controles.** Controles translúcidos na tela, sobre as laterais da imagem (direcional, analógicos, botões de ação,
 L/R, SELECT/PS/START, um botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque frontal. Controles
 Bluetooth ou USB são detectados sozinhos com o layout posicional do desktop (os controles na tela somem enquanto um está
-conectado), e um teclado físico usa as teclas do desktop. **Controles** ajusta a troca O/X, zona morta, opacidade,
+conectado), e um teclado físico usa as teclas do desktop. **Controles** remapeia os botões de cada controle (toque
+no controle da lista e aperte o botão no controle; **Restaurar padrão** volta ao padrão) e ajusta a troca O/X, zona morta, opacidade,
 vibração (a cada toque, também com o outro dedo no analógico; fraca, média ou forte) e esconder sozinho. O giroscópio e o acelerômetro do celular alimentam o sensor de movimento do Vita.
 
 **Menu de pausa, save states e Gravar tudo.** O botão PS (na tela ou no controle) pausa um jogo iniciado sozinho:

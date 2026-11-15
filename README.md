@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=f5a3c135381babcc762941a829dffaf7805c86fb02660f17315b144eecbfb478 -->
+<!-- pair: README.pt-BR.md sha256=1c8b8af5b6733bfba4f5cd57b97ae7b0802828a859862608ddf70ca75c8790c1 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -272,7 +272,8 @@ given, and on a rooted phone, the data stays in `Android/data/io.github.vitashar
 **Controls.** Translucent on-screen controls over the sides of the picture (D-pad, sticks, face buttons, L/R,
 SELECT/PS/START, a TRÁS toggle for the rear touchpad); touches on the picture are the front touch screen. Bluetooth or
 USB controllers are detected on their own with the desktop's positional layout (the on-screen controls hide while one
-is connected), and a hardware keyboard uses the desktop's keys. **Controles** sets the O/X swap, deadzone, opacity,
+is connected), and a hardware keyboard uses the desktop's keys. **Controles** remaps each controller's buttons (tap a
+control, then press the button on the controller; **Restore defaults** goes back), and sets the O/X swap, deadzone, opacity,
 vibration (on every press, also with the other thumb on the stick; weak, medium or strong) and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
 
 **Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game

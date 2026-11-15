@@ -631,8 +631,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
   e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
   compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
-  dois (conferido no mesmo teste). Falta, nesta ordem: remapear botões e teclas por controle (hoje o Mapeamento do
-  Android só mostra), página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
+  dois (conferido no mesmo teste); remapear os botões de cada controle em Controles > Mapeamento, com um toque no
+  controle da lista e o botão apertado no controle, mais "Restaurar padrão" (feat/android-remap, `PadCaptureTests`;
+  a mesma regra de captura do desktop). Falta, nesta ordem: página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
   (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
   no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
