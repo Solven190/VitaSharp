@@ -2886,6 +2886,24 @@
   <data name="MMsaaOff" xml:space="preserve">
     <value>Off (faster, jagged edges)</value>
   </data>
+  <data name="MFrameRateDetail" xml:space="preserve">
+    <value>Native runs the game as on the Vita. Locked to 30/60 or Unlimited change only the display waits; games whose logic runs per frame get faster or slower. Applies right away</value>
+  </data>
+  <data name="MHapticsDetail" xml:space="preserve">
+    <value>A short pulse on every control press, also while another finger holds the analog stick</value>
+  </data>
+  <data name="MHapticStrength" xml:space="preserve">
+    <value>Vibration strength</value>
+  </data>
+  <data name="MHapticWeak" xml:space="preserve">
+    <value>Weak</value>
+  </data>
+  <data name="MHapticMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="MHapticStrong" xml:space="preserve">
+    <value>Strong</value>
+  </data>
   <data name="MMsaaDetail" xml:space="preserve">
     <value>Off renders the game with one sample per pixel: less GPU work, edges alias. Applies right away</value>
   </data>

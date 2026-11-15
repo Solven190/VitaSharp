@@ -2886,6 +2886,24 @@
   <data name="MMsaaOff" xml:space="preserve">
     <value>Desligado (mais rápido, bordas serrilhadas)</value>
   </data>
+  <data name="MFrameRateDetail" xml:space="preserve">
+    <value>Nativo roda como no Vita. Fixo em 30/60 ou Sem limite mudam só as esperas de vblank; jogos cuja lógica anda por quadro ficam mais rápidos ou mais lentos. Vale na hora</value>
+  </data>
+  <data name="MHapticsDetail" xml:space="preserve">
+    <value>Um pulso curto a cada botão tocado, também com o outro dedo no analógico</value>
+  </data>
+  <data name="MHapticStrength" xml:space="preserve">
+    <value>Intensidade da vibração</value>
+  </data>
+  <data name="MHapticWeak" xml:space="preserve">
+    <value>Fraca</value>
+  </data>
+  <data name="MHapticMedium" xml:space="preserve">
+    <value>Média</value>
+  </data>
+  <data name="MHapticStrong" xml:space="preserve">
+    <value>Forte</value>
+  </data>
   <data name="MMsaaDetail" xml:space="preserve">
     <value>Desligado desenha o jogo com uma amostra por pixel: menos trabalho para a GPU, bordas serrilhadas. Vale na hora</value>
   </data>

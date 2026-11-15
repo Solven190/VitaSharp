@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using VitaSharp.Core.Cpu;
 using VitaSharp.Core.Localization;
 using VitaSharp.Core.Util;
+using FrameRateMode = VitaSharp.Core.Hle.Modules.FrameRateMode;
 
 namespace VitaSharp.Mobile.Core.Settings;
 
@@ -35,8 +36,10 @@ public sealed class AppPreferences
     public float OnScreenOpacity { get; set; } = 0.55f;
     /// <summary>Hide the on-screen controls while a physical controller is connected.</summary>
     public bool HideOnScreenWithGamepad { get; set; } = true;
-    /// <summary>Vibrate briefly on an on-screen button press.</summary>
+    /// <summary>Vibrate briefly on every on-screen control press, also while another finger holds the stick.</summary>
     public bool Haptics { get; set; } = true;
+    /// <summary>Strength of that vibration: 1 weak, 2 medium, 3 strong (Input.OnScreenHaptics).</summary>
+    public int HapticStrength { get; set; } = 2;
     /// <summary>"Movimento": what drives SceMotion, "" = automatic (the phone's sensors when it has them, else a
     /// controller's), "phone", "controller" or "off" (Input.AndroidMotionModes).</summary>
     public string Motion { get; set; } = "";
@@ -82,6 +85,9 @@ public sealed class GameSettings
     public string? Msaa { get; set; }
     /// <summary>"Carregamento rapido" of this game (null = <see cref="AppPreferences.FastLoading"/>).</summary>
     public bool? FastLoading { get; set; }
+    /// <summary>"Taxa de quadros": "30", "60" or "unlimited" (null = native, the game's own pacing; per game only, as the
+    /// desktop launcher's --frame-rate=, Hle/Modules/Display.cs FrameRate).</summary>
+    public string? FrameRate { get; set; }
 
     /// <summary>Total time played, in seconds.</summary>
     public long PlaySeconds { get; set; }
@@ -90,7 +96,7 @@ public sealed class GameSettings
     public double AverageFps { get; set; }
 
     [JsonIgnore]
-    public bool HasOverrides => CpuBackend != null || CpuMhz != null || GpuProfile != null || VSync != null || ShowFps != null || ResScale != null || Msaa != null || FastLoading != null;
+    public bool HasOverrides => CpuBackend != null || CpuMhz != null || GpuProfile != null || VSync != null || ShowFps != null || ResScale != null || Msaa != null || FastLoading != null || FrameRate != null;
 
     public static GameSettings Load(string path) => SettingsFile.Load(path, PrefsJson.Default.GameSettings) ?? new();
     public void Save(string path) => SettingsFile.Save(path, this, PrefsJson.Default.GameSettings);
@@ -113,7 +119,7 @@ public sealed class GameSettings
 }
 
 /// <summary>What a game runs with: the game's settings over the global ones, validated.</summary>
-public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false)
+public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false, string FrameRate = "")
 {
     public static EffectiveSettings Resolve(AppPreferences app, GameSettings? game)
     {
@@ -132,8 +138,15 @@ public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string Gpu
         string gpu = SettingsChoices.GpuProfiles.Any(c => c.Value == (game?.GpuProfile ?? app.GpuProfile)) ? game?.GpuProfile ?? app.GpuProfile : "";
         string res = SettingsChoices.ResScales.Any(c => c.Value == game?.ResScale) ? game!.ResScale! : "";
         string msaa = game?.Msaa == "off" ? "off" : "";
-        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading);
+        string rate = SettingsChoices.FrameRates.Any(c => c.Value.Length > 0 && c.Value == game?.FrameRate) ? game!.FrameRate! : "";
+        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading, rate);
     }
+
+    /// <summary>The frame rate mode the session starts with: the game's own choice, else VITASHARP_FRAME_RATE
+    /// (<paramref name="environmentValue"/>, from config/env.txt), else native. Set at every start, so a mode never
+    /// carries over from the game played before in the same process.</summary>
+    public FrameRateMode StartFrameRate(string? environmentValue) =>
+        VitaSharp.Core.Hle.Modules.FrameRate.Parse(FrameRate.Length > 0 ? FrameRate : environmentValue);
 
     /// <summary>VulkanRendererOptions.ResScale for <see cref="ResScale"/> (0 = native).</summary>
     public float ResScaleValue => float.TryParse(ResScale, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : 0f;
@@ -164,6 +177,42 @@ public static class SettingsChoices
         new("", Loc.Get("MResNative")),
         new("0.75", Loc.Get("MRes75")),
         new("0.5", Loc.Get("MRes50")),
+    ];
+
+    /// <summary>"Taxa de quadros" (values of Hle/Modules/Display.cs FrameRate.Parse; "" = native).</summary>
+    public static IReadOnlyList<Choice> FrameRates { get; } =
+    [
+        new("", Loc.Get("RateNative")),
+        new("30", Loc.Get("RateFixed30")),
+        new("60", Loc.Get("RateFixed60")),
+        new("unlimited", Loc.Get("RateUnlimited")),
+    ];
+
+    /// <summary>The frame rate choice after <paramref name="value"/>, wrapping around (the pause menu's row cycles
+    /// through them); an unknown value starts over at native.</summary>
+    public static string NextFrameRate(string? value)
+    {
+        int index = -1;
+        for (int i = 0; i < FrameRates.Count; i++)
+        {
+            if (FrameRates[i].Value == (value ?? ""))
+            {
+                index = i;
+            }
+        }
+        return FrameRates[(index + 1) % FrameRates.Count].Value;
+    }
+
+    /// <summary>The FPS overlay's text: the frames of the last second, and the frame rate mode when it is not native.</summary>
+    public static string FpsText(long fps, string frameRate) =>
+        frameRate.Length > 0 ? $"{fps} FPS · {LabelOf(FrameRates, frameRate)}" : $"{fps} FPS";
+
+    /// <summary>"Intensidade da vibracao" of the on-screen controls (values of Input.OnScreenHaptics).</summary>
+    public static IReadOnlyList<Choice> HapticStrengths { get; } =
+    [
+        new("1", Loc.Get("MHapticWeak")),
+        new("2", Loc.Get("MHapticMedium")),
+        new("3", Loc.Get("MHapticStrong")),
     ];
 
     public static IReadOnlyList<Choice> MsaaModes { get; } =

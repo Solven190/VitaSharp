@@ -12,6 +12,7 @@ using VitaSharp.Core.Hle.Np;
 using VitaSharp.Core.Util;
 using VitaSharp.Mobile.Core.Input;
 using VitaSharp.Mobile.Core.Library;
+using VitaSharp.Mobile.Core.Settings;
 using VitaSharp.Mobile.Core.Storage;
 using AView = Android.Views.View;
 using Color = Android.Graphics.Color;
@@ -168,7 +169,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
         _view = new SurfaceView(this);
         _view.Holder?.AddCallback(this);
         root.AddView(_view, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
-        _controls = new OnScreenControlsView(this, _pad) { ControlsOpacity = prefs.OnScreenOpacity, Haptics = prefs.Haptics };
+        _controls = new OnScreenControlsView(this, _pad) { ControlsOpacity = prefs.OnScreenOpacity, Haptics = prefs.Haptics, HapticStrength = prefs.HapticStrength };
         root.AddView(_controls, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
         root.AddView(TopBar(), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.WrapContent, GravityFlags.Top | GravityFlags.CenterHorizontal));
         _toast = Chip("", 14);
@@ -499,7 +500,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
         long frames = _session.Frames;
         long fps = frames - _lastFrames;
         _lastFrames = frames;
-        _fps.Text = _session.Paused ? Loc.Get("MPaused") : $"{fps} FPS";
+        _fps.Text = _session.Paused ? Loc.Get("MPaused") : SettingsChoices.FpsText(fps, _session.FrameRateValue);
         bool rec = _session.Capture.IsRecording;
 #if VITASHARP_DEVELOPER
         rec |= _session.CaptureDir != null;

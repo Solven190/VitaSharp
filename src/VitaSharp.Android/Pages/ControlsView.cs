@@ -82,7 +82,10 @@ public sealed class ControlsView : Screen<ControlsState>
                 Card(
                     Row(Loc.Get("MOpacity"), $"{prefs.OnScreenOpacity * 100:0}%", Opacity),
                     Divider(),
-                    ToggleRow(Loc.Get("MHaptics"), prefs.Haptics, v => { prefs.Haptics = v; AppServices.SavePrefs(); SetState(s => s.Revision++); }),
+                    ToggleRow(Loc.Get("MHaptics"), prefs.Haptics, v => { prefs.Haptics = v; AppServices.SavePrefs(); SetState(s => s.Revision++); },
+                        detail: Loc.Get("MHapticsDetail")),
+                    prefs.Haptics ? Divider() : null,
+                    prefs.Haptics ? Row(Loc.Get("MHapticStrength"), Mobile.Core.Settings.SettingsChoices.LabelOf(Mobile.Core.Settings.SettingsChoices.HapticStrengths, prefs.HapticStrength.ToString()), HapticStrength) : null,
                     Divider(),
                     ToggleRow(Loc.Get("MHideWithGamepad"), prefs.HideOnScreenWithGamepad,
                         v => { prefs.HideOnScreenWithGamepad = v; AppServices.SavePrefs(); SetState(s => s.Revision++); })
@@ -173,6 +176,19 @@ public sealed class ControlsView : Screen<ControlsState>
         if (v == null)
             return;
         AppServices.Prefs.Motion = v;
+        AppServices.SavePrefs();
+        SetState(s => s.Revision++);
+    }
+
+    async void HapticStrength()
+    {
+        var v = await Choose(Loc.Get("MHapticStrength"), Mobile.Core.Settings.SettingsChoices.HapticStrengths);
+        if (v == null)
+        {
+            return;
+        }
+
+        AppServices.Prefs.HapticStrength = int.Parse(v);
         AppServices.SavePrefs();
         SetState(s => s.Revision++);
     }

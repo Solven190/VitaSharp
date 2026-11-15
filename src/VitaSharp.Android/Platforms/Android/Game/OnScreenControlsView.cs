@@ -1,5 +1,6 @@
 using Android.Content;
 using Android.Graphics;
+using Android.OS;
 using Android.Views;
 using VitaSharp.Core.Input;
 using VitaSharp.Mobile.Core.Input;
@@ -22,9 +23,13 @@ public sealed class OnScreenControlsView : View
     readonly Paint _fill = new(PaintFlags.AntiAlias), _stroke = new(PaintFlags.AntiAlias), _text = new(PaintFlags.AntiAlias);
     static readonly Color Accent = Color.ParseColor("#6E9BFF"), Surface = Color.ParseColor("#171B22"), Line = Color.ParseColor("#C9D1DC");
     float _opacity = 0.55f;
+    readonly OnScreenHaptics _haptics;
+    readonly Vibrator? _vibrator;
 
     public OnScreenControlsView(Context context, OnScreenPad pad) : base(context)
     {
+        _vibrator = VibratorOf(context);
+        _haptics = new OnScreenHaptics(pad, Pulse);
         _pad = pad;
         _stroke.SetStyle(Paint.Style.Stroke);
         _text.TextAlign = Paint.Align.Center;
@@ -44,7 +49,43 @@ public sealed class OnScreenControlsView : View
         }
     }
 
-    public bool Haptics { get; set; } = true;
+    /// <summary>Vibration on every newly pressed control, also while another finger holds the stick (Ajustes > Controles).</summary>
+    public bool Haptics
+    {
+        get => _haptics.Enabled;
+        set => _haptics.Enabled = value;
+    }
+
+    /// <summary>Strength of the vibration (OnScreenHaptics.Weak/Medium/Strong).</summary>
+    public int HapticStrength
+    {
+        get => _haptics.Strength;
+        set => _haptics.Strength = value;
+    }
+
+    static Vibrator? VibratorOf(Context context)
+    {
+        if (OperatingSystem.IsAndroidVersionAtLeast(31))
+        {
+            return (context.GetSystemService(Context.VibratorManagerService) as VibratorManager)?.DefaultVibrator;
+        }
+#pragma warning disable CA1422 // the pre-31 way, only on the versions that have no VibratorManager
+        return context.GetSystemService(Context.VibratorService) as Vibrator;
+#pragma warning restore CA1422
+    }
+
+    /// <summary>One pulse: a one-shot vibration with the amplitude when the motor supports it, else the view's key-tap
+    /// haptic feedback (which the system may scale or skip by its own touch-feedback setting).</summary>
+    void Pulse(int amplitude)
+    {
+        if (_vibrator is { } vibrator && vibrator.HasVibrator)
+        {
+            int level = vibrator.HasAmplitudeControl ? amplitude : VibrationEffect.DefaultAmplitude;
+            vibrator.Vibrate(VibrationEffect.CreateOneShot(OnScreenHaptics.PulseMilliseconds, level));
+            return;
+        }
+        PerformHapticFeedback(FeedbackConstants.KeyboardTap);
+    }
 
     public override bool OnTouchEvent(MotionEvent? e)
     {
@@ -61,15 +102,10 @@ public sealed class OnScreenControlsView : View
                 continue;
             fingers[count++] = (e.GetPointerId(i), e.GetX(i) / Width, e.GetY(i) / Height);
         }
-        bool before = AnyPressed();
-        _pad.Update(fingers[..count]);
-        if (Haptics && action is MotionEventActions.Down or MotionEventActions.PointerDown && AnyPressed() && !before)
-            PerformHapticFeedback(FeedbackConstants.KeyboardTap);
+        _pad.Update(fingers[..count]); // newly pressed controls vibrate through OnScreenHaptics
         Invalidate();
         return true;
     }
-
-    bool AnyPressed() => _pad.Layout.Any(_pad.IsPressed);
 
     protected override void OnDraw(Canvas canvas)
     {

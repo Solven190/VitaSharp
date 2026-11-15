@@ -8,6 +8,8 @@ using VitaSharp.Mobile.Core.Library;
 using VitaSharp.Mobile.Core.Logging;
 using VitaSharp.Mobile.Core.Settings;
 using VitaSharp.Mobile.Core.Storage;
+using FrameRate = VitaSharp.Core.Hle.Modules.FrameRate;
+using FrameRateMode = VitaSharp.Core.Hle.Modules.FrameRateMode;
 
 namespace VitaSharp.Tests;
 
@@ -161,6 +163,38 @@ public sealed class AndroidAppTests : IDisposable
     }
 
     [Fact]
+    public void FrameRateIsAPerGameSettingThatStartsEverySession()
+    {
+        var app = new AppPreferences();
+        Assert.Equal("", EffectiveSettings.Resolve(app, null).FrameRate);
+        Assert.Equal("30", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "30" }).FrameRate);
+        Assert.Equal("unlimited", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "unlimited" }).FrameRate);
+        // a value the option does not offer never reaches the display module
+        Assert.Equal("", EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "45" }).FrameRate);
+        Assert.True(new GameSettings { FrameRate = "60" }.HasOverrides);
+
+        // the game's choice wins over VITASHARP_FRAME_RATE from env.txt; native falls back to it, then to native, so
+        // a mode set by the game played before never carries over
+        var fixed60 = EffectiveSettings.Resolve(app, new GameSettings { FrameRate = "60" });
+        Assert.Equal(FrameRateMode.Fixed60, fixed60.StartFrameRate("unlimited"));
+        var native = EffectiveSettings.Resolve(app, null);
+        Assert.Equal(FrameRateMode.Unlimited, native.StartFrameRate("unlimited"));
+        Assert.Equal(FrameRateMode.Native, native.StartFrameRate(null));
+
+        // every choice is a value the display module understands, and the pause menu's row cycles through all of them
+        foreach (Choice choice in SettingsChoices.FrameRates)
+        {
+            Assert.Equal(choice.Value.Length > 0 ? choice.Value : "native", FrameRate.Name(FrameRate.Parse(choice.Value)));
+        }
+        Assert.Equal(new[] { "30", "60", "unlimited", "" }, new[] { "", "30", "60", "unlimited" }.Select(SettingsChoices.NextFrameRate));
+        Assert.Equal("", SettingsChoices.NextFrameRate("45"));
+
+        // the FPS overlay shows the mode only when it is not native
+        Assert.Equal("29 FPS", SettingsChoices.FpsText(29, ""));
+        Assert.Equal($"30 FPS · {SettingsChoices.LabelOf(SettingsChoices.FrameRates, "30")}", SettingsChoices.FpsText(30, "30"));
+    }
+
+    [Fact]
     public void SettingsRoundTripThroughJson()
     {
         var data = new DataLayout(_root);
@@ -172,11 +206,11 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal((444, "mali", 0.3f, "PCSC00045", true, "rpcn.example:31313"),
             (back.CpuMhz, back.GpuProfile, back.OnScreenOpacity, back.LastPlayed, back.Network.RealInternet, back.Network.RpcnServer));
 
-        var g = new GameSettings { CpuBackend = "native" };
+        var g = new GameSettings { CpuBackend = "native", FrameRate = "unlimited" };
         g.RecordSession(TimeSpan.FromMinutes(10), 18_000, new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc));
         g.Save(data.GameSettingsFile("PCSC00045"));
         var gb = GameSettings.Load(data.GameSettingsFile("PCSC00045"));
-        Assert.Equal(("native", (int?)null, 600L, 30.0), (gb.CpuBackend, gb.CpuMhz, gb.PlaySeconds, gb.AverageFps));
+        Assert.Equal(("native", (int?)null, 600L, 30.0, "unlimited"), (gb.CpuBackend, gb.CpuMhz, gb.PlaySeconds, gb.AverageFps, gb.FrameRate));
         Assert.True(gb.HasOverrides);
         Assert.DoesNotContain("CpuMhz", File.ReadAllText(data.GameSettingsFile("PCSC00045"))); // nulls are not written
 
@@ -323,6 +357,54 @@ public sealed class AndroidAppTests : IDisposable
         Assert.Equal(VitaButtons.None, pad.GetController(0).Buttons);
         pad.Reset();
         Assert.Equal(ControllerState.Neutral.Lx, pad.GetController(0).Lx);
+    }
+
+    [Fact]
+    public void OnScreenButtonsVibrateWhileTheStickIsHeld()
+    {
+        var pad = new OnScreenPad();
+        var pulses = new List<int>();
+        var haptics = new OnScreenHaptics(pad, pulses.Add);
+        OnScreenControl cross = pad.Layout.Single(c => c.Control == VitaControl.Cross);
+        OnScreenControl square = pad.Layout.Single(c => c.Control == VitaControl.Square);
+        OnScreenControl lstick = pad.Layout.Single(c => c.Control == VitaControl.LStickUp);
+        (int, float, float) thumbOnStick = Finger(lstick, 0.8f, 0.5f, 1)[0];
+
+        // the thumb takes the stick: one pulse
+        Update(pad, thumbOnStick);
+        Assert.Single(pulses);
+        // moving the stick is not a new press
+        Update(pad, Finger(lstick, 0.2f, 0.5f, 1));
+        Assert.Single(pulses);
+        // the other thumb presses buttons while the stick stays held: one pulse per press (the bug: none)
+        Update(pad, thumbOnStick, Finger(cross, id: 2)[0]);
+        Assert.Equal(2, pulses.Count);
+        Update(pad, thumbOnStick, Finger(cross, id: 2)[0]); // still held: no pulse
+        Assert.Equal(2, pulses.Count);
+        Update(pad, thumbOnStick);
+        Update(pad, thumbOnStick, Finger(square, id: 3)[0]);
+        Assert.Equal(3, pulses.Count);
+        // a button held while another one is pressed vibrates too
+        Update(pad, thumbOnStick, Finger(square, id: 3)[0], Finger(cross, id: 4)[0]);
+        Assert.Equal(4, pulses.Count);
+
+        // the strength sets the amplitude; off gives no pulses
+        Assert.All(pulses, p => Assert.Equal(OnScreenHaptics.Amplitude(OnScreenHaptics.Medium), p));
+        pad.Reset();
+        haptics.Strength = OnScreenHaptics.Strong;
+        Update(pad, Finger(cross));
+        Assert.Equal(255, pulses[^1]);
+        Assert.True(OnScreenHaptics.Amplitude(OnScreenHaptics.Weak) < OnScreenHaptics.Amplitude(OnScreenHaptics.Medium));
+        Assert.Equal(OnScreenHaptics.Amplitude(OnScreenHaptics.Medium), OnScreenHaptics.Amplitude(7));
+        pad.Reset();
+        haptics.Enabled = false;
+        int before = pulses.Count;
+        Update(pad, Finger(cross));
+        Assert.Equal(before, pulses.Count);
+
+        // the strength choices are the values the haptics understand
+        Assert.Equal(new[] { "1", "2", "3" }, SettingsChoices.HapticStrengths.Select(c => c.Value));
+        Assert.Equal(2, new AppPreferences().HapticStrength);
     }
 
     private sealed class FloatPairComparer : IEqualityComparer<(float, float)>

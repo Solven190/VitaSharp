@@ -5,6 +5,7 @@ using Android.Views;
 using Android.Widget;
 using VitaSharp.Android.Services;
 using VitaSharp.Core.Util;
+using VitaSharp.Mobile.Core.Settings;
 using AView = Android.Views.View;
 using Color = Android.Graphics.Color;
 using Paint = Android.Graphics.Paint;
@@ -226,6 +227,12 @@ public sealed partial class GameActivity
         Add(ToggleRow(Loc.Get("MOnScreenControls"), null, () => _pad.Visible, v => _pad.Visible = v));
         if (_session is { } msaaSession)
             Add(ToggleRow(Loc.Get("MMsaa"), Loc.Get("MMsaaDetail"), () => !msaaSession.MsaaOff, v => msaaSession.SetMsaaOff(!v)));
+        if (_session is { } rateSession)
+        {
+            Add(ChoiceRow(Loc.Get("FrameRate"), Loc.Get("MFrameRateDetail"),
+                () => SettingsChoices.LabelOf(SettingsChoices.FrameRates, rateSession.FrameRateValue),
+                () => rateSession.SetFrameRate(SettingsChoices.NextFrameRate(rateSession.FrameRateValue))));
+        }
         if (_session is { } session)
             Add(ToggleRow(Loc.Get("MPreRoll"), Loc.Get("MPreRollDetail"), () => session.Capture.Armed,
                 v => session.Capture.SetPreRoll(v ? EmulationSession.PreRollSeconds : 0)));
@@ -493,6 +500,20 @@ public sealed partial class GameActivity
         var sw = new ToggleView(this, CAccent, CBorderStrong, CText) { Checked = get() };
         row.AddView(sw, new LinearLayout.LayoutParams(Dp(44), Dp(26)) { Gravity = GravityFlags.CenterVertical, LeftMargin = Dp(12) });
         MakeButton(row, () => { set(!get()); sw.Checked = get(); _controls?.Invalidate(); });
+        return row;
+    }
+
+    /// <summary>A row showing the current choice on the right; a press moves to the next one (<paramref name="next"/>).</summary>
+    AView ChoiceRow(string label, string? detail, Func<string> current, Action next)
+    {
+        var row = Row(label, detail);
+        var value = Text(current(), 14, InterMedium, CAccent);
+        row.AddView(value, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.WrapContent) { Gravity = GravityFlags.CenterVertical, LeftMargin = Dp(12) });
+        MakeButton(row, () =>
+        {
+            next();
+            value.Text = current();
+        });
         return row;
     }
 
