@@ -191,8 +191,8 @@ public static class HleStatusReport
             files[$"{AssetDir}/badge-kernel.svg"] = Badge(label, BadgeValue(n, total, d, 0), BadgeColor(Pct(n, total)));
         }
 
-        files[$"{AssetDir}/progress-map.svg"] = Map(s, dark: true);
-        files[$"{AssetDir}/progress-map-light.svg"] = Map(s, dark: false);
+        files[$"{AssetDir}/progress-map.svg"] = Map(s, kernel, dark: true);
+        files[$"{AssetDir}/progress-map-light.svg"] = Map(s, kernel, dark: false);
         files[ProgressPath] = ProgressPage(s, kernel);
         return files;
     }
@@ -278,9 +278,9 @@ public static class HleStatusReport
 
     /// <summary>Squarified treemap (Bruls, Huizing, van Wijk): rows of cells along the shorter side, each row grown
     /// while it keeps the worst aspect ratio from getting worse.</summary>
-    private static List<(Library L, double X, double Y, double W, double H)> Treemap(IReadOnlyList<Library> libs, double x, double y, double w, double h)
+    private static List<(MapCell L, double X, double Y, double W, double H)> Treemap(IReadOnlyList<MapCell> libs, double x, double y, double w, double h)
     {
-        var cells = new List<(Library, double, double, double, double)>();
+        var cells = new List<(MapCell, double, double, double, double)>();
         double sum = libs.Sum(l => (double)l.Total);
         var items = libs.Select(l => (L: l, A: l.Total * w * h / sum)).ToList();
         int i = 0;
@@ -330,18 +330,36 @@ public static class HleStatusReport
         return cells;
     }
 
-    private static string Map(Status s, bool dark)
+    /// <summary>One cell of the progress map: a library, its exported functions and the implemented (covered) ones.</summary>
+    private sealed record MapCell(string Name, int Impl, int Total, int Default);
+
+    /// <summary>The progress map: one treemap region for the libraries user code imports and, with the kernel census
+    /// (<paramref name="kernel"/>), one for the kernel libraries (exports to other kernel code), each region's area
+    /// proportional to its exported functions and every cell on the same colour scale (implemented / total).</summary>
+    private static string Map(Status s, IReadOnlyList<KernelLibrary>? kernel, bool dark)
     {
-        const double W = 1000, H = 600, Top = 44, Pad = 8;
-        string bg = dark ? "#0d1117" : "#ffffff", fg = dark ? "#e6edf3" : "#1f2328", muted = dark ? "#9198a1" : "#59636e",
-            stroke = bg, label = dark ? "#ffffff" : "#1f2328";
-        var libs = s.Libraries.Where(l => l.Total > 0).OrderByDescending(l => l.Total).ThenBy(l => l.Name, StringComparer.Ordinal).ToList();
+        const double W = 1000, Top = 44, Pad = 8, RegionLabel = 20, Gap = 6;
+        string bg = dark ? "#0d1117" : "#ffffff", fg = dark ? "#e6edf3" : "#1f2328", muted = dark ? "#9198a1" : "#59636e";
+        var user = s.Libraries.Where(l => l.Total > 0).Select(l => new MapCell(l.Name, l.Impl, l.Total, l.Default))
+            .OrderByDescending(l => l.Total).ThenBy(l => l.Name, StringComparer.Ordinal).ToList();
+        var kernelCells = (kernel ?? []).Where(l => l.Total > 0).Select(l => new MapCell(l.Name, l.Impl, l.Total, l.Default))
+            .OrderByDescending(l => l.Total).ThenBy(l => l.Name, StringComparer.Ordinal).ToList();
+        int kernelTotal = kernelCells.Sum(l => l.Total);
+        int kernelImpl = kernelCells.Sum(l => l.Impl);
+        // taller with the kernel region, so its many small libraries still get readable cells
+        double H = kernelCells.Count > 0 ? 720 : 600;
+        string aria = kernelCells.Count > 0
+            ? $"HLE progress map: {user.Count} user libraries and {kernelCells.Count} kernel libraries of the firmware"
+            : $"HLE progress map: {user.Count} firmware libraries";
         var b = new StringBuilder();
-        b.Append(s_inv, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{F(W)}\" height=\"{F(H)}\" viewBox=\"0 0 {F(W)} {F(H)}\" role=\"img\" aria-label=\"HLE progress map: {libs.Count} firmware libraries\">\n");
+        b.Append(s_inv, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{F(W)}\" height=\"{F(H)}\" viewBox=\"0 0 {F(W)} {F(H)}\" role=\"img\" aria-label=\"{Esc(aria)}\">\n");
         b.Append(s_inv, $"<rect width=\"{F(W)}\" height=\"{F(H)}\" rx=\"8\" fill=\"{bg}\"/>\n");
         b.Append("<g font-family=\"-apple-system,Segoe UI,Helvetica,Arial,sans-serif\">\n");
         b.Append(s_inv, $"<text x=\"{F(Pad + 4)}\" y=\"27\" font-size=\"17\" font-weight=\"600\" fill=\"{fg}\">HLE progress map</text>\n");
-        b.Append(s_inv, $"<text x=\"{F(Pad + 4 + 158)}\" y=\"27\" font-size=\"12\" fill=\"{muted}\">{libs.Count} libraries of firmware {Esc(s.Firmware)}, area = exported functions, {Esc(PctText(s.Impl, s.Total))} implemented</text>\n");
+        string subtitle = kernelCells.Count > 0
+            ? $"firmware {s.Firmware}: {user.Count} user + {kernelCells.Count} kernel libraries, area = exported functions"
+            : $"{user.Count} libraries of firmware {s.Firmware}, area = exported functions, {PctText(s.Impl, s.Total)} implemented";
+        b.Append(s_inv, $"<text x=\"{F(Pad + 4 + 158)}\" y=\"27\" font-size=\"12\" fill=\"{muted}\">{Esc(subtitle)}</text>\n");
         // legend: 0% .. 100%
         double lx = W - Pad - 4 - 5 * 26 - 60;
         b.Append(s_inv, $"<text x=\"{F(lx)}\" y=\"27\" font-size=\"11\" fill=\"{muted}\">0%</text>\n");
@@ -351,7 +369,39 @@ public static class HleStatusReport
         }
 
         b.Append(s_inv, $"<text x=\"{F(lx + 22 + 5 * 26 + 2)}\" y=\"27\" font-size=\"11\" fill=\"{muted}\">100%</text>\n");
-        foreach ((Library? l, double x, double y, double w, double h) in Treemap(libs, Pad, Top, W - 2 * Pad, H - Top - Pad))
+        if (kernelCells.Count == 0)
+        {
+            MapRegion(b, user, Pad, Top, W - 2 * Pad, H - Top - Pad, dark);
+        }
+        else
+        {
+            // two regions stacked, each under its label band; the cell areas follow the exported functions of both
+            double cellsHeight = H - Top - Pad - 2 * RegionLabel - Gap;
+            double userHeight = cellsHeight * s.Total / (s.Total + kernelTotal);
+            double y = Top;
+            RegionTitle(b, $"User ({user.Count} libraries): {PctText(s.Impl, s.Total)} implemented ({Count(s.Impl)}/{Count(s.Total)})", Pad, y, fg);
+            y += RegionLabel;
+            MapRegion(b, user, Pad, y, W - 2 * Pad, userHeight, dark);
+            y += userHeight + Gap;
+            RegionTitle(b, $"Kernel ({kernelCells.Count} libraries): {PctText(kernelImpl, kernelTotal)} covered ({Count(kernelImpl)}/{Count(kernelTotal)})", Pad, y, fg);
+            y += RegionLabel;
+            MapRegion(b, kernelCells, Pad, y, W - 2 * Pad, cellsHeight - userHeight, dark);
+        }
+
+        b.Append("</g>\n</svg>\n");
+        return b.ToString();
+    }
+
+    private static void RegionTitle(StringBuilder b, string text, double x, double y, string fill)
+    {
+        b.Append(s_inv, $"<text x=\"{F(x + 4)}\" y=\"{F(y + 14)}\" font-size=\"13\" font-weight=\"600\" fill=\"{fill}\">{Esc(text)}</text>\n");
+    }
+
+    private static void MapRegion(StringBuilder b, IReadOnlyList<MapCell> libs, double regionX, double regionY, double regionWidth, double regionHeight, bool dark)
+    {
+        string stroke = dark ? "#0d1117" : "#ffffff";
+        string label = dark ? "#ffffff" : "#1f2328";
+        foreach ((MapCell? l, double x, double y, double w, double h) in Treemap(libs, regionX, regionY, regionWidth, regionHeight))
         {
             double p = Pct(l.Impl, l.Total);
             b.Append(s_inv, $"<g><title>{Esc(l.Name)}: {l.Impl}/{l.Total} ({PctText(l.Impl, l.Total)}){(l.Default > 0 ? $", {l.Default} default" : "")}</title>");
@@ -368,8 +418,6 @@ public static class HleStatusReport
             }
             b.Append("</g>\n");
         }
-        b.Append("</g>\n</svg>\n");
-        return b.ToString();
     }
 
     private static string ProgressPage(Status s, IReadOnlyList<KernelLibrary>? kernel)
@@ -383,7 +431,7 @@ public static class HleStatusReport
         b.Append("The VitaSDK row counts the user functions of the VitaSDK NID list (`docs/hle/data/vitasdk-user-functions.tsv`). ");
         b.Append("A function counts as implemented when it has an `[Hle]` entry point. \"Default\" is the part of those that needs hardware or a service the emulator does not have (Bluetooth, USB, game card authentication, system update, PSP ad hoc, debug hooks...) and returns the result the firmware gives for that case (success or its specific error) without doing anything; \"real\" is the rest. \"LLE\" counts the functions of libraries the emulator provides by loading and running the real module (the game's own copy in app0:sce_module, or the firmware module the loader gives the programs that import a library the HLE does not emulate; found by scanning the installed modules, listed below), and the functions the HLE has only as a stand-in for a missing firmware module (libc, libpaf, sqlite...: system programs get the real module): they are covered, with no HLE.\n\n");
         b.Append("<picture>\n  <source media=\"(prefers-color-scheme: light)\" srcset=\"../assets/status/progress-map-light.svg\">\n");
-        b.Append("  <img src=\"../assets/status/progress-map.svg\" alt=\"HLE progress map: one cell per firmware library\" width=\"100%\">\n</picture>\n\n");
+        b.Append("  <img src=\"../assets/status/progress-map.svg\" alt=\"HLE progress map: one cell per firmware library, user and kernel\" width=\"100%\">\n</picture>\n\n");
         b.Append("| Group | Covered | Real | Default | LLE | Total | % |\n|---|---:|---:|---:|---:|---:|---:|\n");
         foreach ((string? label, int n, int d, int l, int total) in new[] { ("Games imports", s.GamesImpl, s.GamesDefault, 0, s.Games), ("System imports", s.SystemImpl, s.SystemDefault, 0, s.System),
                      ("General", s.Impl - s.GamesImpl - s.SystemImpl, s.Default - s.GamesDefault - s.SystemDefault, 0, s.Total - s.Games - s.System),
