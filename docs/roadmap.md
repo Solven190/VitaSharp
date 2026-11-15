@@ -640,6 +640,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
+- [ ] [P2][M] Dead Space (port, DEADSPACE) no Android sem som e engasgando (relato do usuário, 15/11/2026, APK build-1f8c024, com "Ativar Plugins do Kernel" e kubridge + fd_fix; no PC roda com som). Logs do celular guardados pelo lead (`<scratchpad>ds_android`). Ler o log primeiro: áudio (saída aberta? grãos/s), fps e tiers da CPU, threads em espera; comparar com o PC na mesma cena.
 - [x] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
   e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
   compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
