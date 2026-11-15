@@ -3039,174 +3039,174 @@ SceSysmemForKernel	0x86681B64	ksceKernelGetUIDMemBlockClass	missing		SceCoredump
 SceSysmemForKernel	0x01194C2E	ksceKernelNameHeapGetInfo	missing		
 SceSysmemForKernel	0x8EE8B917	ksceKernelReallocHeapMemory	missing		
 SceSysmemForKernel	0xCCD47B97	ksceKernelUIDEntryHeapGetInfo	missing		
-SceSysrootForDriver	0x05CD0DD9	NID_05CD0DD9	missing		
-SceSysrootForDriver	0x06436EF0	NID_06436EF0	missing		
-SceSysrootForDriver	0x0A52A59C	NID_0A52A59C	missing		ScePower
-SceSysrootForDriver	0x0ECD711E	NID_0ECD711E	missing		
+SceSysrootForDriver	0x05CD0DD9	NID_05CD0DD9	impl	SysmemKernel.NID_05CD0DD9	
+SceSysrootForDriver	0x06436EF0	NID_06436EF0	impl	SysmemKernel.NID_06436EF0	
+SceSysrootForDriver	0x0A52A59C	NID_0A52A59C	impl	SysmemKernel.NID_0A52A59C	ScePower
+SceSysrootForDriver	0x0ECD711E	NID_0ECD711E	impl	SysmemKernel.NID_0ECD711E	
 SceSysrootForDriver	0x0F59B369	NID_0F59B369	missing		SceNpDrm
-SceSysrootForDriver	0x10788257	NID_10788257	missing		ScePower
-SceSysrootForDriver	0x1160FCA1	NID_1160FCA1	missing		SceUlobjMgr
-SceSysrootForDriver	0x1434D90E	NID_1434D90E	missing		
-SceSysrootForDriver	0x17DD213C	NID_17DD213C	missing		SceSblUpdateMgr
-SceSysrootForDriver	0x1834D482	NID_1834D482	missing		
-SceSysrootForDriver	0x1B3FA457	NID_1B3FA457	missing		SceAppMgr,SceKernelModulemgr,SceKernelThreadMgr
+SceSysrootForDriver	0x10788257	NID_10788257	impl	SysmemKernel.NID_10788257	ScePower
+SceSysrootForDriver	0x1160FCA1	NID_1160FCA1	impl	SysmemKernel.NID_1160FCA1	SceUlobjMgr
+SceSysrootForDriver	0x1434D90E	NID_1434D90E	impl	SysmemKernel.NID_1434D90E	
+SceSysrootForDriver	0x17DD213C	NID_17DD213C	impl	SysmemKernel.NID_17DD213C	SceSblUpdateMgr
+SceSysrootForDriver	0x1834D482	NID_1834D482	impl	SysmemKernel.NID_1834D482	
+SceSysrootForDriver	0x1B3FA457	NID_1B3FA457	impl	SysmemKernel.NID_1B3FA457	SceAppMgr,SceKernelModulemgr,SceKernelThreadMgr
 SceSysrootForDriver	0x1BA0C6C1	NID_1BA0C6C1	missing		SceNpDrm
-SceSysrootForDriver	0x1D61C837	NID_1D61C837	missing		SceProcessmgr
-SceSysrootForDriver	0x1FFD2AFA	NID_1FFD2AFA	missing		
-SceSysrootForDriver	0x20D2A0DF	NID_20D2A0DF	missing		
+SceSysrootForDriver	0x1D61C837	NID_1D61C837	impl	SysmemKernel.NID_1D61C837	SceProcessmgr
+SceSysrootForDriver	0x1FFD2AFA	NID_1FFD2AFA	impl	SysmemKernel.NID_1FFD2AFA	
+SceSysrootForDriver	0x20D2A0DF	NID_20D2A0DF	impl	SysmemKernel.NID_20D2A0DF	
 SceSysrootForDriver	0x217B2871	NID_217B2871	missing		SceSblUpdateMgr
-SceSysrootForDriver	0x246AAAB3	NID_246AAAB3	missing		ScePower
+SceSysrootForDriver	0x246AAAB3	NID_246AAAB3	impl	SysmemKernel.NID_246AAAB3	ScePower
 SceSysrootForDriver	0x26AA237C	NID_26AA237C	missing		SceSblACMgr
-SceSysrootForDriver	0x273EAE53	NID_273EAE53	missing		
-SceSysrootForDriver	0x27D30DB2	NID_27D30DB2	missing		SceNetPs
-SceSysrootForDriver	0x2816A813	NID_2816A813	missing		
+SceSysrootForDriver	0x273EAE53	NID_273EAE53	impl	SysmemKernel.NID_273EAE53	
+SceSysrootForDriver	0x27D30DB2	NID_27D30DB2	impl	SysmemKernel.NID_27D30DB2	SceNetPs
+SceSysrootForDriver	0x2816A813	NID_2816A813	impl	SysmemKernel.NID_2816A813	
 SceSysrootForDriver	0x2A5DBD38	NID_2A5DBD38	missing		SceKernelThreadMgr,SceProcessmgr,SceRtc
-SceSysrootForDriver	0x2BE874EF	NID_2BE874EF	missing		SceAppMgr
-SceSysrootForDriver	0x2C9E7797	NID_2C9E7797	missing		
-SceSysrootForDriver	0x2D6B2A79	NID_2D6B2A79	missing		
-SceSysrootForDriver	0x34281746	NID_34281746	missing		SceHid
+SceSysrootForDriver	0x2BE874EF	NID_2BE874EF	impl	SysmemKernel.NID_2BE874EF	SceAppMgr
+SceSysrootForDriver	0x2C9E7797	NID_2C9E7797	impl	SysmemKernel.NID_2C9E7797	
+SceSysrootForDriver	0x2D6B2A79	NID_2D6B2A79	impl	SysmemKernel.NID_2D6B2A79	
+SceSysrootForDriver	0x34281746	NID_34281746	impl	SysmemKernel.NID_34281746	SceHid
 SceSysrootForDriver	0x35875119	NID_35875119	missing		SceSblPostSsMgr
 SceSysrootForDriver	0x377895EB	NID_377895EB	missing		
-SceSysrootForDriver	0x38751FB7	NID_38751FB7	missing		
-SceSysrootForDriver	0x39F1FD07	NID_39F1FD07	missing		
-SceSysrootForDriver	0x39F9C968	NID_39F9C968	missing		
-SceSysrootForDriver	0x3AE319DA	NID_3AE319DA	missing		SceSyscon
-SceSysrootForDriver	0x3B19B06B	NID_3B19B06B	missing		SceAppMgr
-SceSysrootForDriver	0x3F76D531	NID_3F76D531	missing		SceProcessmgr
-SceSysrootForDriver	0x400B9793	NID_400B9793	missing		SceCoredump
-SceSysrootForDriver	0x40F28DC6	NID_40F28DC6	missing		
-SceSysrootForDriver	0x421EFC96	NID_421EFC96	missing		SceAppMgr
-SceSysrootForDriver	0x42FC9FFF	NID_42FC9FFF	missing		SceNetPs
+SceSysrootForDriver	0x38751FB7	NID_38751FB7	impl	SysmemKernel.NID_38751FB7	
+SceSysrootForDriver	0x39F1FD07	NID_39F1FD07	impl	SysmemKernel.NID_39F1FD07	
+SceSysrootForDriver	0x39F9C968	NID_39F9C968	impl	SysmemKernel.NID_39F9C968	
+SceSysrootForDriver	0x3AE319DA	NID_3AE319DA	impl	SysmemKernel.NID_3AE319DA	SceSyscon
+SceSysrootForDriver	0x3B19B06B	NID_3B19B06B	impl	SysmemKernel.NID_3B19B06B	SceAppMgr
+SceSysrootForDriver	0x3F76D531	NID_3F76D531	impl	SysmemKernel.NID_3F76D531	SceProcessmgr
+SceSysrootForDriver	0x400B9793	NID_400B9793	impl	SysmemKernel.NID_400B9793	SceCoredump
+SceSysrootForDriver	0x40F28DC6	NID_40F28DC6	impl	SysmemKernel.NID_40F28DC6	
+SceSysrootForDriver	0x421EFC96	NID_421EFC96	impl	SysmemKernel.NID_421EFC96	SceAppMgr
+SceSysrootForDriver	0x42FC9FFF	NID_42FC9FFF	impl	SysmemKernel.NID_42FC9FFF	SceNetPs
 SceSysrootForDriver	0x44EA3197	NID_44EA3197	missing		
-SceSysrootForDriver	0x47724459	NID_47724459	missing		SceSblUpdateMgr,SceVshBridge
-SceSysrootForDriver	0x47F19DD3	NID_47F19DD3	missing		
-SceSysrootForDriver	0x483EF108	NID_483EF108	missing		SceCodecEngineWrapper
-SceSysrootForDriver	0x49843C16	NID_49843C16	missing		SceCodecEngineWrapper
+SceSysrootForDriver	0x47724459	NID_47724459	impl	SysmemKernel.NID_47724459	SceSblUpdateMgr,SceVshBridge
+SceSysrootForDriver	0x47F19DD3	NID_47F19DD3	impl	SysmemKernel.NID_47F19DD3	
+SceSysrootForDriver	0x483EF108	NID_483EF108	impl	SysmemKernel.NID_483EF108	SceCodecEngineWrapper
+SceSysrootForDriver	0x49843C16	NID_49843C16	impl	SysmemKernel.NID_49843C16	SceCodecEngineWrapper
 SceSysrootForDriver	0x4D98B15B	NID_4D98B15B	missing		SceProcessmgr
-SceSysrootForDriver	0x51F9C118	NID_51F9C118	missing		SceProcessmgr
-SceSysrootForDriver	0x525B24C5	NID_525B24C5	missing		SceAppMgr
-SceSysrootForDriver	0x5458BF6D	NID_5458BF6D	missing		
+SceSysrootForDriver	0x51F9C118	NID_51F9C118	impl	SysmemKernel.NID_51F9C118	SceProcessmgr
+SceSysrootForDriver	0x525B24C5	NID_525B24C5	impl	SysmemKernel.NID_525B24C5	SceAppMgr
+SceSysrootForDriver	0x5458BF6D	NID_5458BF6D	impl	SysmemKernel.NID_5458BF6D	
 SceSysrootForDriver	0x56C4C949	NID_56C4C949	missing		SceNpDrm
 SceSysrootForDriver	0x56D85EB0	NID_56D85EB0	missing		SceSblACMgr
-SceSysrootForDriver	0x571E5B79	NID_571E5B79	missing		SceProcessmgr
+SceSysrootForDriver	0x571E5B79	NID_571E5B79	impl	SysmemKernel.NID_571E5B79	SceProcessmgr
 SceSysrootForDriver	0x579CC758	NID_579CC758	missing		
-SceSysrootForDriver	0x582616EC	NID_582616EC	missing		SceProcessmgr
-SceSysrootForDriver	0x591BB490	NID_591BB490	missing		SceCoredump
-SceSysrootForDriver	0x5A4A7F7E	NID_5A4A7F7E	missing		SceBt
-SceSysrootForDriver	0x5A7FFDC1	NID_5A7FFDC1	missing		
-SceSysrootForDriver	0x5B106EB3	NID_5B106EB3	missing		
-SceSysrootForDriver	0x5C86E49B	NID_5C86E49B	missing		SceProcessmgr
-SceSysrootForDriver	0x6050A467	NID_6050A467	missing		SceAppMgr,SceProcessmgr
-SceSysrootForDriver	0x6219CC14	NID_6219CC14	missing		SceUlobjMgr
-SceSysrootForDriver	0x631141E2	NID_631141E2	missing		SceSblUpdateMgr
-SceSysrootForDriver	0x65F3D598	NID_65F3D598	missing		
-SceSysrootForDriver	0x6655F48C	NID_6655F48C	missing		SceGpuEs4
-SceSysrootForDriver	0x6C036B53	NID_6C036B53	missing		
-SceSysrootForDriver	0x6D44F190	NID_6D44F190	missing		SceProcessmgr
+SceSysrootForDriver	0x582616EC	NID_582616EC	impl	SysmemKernel.NID_582616EC	SceProcessmgr
+SceSysrootForDriver	0x591BB490	NID_591BB490	impl	SysmemKernel.NID_591BB490	SceCoredump
+SceSysrootForDriver	0x5A4A7F7E	NID_5A4A7F7E	impl	SysmemKernel.NID_5A4A7F7E	SceBt
+SceSysrootForDriver	0x5A7FFDC1	NID_5A7FFDC1	impl	SysmemKernel.NID_5A7FFDC1	
+SceSysrootForDriver	0x5B106EB3	NID_5B106EB3	impl	SysmemKernel.NID_5B106EB3	
+SceSysrootForDriver	0x5C86E49B	NID_5C86E49B	impl	SysmemKernel.NID_5C86E49B	SceProcessmgr
+SceSysrootForDriver	0x6050A467	NID_6050A467	impl	SysmemKernel.NID_6050A467	SceAppMgr,SceProcessmgr
+SceSysrootForDriver	0x6219CC14	NID_6219CC14	impl	SysmemKernel.NID_6219CC14	SceUlobjMgr
+SceSysrootForDriver	0x631141E2	NID_631141E2	impl	SysmemKernel.NID_631141E2	SceSblUpdateMgr
+SceSysrootForDriver	0x65F3D598	NID_65F3D598	impl	SysmemKernel.NID_65F3D598	
+SceSysrootForDriver	0x6655F48C	NID_6655F48C	impl	SysmemKernel.NID_6655F48C	SceGpuEs4
+SceSysrootForDriver	0x6C036B53	NID_6C036B53	impl	SysmemKernel.NID_6C036B53	
+SceSysrootForDriver	0x6D44F190	NID_6D44F190	impl	SysmemKernel.NID_6D44F190	SceProcessmgr
 SceSysrootForDriver	0x6E0BC27C	NID_6E0BC27C	missing		SceAppMgr,SceCodecEngineWrapper,SceKernelModulemgr,SceKernelThreadMgr,SceMtpIfDriver,SceNetPs,SceProcessmgr,SceWlanBt
-SceSysrootForDriver	0x709799BB	NID_709799BB	missing		
+SceSysrootForDriver	0x709799BB	NID_709799BB	impl	SysmemKernel.NID_709799BB	
 SceSysrootForDriver	0x70A60BBA	NID_70A60BBA	missing		SceNpDrm
-SceSysrootForDriver	0x70AD47A9	NID_70AD47A9	missing		SceAppMgr
-SceSysrootForDriver	0x73522F65	NID_73522F65	missing		SceProcessmgr
+SceSysrootForDriver	0x70AD47A9	NID_70AD47A9	impl	SysmemKernel.NID_70AD47A9	SceAppMgr
+SceSysrootForDriver	0x73522F65	NID_73522F65	impl	SysmemKernel.NID_73522F65	SceProcessmgr
 SceSysrootForDriver	0x778D0966	NID_778D0966	missing		SceDisplay,SceIofilemgr,SceMsif,ScePower
-SceSysrootForDriver	0x77CF3FBD	NID_77CF3FBD	missing		SceProcessmgr
+SceSysrootForDriver	0x77CF3FBD	NID_77CF3FBD	impl	SysmemKernel.NID_77CF3FBD	SceProcessmgr
 SceSysrootForDriver	0x7918D44E	NID_7918D44E	missing		SceDisplay,ScePower
 SceSysrootForDriver	0x79458ACB	NID_79458ACB	missing		SceNpDrm
 SceSysrootForDriver	0x7998F5B5	NID_7998F5B5	missing		SceNpDrm
-SceSysrootForDriver	0x7AAC4EE7	NID_7AAC4EE7	missing		SceVshBridge
-SceSysrootForDriver	0x7B4A377C	NID_7B4A377C	missing		
-SceSysrootForDriver	0x7C0BE393	NID_7C0BE393	missing		
+SceSysrootForDriver	0x7AAC4EE7	NID_7AAC4EE7	impl	SysmemKernel.NID_7AAC4EE7	SceVshBridge
+SceSysrootForDriver	0x7B4A377C	NID_7B4A377C	impl	SysmemKernel.NID_7B4A377C	
+SceSysrootForDriver	0x7C0BE393	NID_7C0BE393	impl	SysmemKernel.NID_7C0BE393	
 SceSysrootForDriver	0x7C2C10E2	NID_7C2C10E2	missing		SceSysStateMgr
 SceSysrootForDriver	0x80FBC69D	NID_80FBC69D	missing		
-SceSysrootForDriver	0x82FC6405	NID_82FC6405	missing		
-SceSysrootForDriver	0x8498E23F	NID_8498E23F	missing		SceProcessmgr
-SceSysrootForDriver	0x84C0BE05	NID_84C0BE05	missing		SceAppMgr
-SceSysrootForDriver	0x8747D415	NID_8747D415	missing		
-SceSysrootForDriver	0x89532E2F	NID_89532E2F	missing		ScePower
+SceSysrootForDriver	0x82FC6405	NID_82FC6405	impl	SysmemKernel.NID_82FC6405	
+SceSysrootForDriver	0x8498E23F	NID_8498E23F	impl	SysmemKernel.NID_8498E23F	SceProcessmgr
+SceSysrootForDriver	0x84C0BE05	NID_84C0BE05	impl	SysmemKernel.NID_84C0BE05	SceAppMgr
+SceSysrootForDriver	0x8747D415	NID_8747D415	impl	SysmemKernel.NID_8747D415	
+SceSysrootForDriver	0x89532E2F	NID_89532E2F	impl	SysmemKernel.NID_89532E2F	ScePower
 SceSysrootForDriver	0x8A760856	NID_8A760856	missing		SceAppMgr
 SceSysrootForDriver	0x8B8F1D01	NID_8B8F1D01	missing		SceIofilemgr
 SceSysrootForDriver	0x8CD02748	NID_8CD02748	missing		
-SceSysrootForDriver	0x9421B223	NID_9421B223	missing		
-SceSysrootForDriver	0x951C7943	NID_951C7943	missing		
+SceSysrootForDriver	0x9421B223	NID_9421B223	impl	SysmemKernel.NID_9421B223	
+SceSysrootForDriver	0x951C7943	NID_951C7943	impl	SysmemKernel.NID_951C7943	
 SceSysrootForDriver	0x97E2FB77	NID_97E2FB77	missing		SceNpDrm
 SceSysrootForDriver	0x9A486846	NID_9A486846	missing		SceSblUpdateMgr
-SceSysrootForDriver	0x9A8871F1	NID_9A8871F1	missing		SceAppMgr
-SceSysrootForDriver	0x9AF075D4	NID_9AF075D4	missing		SceAppMgr,SceKernelModulemgr,SceKernelThreadMgr
-SceSysrootForDriver	0x9BF782CA	NID_9BF782CA	missing		SceSdstor
-SceSysrootForDriver	0x9CDE3623	NID_9CDE3623	missing		
-SceSysrootForDriver	0x9CFF80F9	NID_9CFF80F9	missing		
-SceSysrootForDriver	0x9D058A32	NID_9D058A32	missing		SceProcessmgr
-SceSysrootForDriver	0x9DCD0894	NID_9DCD0894	missing		SceCoredump
-SceSysrootForDriver	0x9E96D990	NID_9E96D990	missing		SceSblUpdateMgr
+SceSysrootForDriver	0x9A8871F1	NID_9A8871F1	impl	SysmemKernel.NID_9A8871F1	SceAppMgr
+SceSysrootForDriver	0x9AF075D4	NID_9AF075D4	impl	SysmemKernel.NID_9AF075D4	SceAppMgr,SceKernelModulemgr,SceKernelThreadMgr
+SceSysrootForDriver	0x9BF782CA	NID_9BF782CA	impl	SysmemKernel.NID_9BF782CA	SceSdstor
+SceSysrootForDriver	0x9CDE3623	NID_9CDE3623	impl	SysmemKernel.NID_9CDE3623	
+SceSysrootForDriver	0x9CFF80F9	NID_9CFF80F9	impl	SysmemKernel.NID_9CFF80F9	
+SceSysrootForDriver	0x9D058A32	NID_9D058A32	impl	SysmemKernel.NID_9D058A32	SceProcessmgr
+SceSysrootForDriver	0x9DCD0894	NID_9DCD0894	impl	SysmemKernel.NID_9DCD0894	SceCoredump
+SceSysrootForDriver	0x9E96D990	NID_9E96D990	impl	SysmemKernel.NID_9E96D990	SceSblUpdateMgr
 SceSysrootForDriver	0x9EC02A41	NID_9EC02A41	missing		SceSblUpdateMgr
 SceSysrootForDriver	0xA12C9950	NID_A12C9950	missing		SceSblPostSsMgr
-SceSysrootForDriver	0xA6A0A038	NID_A6A0A038	missing		
-SceSysrootForDriver	0xA799F22A	NID_A799F22A	missing		SceNetPs
-SceSysrootForDriver	0xA7A01DF0	NID_A7A01DF0	missing		
-SceSysrootForDriver	0xA85FF3B2	NID_A85FF3B2	missing		
-SceSysrootForDriver	0xA9510EFE	NID_A9510EFE	missing		
-SceSysrootForDriver	0xAA770EF7	NID_AA770EF7	missing		SceTty2uart
-SceSysrootForDriver	0xAA8D34EE	NID_AA8D34EE	missing		
+SceSysrootForDriver	0xA6A0A038	NID_A6A0A038	impl	SysmemKernel.NID_A6A0A038	
+SceSysrootForDriver	0xA799F22A	NID_A799F22A	impl	SysmemKernel.NID_A799F22A	SceNetPs
+SceSysrootForDriver	0xA7A01DF0	NID_A7A01DF0	impl	SysmemKernel.NID_A7A01DF0	
+SceSysrootForDriver	0xA85FF3B2	NID_A85FF3B2	impl	SysmemKernel.NID_A85FF3B2	
+SceSysrootForDriver	0xA9510EFE	NID_A9510EFE	impl	SysmemKernel.NID_A9510EFE	
+SceSysrootForDriver	0xAA770EF7	NID_AA770EF7	impl	SysmemKernel.NID_AA770EF7	SceTty2uart
+SceSysrootForDriver	0xAA8D34EE	NID_AA8D34EE	impl	SysmemKernel.NID_AA8D34EE	
 SceSysrootForDriver	0xAE7A8F1D	NID_AE7A8F1D	missing		
-SceSysrootForDriver	0xB0E3E791	NID_B0E3E791	missing		
-SceSysrootForDriver	0xB27B7530	NID_B27B7530	missing		
-SceSysrootForDriver	0xB501E861	NID_B501E861	missing		SceProcessmgr
-SceSysrootForDriver	0xBFD8F2A2	NID_BFD8F2A2	missing		SceGpuEs4
-SceSysrootForDriver	0xC5EAF5F7	NID_C5EAF5F7	missing		
-SceSysrootForDriver	0xC67A1FA9	NID_C67A1FA9	missing		
-SceSysrootForDriver	0xC728BC61	NID_C728BC61	missing		SceNetPs
-SceSysrootForDriver	0xC81B7E2B	NID_C81B7E2B	missing		
-SceSysrootForDriver	0xC94C76FA	NID_C94C76FA	missing		
-SceSysrootForDriver	0xCA497324	NID_CA497324	missing		
+SceSysrootForDriver	0xB0E3E791	NID_B0E3E791	impl	SysmemKernel.NID_B0E3E791	
+SceSysrootForDriver	0xB27B7530	NID_B27B7530	impl	SysmemKernel.NID_B27B7530	
+SceSysrootForDriver	0xB501E861	NID_B501E861	impl	SysmemKernel.NID_B501E861	SceProcessmgr
+SceSysrootForDriver	0xBFD8F2A2	NID_BFD8F2A2	impl	SysmemKernel.NID_BFD8F2A2	SceGpuEs4
+SceSysrootForDriver	0xC5EAF5F7	NID_C5EAF5F7	impl	SysmemKernel.NID_C5EAF5F7	
+SceSysrootForDriver	0xC67A1FA9	NID_C67A1FA9	impl	SysmemKernel.NID_C67A1FA9	
+SceSysrootForDriver	0xC728BC61	NID_C728BC61	impl	SysmemKernel.NID_C728BC61	SceNetPs
+SceSysrootForDriver	0xC81B7E2B	NID_C81B7E2B	impl	SysmemKernel.NID_C81B7E2B	
+SceSysrootForDriver	0xC94C76FA	NID_C94C76FA	impl	SysmemKernel.NID_C94C76FA	
+SceSysrootForDriver	0xCA497324	NID_CA497324	impl	SysmemKernel.NID_CA497324	
 SceSysrootForDriver	0xCAE820B2	NID_CAE820B2	missing		SceKernelModulemgr,SceKernelThreadMgr
-SceSysrootForDriver	0xCC7A0E63	NID_CC7A0E63	missing		
-SceSysrootForDriver	0xCCB8BB5E	NID_CCB8BB5E	missing		
-SceSysrootForDriver	0xCD4B84F7	NID_CD4B84F7	missing		
-SceSysrootForDriver	0xD02281A8	NID_D02281A8	missing		SceNetPs
+SceSysrootForDriver	0xCC7A0E63	NID_CC7A0E63	impl	SysmemKernel.NID_CC7A0E63	
+SceSysrootForDriver	0xCCB8BB5E	NID_CCB8BB5E	impl	SysmemKernel.NID_CCB8BB5E	
+SceSysrootForDriver	0xCD4B84F7	NID_CD4B84F7	impl	SysmemKernel.NID_CD4B84F7	
+SceSysrootForDriver	0xD02281A8	NID_D02281A8	impl	SysmemKernel.NID_D02281A8	SceNetPs
 SceSysrootForDriver	0xD03741B8	NID_D03741B8	missing		SceNpDrm
 SceSysrootForDriver	0xD04C7723	NID_D04C7723	missing		SceNpDrm
-SceSysrootForDriver	0xD1E54BF4	NID_D1E54BF4	missing		
-SceSysrootForDriver	0xD2423D6B	NID_D2423D6B	missing		
-SceSysrootForDriver	0xD4457D4F	NID_D4457D4F	missing		SceNetPs
-SceSysrootForDriver	0xD56A2F3E	NID_D56A2F3E	missing		
-SceSysrootForDriver	0xD7207203	NID_D7207203	missing		SceNetPs
+SceSysrootForDriver	0xD1E54BF4	NID_D1E54BF4	impl	SysmemKernel.NID_D1E54BF4	
+SceSysrootForDriver	0xD2423D6B	NID_D2423D6B	impl	SysmemKernel.NID_D2423D6B	
+SceSysrootForDriver	0xD4457D4F	NID_D4457D4F	impl	SysmemKernel.NID_D4457D4F	SceNetPs
+SceSysrootForDriver	0xD56A2F3E	NID_D56A2F3E	impl	SysmemKernel.NID_D56A2F3E	
+SceSysrootForDriver	0xD7207203	NID_D7207203	impl	SysmemKernel.NID_D7207203	SceNetPs
 SceSysrootForDriver	0xD75D4F37	NID_D75D4F37	missing		SceSblAuthMgr
 SceSysrootForDriver	0xD86BD6DC	NID_D86BD6DC	missing		
-SceSysrootForDriver	0xDABD4A47	NID_DABD4A47	missing		SceKernelThreadMgr
-SceSysrootForDriver	0xDC651D22	NID_DC651D22	missing		
-SceSysrootForDriver	0xE06C14FD	NID_E06C14FD	missing		SceBt
+SceSysrootForDriver	0xDABD4A47	NID_DABD4A47	impl	SysmemKernel.NID_DABD4A47	SceKernelThreadMgr
+SceSysrootForDriver	0xDC651D22	NID_DC651D22	impl	SysmemKernel.NID_DC651D22	
+SceSysrootForDriver	0xE06C14FD	NID_E06C14FD	impl	SysmemKernel.NID_E06C14FD	SceBt
 SceSysrootForDriver	0xE2515A08	NID_E2515A08	missing		SceSblACMgr
 SceSysrootForDriver	0xE25D2FD5	NID_E25D2FD5	missing		SceSblPostSsMgr
 SceSysrootForDriver	0xE2E88E3E	NID_E2E88E3E	missing		SceSblPostSsMgr
 SceSysrootForDriver	0xE384DD93	NID_E384DD93	missing		SceNpDrm
 SceSysrootForDriver	0xE4EA1960	NID_E4EA1960	missing		
-SceSysrootForDriver	0xE541959B	NID_E541959B	missing		
+SceSysrootForDriver	0xE541959B	NID_E541959B	impl	SysmemKernel.NID_E541959B	
 SceSysrootForDriver	0xE8EBF179	NID_E8EBF179	missing		SceNpDrm
-SceSysrootForDriver	0xE9B4221F	NID_E9B4221F	missing		SceAppMgr
-SceSysrootForDriver	0xEB19AAF6	NID_EB19AAF6	missing		
-SceSysrootForDriver	0xECADF8C3	NID_ECADF8C3	missing		SceNetPs
-SceSysrootForDriver	0xED22CF8F	NID_ED22CF8F	missing		
-SceSysrootForDriver	0xED688AEE	NID_ED688AEE	missing		
+SceSysrootForDriver	0xE9B4221F	NID_E9B4221F	impl	SysmemKernel.NID_E9B4221F	SceAppMgr
+SceSysrootForDriver	0xEB19AAF6	NID_EB19AAF6	impl	SysmemKernel.NID_EB19AAF6	
+SceSysrootForDriver	0xECADF8C3	NID_ECADF8C3	impl	SysmemKernel.NID_ECADF8C3	SceNetPs
+SceSysrootForDriver	0xED22CF8F	NID_ED22CF8F	impl	SysmemKernel.NID_ED22CF8F	
+SceSysrootForDriver	0xED688AEE	NID_ED688AEE	impl	SysmemKernel.NID_ED688AEE	
 SceSysrootForDriver	0xEE934615	NID_EE934615	missing		SceCompat,SceKernelDmacMgr,ScePower,SceSblAuthMgr,SceSblSmschedProxy,SceSblSsMgr,SceSblSsSmComm,SceVshBridge
 SceSysrootForDriver	0xEEF091A7	NID_EEF091A7	missing		SceCompat,SceKernelDmacMgr,ScePower,SceSblAuthMgr,SceSblSmschedProxy,SceSblSsMgr,SceSblSsSmComm,SceVshBridge
 SceSysrootForDriver	0xF0C91CD3	NID_F0C91CD3	missing		SceNpDrm
-SceSysrootForDriver	0xF2BC9E1D	NID_F2BC9E1D	missing		SceProcessmgr
-SceSysrootForDriver	0xF404026C	NID_F404026C	missing		
-SceSysrootForDriver	0xF4340469	NID_F4340469	missing		SceProcessmgr
-SceSysrootForDriver	0xF804F761	NID_F804F761	missing		SceSdstor,SceVshBridge
-SceSysrootForDriver	0xFF2DD7AB	NID_FF2DD7AB	missing		
+SceSysrootForDriver	0xF2BC9E1D	NID_F2BC9E1D	impl	SysmemKernel.NID_F2BC9E1D	SceProcessmgr
+SceSysrootForDriver	0xF404026C	NID_F404026C	impl	SysmemKernel.NID_F404026C	
+SceSysrootForDriver	0xF4340469	NID_F4340469	impl	SysmemKernel.NID_F4340469	SceProcessmgr
+SceSysrootForDriver	0xF804F761	NID_F804F761	impl	SysmemKernel.NID_F804F761	SceSdstor,SceVshBridge
+SceSysrootForDriver	0xFF2DD7AB	NID_FF2DD7AB	impl	SysmemKernel.NID_FF2DD7AB	
 SceSysrootForDriver	0x93CD44CD	ksceKernelInvokeInitCallback	missing		SceProcessmgr,SceSblUpdateMgr,SceSysStateMgr
 SceSysrootForDriver	0x3ACACD22	ksceKernelSysrootAppMgrSpawnProcess	missing		
 SceSysrootForDriver	0x8AA268D6	ksceKernelSysrootCheckModelCapability	missing		SceCtrl,SceSdstor,SceUsbEtherRtl,SceVshBridge
 SceSysrootForDriver	0xCD8CD242	ksceKernelSysrootCoredumpTrigger	missing		
-SceSysrootForDriver	0x256B2394	ksceKernelSysrootDbgpSuspendProcessAndWaitResume	missing		
-SceSysrootForDriver	0x05093E7B	ksceKernelSysrootGetShellPid	missing		SceIofilemgr
-SceSysrootForDriver	0x67AAB627	ksceKernelSysrootGetSystemSwVersion	missing		SceEnumWakeUp,SceKernelModulemgr,SceNpDrm,SceVshBridge
-SceSysrootForDriver	0xDD473B05	ksceKernelSysrootRegisterCoredumpTrigger	missing		SceCoredump
-SceSysrootForDriver	0x3999F917	ksceKernelSysrootRegisterDbgpHandler	missing		
-SceSysrootForDriver	0x3276086B	ksceKernelSysrootSetGetSystemSwVersionFunc	missing		SceSblUpdateMgr
-SceSysrootForDriver	0x0F07C3FC	ksceKernelSysrootSetProcessHandler	missing		
-SceSysrootForDriver	0x7B7ED1E9	ksceKernelSysrootUnregisterDbgpHandler	missing		
+SceSysrootForDriver	0x256B2394	ksceKernelSysrootDbgpSuspendProcessAndWaitResume	impl	SysmemKernel.ksceKernelSysrootDbgpSuspendProcessAndWaitResume	
+SceSysrootForDriver	0x05093E7B	ksceKernelSysrootGetShellPid	impl	SysmemKernel.ksceKernelSysrootGetShellPid	SceIofilemgr
+SceSysrootForDriver	0x67AAB627	ksceKernelSysrootGetSystemSwVersion	impl	SysmemKernel.ksceKernelSysrootGetSystemSwVersion	SceEnumWakeUp,SceKernelModulemgr,SceNpDrm,SceVshBridge
+SceSysrootForDriver	0xDD473B05	ksceKernelSysrootRegisterCoredumpTrigger	impl	SysmemKernel.ksceKernelSysrootRegisterCoredumpTrigger	SceCoredump
+SceSysrootForDriver	0x3999F917	ksceKernelSysrootRegisterDbgpHandler	impl	SysmemKernel.ksceKernelSysrootRegisterDbgpHandler	
+SceSysrootForDriver	0x3276086B	ksceKernelSysrootSetGetSystemSwVersionFunc	impl	SysmemKernel.ksceKernelSysrootSetGetSystemSwVersionFunc	SceSblUpdateMgr
+SceSysrootForDriver	0x0F07C3FC	ksceKernelSysrootSetProcessHandler	impl	SysmemKernel.ksceKernelSysrootSetProcessHandler	
+SceSysrootForDriver	0x7B7ED1E9	ksceKernelSysrootUnregisterDbgpHandler	impl	SysmemKernel.ksceKernelSysrootUnregisterDbgpHandler	
 SceSysrootForDriver	0x46E72428	ksceSysrootGetHardwareFlags	missing		SceDisplay,SceLcd,SceSysStateMgr,SceSyscon
 SceSysrootForDriver	0x930B1342	ksceSysrootGetHardwareInfo	missing		SceLcd,SceLowio,SceOled,SceSysStateMgr,SceSyscon
 SceSysrootForDriver	0x4373AC96	ksceSysrootIsBsodReboot	missing		SceBbmc,SceSdstor
@@ -3231,97 +3231,97 @@ SceSysrootForKernel	0x1247A825	NID_1247A825	missing		SceKernelThreadMgr
 SceSysrootForKernel	0x14D81797	NID_14D81797	missing		
 SceSysrootForKernel	0x1D84C4D4	NID_1D84C4D4	missing		SceExcpmgr
 SceSysrootForKernel	0x1D8DB3A5	NID_1D8DB3A5	missing		SceKernelThreadMgr
-SceSysrootForKernel	0x20D2A0DF	NID_20D2A0DF	missing		SceKernelModulemgr
+SceSysrootForKernel	0x20D2A0DF	NID_20D2A0DF	impl	SysmemKernel.NID_20D2A0DF	SceKernelModulemgr
 SceSysrootForKernel	0x21F5790B	NID_21F5790B	missing		
 SceSysrootForKernel	0x26458702	NID_26458702	missing		SceKernelThreadMgr
-SceSysrootForKernel	0x27D30DB2	NID_27D30DB2	missing		
+SceSysrootForKernel	0x27D30DB2	NID_27D30DB2	impl	SysmemKernel.NID_27D30DB2	
 SceSysrootForKernel	0x2A03DFA1	NID_2A03DFA1	missing		SceCoredump
-SceSysrootForKernel	0x2D6B2A79	NID_2D6B2A79	missing		
+SceSysrootForKernel	0x2D6B2A79	NID_2D6B2A79	impl	SysmemKernel.NID_2D6B2A79	
 SceSysrootForKernel	0x2F75C1DC	NID_2F75C1DC	missing		
 SceSysrootForKernel	0x340575CB	NID_340575CB	missing		
 SceSysrootForKernel	0x377895EB	NID_377895EB	missing		SceSblAuthMgr
-SceSysrootForKernel	0x38751FB7	NID_38751FB7	missing		SceKernelModulemgr
-SceSysrootForKernel	0x3F76D531	NID_3F76D531	missing		
+SceSysrootForKernel	0x38751FB7	NID_38751FB7	impl	SysmemKernel.NID_38751FB7	SceKernelModulemgr
+SceSysrootForKernel	0x3F76D531	NID_3F76D531	impl	SysmemKernel.NID_3F76D531	
 SceSysrootForKernel	0x403B509E	NID_403B509E	missing		
-SceSysrootForKernel	0x40F28DC6	NID_40F28DC6	missing		
+SceSysrootForKernel	0x40F28DC6	NID_40F28DC6	impl	SysmemKernel.NID_40F28DC6	
 SceSysrootForKernel	0x41636522	NID_41636522	missing		SceKernelThreadMgr
-SceSysrootForKernel	0x42FC9FFF	NID_42FC9FFF	missing		
-SceSysrootForKernel	0x47724459	NID_47724459	missing		SceSysStateMgr
+SceSysrootForKernel	0x42FC9FFF	NID_42FC9FFF	impl	SysmemKernel.NID_42FC9FFF	
+SceSysrootForKernel	0x47724459	NID_47724459	impl	SysmemKernel.NID_47724459	SceSysStateMgr
 SceSysrootForKernel	0x491CE8DF	NID_491CE8DF	missing		SceExcpmgr,SceKernelThreadMgr
 SceSysrootForKernel	0x4F57A13F	NID_4F57A13F	missing		
-SceSysrootForKernel	0x571E5B79	NID_571E5B79	missing		
+SceSysrootForKernel	0x571E5B79	NID_571E5B79	impl	SysmemKernel.NID_571E5B79	
 SceSysrootForKernel	0x59B76D23	NID_59B76D23	missing		
 SceSysrootForKernel	0x5B5EBFB1	NID_5B5EBFB1	missing		SceKernelThreadMgr
-SceSysrootForKernel	0x5C86E49B	NID_5C86E49B	missing		
+SceSysrootForKernel	0x5C86E49B	NID_5C86E49B	impl	SysmemKernel.NID_5C86E49B	
 SceSysrootForKernel	0x5F2CE289	NID_5F2CE289	missing		SceKernelThreadMgr
-SceSysrootForKernel	0x6050A467	NID_6050A467	missing		SceKernelModulemgr
+SceSysrootForKernel	0x6050A467	NID_6050A467	impl	SysmemKernel.NID_6050A467	SceKernelModulemgr
 SceSysrootForKernel	0x611F17A4	NID_611F17A4	missing		
 SceSysrootForKernel	0x642123EB	NID_642123EB	missing		
-SceSysrootForKernel	0x6C036B53	NID_6C036B53	missing		
+SceSysrootForKernel	0x6C036B53	NID_6C036B53	impl	SysmemKernel.NID_6C036B53	
 SceSysrootForKernel	0x6D111FA7	NID_6D111FA7	missing		SceCoredump
-SceSysrootForKernel	0x6D44F190	NID_6D44F190	missing		
+SceSysrootForKernel	0x6D44F190	NID_6D44F190	impl	SysmemKernel.NID_6D44F190	
 SceSysrootForKernel	0x7334F1E8	NID_7334F1E8	missing		SceKernelThreadMgr
 SceSysrootForKernel	0x733C243E	NID_733C243E	missing		SceProcessmgr
-SceSysrootForKernel	0x73522F65	NID_73522F65	missing		SceKernelModulemgr
+SceSysrootForKernel	0x73522F65	NID_73522F65	impl	SysmemKernel.NID_73522F65	SceKernelModulemgr
 SceSysrootForKernel	0x73601453	NID_73601453	missing		
 SceSysrootForKernel	0x7385CADE	NID_7385CADE	missing		
-SceSysrootForKernel	0x77CF3FBD	NID_77CF3FBD	missing		
+SceSysrootForKernel	0x77CF3FBD	NID_77CF3FBD	impl	SysmemKernel.NID_77CF3FBD	
 SceSysrootForKernel	0x7918D44E	NID_7918D44E	missing		
 SceSysrootForKernel	0x7968F091	NID_7968F091	missing		SceIofilemgr,SceKernelThreadMgr
 SceSysrootForKernel	0x7A7E7C0C	NID_7A7E7C0C	missing		SceExcpmgr,SceKernelIntrMgr,SceKernelThreadMgr,SceProcessmgr
-SceSysrootForKernel	0x82FC6405	NID_82FC6405	missing		SceKernelBusError
-SceSysrootForKernel	0x8498E23F	NID_8498E23F	missing		
-SceSysrootForKernel	0x84C0BE05	NID_84C0BE05	missing		
-SceSysrootForKernel	0x8747D415	NID_8747D415	missing		
-SceSysrootForKernel	0x89532E2F	NID_89532E2F	missing		
+SceSysrootForKernel	0x82FC6405	NID_82FC6405	impl	SysmemKernel.NID_82FC6405	SceKernelBusError
+SceSysrootForKernel	0x8498E23F	NID_8498E23F	impl	SysmemKernel.NID_8498E23F	
+SceSysrootForKernel	0x84C0BE05	NID_84C0BE05	impl	SysmemKernel.NID_84C0BE05	
+SceSysrootForKernel	0x8747D415	NID_8747D415	impl	SysmemKernel.NID_8747D415	
+SceSysrootForKernel	0x89532E2F	NID_89532E2F	impl	SysmemKernel.NID_89532E2F	
 SceSysrootForKernel	0x8E4B61F1	NID_8E4B61F1	missing		SceKernelIntrMgr,SceKernelThreadMgr
 SceSysrootForKernel	0x9139E22B	NID_9139E22B	missing		SceKernelIntrMgr
 SceSysrootForKernel	0x9991B1AF	NID_9991B1AF	missing		
-SceSysrootForKernel	0x9A8871F1	NID_9A8871F1	missing		
-SceSysrootForKernel	0x9CFF80F9	NID_9CFF80F9	missing		SceKernelModulemgr
-SceSysrootForKernel	0x9D058A32	NID_9D058A32	missing		
-SceSysrootForKernel	0xA799F22A	NID_A799F22A	missing		
+SceSysrootForKernel	0x9A8871F1	NID_9A8871F1	impl	SysmemKernel.NID_9A8871F1	
+SceSysrootForKernel	0x9CFF80F9	NID_9CFF80F9	impl	SysmemKernel.NID_9CFF80F9	SceKernelModulemgr
+SceSysrootForKernel	0x9D058A32	NID_9D058A32	impl	SysmemKernel.NID_9D058A32	
+SceSysrootForKernel	0xA799F22A	NID_A799F22A	impl	SysmemKernel.NID_A799F22A	
 SceSysrootForKernel	0xA84676E3	NID_A84676E3	missing		SceProcessmgr,SceSysStateMgr
-SceSysrootForKernel	0xA9510EFE	NID_A9510EFE	missing		
-SceSysrootForKernel	0xAA8D34EE	NID_AA8D34EE	missing		SceKernelModulemgr
+SceSysrootForKernel	0xA9510EFE	NID_A9510EFE	impl	SysmemKernel.NID_A9510EFE	
+SceSysrootForKernel	0xAA8D34EE	NID_AA8D34EE	impl	SysmemKernel.NID_AA8D34EE	SceKernelModulemgr
 SceSysrootForKernel	0xAB3CC7D0	NID_AB3CC7D0	missing		
 SceSysrootForKernel	0xAD74BEB3	NID_AD74BEB3	missing		SceKernelThreadMgr
 SceSysrootForKernel	0xAE2132FD	NID_AE2132FD	missing		
 SceSysrootForKernel	0xAE55B7CC	NID_AE55B7CC	missing		SceKernelIntrMgr,SceKernelThreadMgr
 SceSysrootForKernel	0xAE7A8F1D	NID_AE7A8F1D	missing		
 SceSysrootForKernel	0xB171CC2D	NID_B171CC2D	missing		SceKernelModulemgr
-SceSysrootForKernel	0xB27B7530	NID_B27B7530	missing		SceKernelBusError
+SceSysrootForKernel	0xB27B7530	NID_B27B7530	impl	SysmemKernel.NID_B27B7530	SceKernelBusError
 SceSysrootForKernel	0xB39CD708	NID_B39CD708	missing		
-SceSysrootForKernel	0xB501E861	NID_B501E861	missing		
+SceSysrootForKernel	0xB501E861	NID_B501E861	impl	SysmemKernel.NID_B501E861	
 SceSysrootForKernel	0xBBFD2E3C	NID_BBFD2E3C	missing		
 SceSysrootForKernel	0xBE1EF51C	NID_BE1EF51C	missing		SceSblACMgr
 SceSysrootForKernel	0xBF82931F	NID_BF82931F	missing		
-SceSysrootForKernel	0xC5EAF5F7	NID_C5EAF5F7	missing		
-SceSysrootForKernel	0xC67A1FA9	NID_C67A1FA9	missing		SceKernelModulemgr
-SceSysrootForKernel	0xC728BC61	NID_C728BC61	missing		
-SceSysrootForKernel	0xC81B7E2B	NID_C81B7E2B	missing		SceKernelModulemgr
-SceSysrootForKernel	0xCA497324	NID_CA497324	missing		SceKernelModulemgr
+SceSysrootForKernel	0xC5EAF5F7	NID_C5EAF5F7	impl	SysmemKernel.NID_C5EAF5F7	
+SceSysrootForKernel	0xC67A1FA9	NID_C67A1FA9	impl	SysmemKernel.NID_C67A1FA9	SceKernelModulemgr
+SceSysrootForKernel	0xC728BC61	NID_C728BC61	impl	SysmemKernel.NID_C728BC61	
+SceSysrootForKernel	0xC81B7E2B	NID_C81B7E2B	impl	SysmemKernel.NID_C81B7E2B	SceKernelModulemgr
+SceSysrootForKernel	0xCA497324	NID_CA497324	impl	SysmemKernel.NID_CA497324	SceKernelModulemgr
 SceSysrootForKernel	0xCA8D1A2B	NID_CA8D1A2B	missing		
 SceSysrootForKernel	0xCBD377B7	NID_CBD377B7	missing		SceIofilemgr
 SceSysrootForKernel	0xCC119171	NID_CC119171	missing		ScePfsMgr
-SceSysrootForKernel	0xCC7A0E63	NID_CC7A0E63	missing		
+SceSysrootForKernel	0xCC7A0E63	NID_CC7A0E63	impl	SysmemKernel.NID_CC7A0E63	
 SceSysrootForKernel	0xCC893F37	NID_CC893F37	missing		SceExcpmgr,SceKernelThreadMgr
-SceSysrootForKernel	0xCCB8BB5E	NID_CCB8BB5E	missing		
-SceSysrootForKernel	0xCD4B84F7	NID_CD4B84F7	missing		
+SceSysrootForKernel	0xCCB8BB5E	NID_CCB8BB5E	impl	SysmemKernel.NID_CCB8BB5E	
+SceSysrootForKernel	0xCD4B84F7	NID_CD4B84F7	impl	SysmemKernel.NID_CD4B84F7	
 SceSysrootForKernel	0xCD8B5D37	NID_CD8B5D37	missing		
-SceSysrootForKernel	0xD02281A8	NID_D02281A8	missing		
-SceSysrootForKernel	0xD29BCA77	NID_D29BCA77	missing		SceProcessmgr
+SceSysrootForKernel	0xD02281A8	NID_D02281A8	impl	SysmemKernel.NID_D02281A8	
+SceSysrootForKernel	0xD29BCA77	NID_D29BCA77	impl	SysmemKernel.NID_D29BCA77	SceProcessmgr
 SceSysrootForKernel	0xD441DC34	NID_D441DC34	missing		
-SceSysrootForKernel	0xD4457D4F	NID_D4457D4F	missing		
-SceSysrootForKernel	0xD7207203	NID_D7207203	missing		
+SceSysrootForKernel	0xD4457D4F	NID_D4457D4F	impl	SysmemKernel.NID_D4457D4F	
+SceSysrootForKernel	0xD7207203	NID_D7207203	impl	SysmemKernel.NID_D7207203	
 SceSysrootForKernel	0xDADFF828	NID_DADFF828	missing		SceExcpmgr
 SceSysrootForKernel	0xDD7821AA	NID_DD7821AA	missing		
 SceSysrootForKernel	0xE20F6FC8	NID_E20F6FC8	missing		SceCoredump,SceKernelThreadMgr
 SceSysrootForKernel	0xE4EA1960	NID_E4EA1960	missing		
-SceSysrootForKernel	0xECADF8C3	NID_ECADF8C3	missing		
+SceSysrootForKernel	0xECADF8C3	NID_ECADF8C3	impl	SysmemKernel.NID_ECADF8C3	
 SceSysrootForKernel	0xEEB867C0	NID_EEB867C0	missing		
-SceSysrootForKernel	0xF2BC9E1D	NID_F2BC9E1D	missing		
-SceSysrootForKernel	0xF4340469	NID_F4340469	missing		
+SceSysrootForKernel	0xF2BC9E1D	NID_F2BC9E1D	impl	SysmemKernel.NID_F2BC9E1D	
+SceSysrootForKernel	0xF4340469	NID_F4340469	impl	SysmemKernel.NID_F4340469	
 SceSysrootForKernel	0xFBB91741	NID_FBB91741	missing		
 SceSysrootForKernel	0xFF44A7BA	NID_FF44A7BA	missing		
 SceSysrootForKernel	0xFFD6E24D	NID_FFD6E24D	missing		
@@ -3329,7 +3329,7 @@ SceSysrootForKernel	0xD351EBC8	ksceKernelAllocHeapMemory2	missing		SceIofilemgr,
 SceSysrootForKernel	0xD7198963	ksceKernelIsColdBoot	missing		SceExcpmgr
 SceSysrootForKernel	0x3ACACD22	ksceKernelSysrootAppMgrSpawnProcess	missing		SceSysStateMgr
 SceSysrootForKernel	0xF8769E86	ksceKernelSysrootCheckRemapCodeForUser	missing		
-SceSysrootForKernel	0x256B2394	ksceKernelSysrootDbgpSuspendProcessAndWaitResume	missing		SceKernelModulemgr
+SceSysrootForKernel	0x256B2394	ksceKernelSysrootDbgpSuspendProcessAndWaitResume	impl	SysmemKernel.ksceKernelSysrootDbgpSuspendProcessAndWaitResume	SceKernelModulemgr
 SceSysrootForKernel	0x63EBB05B	ksceKernelSysrootGetCurrentAddressSpaceCB	impl	SysmemKernel.ksceKernelSysrootGetCurrentAddressSpaceCB	*kubridge
 SceSysrootForKernel	0xB4C24588	ksceKernelSysrootGetCurrentUIDEntryHeapCB	missing		
 SceSysrootForKernel	0x9DB56D1F	ksceKernelSysrootGetKblParam	missing		SceSblAuthMgr,SceSblPostSsMgr,SceSblSsMgr
@@ -3343,9 +3343,9 @@ SceSysrootForKernel	0xCC85905B	ksceKernelSysrootGetVbaseResetVector	missing		Sce
 SceSysrootForKernel	0xF6A6D205	ksceKernelSysrootIofilemgrStart	missing		
 SceSysrootForKernel	0x7FC7A163	ksceKernelSysrootIsUserModeThread	missing		
 SceSysrootForKernel	0x62E8F511	ksceKernelSysrootProcessmgrStart2	missing		
-SceSysrootForKernel	0x3999F917	ksceKernelSysrootRegisterDbgpHandler	missing		
+SceSysrootForKernel	0x3999F917	ksceKernelSysrootRegisterDbgpHandler	impl	SysmemKernel.ksceKernelSysrootRegisterDbgpHandler	
 SceSysrootForKernel	0x36916C30	ksceKernelSysrootSetSysroot	missing		
-SceSysrootForKernel	0x7B7ED1E9	ksceKernelSysrootUnregisterDbgpHandler	missing		
+SceSysrootForKernel	0x7B7ED1E9	ksceKernelSysrootUnregisterDbgpHandler	impl	SysmemKernel.ksceKernelSysrootUnregisterDbgpHandler	
 SceSysrootForKernel	0xD3872270	ksceSysrootGetFactorySystemSwVersion	missing		
 SceSysrootForKernel	0xFF9F80FF	ksceSysrootGetModuleInfoForPid	missing		
 SceSysrootForKernel	0x0B79E220	ksceSysrootGetNidName	missing		
