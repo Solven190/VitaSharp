@@ -90,6 +90,34 @@ public class HleStatusReportTests
         }
     }
 
+    /// <summary>The progress map shows the kernel libraries of the census too, in a region of their own ("Kernel")
+    /// apart from the user libraries, on the same colour scale, in both themes; without a census only the user region
+    /// is drawn.</summary>
+    [Fact]
+    public void TheProgressMapHasAKernelRegionWithEveryCensusLibrary()
+    {
+        IReadOnlyList<HleStatusReport.KernelLibrary> kernel = HleStatusReport.ParseKernel(Read(HleStatusReport.KernelTsvPath));
+        Assert.NotEmpty(kernel);
+        HleStatusReport.Status status = HleStatusReport.Parse(Read(HleStatusReport.TsvPath));
+        foreach (string map in new[] { "progress-map.svg", "progress-map-light.svg" })
+        {
+            string svg = Read($"{HleStatusReport.AssetDir}/{map}");
+            Assert.Contains($">User ({status.Libraries.Count(l => l.Total > 0)} libraries)", svg);
+            Assert.Contains($">Kernel ({kernel.Count} libraries)", svg);
+            Assert.Contains($"{kernel.Count} kernel libraries", svg);
+            Assert.All(kernel, l => Assert.Contains($"<title>{l.Name}: {l.Impl}/{l.Total} (", svg));
+        }
+
+        string tsv = "library\tnid\tname\tstatus\tvitasharp\timporters\nSceKFoo\t0x1\ta\timpl\tA.a\t\nSceKFoo\t0x2\tb\tmissing\t\t\n";
+        HleStatusReport.Status synthetic = HleStatusReport.Build("3.74", 0, 0, 0, [("SceX", "os0:x.skprx", "general", true, false, false)]);
+        string with = HleStatusReport.Render(synthetic, HleStatusReport.ParseKernel(tsv))[$"{HleStatusReport.AssetDir}/progress-map.svg"];
+        Assert.Contains("<title>SceKFoo: 1/2 (", with);
+        Assert.Contains(">Kernel (1 libraries)", with);
+        string without = HleStatusReport.Render(synthetic)[$"{HleStatusReport.AssetDir}/progress-map.svg"];
+        Assert.DoesNotContain("Kernel (", without);
+        Assert.Contains("<title>SceX: 1/1 (", without);
+    }
+
     [Fact]
     public void KernelCountsPerLibrary()
     {
