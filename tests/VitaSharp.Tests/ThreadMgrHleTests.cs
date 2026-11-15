@@ -332,6 +332,107 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
 
     // ------------------------------------------------------------------ semaphores
 
+    /// <summary>
+    /// A waiting thread uses no emulated core until it is woken (as on the Vita): it does not take one back at every
+    /// host slice of its wait just to look again. It did, every 50 ms, and with strict priority the waiting threads of
+    /// the shell, all on its one system core, kept the low-priority job threads (ScePafJobDefault, the job queues of
+    /// the top window and the game card promotion) waiting for a core forever: no frame after ~30 s on Android.
+    /// Only "no core taken while waiting" is checked, so the time the test sleeps decides nothing on a slow host.
+    /// </summary>
+    [Fact]
+    public void AWaitingThreadTakesNoCoreUntilItIsWoken()
+    {
+        _h.OnGuest(_ =>
+        {
+            int s = Call(Tm, "sceKernelCreateSema", "corewait", 0u, 0, 1, 0u);
+            GuestRun waiter = _h.Start(_ => Assert.Equal(0, Call(Tm, "sceKernelWaitSema", s, 1, new Ptr<uint>(0))), "core-wait");
+            Until(() => waiter.Thread.Status == ThreadStatus.Waiting, "the semaphore wait");
+            Until(() => !waiter.Thread.HasCore, "the waiter to give its core away");
+            int releases = waiter.Thread.CoreReleases;
+            Thread.Sleep(400); // several of the wait's host slices pass
+            Assert.False(waiter.Thread.HasCore);
+            Assert.Equal(releases, waiter.Thread.CoreReleases);
+            // woken: it takes a core back and returns
+            Assert.Equal(0, Call(Tm, "sceKernelSignalSema", s, 1));
+            _h.Join(waiter);
+            Assert.Equal(0, Call(Tm, "sceKernelDeleteSema", s));
+        });
+    }
+
+    /// <summary>The same with a timeout: the wait ends at its timeout, with a core, and wrote no core use meanwhile.</summary>
+    [Fact]
+    public void AWaitWithATimeoutTakesNoCoreUntilItEnds()
+    {
+        _h.OnGuest(_ =>
+        {
+            int s = Call(Tm, "sceKernelCreateSema", "corewait2", 0u, 0, 1, 0u);
+            uint timeout = _h.Word(30_000_000); // 30 s of guest time: never reached here
+            GuestRun waiter = _h.Start(_ => Assert.Equal(0, Call(Tm, "sceKernelWaitSema", s, 1, new Ptr<uint>(timeout))), "core-wait-timeout");
+            Until(() => waiter.Thread.Status == ThreadStatus.Waiting && !waiter.Thread.HasCore, "the semaphore wait");
+            int releases = waiter.Thread.CoreReleases;
+            Thread.Sleep(400);
+            Assert.Equal(releases, waiter.Thread.CoreReleases);
+            Assert.Equal(0, Call(Tm, "sceKernelSignalSema", s, 1));
+            _h.Join(waiter);
+            Assert.True(GuestMemory.R32(timeout) > 0); // the remaining time was written back
+            Assert.Equal(0, Call(Tm, "sceKernelDeleteSema", s));
+        });
+    }
+
+    /// <summary>
+    /// Mutual exclusion holds while waiters take their core back: a waiter that saw the mutex free and then had to wait
+    /// for a core must look again, because the running thread may have locked it meanwhile (the TestGame's
+    /// threads/mutex_two_threads lost increments, 39,974 of 40,000, when that first look was trusted). Also the
+    /// lightweight mutex and the semaphore used as a lock, with three threads for the app's three cores and more.
+    /// </summary>
+    [Theory]
+    [InlineData("mutex", 2)]
+    [InlineData("mutex", 5)]
+    [InlineData("sema", 4)]
+    public void ContendedLocksNeverLetTwoThreadsIn(string kind, int threads)
+    {
+        _h.OnGuest(_ =>
+        {
+            int uid = kind == "mutex" ? Call(Tm, "sceKernelCreateMutex", "contend", 0u, 0, 0u) : Call(Tm, "sceKernelCreateSema", "contend", 0u, 1, 1, 0u);
+            const int Rounds = 3000;
+            int inside = 0, overlaps = 0;
+            long counter = 0;
+            var runs = new List<GuestRun>();
+            for (int n = 0; n < threads; n++)
+            {
+                runs.Add(_h.Start(_ =>
+                {
+                    for (int i = 0; i < Rounds; i++)
+                    {
+                        Assert.Equal(0, kind == "mutex" ? Call(Tm, "sceKernelLockMutex", uid, 1, new Ptr<uint>(0)) : Call(Tm, "sceKernelWaitSema", uid, 1, new Ptr<uint>(0)));
+                        if (Interlocked.Increment(ref inside) != 1)
+                        {
+                            Interlocked.Increment(ref overlaps);
+                        }
+
+                        long seen = counter;
+                        if ((i & 7) == 0)
+                        {
+                            Thread.Yield(); // widen the window a lost update needs
+                        }
+
+                        counter = seen + 1;
+                        Interlocked.Decrement(ref inside);
+                        Assert.Equal(0, kind == "mutex" ? Call(Tm, "sceKernelUnlockMutex", uid, 1) : Call(Tm, "sceKernelSignalSema", uid, 1));
+                    }
+                }, $"contend{n}"));
+            }
+
+            foreach (GuestRun run in runs)
+            {
+                _h.Join(run);
+            }
+
+            Assert.Equal(0, overlaps);
+            Assert.Equal((long)threads * Rounds, counter);
+        });
+    }
+
     [Fact]
     public void SemaphoreCountsAndErrors()
     {

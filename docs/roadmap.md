@@ -1159,6 +1159,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   "blocked in the host" e SceImePredictionJobQueue em host-block. Próximo: comparar o mesmo boot no PC (states e
   núcleos) e conferir se uma thread em espera no host segura o núcleo emulado (no Vita uma thread em espera não ocupa
   núcleo); log em `<scratchpad>/andA/shell/last2.log`
+  Causa e correção (15/11/2026, bugB, fix/wait-no-core): o núcleo do sistema ficava ~85% ocioso. Toda thread em
+  espera pegava um núcleo de volta a cada fatia de 50 ms só para olhar de novo (`Wait.UntilCore`); com prioridade
+  estrita as de prioridade baixa perdiam sempre. Agora a espera não usa núcleo até poder terminar, e olha o objeto de
+  novo depois de pegar o núcleo (`ThreadMgrHleTests.AWaitingThreadTakesNoCoreUntilItIsWoken`,
+  `ContendedLocksNeverLetTwoThreadsIn`). No PC, boot-shell depois de 35 s: 2-4 fps antes, 47-59 fps depois; TestGame
+  225/0 antes e depois. Falta confirmar no celular.
 - [x] App .NET MAUI com interface declarativa em C# (MauiReactor), seguindo os mockups em `docs/android/` (biblioteca
   e troféus, ajustes, firmware, conta PSN e rede, driver e informações da GPU, Sistema do Vita) (30/10/2026: gera o
   APK, `src/VitaSharp.Android`; ainda não rodou num aparelho nem no emulador)
