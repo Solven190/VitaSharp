@@ -2306,7 +2306,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Bugs em aberto
 
-- [ ] [P2][M] Falha intermitente 0xC0000005 (vista 2 vezes, 15/11/2026: uma em `VulkanRenderer.UniformSet`, na thread da
+- [x] A pasta da opção "Ativar Plugins do Kernel" fica dentro do ur0:, em `ur0:kernel_plugins/config.txt` (no host
+  `fs/ur0/kernel_plugins`, igual em Windows, Linux, macOS e Android). Antes ficava em `<dados>/kernel_plugins`, ao
+  lado de `fs/` (bugA2, 15/11/2026). A leitura continua: `ur0:kernel_plugins/config.txt`, senão o `config.txt` de
+  `ux0:tai`/`ur0:tai` (cópia de um Vita), que na primeira vez vai para `ur0:kernel_plugins` com o `.bak`. A pasta
+  das versões anteriores vai uma vez para `ur0:kernel_plugins` (cada item que ainda não está lá; a pasta antiga vazia é
+  apagada), e os `.skprx` continuam em `ur0:tai`. Testes: `KernelPluginOptionTests.TheFolderIsUr0KernelPlugins`,
+  `TheFolderOfEarlierVersionsMovesIntoUr0`, `AnOldEntryNeverOverwritesTheNewFolder` (falham sem a mudança).- [ ] [P2][M] Falha intermitente 0xC0000005 (vista 2 vezes, 15/11/2026: uma em `VulkanRenderer.UniformSet`, na thread da
   GPU, durante a suíte; uma dentro do coreclr no Dead Space). Não reproduziu (bugA2, timebox): 4 corridas das classes
   Renderer/Vulkan/RetireWake/UniformSet (30 testes cada, SwiftShader, com a máquina carregada), 0 falhas. Pistas para
   quem pegar: dentro do `UniformSet` o único código nativo é o `vkUpdateDescriptorSets` sobre um set recém-alocado,

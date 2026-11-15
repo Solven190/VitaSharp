@@ -45,8 +45,9 @@ public sealed class EmulatorOptions
     /// the screen): on, the emulator reads the plugin configuration (ur0:tai / ux0:tai config.txt) and loads the plugins
     /// it lists; off (the default), the pure firmware runs and no plugin loads. Null: VITASHARP_KERNEL_PLUGINS=1.</summary>
     public bool? KernelPlugins { get; init; }
-    /// <summary>The emulator's plugin folder (the plugin binaries, apart from the Vita's file system); null:
-    /// &lt;DataRoot&gt;/kernel_plugins, next to <see cref="FsRoot"/>.</summary>
+    /// <summary>The emulator's plugin folder (its config.txt and the files it names without a device); null:
+    /// ur0:kernel_plugins (&lt;FsRoot&gt;/ur0/kernel_plugins), where the folder of earlier versions
+    /// (&lt;DataRoot&gt;/kernel_plugins, next to <see cref="FsRoot"/>) moves once.</summary>
     public string? KernelPluginsDir { get; init; }
     /// <summary>An existing guest address space to run in (there is one per process: unit tests that boot an
     /// emulator share the test fixture's). Null: the emulator creates it.</summary>
@@ -1396,11 +1397,15 @@ public sealed class Emulator : IDisposable
         return LoadPlugins();
     }
 
-    /// <summary>The emulator's plugin folder, apart from the Vita's file system: the plugin configuration (config.txt)
-    /// and the plugins' binaries (kernel_plugins next to the fs folder of the data folder, or
+    /// <summary>The emulator's plugin folder: ur0:kernel_plugins, inside the Vita's file system next to ur0:tai, with
+    /// the plugin configuration (config.txt) and the files it names without a device (or
     /// <see cref="EmulatorOptions.KernelPluginsDir"/>).</summary>
-    public string KernelPluginsFolder => Options.KernelPluginsDir
-        ?? Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Options.FsRoot))) ?? Options.FsRoot, "kernel_plugins");
+    public string KernelPluginsFolder => Options.KernelPluginsDir ?? Path.Combine(Options.FsRoot, "ur0", "kernel_plugins");
+
+    /// <summary>The plugin folder of earlier versions, kernel_plugins next to the fs folder of the data folder; only
+    /// with the default folder (an explicit <see cref="EmulatorOptions.KernelPluginsDir"/> has no earlier layout).</summary>
+    private string? LegacyKernelPluginsFolder => Options.KernelPluginsDir != null ? null
+        : Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Options.FsRoot))) ?? Options.FsRoot, "kernel_plugins");
 
     /// <summary>The configuration in the emulator's plugin folder.</summary>
     private string PluginFolderConfig => Path.Combine(KernelPluginsFolder, "config.txt");
@@ -1417,6 +1422,7 @@ public sealed class Emulator : IDisposable
     /// </summary>
     internal void MigratePluginConfiguration()
     {
+        MoveLegacyPluginFolder();
         if (File.Exists(PluginFolderConfig))
         {
             ReturnMovedPlugins();
@@ -1433,6 +1439,45 @@ public sealed class Emulator : IDisposable
         File.Copy(source, PluginFolderConfig + ".bak", overwrite: true);
         File.Move(source, PluginFolderConfig);
         Log.Info($"plugins: moved the plugin configuration to the emulator's plugin folder ({PluginFolderConfig}; a copy is config.txt.bak)");
+    }
+
+    /// <summary>The folder of earlier versions (<see cref="LegacyKernelPluginsFolder"/>) moves once into ur0:kernel_plugins:
+    /// each of its entries (config.txt, config.txt.bak, files the configuration names without a device) goes there
+    /// unless one of the same name is already there, and the old folder is deleted once empty.</summary>
+    private void MoveLegacyPluginFolder()
+    {
+        string? legacy = LegacyKernelPluginsFolder;
+        if (legacy == null || !Directory.Exists(legacy))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(KernelPluginsFolder);
+        foreach (string entry in Directory.EnumerateFileSystemEntries(legacy))
+        {
+            string target = Path.Combine(KernelPluginsFolder, Path.GetFileName(entry));
+            if (File.Exists(target) || Directory.Exists(target))
+            {
+                Log.Warn($"plugins: {entry} stays where it is, {target} already exists");
+                continue;
+            }
+
+            if (Directory.Exists(entry))
+            {
+                Directory.Move(entry, target);
+            }
+            else
+            {
+                File.Move(entry, target);
+            }
+
+            Log.Info($"plugins: moved {entry} to {target}");
+        }
+
+        if (!Directory.EnumerateFileSystemEntries(legacy).Any())
+        {
+            Directory.Delete(legacy);
+        }
     }
 
     /// <summary>The plugins an earlier version moved into the folder go back to the Vita paths of config.txt.bak, and
