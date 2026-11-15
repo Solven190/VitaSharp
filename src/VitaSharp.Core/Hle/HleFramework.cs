@@ -315,6 +315,15 @@ public sealed partial class HleRegistry : IImportResolver
         return _implementedLibraries.Contains(library);
     }
 
+    /// <summary>
+    /// True when the importers of <paramref name="library"/> get its firmware module for the functions the HLE does not
+    /// have: the HLE serves none of it (it knows nothing of it, or has it only as a firmware fallback), or its module is
+    /// <see cref="HleModule.FirmwareForEveryImporter"/>. System software takes such a library from the firmware
+    /// (<see cref="Emulator.LoadFirmwareDependencies"/>); a game takes it from the preloads and sysmodule's
+    /// dependencies (<see cref="Emulator.GameTakesFirmwarePreload"/>). The coverage counts those functions as LLE.
+    /// </summary>
+    public bool FirmwareServesImporters(string library) => FirmwareForEveryImporter(library) || !ImplementsLibrary(library);
+
     HashSet<string>? _knownLibraries, _firmwareForEveryImporter;
     readonly HashSet<uint> _firmwareForEveryImporterNids = new();
 
