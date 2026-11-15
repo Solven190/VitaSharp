@@ -71,7 +71,7 @@ public sealed partial class VshBridge : HleModule
     /// keeps the answers as flags (ScePaf+0x1E4BE8); for a game program it does not ask and uses 0x4A, i.e.
     /// capabilities 2, 7 and 10, the handheld's set. A PCH-1000 answers that set too.
     /// </summary>
-    [Hle] int vshKernelCheckModelCapability(int capability) => capability is 2 or 7 or 10 ? 1 : 0;
+    [Hle] int vshKernelCheckModelCapability(int capability) => SysmemKernel.CheckModelCapability((uint)capability);
 
     /// <summary>(int capability): the same sysroot capability word through SceSysmem for user modules (the PS Vita TV
     /// teleport client asks for 10 and fails with 0x8010840A unless the answer is 1).</summary>

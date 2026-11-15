@@ -1,6 +1,7 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
 using VitaSharp.Core.SaveState;
+using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -13,6 +14,14 @@ namespace VitaSharp.Core.Hle.Modules;
 /// checking its size word (SCE_KERNEL_ERROR_INVALID_ARGUMENT otherwise); call one entry of a table; read or write one
 /// word of a registered table. The words are kept by sysroot offset.
 /// <para>
+/// On the Vita the firmware's own modules fill these slots at boot (the application manager the shell's pid, the
+/// update manager the system software version, the process manager its table, ...). VitaSharp runs those modules in
+/// HLE, so each slot starts with the boot default standing for the provider (<see cref="DefaultSysrootHandler"/>): the
+/// provider's answer where VitaSharp knows it, otherwise 0 (logged once). A module that registers its own handler
+/// replaces the default, and one that clears the slot leaves it empty as on the console (the export's own result
+/// without a handler).
+/// </para>
+/// <para>
 /// Not here: the slots of the licence manager (+0x368), of the DRM services (+0x3B0) and of the security services
 /// (+0x36C, +0x370, +0x38C, +0x390, +0x394), which belong to the licence and security processor side.
 /// </para>
@@ -23,16 +32,34 @@ public sealed partial class SysmemKernel
     /// caller's stack, so a handler may read arguments past r3).</summary>
     const int SysrootStackArguments = 8;
 
-    /// <summary>The sysroot words that were written, by offset (the others are 0).</summary>
+    /// <summary>The sysroot words a module wrote, by offset; an offset not written still holds the boot default.</summary>
     [SnapshotMissing] // states of builds before it: no handler had been registered
     readonly Dictionary<int, int> _sysrootWords = new();
 
-    uint SysrootWord(uint offset)
+    /// <summary>The words written into a default table (by slot offset &lt;&lt; 16 | word offset).</summary>
+    [SnapshotMissing] // states of builds before it: none had been written
+    readonly Dictionary<int, int> _defaultTableWords = new();
+
+    /// <summary>The default handlers already logged as answering 0 (once each).</summary>
+    [SnapshotIgnore]
+    readonly HashSet<int> _loggedDefaultHandlers = new();
+
+    /// <summary>The word a module wrote at the offset; false while the boot default is in place.</summary>
+    bool TryGetSysrootWord(uint offset, out uint value)
     {
         lock (_sysrootWords)
         {
-            return (uint)_sysrootWords.GetValueOrDefault((int)offset);
+            bool written = _sysrootWords.TryGetValue((int)offset, out int word);
+            value = (uint)word;
+            return written;
         }
+    }
+
+    /// <summary>The word at the offset; 0 while the boot default is in place.</summary>
+    uint SysrootWord(uint offset)
+    {
+        TryGetSysrootWord(offset, out uint value);
+        return value;
     }
 
     void SetSysrootWord(uint offset, uint value)
@@ -61,19 +88,101 @@ public sealed partial class SysmemKernel
         context.Return(0);
     }
 
-    /// <summary>Calls the function at the offset; without one the result is <paramref name="noHandler"/>, or the
-    /// registers stay as they are when the export returns nothing. <paramref name="wide"/>: a 64-bit result (r0, r1).</summary>
+    /// <summary>Calls the function at the offset (the boot default while none was written); with the slot cleared the
+    /// result is <paramref name="noHandler"/>, or the registers stay as they are when the export returns nothing.
+    /// <paramref name="wide"/>: a 64-bit result (r0, r1).</summary>
     void CallSysrootHandler(HleContext context, uint offset, int? noHandler, bool wide = false)
     {
-        CallSysroot(context, SysrootWord(offset), noHandler, wide);
+        if (!TryGetSysrootWord(offset, out uint function))
+        {
+            ReturnDefault(context, offset, NoEntry, wide);
+            return;
+        }
+
+        CallSysroot(context, function, noHandler, wide);
     }
 
-    /// <summary>Calls entry <paramref name="entry"/> of the table at the offset, as <see cref="CallSysrootHandler"/>
-    /// when no table is registered.</summary>
+    /// <summary>The entry argument of <see cref="DefaultSysrootHandler"/> for a slot holding one function.</summary>
+    const uint NoEntry = uint.MaxValue;
+
+    /// <summary>Calls entry <paramref name="entry"/> of the table at the offset (the boot default's entry while none
+    /// was registered), as <see cref="CallSysrootHandler"/> when the slot was cleared.</summary>
     void CallSysrootTableEntry(HleContext context, uint offset, uint entry, int? noHandler)
     {
-        uint table = SysrootWord(offset);
+        if (!TryGetSysrootWord(offset, out uint table))
+        {
+            ReturnDefault(context, offset, entry, wide: false);
+            return;
+        }
+
         CallSysroot(context, table == 0 ? 0 : GuestMemory.R32(table + entry), noHandler, wide: false);
+    }
+
+    void ReturnDefault(HleContext context, uint offset, uint entry, bool wide)
+    {
+        long value = DefaultSysrootHandler(context, offset, entry);
+        if (wide)
+        {
+            context.Return(value);
+        }
+        else
+        {
+            context.Return((int)value);
+        }
+    }
+
+    /// <summary>
+    /// The boot default of a slot (and table entry): what the firmware module that fills it answers, where VitaSharp
+    /// knows it. +0x32C (the application manager): the shell's pid. +0x398 (the update manager): the version of the
+    /// system software package (type 1). +0x360 entry +0x40 (the process manager; ksceKernelCreateThread asks it):
+    /// (pid, *sdkVersion), the SDK version of the process's main module, 0x03740011 for the kernel. Anything else: 0,
+    /// logged once.
+    /// </summary>
+    long DefaultSysrootHandler(HleContext context, uint offset, uint entry)
+    {
+        switch (offset, entry)
+        {
+            case (0x32C, NoEntry) when Emu.Vita.Shell is { } shell:
+                return shell.Pid;
+            case (0x398, NoEntry):
+                return SystemSoftware.SpkgVersion(1);
+            case (0x360, 0x40):
+                return DefaultProcessSdkVersion(context.Gpr(0), context.Gpr(1));
+        }
+
+        int key = (int)((offset << 16) | (entry & 0xFFFF));
+        lock (_loggedDefaultHandlers)
+        {
+            if (_loggedDefaultHandlers.Add(key))
+            {
+                string at = entry == NoEntry ? $"+0x{offset:X}" : $"+0x{offset:X} entry +0x{entry:X}";
+                Log.Info($"sysroot: default handler {at} answers 0 (its firmware provider runs in HLE)");
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>The process manager's (pid, *sdkVersion): the SDK version in the process's SceProcessParam (+0xC), the
+    /// system software version without one; the kernel's pid gives 0x03740011.</summary>
+    long DefaultProcessSdkVersion(uint pid, uint sdkVersion)
+    {
+        uint version = SystemMisc.SystemSwVersion;
+        if ((int)pid != KernelSpace.KernelPid && KernelSpace.ProcessOf(Emu, (int)pid) is { } process)
+        {
+            uint processParam = process.Linker.ProcessParam;
+            if (processParam != 0 && GuestMemory.R32(processParam + 4) == 0x32505350) // "PSP2"
+            {
+                version = GuestMemory.R32(processParam + 0xC);
+            }
+        }
+
+        if (sdkVersion != 0)
+        {
+            GuestMemory.W32(sdkVersion, version);
+        }
+
+        return 0;
     }
 
     void CallSysroot(HleContext context, uint function, int? noHandler, bool wide)
@@ -105,20 +214,40 @@ public sealed partial class SysmemKernel
         context.Return(result | ((ulong)context.Thread.LastCallR1 << 32));
     }
 
-    /// <summary>Writes word <paramref name="field"/> of the table at the offset when one is registered.</summary>
+    /// <summary>Writes word <paramref name="field"/> of the table at the offset when one is registered (into the
+    /// default table while none was).</summary>
     void SetSysrootTableWord(HleContext context, uint offset, uint field, uint value)
     {
-        uint table = SysrootWord(offset);
+        if (!TryGetSysrootWord(offset, out uint table))
+        {
+            lock (_defaultTableWords)
+            {
+                _defaultTableWords[(int)((offset << 16) | field)] = (int)value;
+            }
+
+            return;
+        }
+
         if (table != 0)
         {
             GuestMemory.W32(table + field, value);
         }
     }
 
-    /// <summary>Word <paramref name="field"/> of the table at the offset; 0 without one.</summary>
+    /// <summary>Word <paramref name="field"/> of the table at the offset (of the default table while none was
+    /// registered, 0 until written); 0 with the slot cleared.</summary>
     void GetSysrootTableWord(HleContext context, uint offset, uint field)
     {
-        uint table = SysrootWord(offset);
+        if (!TryGetSysrootWord(offset, out uint table))
+        {
+            lock (_defaultTableWords)
+            {
+                context.Return(_defaultTableWords.GetValueOrDefault((int)((offset << 16) | field)));
+            }
+
+            return;
+        }
+
         context.Return(table == 0 ? 0 : GuestMemory.R32(table + field));
     }
 
@@ -135,9 +264,49 @@ public sealed partial class SysmemKernel
         }
     }
 
+    /// <summary>
+    /// The model capability word (sysroot +0x84): one bit per capability. The emulated unit is a PCH-1000 handheld,
+    /// whose word has capabilities 2, 7 and 10 (libpaf keeps them as its flags 0x4A for a game program).
+    /// </summary>
+    internal const uint ModelCapabilities = (1u << 2) | (1u << 7) | (1u << 10);
+
+    /// <summary>Bit <paramref name="capability"/> (its low byte, as the firmware shifts by it: 32 and above give 0) of
+    /// <see cref="ModelCapabilities"/>.</summary>
+    internal static int CheckModelCapability(uint capability)
+    {
+        int shift = (int)(capability & 0xFF);
+        return shift < 32 ? (int)((ModelCapabilities >> shift) & 1) : 0;
+    }
+
+    /// <summary>ksceKernelSysrootCheckModelCapability(int capability): see <see cref="CheckModelCapability"/>.</summary>
+    [Hle(Nid = 0x8AA268D6, Library = "SceSysrootForDriver")]
+    int ksceKernelSysrootCheckModelCapability(uint capability) => CheckModelCapability(capability);
+
+    /// <summary>NID_CAE820B2(pid, *sdkVersion): entry +0x40 of the process manager's table at sysroot +0x360 (the
+    /// default's answer while none was registered); with the slot cleared, *sdkVersion = 0 and SCE_KERNEL_ERROR_ERROR
+    /// (0x80020001).</summary>
+    [Hle(Nid = 0xCAE820B2, Library = "SceSysrootForDriver")]
+    void NID_CAE820B2(HleContext context)
+    {
+        if (!TryGetSysrootWord(0x360, out uint table) || table != 0)
+        {
+            CallSysrootTableEntry(context, 0x360, 0x40, null);
+            return;
+        }
+
+        uint sdkVersion = context.Gpr(1);
+        if (sdkVersion != 0)
+        {
+            GuestMemory.W32(sdkVersion, 0);
+        }
+
+        context.Return(SceError.ERROR);
+    }
+
     /// <summary>NID_F804F761(): 0 (the FW 3.74 export does nothing else).</summary>
     [Hle(Nid = 0xF804F761, Library = "SceSysrootForDriver")]
     int NID_F804F761() => 0;
+
     /// <summary>NID_9A8871F1: sets the handler word at sysroot +0x328.</summary>
     [Hle(Nid = 0x9A8871F1, Library = "SceSysrootForKernel")]
     [Hle(Nid = 0x9A8871F1, Library = "SceSysrootForDriver")]

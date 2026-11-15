@@ -65,6 +65,9 @@ public sealed partial class SystemSoftware : HleModule
     /// </summary>
     static readonly Dictionary<int, uint> SpkgVersions = new() { [0x17] = 0x01000010 };
 
+    /// <summary>The installed version of package <paramref name="type"/> (<see cref="SpkgVersions"/>).</summary>
+    internal static uint SpkgVersion(int type) => SpkgVersions.GetValueOrDefault(type, SystemMisc.SystemSwVersion);
+
     /// <summary>(int type, SceSblUsSpkgInfo *info): info +0 size, +4 version.</summary>
     [Hle]
     int sceSblUsGetSpkgInfo(int type, uint info)
