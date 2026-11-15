@@ -16,15 +16,15 @@ public sealed class ScriptedPadTests
     [Fact]
     public void StateStepsFireOnceWithManyThreadsPollingThePad()
     {
-        const int steps = 64;
-        string script = string.Join(",", Enumerable.Range(0, steps).Select(i => $"loadstate@0:{(i % 9) + 1}"));
+        const int StepCount = 64;
+        string script = string.Join(",", Enumerable.Range(0, StepCount).Select(i => $"loadstate@0:{(i % 9) + 1}"));
         for (int round = 0; round < 50; round++)
         {
             var pad = new ScriptedPad(script);
             int fired = 0;
             pad.StateRequested += (_, _) => Interlocked.Increment(ref fired);
             PollFromManyThreads(pad);
-            Assert.Equal(steps, fired);
+            Assert.Equal(StepCount, fired);
         }
     }
 
