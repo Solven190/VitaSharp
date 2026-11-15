@@ -78,6 +78,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   a carga do PC (13/11, 3 rodadas headless alternadas da base 5d2597ec e de fix/kz-avplayer-end na mesma vaga: falharam
   em 1-2 de 3 nas duas, nenhuma diferença entre elas). Medir no relógio emulado (vcount, tempo de guest) ou reportar
   como medida sem decidir aprovação, para que um FAIL do TestGame no emulador seja sempre um erro de verdade
+- [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
+  (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
+  `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
+  `AstcTests.EncoderSpeed` (virou `EncoderAllocatesNothingAndReportsItsSpeed`: 0 bytes alocados por codificação, a
+  velocidade só é impressa) e `RendererDeviceHandoffTests` (acha o repositório pelo caminho do fonte, funciona com
+  `-o` fora do repo). Junto: a thread do codificador da captura lia `_queue` depois de um stop logo após o start e
+  derrubava o testhost inteiro (NullReferenceException), coberto por `PreRollDisarmedBeforeTheEncoderThreadRunsKeepsItsQueue`.
 - [ ] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.

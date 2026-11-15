@@ -26,6 +26,7 @@ public sealed class SharedCapture : IDisposable
 {
     private readonly object _gate = new();
     private readonly TimeSpan _linger;
+    private readonly TimeProvider _time;
     private IHostCapture? _capture;
     private object? _mode;
     private int _leases;
@@ -33,7 +34,13 @@ public sealed class SharedCapture : IDisposable
     private Task _lastStop = Task.CompletedTask;
     private bool _disposed;
 
-    public SharedCapture(TimeSpan linger) => _linger = linger;
+    /// <param name="linger">How long an unused capture keeps running.</param>
+    /// <param name="time">The clock the linger is measured on (tests pass a manual one); the system clock by default.</param>
+    public SharedCapture(TimeSpan linger, TimeProvider? time = null)
+    {
+        _linger = linger;
+        _time = time ?? TimeProvider.System;
+    }
 
     /// <summary>How long an unused capture keeps running before it is stopped.</summary>
     public TimeSpan Linger => _linger;
@@ -130,7 +137,7 @@ public sealed class SharedCapture : IDisposable
             StopIfIdle(hostCapture, gen);
             return;
         }
-        _ = Task.Delay(_linger).ContinueWith(_ => StopIfIdle(hostCapture, gen), TaskScheduler.Default);
+        _ = Task.Delay(_linger, _time).ContinueWith(_ => StopIfIdle(hostCapture, gen), TaskScheduler.Default);
     }
 
     private void StopIfIdle(IHostCapture hostCapture, long gen)
