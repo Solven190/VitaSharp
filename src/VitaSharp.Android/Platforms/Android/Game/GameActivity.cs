@@ -309,6 +309,9 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
     {
         base.OnResume();
         EnterImmersive();
+        // back from the screens (another process): a language changed there applies to the controls and the menu
+        AppServices.RefreshPreferences();
+        _controls?.Invalidate();
         if (!_menuOpen)
             _session?.Resume();
         _sensors?.Resume();

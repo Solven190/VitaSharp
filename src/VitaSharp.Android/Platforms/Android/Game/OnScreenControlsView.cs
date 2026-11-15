@@ -107,12 +107,13 @@ public sealed class OnScreenControlsView : View
                     float corner = round ? Math.Min(r.Width(), r.Height()) / 2 : 12 * density;
                     canvas.DrawRoundRect(r, corner, corner, _fill);
                     canvas.DrawRoundRect(r, corner, corner, _stroke);
-                    if (c.Label.Length > 0)
+                    string label = c.Text;
+                    if (label.Length > 0)
                     {
                         _text.Color = pressed ? Color.ParseColor("#0B1220") : new Color(232, 236, 242, Math.Min(255, alpha + 80));
-                        _text.TextSize = Math.Min(r.Height() * 0.45f, c.Label.Length > 2 ? r.Width() / c.Label.Length * 1.5f : r.Height() * 0.5f);
+                        _text.TextSize = Math.Min(r.Height() * 0.45f, label.Length > 2 ? r.Width() / label.Length * 1.5f : r.Height() * 0.5f);
                         var fm = _text.GetFontMetrics();
-                        canvas.DrawText(c.Label, r.CenterX(), r.CenterY() - (fm!.Ascent + fm.Descent) / 2, _text);
+                        canvas.DrawText(label, r.CenterX(), r.CenterY() - (fm!.Ascent + fm.Descent) / 2, _text);
                     }
                     break;
                 }

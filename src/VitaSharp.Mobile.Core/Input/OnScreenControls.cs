@@ -16,6 +16,14 @@ public enum OnScreenShape
 public sealed record OnScreenControl(VitaControl Control, string Label, float X, float Y, float Width, float Height,
     OnScreenShape Shape = OnScreenShape.Button)
 {
+    /// <summary>The key of a translated label (<see cref="Loc"/>): the text is looked up when drawn, so it follows the
+    /// app's language, also after it changes (the layouts are built once per process).</summary>
+    public string? LabelKey { get; init; }
+
+    /// <summary>The label to draw: the translated <see cref="LabelKey"/> in the current language, else
+    /// <see cref="Label"/> (symbols and names that are the same in every language).</summary>
+    public string Text => LabelKey is { } key ? Loc.Get(key) : Label;
+
     public bool Contains(float x, float y) => x >= X && x < X + Width && y >= Y && y < Y + Height;
 }
 
@@ -260,6 +268,6 @@ public sealed class OnScreenPad : IInputBackend
         new(VitaControl.Select, "SELECT", DpFraction(322, 0), DpFraction(346, 1), DpFraction(76, 0), DpFraction(30, 1)),
         new(VitaControl.PS, "PS", DpFraction(410, 0), DpFraction(346, 1), DpFraction(30, 0), DpFraction(30, 1)),
         new(VitaControl.Start, "START", DpFraction(452, 0), DpFraction(346, 1), DpFraction(70, 0), DpFraction(30, 1)),
-        new(VitaControl.TouchBack, Loc.Get("MRearButton"), DpFraction(22, 0), DpFraction(320, 1), DpFraction(52, 0), DpFraction(36, 1), OnScreenShape.Toggle),
+        new(VitaControl.TouchBack, "", DpFraction(22, 0), DpFraction(320, 1), DpFraction(52, 0), DpFraction(36, 1), OnScreenShape.Toggle) { LabelKey = "MRearButton" },
     ];
 }
