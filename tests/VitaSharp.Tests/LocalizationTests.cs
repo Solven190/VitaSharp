@@ -112,6 +112,105 @@ public partial class LocalizationTests
         Assert.Empty(missing);
     }
 
+    /// <summary>The arguments after the key of the Loc.Format call that starts at <paramref name="open"/> (the index
+    /// of its opening parenthesis): top-level commas, outside strings, characters and nested brackets.</summary>
+    private static int FormatArguments(string text, int open)
+    {
+        int depth = 0;
+        int commas = 0;
+        for (int i = open; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == '"' || c == '\'')
+            {
+                // skip a string or char literal (verbatim strings double their quotes; good enough for the sources)
+                char quote = c;
+                for (i++; i < text.Length && text[i] != quote; i++)
+                {
+                    if (text[i] == '\\')
+                    {
+                        i++;
+                    }
+                }
+
+                continue;
+            }
+
+            if (c is '(' or '[' or '{')
+            {
+                depth++;
+            }
+            else if (c is ')' or ']' or '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return commas;
+                }
+            }
+            else if (c == ',' && depth == 1)
+            {
+                commas++;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Every Loc.Format("Key", ...) in the sources passes as many values as the text has placeholders: a text that
+    /// wants {3} with three values throws at run time, and one with fewer placeholders than values drops the extra
+    /// ones silently (the Android data folder move's progress line, 1597d72b, takes four).
+    /// </summary>
+    [Fact]
+    public void EveryFormatCallPassesOneValuePerPlaceholder()
+    {
+        string src = Path.Combine(Root(), "src");
+        var call = new Regex(@"\bLoc\.Format\(""(\w+)""");
+        var bad = new List<string>();
+        int checkedCalls = 0;
+        foreach (string file in Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories))
+        {
+            if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            {
+                continue;
+            }
+
+            string text = File.ReadAllText(file);
+            foreach (Match m in call.Matches(text))
+            {
+                if (!s_english.TryGetValue(m.Groups[1].Value, out string? en))
+                {
+                    continue; // EveryKeyUsedInTheCodeExists reports it
+                }
+
+                int wanted = Placeholder().Matches(en).Select(p => int.Parse(p.Groups[1].Value, CultureInfo.InvariantCulture) + 1).DefaultIfEmpty(0).Max();
+                int passed = FormatArguments(text, m.Index + "Loc.Format".Length);
+                checkedCalls++;
+                if (passed != wanted)
+                {
+                    int line = text.Take(m.Index).Count(ch => ch == '\n') + 1;
+                    bad.Add($"{Path.GetRelativePath(src, file)}:{line}: {m.Groups[1].Value} has {wanted} placeholders, the call passes {passed}");
+                }
+            }
+        }
+        Assert.True(checkedCalls > 50, $"only {checkedCalls} Loc.Format calls found");
+        Assert.Empty(bad);
+    }
+
+    [Fact]
+    public void TheDataFolderMoveTextsAreLocalized()
+    {
+        foreach (IReadOnlyDictionary<string, string> table in new[] { s_english, s_portuguese })
+        {
+            string progress = string.Format(CultureInfo.InvariantCulture, table["MStorageMovingProgress"], 3, 10, 20, 400);
+            Assert.Contains("3", progress);
+            Assert.Contains("400", progress);
+        }
+        Assert.Contains("arquivos", s_portuguese["MStorageMovingProgress"]);
+        Assert.Contains("files", s_english["MStorageMovingProgress"]);
+    }
+
     /// <summary>The front-end sources (desktop launcher, game window and notices; the Android app and its shared
     /// mobile logic) are ASCII-only: every interface text lives in the language files, symbols are \u escapes.</summary>
     [Theory]

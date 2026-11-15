@@ -48,7 +48,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
     // ---------------------------------------------------------------- MSAA
 
     /// <summary>The presented frame (RGBA) after one scene drawing the U8U8U8U8 textures (random texels).</summary>
-    private byte[] MsaaScene(string? msaa, ushort multisample, out string mode)
+    private byte[] MsaaScene(string? msaa, ushort multisample, out string mode, float resScale = 0, string? gpuProfile = null)
     {
         string frames = Path.Combine(Path.GetTempPath(), "vitasharp-vkmsaa-" + Guid.NewGuid().ToString("N"));
         string m = "";
@@ -62,7 +62,10 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 Msaa = msaa,
                 DumpFramesDir = frames,
                 DumpEvery = 1,
+                ResScale = resScale,
+                GpuProfile = gpuProfile,
             });
+            int scale = resScale >= 2 ? (int)resScale : 1; // frame dumps above native are at the internal resolution
             WithRenderer("vkmsaa", renderer, h =>
             {
                 var w = new RendererTextureTests.Workload(h, multisample, scaleMode: multisample != 0 ? 1u : 0u);
@@ -89,7 +92,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
             mode = m;
             string last = Directory.GetFiles(frames, "frame_*.png").Order().Last();
             using var bmp = SkiaSharp.SKBitmap.Decode(last);
-            Assert.Equal((W, H), (bmp.Width, bmp.Height));
+            Assert.Equal((W * scale, H * scale), (bmp.Width, bmp.Height));
             return bmp.Pixels.SelectMany(c => new[] { c.Red, c.Green, c.Blue }).ToArray();
         }
         finally
@@ -162,6 +165,62 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
             Assert.True(far == 0, $"MSAA {mode} {samples}: {far} pixels away from the edge differ ({edge} on it)");
             Assert.True(edge <= 3 * W, $"MSAA {mode} {samples}: {edge} edge pixels differ");
         }
+    }
+
+    /// <summary>
+    /// The Android per-game "2x" internal resolution (d1a8f9b9) on the phone's renderer path (the Mali profile:
+    /// tile-based scenes): the scene renders at twice the size and every 2x2 block shows what the native scene shows
+    /// at that pixel, away from the triangle's edge.
+    /// </summary>
+    [SoftwareVulkanFact]
+    public void AndroidTwoTimesResolutionRendersTheNativeImageAtDoubleSize()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        byte[] native = MsaaScene(null, 0, out _, gpuProfile: "mali");
+        byte[] doubled = MsaaScene(null, 0, out _, resScale: 2, gpuProfile: "mali");
+        Assert.Equal(native.Length * 4, doubled.Length);
+        int far = 0;
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+            {
+                if (x <= y + 2)
+                {
+                    continue; // the textured triangle (sampled at another density) and its edge
+                }
+
+                for (int dy = 0; dy < 2; dy++)
+                {
+                    for (int dx = 0; dx < 2; dx++)
+                    {
+                        int a = (y * W + x) * 3;
+                        int b = ((y * 2 + dy) * W * 2 + x * 2 + dx) * 3;
+                        if (Math.Abs(native[a] - doubled[b]) > 2 || Math.Abs(native[a + 1] - doubled[b + 1]) > 2 || Math.Abs(native[a + 2] - doubled[b + 2]) > 2)
+                        {
+                            far++;
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.True(far == 0, $"{far} pixels of the 2x image differ from the native one outside the triangle");
+        // inside, the triangle was drawn at 2x too: most of its pixels are not the surface's pattern any more
+        int drawn = 0;
+        for (int y = 3; y < H; y++)
+        {
+            for (int x = 0; x < y - 2; x++)
+            {
+                int b = (y * 2 * W * 2 + x * 2) * 3;
+                uint pattern = unchecked((uint)(y * W + x) * 2654435761u) >> 8;
+                if ((doubled[b], doubled[b + 1], doubled[b + 2]) != ((byte)pattern, (byte)(pattern >> 8), (byte)(pattern >> 16)))
+                {
+                    drawn++;
+                }
+            }
+        }
+
+        Assert.True(drawn > (W - 3) * (H - 3) / 2 * 9 / 10, $"the 2x triangle drew {drawn} pixels");
     }
 
     // ---------------------------------------------------------------- shader caches
