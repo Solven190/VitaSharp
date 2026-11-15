@@ -132,7 +132,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceIftuForDriver | SceLowio (0xCAFCFE50) | 9 | 0 | 0 | 0 | 9 | 9 | 3 |
 | SceIntrmgrForDriver | SceKernelIntrMgr (0x9DF04041) | 23 | 0 | 0 | 0 | 23 | 13 | 1 |
 | SceIntrmgrForKernel | SceKernelIntrMgr (0xDF44892E) | 21 | 0 | 0 | 0 | 21 | 12 | 20 |
-| SceIofilemgrForDriver | SceIofilemgr (0x40FD29C7) | 148 | 47 | 54 | 0 | 94 | 68 | 18 |
+| SceIofilemgrForDriver | SceIofilemgr (0x40FD29C7) | 148 | 54 | 54 | 0 | 94 | 68 | 18 |
 | SceKernelSuspendForDriver | SceSysmem (0x7290B21C) | 28 | 4 | 4 | 0 | 24 | 9 | 24 |
 | SceKernelUtilsForDriver | SceSysmem (0x496AD8B4) | 57 | 1 | 1 | 0 | 56 | 33 | 14 |
 | SceLcdForDriver | SceLcd (0xFA916D71) | 23 | 0 | 0 | 0 | 23 | 13 | 15 |
@@ -189,7 +189,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceSysrootForDriver | SceSysmem (0x2ED7F97A) | 181 | 124 | 124 | 0 | 57 | 46 | 156 |
 | SceSysrootForKernel | SceSysmem (0x3691DA45) | 143 | 48 | 48 | 0 | 95 | 51 | 105 |
 | SceSystimerForDriver | SceSystimer (0xA47EB09A) | 14 | 0 | 0 | 0 | 14 | 8 | 4 |
-| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 102 | 102 | 0 | 146 | 59 | 136 |
+| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 106 | 106 | 0 | 142 | 55 | 136 |
 | SceThreadmgrForKernel | SceKernelThreadMgr (0x7F8593BA) | 64 | 0 | 0 | 0 | 64 | 15 | 63 |
 | SceTouchForDriver | SceTouch (0xA4A7DAFC) | 29 | 15 | 15 | 0 | 14 | 8 | 10 |
 | SceUartForKernel | SceSysmem (0x1CCD9BA3) | 4 | 0 | 0 | 0 | 4 | 1 | 0 |
@@ -204,5 +204,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **906** | **856** | **57** | **3005** | **1650** | **2037** |
+| **Total** | | **3918** | **917** | **860** | **57** | **3001** | **1646** | **2037** |
 
