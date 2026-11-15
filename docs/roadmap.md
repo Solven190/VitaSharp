@@ -116,7 +116,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][M] **Save states:** ida e volta de cada módulo HLE e do escalonador com threads em espera.
 - [ ] [P3][G] **Um teste sintético por bug corrigido:** o padrão do guest reproduzido sem o jogo (protocolo de sync,
   sequência de comandos GXM, chamadas HLE com os argumentos vistos), nunca dependente dos dados de um jogo.
-- [ ] [P3][G] **O jogo de teste (`tests/VitaSharp.TestGame`) como suíte de integração:** o homebrew de teste (VitaSDK, código
+- [x] (15/11/2026, pelo usuário: já é feito continuamente — regras.md, cada correção traz seu caso no TestGame) [P3][G] **O jogo de teste (`tests/VitaSharp.TestGame`) como suíte de integração:** o homebrew de teste (VitaSDK, código
   próprio, agora dentro do repositório) ganha um caso para
   cada cenário que hoje se verifica em jogos separados — o mesmo padrão de chamadas e de threads do jogo (ex.: o
   protocolo do End Frame com duas threads, a fila de jobs, as sequências GXM de cada bug visual, a decodificação de
@@ -127,7 +127,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   por carregador, CPU, HLE e GPU juntos.
   Fluxo de cada correção: (1) teste unitário que vira teste de regressão; (2) a correção confirmada uma vez no jogo do
   relato; (3) o mesmo cenário reproduzido como um caso do `VitaSharp.TestGame`.
-- [ ] [P3][G] **Cada cenário hoje verificado rodando um jogo vira um teste sintético** que simula o mesmo cenário sem o jogo:
+- [x] (15/11/2026, pelo usuário: já é feito continuamente — regras.md, todo fix traz um teste que falha sem ele) [P3][G] **Cada cenário hoje verificado rodando um jogo vira um teste sintético** que simula o mesmo cenário sem o jogo:
   os 67 roteiros de `tests/scenarios` (cerca de 44 jogos) e as verificações dos relatórios dos agentes, agrupados pelo
   que verificam:
   - boot até o gameplay: ordem de carga de módulos, imports, inicialização do HLE que o jogo usa;
