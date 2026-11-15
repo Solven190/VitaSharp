@@ -277,6 +277,48 @@ sealed class Sampler
         }
     }
 
+    /// <summary>
+    /// The frame-interval lines of the end-of-run profile. Safe for any run length: a short run (fewer than 51 frames,
+    /// e.g. a scenario slowed down by coverage instrumentation) has no 50-frame window, and a run where every interval
+    /// is above 50 ms has no steady interval; both are reported as "none" instead of throwing.
+    /// </summary>
+    internal static List<string> FrameIntervalReport(List<double> intervalsMs, IReadOnlyList<double> fpsPer50Frames)
+    {
+        var lines = new List<string>();
+        if (intervalsMs.Count == 0)
+        {
+            lines.Add("PROFILE frame interval ms: none (no frame intervals)");
+        }
+        else
+        {
+            var sorted = new List<double>(intervalsMs);
+            sorted.Sort();
+            double Percentile(double q) => sorted[(int)Math.Min(sorted.Count - 1, q * sorted.Count)];
+            lines.Add($"PROFILE frame interval ms: p10 {Percentile(0.1):F2} p50 {Percentile(0.5):F2} p90 {Percentile(0.9):F2} p99 {Percentile(0.99):F2} max {sorted[^1]:F2}; >17.5 ms: {sorted.Count(x => x > 17.5)}, >25 ms: {sorted.Count(x => x > 25)} of {sorted.Count}");
+        }
+
+        if (fpsPer50Frames.Count == 0)
+        {
+            lines.Add("PROFILE fps per 50 frames: none (fewer than 51 frames)");
+        }
+        else
+        {
+            lines.Add($"PROFILE fps per 50 frames: {string.Join(" ", fpsPer50Frames.Select(f => f.ToString("F1")))}");
+        }
+
+        var steady = intervalsMs.Where(x => x <= 50).ToList();
+        if (steady.Count == 0)
+        {
+            lines.Add($"PROFILE steady fps (intervals > 50 ms, i.e. loads, excluded): none (all {intervalsMs.Count} intervals > 50 ms)");
+        }
+        else
+        {
+            lines.Add($"PROFILE steady fps (intervals > 50 ms, i.e. loads, excluded): {1000.0 / steady.Average():F1} over {steady.Count} frames");
+        }
+
+        return lines;
+    }
+
     public void Report()
     {
         _stop = true;
@@ -322,18 +364,16 @@ sealed class Sampler
             }
 
             ReportHitchCauses(pt, mask);
-            ms.Sort();
-            double P(double q) => ms[(int)Math.Min(ms.Count - 1, q * ms.Count)];
-            Log.Info($"PROFILE frame interval ms: p10 {P(0.1):F2} p50 {P(0.5):F2} p90 {P(0.9):F2} p99 {P(0.99):F2} max {ms[^1]:F2}; >17.5 ms: {ms.Count(x => x > 17.5)}, >25 ms: {ms.Count(x => x > 25)} of {ms.Count}");
-            var win = new List<string>();
+            var win = new List<double>();
             for (long f = _baseFrame + 1; f + 50 < _endFrame; f += 50)
             {
-                win.Add((50 * (double)System.Diagnostics.Stopwatch.Frequency / (pt[(f + 50) & mask] - pt[f & mask])).ToString("F1"));
+                win.Add(50 * (double)System.Diagnostics.Stopwatch.Frequency / (pt[(f + 50) & mask] - pt[f & mask]));
             }
 
-            Log.Info($"PROFILE fps per 50 frames: {string.Join(" ", win)}");
-            var steady = ms.Where(x => x <= 50).ToList();
-            Log.Info($"PROFILE steady fps (intervals > 50 ms, i.e. loads, excluded): {1000.0 / steady.Average():F1} over {steady.Count} frames");
+            foreach (string line in FrameIntervalReport(ms, win))
+            {
+                Log.Info(line);
+            }
         }
         for (int i = 0; i < 2; i++)
         {
