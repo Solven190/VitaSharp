@@ -1128,6 +1128,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   ver onde o Android para (tela preta? qual processo/thread espera o quê) e se é algo do Android (sockets do sistema,
   caminhos/armazenamento, processos múltiplos, `MediaCodec`, permissões); pedir uma gravação "Gravar tudo" do usuário
   na tela travada
+  15/11/2026 (APK cd4f405b, celular): o shell.self sobe (SceShellMain, ScePaf, música, MTP, IME, SceShellBootScreen
+  criada ~25 s depois), apresenta 204-265 quadros pretos nos primeiros ~30 s e para de apresentar (0 fps, tela preta
+  com só o botão PS; GPU segue recebendo comandos). Linha-chave: `PERF stall: no frame presented since frame 265`.
+  Com `VITASHARP_THREAD_STATES=1` as threads do shell passam o tempo esperando núcleo emulado: ScePafJobDefault
+  core-wait 94-100%, SceShellJobQueueTopWindow 100%, SceGameGcPromoteJobQueue 100%, SceShellMain 53-56% (host-block
+  32-38%, rodando 9-12%), enquanto SceMtpDevice e SceShellMusicCoreAudioOutput ficam em sceKernelDelayThread
+  "blocked in the host" e SceImePredictionJobQueue em host-block. Próximo: comparar o mesmo boot no PC (states e
+  núcleos) e conferir se uma thread em espera no host segura o núcleo emulado (no Vita uma thread em espera não ocupa
+  núcleo); log em `<scratchpad>/andA/shell/last2.log`
 - [x] App .NET MAUI com interface declarativa em C# (MauiReactor), seguindo os mockups em `docs/android/` (biblioteca
   e troféus, ajustes, firmware, conta PSN e rede, driver e informações da GPU, Sistema do Vita) (30/10/2026: gera o
   APK, `src/VitaSharp.Android`; ainda não rodou num aparelho nem no emulador)
