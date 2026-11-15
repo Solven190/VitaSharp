@@ -166,20 +166,37 @@ public class ShellTests
     public void SystemLanguageFollowsHost(string culture, int lang) =>
         Assert.Equal(lang, VitaSharp.Core.Firmware.SystemLanguage.FromCulture(new System.Globalization.CultureInfo(culture)));
 
-    /// <summary>A fresh system's time zone follows the host: the firmware's zone of the same city, else of the same offset.</summary>
+    /// <summary>A fresh system's time zone follows the host: the firmware's zone of the same city, else of the same
+    /// Windows zone, else of the same offset. The zones are built from their id and offset (CreateCustomTimeZone), not
+    /// looked up in the host's time zone database: the CI's Linux has no America/Buenos_Aires (the tz database's old
+    /// name behind "Argentina Standard Time"), and a Linux or macOS host names its zone by the database's current name
+    /// (America/Argentina/Buenos_Aires, Asia/Kolkata, Europe/Kyiv) where the firmware's table has CLDR's.</summary>
     [Theory]
-    [InlineData("E. South America Standard Time", 22)]
-    [InlineData("America/Sao_Paulo", 22)]
-    [InlineData("Tokyo Standard Time", 104)]
-    [InlineData("Eastern Standard Time", 12)]
-    [InlineData("GMT Standard Time", 29)]
-    [InlineData("Argentina Standard Time", 23)]
-    [InlineData("Pacific/Kiritimati", 109)]
-    public void SystemTimeZoneFollowsHost(string tz, int id)
+    [InlineData("E. South America Standard Time", -180, 22)]
+    [InlineData("America/Sao_Paulo", -180, 22)]
+    [InlineData("Tokyo Standard Time", 540, 104)]
+    [InlineData("Eastern Standard Time", -300, 12)]
+    [InlineData("GMT Standard Time", 0, 29)]
+    [InlineData("Argentina Standard Time", -180, 23)]
+    [InlineData("America/Buenos_Aires", -180, 23)]
+    [InlineData("America/Argentina/Buenos_Aires", -180, 23)]
+    [InlineData("America/Argentina/Cordoba", -180, 23)]
+    [InlineData("Asia/Kolkata", 330, 92)]
+    [InlineData("Asia/Kathmandu", 345, 93)]
+    [InlineData("Europe/Kyiv", 120, 65)]
+    [InlineData("Pacific/Kiritimati", 840, 109)]
+    [InlineData("Not/A_Zone", -180, 22)]
+    public void SystemTimeZoneFollowsHost(string tz, int minutes, int id)
     {
-        Assert.Equal(id, VitaSharp.Core.Firmware.SystemTimeZone.FromTimeZone(TimeZoneInfo.FindSystemTimeZoneById(tz)));
+        var zone = TimeZoneInfo.CreateCustomTimeZone(tz, TimeSpan.FromMinutes(minutes), tz, tz);
+        Assert.Equal(id, VitaSharp.Core.Firmware.SystemTimeZone.FromTimeZone(zone));
         Assert.Equal(-180, VitaSharp.Core.Firmware.SystemTimeZone.OffsetMinutes(22));
     }
+
+    /// <summary>The host's own zone maps without throwing, whatever the host's time zone database holds.</summary>
+    [Fact]
+    public void HostTimeZoneIsAFirmwareZone() =>
+        Assert.NotNull(VitaSharp.Core.Firmware.SystemTimeZone.OffsetMinutes(VitaSharp.Core.Firmware.SystemTimeZone.Host));
 
     // ------------------------------------------------------------------ layout
 

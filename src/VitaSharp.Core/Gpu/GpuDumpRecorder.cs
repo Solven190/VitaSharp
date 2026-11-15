@@ -11,6 +11,12 @@ public sealed class GpuDumpOptions
     public required string Path;
     /// <summary>Title, build, GPU and settings lines written into the file header.</summary>
     public GpuDumpHeader Header = new();
+    /// <summary>Builds <see cref="Header"/> on the GPU worker when the recording starts (null: <see cref="Header"/> as
+    /// given). A recording armed before the title runs (--gpu-dump-at) knows its title and renderer only then.</summary>
+    public Func<GpuDumpHeader>? HeaderAtStart;
+    /// <summary>Chooses <see cref="Path"/> when the recording starts (null: <see cref="Path"/> as given): a default file
+    /// name carries the title id, known only once the title is loaded.</summary>
+    public Func<string>? PathAtStart;
     /// <summary>Start right after the present that makes the backend's present count reach this value (-1: the next present).</summary>
     public long StartAfterPresent = -1;
     /// <summary>Stop after this many frames (presents); 0 = until <see cref="GpuDumpRecorder.Stop"/>.</summary>
@@ -252,14 +258,29 @@ public sealed unsafe class GpuDumpRecorder
     {
         try
         {
+            if (_options.PathAtStart is { } choosePath)
+            {
+                _options.Path = choosePath();
+            }
+
             string? dir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_options.Path));
             if (!string.IsNullOrEmpty(dir))
             {
                 Directory.CreateDirectory(dir);
             }
 
+            if (_options.HeaderAtStart is { } buildHeader)
+            {
+                _options.Header = buildHeader();
+            }
+
             _file = new FileStream(_options.Path, FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 20);
             long first = PresentCount(backend);
+            if (_options.StartAfterPresent >= 0 && first > _options.StartAfterPresent)
+            {
+                Log.Warn($"[gpudump] started late: after present #{first}, not #{_options.StartAfterPresent} (armed after that present)");
+            }
+
             _result.Path = _options.Path;
             _result.FirstPresent = _result.LastPresent = first;
             _options.Header["first-present"] = first.ToString();

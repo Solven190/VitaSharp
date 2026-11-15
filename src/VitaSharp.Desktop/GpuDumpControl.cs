@@ -96,59 +96,53 @@ static class GpuDumpControl
     }
 
     static GpuDumpRecorder? Start(Emulator emu, VulkanRenderer? renderer, string[] options, string path, long startAfter, long frames,
-        Action<string>? status, string? hostInfo)
+        Action<string>? status, string? hostInfo) =>
+        Start(new GpuDumpOptions { Path = path, Header = BuildHeader(emu, renderer, options, hostInfo) }, startAfter, frames, status);
+
+    static GpuDumpRecorder? Start(GpuDumpOptions opt, long startAfter, long frames, Action<string>? status)
     {
-        var opt = new GpuDumpOptions
-        {
-            Path = path,
-            Header = BuildHeader(emu, renderer, options, hostInfo),
-            StartAfterPresent = startAfter,
-            MaxFrames = frames,
-            Started = _ => status?.Invoke(Loc.Get("DumpRecording")),
-            Finished = r => status?.Invoke(r.Error != null ? Loc.Format("DumpFailed", r.Error)
-                : Loc.Format("DumpSaved", r.Path, r.Frames, r.FileBytes / 1048576.0)),
-        };
+        opt.StartAfterPresent = startAfter;
+        opt.MaxFrames = frames;
+        opt.Started = _ => status?.Invoke(Loc.Get("DumpRecording"));
+        opt.Finished = r => status?.Invoke(r.Error != null ? Loc.Format("DumpFailed", r.Error)
+            : Loc.Format("DumpSaved", r.Path, r.Frames, r.FileBytes / 1048576.0));
         var rec = GpuDumpRecorder.Start(opt);
         if (rec != null)
         {
-            Log.Info($"[gpudump] armed: {path}" + (startAfter >= 0 ? $" after present #{startAfter}" : " at the next present") + (frames > 0 ? $", {frames} frames" : ""));
+            string where = opt.PathAtStart != null ? $"a file in {Root} named when it starts" : opt.Path;
+            Log.Info($"[gpudump] armed: {where}" + (startAfter >= 0 ? $" after present #{startAfter}" : " at the next present") + (frames > 0 ? $", {frames} frames" : ""));
         }
 
         return rec;
     }
 
     /// <summary>--gpu-dump-at=F1:F2[:file] / VITASHARP_GPU_DUMP_AT: records frames F1..F2 (renderer presents, the
-    /// numbers of the dumped frame_N.png). Armed now; the GPU worker starts it exactly after present F1-1.</summary>
-    public static void StartScheduled(Emulator emu, Func<VulkanRenderer?> renderer, string[] options)
+    /// numbers of the dumped frame_N.png). Armed here, before the title runs, so the GPU worker starts it exactly after
+    /// present F1-1 however fast the title's first frames come; the header (title, renderer) is built when it starts.
+    /// The default file name (with the title id) is chosen then too.</summary>
+    public static GpuDumpRecorder? StartScheduled(Emulator emu, Func<VulkanRenderer?> renderer, string[] options)
     {
         string? spec = options.FirstOrDefault(o => o.StartsWith("--gpu-dump-at="))?["--gpu-dump-at=".Length..]
                        ?? Environment.GetEnvironmentVariable(EnvVars.GpuDumpAt);
         if (string.IsNullOrWhiteSpace(spec))
         {
-            return;
+            return null;
         }
 
         var parts = spec.Split(':', 3);
         if (parts.Length < 2 || !long.TryParse(parts[0].TrimStart('f'), out long f1) || !long.TryParse(parts[1].TrimStart('f'), out long f2) || f1 < 1 || f2 < f1)
         {
             Log.Warn($"--gpu-dump-at={spec} not recognised (use FIRST:LAST[:file], frames counted from 1)");
-            return;
+            return null;
         }
         string? file = parts.Length > 2 && parts[2].Length > 0 ? parts[2] : null;
-        // the header needs the renderer (GPU, settings): arm once the title runs, before frame F1
-        new Thread(() =>
+        var opt = new GpuDumpOptions
         {
-            while (renderer() == null || string.IsNullOrEmpty(emu.TitleId))
-            {
-                Thread.Sleep(5);
-            }
-
-            Start(emu, renderer(), options, Path.GetFullPath(file ?? NewPath(emu)), f1 - 1, f2 - f1 + 1, null, null);
-        })
-        {
-            IsBackground = true,
-            Name = "gpu-dump-at"
-        }.Start();
+            Path = file != null ? Path.GetFullPath(file) : "",
+            PathAtStart = file != null ? null : () => NewPath(emu),
+            HeaderAtStart = () => BuildHeader(emu, renderer(), options, null),
+        };
+        return Start(opt, f1 - 1, f2 - f1 + 1, null);
     }
 
     /// <summary>End of a session: completes a running recording (the GPU worker must still be running).</summary>
