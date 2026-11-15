@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=2c621c0e5d19652a4f881a227b93e8b6d8bee021c503324deb16150d942a6a12 -->
+<!-- pair: README.pt-BR.md sha256=b11cc8c4b1864696dfafb89f2d44395f8d2603cbf44a293a9fd9188015d14c9d -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -182,6 +182,7 @@ Data lives in `%APPDATA%\VitaSharp` on Windows (`~/.local/share/VitaSharp` on Li
 | `X` or `Space` / `C` / `Z` / `V` | Cross / Circle / Square / Triangle |
 | `Q` / `E`, `Enter` / `Backspace` | L / R, Start / Select |
 | `Home` | PS button |
+| `End` | POWER button: a press puts the system in standby (the picture stays, with a notice; the next press wakes it and the game gets the power callbacks of a resume), held 2 s opens the system's power menu (with the Vita OS running), held 4 s turns the system off (the session ends) |
 | Left / right mouse button | Touch on the front screen / the rear touchpad |
 | `F1` / `Shift+F1` | Next / previous internal resolution while the game runs (1x, 2x, 3x, 4x; this session only, with an on-screen notice) |
 | `F2` / `Shift+F2` | Next / previous frame rate while the game runs (native, locked to 30, locked to 60, unlimited) |

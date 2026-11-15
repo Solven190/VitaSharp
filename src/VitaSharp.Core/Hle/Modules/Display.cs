@@ -417,7 +417,7 @@ public sealed partial class Ctrl : HleModule
             return Emu.IsForeground || Emu.Vita.ButtonsClaimedByShell() ? s : ControllerState.Neutral;
         }
         if (!Emu.IsForeground || Emu.Vita.ButtonsClaimedByShell()) return ControllerState.Neutral;
-        s.Buttons &= ~VitaButtons.PsButton; // a system button: applications never see it
+        s.Buttons &= ~(VitaButtons.PsButton | VitaButtons.PowerButton); // system buttons: applications never see them
         return s;
     }
 

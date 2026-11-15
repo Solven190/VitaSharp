@@ -350,7 +350,8 @@ public static class Runner
         void ShowTitle()
         {
             string? st = Environment.TickCount64 < Interlocked.Read(ref statusUntil) ? Volatile.Read(ref status) : null;
-            string rate = EmulationPause.IsUserPaused ? PauseBadge.Text(window.PauseKeyLabel)
+            string rate = emu.Vita.Power.Suspended ? Loc.Get("GameStandby")
+                : EmulationPause.IsUserPaused ? PauseBadge.Text(window.PauseKeyLabel)
                 : EmulationPause.IsPaused ? Loc.Get(statePickerRef?.IsOpen == true ? "SsTitle" : "GameSavingState") : $"{fps:F0} FPS"
                 + (VitaSharp.Core.Hle.Modules.FrameRate.Label is { Length: > 0 } fr ? $" ({fr})" : "");
             string rec = capture?.Capture.IsRecording == true ? $"\u25CF REC {RecTime(capture.Capture.RecordingSeconds)} | " : "";
@@ -594,7 +595,8 @@ public static class Runner
 
             bool paused = EmulationPause.IsUserPaused;
             var c = capture?.Capture;
-            string? text = paused ? PauseBadge.Text(window.PauseKeyLabel)
+            string? text = emu.Vita.Power.Suspended ? Loc.Get("GameStandby")
+                : paused ? PauseBadge.Text(window.PauseKeyLabel)
                 : c?.IsRecording == true ? $"REC {RecTime(c.RecordingSeconds)}"
                 : c?.SavePercent is int pct && pct >= 0 ? Loc.Format("GameSavingRecordingPct", pct) : null;
             string key = $"{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(r)}|{paused}|{text}|{window.FramebufferSize.Height}";
@@ -770,6 +772,18 @@ public static class Runner
         {
             Log.Info($"Window: the game exited (0x{status:X}): closing the window");
             Volatile.Write(ref processExited, 1);
+        };
+        // the system turned off (POWER held, the shell's Power Off): the same end of the session
+        emu.Vita.Power.PoweredOff += () =>
+        {
+            Log.Info("Window: the system turned off: closing the window");
+            Volatile.Write(ref processExited, 1);
+        };
+        // standby: the picture stays, with the standby notice until POWER wakes the system
+        emu.Vita.Power.StandbyChanged += _ =>
+        {
+            ShowPauseBadge(renderer);
+            ShowTitle();
         };
         window.Tick += () =>
         {
@@ -1289,6 +1303,11 @@ public static class Runner
         emu.ProcessExited += status =>
         {
             Log.Info($"Headless: the game exited (0x{status:X}): the run ends");
+            processExited.Set();
+        };
+        emu.Vita.Power.PoweredOff += () =>
+        {
+            Log.Info("Headless: the system turned off: the run ends");
             processExited.Set();
         };
         while (!fatal.Wait(50) && !processExited.IsSet && nav?.Quit != true && playback?.Done != true && (frameLimit <= 0 || VitaSharp.Core.Hle.Modules.Display.FramesPresented < frameLimit) && wall.Elapsed.TotalSeconds < seconds)

@@ -476,6 +476,7 @@ public sealed class Emulator : IDisposable
 
         Log.Info($"Process {Describe()} {why}");
         Running = false;
+        Vita.Power.Callbacks.RemoveProcess(this);
         // the screen goes back to the parent (the shell) at once, not after the threads are gone (that can take seconds)
         _endedInFront = ReferenceEquals(Vita.Foreground, this);
         if (Parent is { } parent && _endedInFront)
@@ -1429,6 +1430,12 @@ public sealed class Emulator : IDisposable
 
         using ProcessScope.Scope scope = ProcessScope.Enter(this);
         Running = true;
+        if (Parent == null)
+        {
+            // the system's POWER button is read from the host's controller from now on, also during standby
+            Vita.Power.Start(() => Host.Input);
+        }
+
         int priority = (int)(ProcessParamPtrValue(0x14) ?? 0x10000100);
         uint stackSize = ProcessParamPtrValue(0x18) ?? 256 * 1024;
         int affinity = (int)(ProcessParamPtrValue(0x28) ?? 0);
@@ -1553,6 +1560,7 @@ public sealed class Emulator : IDisposable
             _jitBefore = null;
         }
         EmulationPause.Changed -= OnPauseChanged;
+        Vita.Power.Dispose();
         Gpu.Dispose();
         Gpu.Backend?.Dispose();
         Host.Dispose();

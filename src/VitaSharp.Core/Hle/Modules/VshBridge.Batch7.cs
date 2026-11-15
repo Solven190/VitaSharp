@@ -301,8 +301,20 @@ public sealed partial class VshBridge
     /// <summary>A cold reset of the unit (the "restart" after a system update or a format). VitaSharp never restarts
     /// the guest (like scePowerRequestColdReset): logged and ignored.</summary>
     [Hle] int vshPowerRequestColdReset() { Util.Log.Warn("vshPowerRequestColdReset (ignored)"); return 0; }
-    /// <summary>(int time): how long the power button is held for standby, kept for the setting.</summary>
-    [Hle] int vshPowerSetStandbyButtonPushTime(int time) => 0;
+    /// <summary>(int time): how long POWER must stay down to be a hold (microseconds; 2 000 000 at boot), as
+    /// SceVshBridge 3.74: system programs only (else 0x80010058), the value is taken as it is (ScePower's button
+    /// thread, <see cref="Kernel.PowerButtonTracker"/>).</summary>
+    [Hle]
+    int vshPowerSetStandbyButtonPushTime(int time)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        Emu.Vita.Power.Button.StandbyPushTimeUs = (uint)time;
+        return 0;
+    }
     /// <summary>(const SceBatteryFakeStatus *status, const opt *8: size &lt;= 0x10): a debug battery override; only a
     /// QA unit honours it, the bridge still checks the sizes.</summary>
     [Hle]

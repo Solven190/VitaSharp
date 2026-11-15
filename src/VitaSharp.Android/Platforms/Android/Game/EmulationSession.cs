@@ -54,7 +54,8 @@ public sealed partial class EmulationSession : IDisposable
     public event Action<string>? Failed;
 
     /// <summary>Raised (on an emulator thread) when the game ended by itself (sceKernelExitProcess, exit()) with no
-    /// shell to take the screen back: the session is over, as the Vita returns to its home screen.</summary>
+    /// shell to take the screen back, or the system turned off: the session is over, as the Vita returns to its home
+    /// screen.</summary>
     public event Action? Exited;
 
     /// <summary>Raised (on an emulator thread) on a trophy unlock.</summary>
@@ -103,6 +104,12 @@ public sealed partial class EmulationSession : IDisposable
         _emu.ProcessExited += status =>
         {
             Log.Info($"Game exited (0x{status:X}): leaving the game screen");
+            Exited?.Invoke();
+        };
+        // the system turned off (POWER held, the shell's Power Off): the same end of the session
+        _emu.Vita.Power.PoweredOff += () =>
+        {
+            Log.Info("The system turned off: leaving the game screen");
             Exited?.Invoke();
         };
         _emu.Host.Input = input;

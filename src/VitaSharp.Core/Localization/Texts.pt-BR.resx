@@ -93,6 +93,9 @@
   <data name="GameSavingRecordingPct" xml:space="preserve">
     <value>Salvando a gravação: {0}%</value>
   </data>
+  <data name="GameStandby" xml:space="preserve">
+    <value>Modo de espera (aperte POWER para voltar)</value>
+  </data>
   <data name="CaptureRecording" xml:space="preserve">
     <value>Gravando tudo ({0})</value>
   </data>
@@ -524,6 +527,9 @@
   </data>
   <data name="CtlPauseEmulation" xml:space="preserve">
     <value>Pausar emulação</value>
+  </data>
+  <data name="CtlPowerButton" xml:space="preserve">
+    <value>Botão POWER</value>
   </data>
   <data name="CtlPsButton" xml:space="preserve">
     <value>Botão PS</value>

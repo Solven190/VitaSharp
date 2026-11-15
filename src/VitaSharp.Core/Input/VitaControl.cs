@@ -25,6 +25,9 @@ public enum VitaControl
     TiltForward, TiltBack, TiltLeft, TiltRight, TwistLeft, TwistRight,
     /// <summary>Virtual motion: brings the mouse-look rotation back to neutral.</summary>
     MotionRecenter,
+    /// <summary>The POWER button on the top edge: a press puts the system in standby (and wakes it), a hold of 2 s
+    /// opens the shell's power menu, held on the system turns off (<see cref="Kernel.SystemPower"/>).</summary>
+    Power,
     /// <summary>Host hotkey, not a Vita input: pressing it pauses the whole emulation, pressing it again resumes it
     /// (<see cref="EmulationPause"/>). Keyboard default: P. On a controller a binding may be a combination of buttons
     /// held together (<see cref="InputCombo"/>); controllers have none by default.</summary>
@@ -53,6 +56,7 @@ public static class VitaControls
         VitaControl.Start => VitaButtons.Start,
         VitaControl.Select => VitaButtons.Select,
         VitaControl.PS => VitaButtons.PsButton,
+        VitaControl.Power => VitaButtons.PowerButton,
         VitaControl.L3 => VitaButtons.L3,
         VitaControl.R3 => VitaButtons.R3,
         _ => VitaButtons.None,
@@ -101,6 +105,7 @@ public static class VitaControls
         VitaControl.TwistLeft => "Twist left",
         VitaControl.TwistRight => "Twist right",
         VitaControl.MotionRecenter => "Re-centre motion",
+        VitaControl.Power => "POWER button",
         VitaControl.PauseEmulation => "Pause emulation",
         _ => vitaControl.ToString(),
     };
