@@ -166,6 +166,21 @@ public sealed class SubmitAtNotificationTests(GuestMemoryFixture fx)
         }
     }
 
+    /// <summary>The switch's default: on for Android (Killzone Mercenary in gameplay on a Helio G99 phone, A B B A:
+    /// 21,8/20,3 fps off, 26,2/27,3 fps on), off elsewhere; "1" and "0" force it either way.</summary>
+    [Theory]
+    [InlineData(null, true, true)]
+    [InlineData("", true, true)]
+    [InlineData(" ", true, true)]
+    [InlineData(null, false, false)]
+    [InlineData("0", true, false)]
+    [InlineData("1", false, true)]
+    [InlineData("1", true, true)]
+    public void OnByDefaultOnAndroidOnly(string? setting, bool android, bool expected)
+    {
+        Assert.Equal(expected, VulkanRenderer.SubmitAtNotificationEnabled(setting, android));
+    }
+
     /// <summary>
     /// The worker records several notifying scenes back to back (it never runs out of work in between, as on a busy
     /// phone): with the switch each one is its own submission; without it they share one, made when the worker goes

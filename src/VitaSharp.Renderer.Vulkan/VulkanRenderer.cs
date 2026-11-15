@@ -558,9 +558,13 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
 
     /// <summary><see cref="EnvVars.GpuSubmitAtNotification"/>: a scene with deferred notifications ends the batch, so the
     /// GPU starts it (and its fence tells when it finished) at once instead of when the worker next runs out of work or
-    /// presents. Real hardware signals each scene's notification when that scene is done. Read per renderer (not static):
+    /// presents. Real hardware signals each scene's notification when that scene is done. On by default on Android (Killzone
+    /// Mercenary in gameplay on a Helio G99: 21 -> 27 fps); the desktop keeps batching. Read per renderer (not static):
     /// tests switch it between renderers in one process.</summary>
-    private readonly bool _submitAtNotification = Environment.GetEnvironmentVariable(EnvVars.GpuSubmitAtNotification) == "1";
+    private readonly bool _submitAtNotification = SubmitAtNotificationEnabled(Environment.GetEnvironmentVariable(EnvVars.GpuSubmitAtNotification), OperatingSystem.IsAndroid());
+
+    /// <summary>Whether <see cref="EnvVars.GpuSubmitAtNotification"/> is on: "1" on, "0" off, unset the platform's default.</summary>
+    public static bool SubmitAtNotificationEnabled(string? setting, bool android) => setting?.Trim() is { Length: > 0 } value ? value == "1" : android;
 
     /// <summary>Command buffers submitted to the GPU so far (tests, reports).</summary>
     public long SubmitCount => _submitSeq;

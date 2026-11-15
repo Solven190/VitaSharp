@@ -671,10 +671,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   itens "Killzone no Android a 30 fps" e "Velocidade nativa no celular"). Medidas atuais (14/11/2026, APK NativeAOT,
   `<scratchpad>\lab14c`): Killzone ~17-25 fps em gameplay depois dos loads e 29-30 nos filmes; Uncharted 27-30; F1
   2011 ~31 na corrida (no Vita ~40-52). Pistas abertas, por ganho esperado:
-  - [ ] Espera da notificação GXM da 1ª cena (perf/android-14 43109759): o job de render do Killzone espera a
-    notificação da primeira cena do quadro anterior, que sai só no fim do lote (no present, com o worker ocupado); no
-    Vita cada cena sinaliza ao terminar. `VITASHARP_GPU_SUBMIT_AT_NOTIFICATION=1` fecha o lote no EndScene dessa cena
-    (SubmitAtNotificationTests). Falta o A/B 3x no celular (KZ slot 6) antes de ligar por padrão
+  - [x] Espera da notificação GXM da 1ª cena (perf/android-14 43109759; ligada por padrão no Android em 15/11/2026,
+    perf/android-submit-at-notification): o job de render do Killzone espera a notificação da primeira cena do quadro
+    anterior, que saía só no fim do lote (no present, com o worker ocupado); no Vita cada cena sinaliza ao terminar.
+    `VITASHARP_GPU_SUBMIT_AT_NOTIFICATION` (padrão 1 no Android, 0 no desktop) fecha o lote no EndScene dessa cena
+    (SubmitAtNotificationTests). A/B no celular, KZ em gameplay (escada da 1ª missão, A B B A, 60-120 s depois do
+    load): 21,8 / 26,2 / 27,3 / 20,3 fps, média 21,0 -> 26,7 fps (+27%, ~9 ms a menos por quadro); continua no
+    máximo de 30 do jogo no modo nativo
   - [ ] Distribuição das threads do jogo nos núcleos (2x A76 + 6x A55): o Minecraft perde fps porque as threads do
     mundo ficam sem CPU do host (item "Minecraft (PCSE00491) fica lento jogando no celular", abaixo)
   - [ ] JIT ARM64: tamanho do código gerado (IPC 0,49, faltas de L1I; item "Reescrita do JIT para ARM64", abaixo)
