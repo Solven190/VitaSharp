@@ -11,13 +11,13 @@ namespace VitaSharp.Tests;
 public sealed class PadCaptureTests
 {
     private const int Device = 7;
-    private static readonly int[] StandardAxes =
+    private static readonly int[] s_standardAxes =
     [
         AndroidKeys.AxisX, AndroidKeys.AxisY, AndroidKeys.AxisZ, AndroidKeys.AxisRz, AndroidKeys.AxisHatX,
         AndroidKeys.AxisHatY, AndroidKeys.AxisBrake, AndroidKeys.AxisGas,
     ];
 
-    private static PadCapture NewCapture() => new(Device, "Wireless Controller", 0x054C, 0x09CC, StandardAxes);
+    private static PadCapture NewCapture() => new(Device, "Wireless Controller", 0x054C, 0x09CC, s_standardAxes);
 
     private static Func<int, float> Axes(Dictionary<int, float> values) => axis => values.GetValueOrDefault(axis);
 
@@ -61,7 +61,7 @@ public sealed class PadCaptureTests
     {
         var store = new InputProfileStore();
         var pads = new AndroidGamepads(store);
-        pads.Connect(Device, "Wireless Controller", 0x054C, 0x09CC, StandardAxes);
+        pads.Connect(Device, "Wireless Controller", 0x054C, 0x09CC, s_standardAxes);
         string guid = AndroidGamepads.Guid(0x054C, 0x09CC);
         ControllerProfile profile = store.ProfileFor(guid, "Wireless Controller", ControllerClassifier.Classify(guid, "Wireless Controller"), isGamepad: true);
 
@@ -72,7 +72,7 @@ public sealed class PadCaptureTests
 
         // a fresh session reads the stored profile (as the game process does from input.json)
         var session = new AndroidGamepads(store);
-        session.Connect(Device, "Wireless Controller", 0x054C, 0x09CC, StandardAxes);
+        session.Connect(Device, "Wireless Controller", 0x054C, 0x09CC, s_standardAxes);
         session.OnKey(Device, AndroidKeys.ButtonY, true);
         Assert.True(session.Map().State.Buttons.HasFlag(VitaSharp.Core.Host.VitaButtons.Cross));
         session.OnKey(Device, AndroidKeys.ButtonY, false);
