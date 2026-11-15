@@ -31,6 +31,9 @@ public sealed unsafe partial class VulkanRenderer
         public ImageView Color, Depth;
         /// <summary>The scene's tile-word attachment (colour attachment 1), default = none.</summary>
         public ImageView Word;
+        /// <summary>The images behind the views (VulkanRenderer.AttachmentSync.cs: a rendering waits for the writes of
+        /// an earlier one to the same images, whatever view it used).</summary>
+        public Image ColorImage, DepthImage, WordImage;
         public Format ColorFormat;
         public AttachmentLoadOp DepthLoad;
         public ClearValue DepthClear;
@@ -73,7 +76,7 @@ public sealed unsafe partial class VulkanRenderer
     private string LoadStoreReport() =>
         $"load/store ops{(TiledRenderings ? " (tile-based" : " (desktop")}, {_tileDeferred} deferred single-sampled renderings{(RenderAreaTrim ? $", {_statTrimmed} begun over {100 * _statTrimFraction / Math.Max(1, _statTrimmed):F0}% of their surface on average" : "")}): colour load {_colorLoads[0]}/clear {_colorLoads[1]}/dont-care {_colorLoads[2]}, store {_colorStores[0]}/dont-care {_colorStores[1]}; " +
         $"depth load {_depthLoads[0]}/clear {_depthLoads[1]}/dont-care {_depthLoads[2]}, store {_depthStores[0]}/dont-care {_depthStores[1]}" +
-        (DepthOpsNone ? $" (NONE: {_statDepthNone} untouched, {_statDepthReadOnly} read-only)" : "") + $"; region copies {_statRegionOwn} of the scene's surface, {_statRegionOther} of others; {SceneBreakReport()}; region copies reused {_statRegionReused}";
+        (DepthOpsNone ? $" (NONE: {_statDepthNone} untouched, {_statDepthReadOnly} read-only)" : "") + $"; region copies {_statRegionOwn} of the scene's surface, {_statRegionOther} of others; {SceneBreakReport()}; region copies reused {_statRegionReused}; renderings waiting for an earlier one's attachment writes {_statAttachmentBarriers}";
 
     /// <summary>Opens a single-sampled scene rendering in a secondary command buffer.</summary>
     /// <param name="wordView">the scene's tile-word attachment (colour attachment 1), default = none</param>
@@ -86,6 +89,9 @@ public sealed unsafe partial class VulkanRenderer
             ColorFormat = colorFormat,
             HasColor = _renderTarget != null,
             Depth = _depth!.View,
+            ColorImage = _renderTarget != null ? SingleFetchImage() : default,
+            DepthImage = _depth.Image,
+            WordImage = wordView.Handle != 0 ? _tileWord1!.Image : default,
             DepthLoad = depthLoad,
             DepthClear = depthClear,
             Area = SceneArea,
@@ -250,6 +256,8 @@ public sealed unsafe partial class VulkanRenderer
 
         uint n = (uint)_chain.Count;
         _chain.Clear();
+        SyncAttachmentsBeforeRendering(cmd, tilePass.ColorImage, tilePass.DepthImage, tilePass.WordImage);
+        NoteAttachmentsWritten(tilePass.HasColor ? tilePass.ColorImage : default, tilePass.DepthImage, tilePass.WordImage);
         if (UseRenderPasses)
         {
             BeginSingleRenderPass(cmd, in tilePass, depthStore, area);
@@ -268,7 +276,7 @@ public sealed unsafe partial class VulkanRenderer
             PoisonDepth(cmd, _depth.Image);
         }
 #if VITASHARP_DEVELOPER
-        DevAfterRendering(cmd);
+        DevAfterRendering(cmd, final);
 #endif
     }
 

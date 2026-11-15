@@ -19,6 +19,9 @@ public static class GpuBenchState
     public static AttachmentStoreOp? DepthStore;
     /// <summary>A full memory barrier after every tiled rendering.</summary>
     public static bool FullBarriers;
+    /// <summary>bench barrier=KIND: which half of the full barrier (srccolor, srcdepth, dstshader, dsttransfer,
+    /// dstattach, dsthost; null = full), to find the hazard a full barrier hides.</summary>
+    public static string? BarrierKind;
     /// <summary>Every fragment shader replaced by a discard (the vertex-side cost of the selected draws).</summary>
     public static bool FragmentDiscard;
     /// <summary>A timestamp before every pass and copy of the timed frame (<see cref="VulkanRenderer.DevStampTimes"/>).</summary>
@@ -32,6 +35,7 @@ public static class GpuBenchState
         DepthLoad = null;
         DepthStore = null;
         FullBarriers = false;
+        BarrierKind = null;
         FragmentDiscard = false;
 
     }

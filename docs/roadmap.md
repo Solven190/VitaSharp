@@ -874,6 +874,42 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   comparando as células 0,1 de quadros vizinhos (2543-2547): se piscar nos dois caminhos, o dado errado está na
   memória gravada no celular (writeback lido pela CPU fora de hora); se só no mali, é o caminho de render do Mali
   (região/fetch); bisseção com `--draw-limit=N@F --trace-draws=F`.
+  Feito no PC (14/11): o replay do dump não pisca no caminho do desktop, com `--gpu-profile=mali`, com
+  `VITASHARP_GPU_POISON=1`, com `VITASHARP_FRAMES_IN_FLIGHT=8` (o padrão do Android) nem no SwiftShader; a validação de
+  sincronização (`VITASHARP_VK_VALIDATION=sync`, perfil mali) não acusa hazard. A escolha "render target x memória por
+  páginas sujas" (`OverwrittenSinceRendered`) está descartada: o dump não tem nenhuma leitura de memória do guest na
+  faixa dos render targets (0x60600000-0x61100000) em todos os presents, ou seja, no celular as texturas da névoa
+  vieram sempre das imagens da GPU. Os quadros piscados (2532, 2544, 2546, 2562-2563; névoa +9 a +30 de luma) são os
+  presents com contagem de draws fora do normal (347, 521, 256, 270, 471 contra 352) e o PERF gpu do celular conta
+  "mid-scene breaks: Present" no mesmo ritmo dos [flash] (~3,7/s). Falta, no celular (o defeito só aparece lá), um A/B
+  no ponto da captura: padrão x `VITASHARP_GPU_QUIRKS=-TileBased` (tira DONT_CARE/NONE do tiler) x
+  `VITASHARP_DISPLAY_FLIP_ORDER=queue` (flip só na ordem da fila) x `VITASHARP_DEPTH_OPS_NONE=0`.
+  A/B no celular (state da captura, 15 s cada): padrão 4,2% dos quadros piscam; `VITASHARP_GPU_QUIRKS=-TileBased`
+  0,9% (fps 27 -> 19); `VITASHARP_DISPLAY_FLIP_ORDER=queue` 4,5% (sem efeito). A maior parte vem de algo ligado pelo
+  TileBased. No replay (perfil mali) as decisões NONE de depth caem só na cena final de tone map sem depth do jogo e não
+  batem com os quadros piscados, então o DEPTH_OPS_NONE é improvável. O TileBased também liga FETCH_LARGE (só com
+  rasterization-order attachment access, que o Mali tem e o NVIDIA/SwiftShader não: por isso o PC não reproduz),
+  FETCH_PASS_JOIN, FETCH_PASS_MERGE e DEPTH_FEEDBACK, todos no passe de luz/névoa do Uncharted sobre 0x60600000.
+  Próximo A/B no celular: padrão x `VITASHARP_FETCH_LARGE=0` x `VITASHARP_DEPTH_FEEDBACK=0` x
+  `VITASHARP_FETCH_PASS_JOIN=0` x `VITASHARP_FETCH_PASS_MERGE=0` x `VITASHARP_RENDER_AREA_TRIM=0`.
+  Resultado (15 s cada, saltos de luma > 6): padrão 5,9%; `FETCH_LARGE=0` 7,6%; `DEPTH_FEEDBACK=0` 8,7%;
+  `FETCH_PASS_JOIN=0` 6,8%; `RENDER_AREA_TRIM=0` 5,9%; só `FETCH_PASS_MERGE=0` reduz (2,7%), com o fps caindo para
+  19-27. Com o merge desligado o PERF gpu do celular quase não tem "mid-scene breaks: Present" (2 contra 348-398 no
+  padrão) e a fila da GPU nunca esvazia (idle 0,1 contra 8,7 ms/quadro): o merge muda mais o ritmo (onde o flip do
+  guest cai no meio de uma cena) do que um caminho de desenho, e os piscados seguem os presents no meio da cena. O
+  replay no PC com `--gpu-profile=mali` já usa render passes (a quirk RenderPasses vem do perfil, como no celular) e
+  não pisca. Falta, no celular: `VITASHARP_REGION_COPY_REUSE=0` e `VITASHARP_SCENE_BREAKS=strict` (o que o present
+  no meio da cena faz com as cópias de região e as renderings adiadas) e um replay do dump do próprio celular no
+  celular, para separar defeito de caminho (repete no replay) de corrida de tempo (não repete).
+  Feito (15/11): `REGION_COPY_REUSE=0` e `SCENE_BREAKS=strict` não mudam (4-8%). O replay do dump no celular (bench
+  `mode=flicker`) pisca (43-46 de 420 quadros) e o do PC não; nenhuma chave muda, mas `barrier=full` (barreira cheia
+  depois de cada rendering) zera, e as variantes mostram que basta uma dependência de execução depois dos renderings
+  do meio da cena: faltava ordenar dois renderings seguidos nos mesmos attachments (Vulkan não ordena render passes
+  entre si; no Mali o load do rendering retomado lia cor/depth antes do store do anterior). Correção:
+  VulkanRenderer.AttachmentSync.cs (barreira de attachment antes de um rendering que reusa imagens escritas por um
+  anterior). Celular: bench 0 de 420 (3x), UC ao vivo 0% contra 5,3-5,7%, 29,5 fps nos dois. O bench tinha um bug
+  próprio (um present no meio da cena fazia o skipscene padrão pular o resto da cena), corrigido. Falta: confirmar o
+  KZ em gameplay no celular com essa correção.
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo
