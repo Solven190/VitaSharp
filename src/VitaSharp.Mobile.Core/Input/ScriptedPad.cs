@@ -23,10 +23,15 @@ public sealed class ScriptedPad
     private List<Step> _steps = [];
     private List<(bool Save, int Slot, double At)> _states = [];
 
-    /// <summary>A <c>savestate</c>/<c>loadstate</c> step is due: (save, slot). Raised on the thread that polls the pad.</summary>
+    /// <summary>A <c>savestate</c>/<c>loadstate</c> step is due: (save, slot). Raised once per step, on the thread that
+    /// polls the pad when it is due (games read the pad from several threads at once).</summary>
     public event Action<bool, int>? StateRequested;
     private Stopwatch? _clock;
     private double _nextPoll;
+
+    /// <summary>Taking the live file and the due state steps: two threads polling at once took the same step (a load ran
+    /// twice) or both read the live file before either deleted it.</summary>
+    private readonly object _gate = new();
 
     /// <summary>A file polled while the game runs (VITASHARP_ANDROID_INPUT_LIVE): its steps, in the same syntax with T
     /// relative to the moment it is read, are added and the file is deleted. Lets a script on the PC react to the
@@ -100,6 +105,7 @@ public sealed class ScriptedPad
 
     public int Count => _steps.Count;
 
+    /// <summary>Takes the live file's steps (under <see cref="_gate"/>).</summary>
     private void PollLive(double t)
     {
         _nextPoll = t + 0.25;
@@ -125,16 +131,27 @@ public sealed class ScriptedPad
     /// <summary>Applies the steps active now to <paramref name="controllerState"/> (buttons OR-ed, sticks replaced).</summary>
     public ControllerState Apply(ControllerState controllerState)
     {
-        _clock ??= Stopwatch.StartNew();
-        double t = _clock.Elapsed.TotalSeconds;
-        if (LivePath != null && t >= _nextPoll)
+        double t = Now();
+        List<(bool Save, int Slot, double At)>? due = null;
+        lock (_gate)
         {
-            PollLive(t);
+            if (LivePath != null && t >= _nextPoll)
+            {
+                PollLive(t);
+            }
+
+            if (_states.Count > 0)
+            {
+                due = TakeDueStates(t);
+            }
         }
 
-        if (_states.Count > 0)
+        if (due != null)
         {
-            FireStates(t);
+            foreach ((bool save, int slot, double _) in due)
+            {
+                StateRequested?.Invoke(save, slot);
+            }
         }
 
         foreach (Step st in _steps)
@@ -160,26 +177,34 @@ public sealed class ScriptedPad
         return controllerState;
     }
 
-    private void FireStates(double t)
+    /// <summary>Removes and returns the state steps due at <paramref name="t"/> (null when none), under <see cref="_gate"/>.</summary>
+    private List<(bool Save, int Slot, double At)>? TakeDueStates(double t)
     {
         List<(bool Save, int Slot, double At)> due = _states.FindAll(s => s.At <= t);
         if (due.Count == 0)
         {
-            return;
+            return null;
         }
 
         _states = _states.FindAll(s => s.At > t);
-        foreach ((bool save, int slot, double _) in due)
+        return due;
+    }
+
+    /// <summary>Seconds since the game first polled the pad (one clock, whichever thread polls first).</summary>
+    private double Now()
+    {
+        if (_clock == null)
         {
-            StateRequested?.Invoke(save, slot);
+            Interlocked.CompareExchange(ref _clock, Stopwatch.StartNew(), null);
         }
+
+        return _clock!.Elapsed.TotalSeconds;
     }
 
     /// <summary>Adds the touches of the tap steps active now (front: tap, rear: btap), each step its own contact.</summary>
     public void AddTouches(ref MappedInput mappedInput)
     {
-        _clock ??= Stopwatch.StartNew();
-        double t = _clock.Elapsed.TotalSeconds;
+        double t = Now();
         for (int i = 0; i < _steps.Count; i++)
         {
             Step st = _steps[i];

@@ -142,6 +142,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   slot 1 carregado" (0,8 s parado), mas o jogo nunca mais apresenta um quadro (frames presented parado em 1964, GPU
   submitted == completed, o áudio continua, tela parada no título, 0 fps). 2 de 2 (carga em 30 s e em 50 s). Logs no
   scratchpad do agente: `lab\uc_clr1\clr_0\last.log`, `lab\uc_clr2\clr_0\last.log`. Ainda não conferido no APK mono.
+  No APK NativeAOT de 14/11 não se repete nos logs que existem: 21 sessões com um load cada (Uncharted slot 4 ~30 s
+  depois do início, Killzone), todas seguem apresentando quadros (UC 13-48 fps depois do load; `abug14b\lab\ucfix*`,
+  `kzfix`, `fila14\uc5` no scratchpad). Falta a prova no celular no título (slot livre) para fechar
 - [ ] [P1][P] F1 2011 (PCSE00002) no Android: carregar um estado durante os vídeos de abertura (30 s depois da primeira leitura
   do controle) falha com "thread 'AudioOutput' did not stop (in ); restart the game" (09/11/2026, main 9f21653, APK
   CoreCLR; log `lab\f1_clr1\clr_0\last.log` no scratchpad do agente); em 60 s carrega e roda. O roteiro de medida
@@ -3549,6 +3552,14 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
   falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
   falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
+  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
+  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
+  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
+  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
+  saber se o 2º load do usuário congela
+- [ ] [P2][M] Um load state que falha depois de parar as threads ("thread X did not stop", erro no meio da carga)
+  deixa o jogo parado ("reinicie o jogo"): guardar um estado em memória antes de carregar e voltar a ele se a carga
+  falhar (como o "desfazer carregamento" do Dolphin), no desktop e no Android
 - [ ] [P2][M] Android: o vídeo de abertura do F1 2011 (PCSE00002) pisca (relato do usuário, 09/11/2026, APK com todos os
   ganhos, perf/android-all 577bce4): quadros pretos (a imagem inteira com luma 0 entre pictures de luma 16) e pictures
   fora de ordem. A captura do usuário (`PCSE00002_20261109_185836_tudo`, 3º filme, jogo a 20 fps) tem 13 piscadas
