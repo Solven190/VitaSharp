@@ -2359,7 +2359,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 Itens com correção já na `main` que esperam só a confirmação do usuário no jogo/tela do relato; quem fecha (`[x]`) é o
 usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 
-- [ ] [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
+- [x] (15/11/2026, usuário: fechado; reabre se aparecer de novo) [P1][M] Save state que depende de arquivo temporário (achado do agente P1, 13/11/2026): um estado salvo com um filme do
   avPlayer aberto guarda o caminho de um `%TEMP%itasharp-mp4-*.mp4` da sessão; quando esse arquivo some, o estado
   congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer
   param). O estado tem que ser autossuficiente: guardar o que precisa do filme (ou a referência ao arquivo do jogo que
@@ -2369,7 +2369,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   grava de novo o temporário no mesmo caminho quando ele sumiu; estados de antes continuam carregando
   (`SpooledMovieStateTests`). Falta confirmar no Wipeout.
   Correção: a8d3e7e3 (15/11/2026). Teste: Wipeout, salvar o estado com o filme da corrida aberto, fechar o jogo, carregar.
-- [ ] [P1][M] PSM: o shell não enxerga a atualização 2.01 do runtime (relato do usuário, 12/11/2026, captura
+- [x] (15/11/2026, usuário: fechado; reabre se aparecer de novo) [P1][M] PSM: o shell não enxerga a atualização 2.01 do runtime (relato do usuário, 12/11/2026, captura
   `shell_20261112_030858_tudo`). Instalada em `ux0:patch/PCSI00011` (`runtime_version.txt` 2.01; o `ux0:app`
   continua 1.00), mas ao tocar no Cave Squid (NPOA00239, PSM) o shell ainda pede a atualização do runtime e falha
   no download (NW-8941-2, offline). Estudar como o firmware obtém a versão instalada do runtime (entrada do app.db
@@ -2409,7 +2409,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   por cima do app (APP_VER de sceAppUtilAppParamGetString, título, save state), e a Biblioteca mostra a versão e o
   ícone da atualização; corrigidos com teste (`UpdateModelTests`).
   Correção: 3b680a55 em 14c6f72d (12/11/2026). Teste: tocar no Cave Squid; não pede mais a atualização (o erro C1-2614-3 de licença é esperado e fica fora do escopo).
-- [ ] [P1][M] Desktop (Windows): em tela cheia, depois de tirar o foco do jogo (ir para outro aplicativo), não dá para
+- [x] (15/11/2026, usuário: fechado; reabre se aparecer de novo) [P1][M] Desktop (Windows): em tela cheia, depois de tirar o foco do jogo (ir para outro aplicativo), não dá para
   voltar: o Windows toca o som de erro e a janela do jogo não volta; só fechando o jogo (relato do usuário,
   12/11/2026, "ainda está acontecendo"; ver o item de 04/11 do F11). Estudar o comportamento do GLFW em tela cheia
   ao perder o foco (auto-iconify), as regras de ativação do Windows (janela desabilitada ou dona) e a perda do
@@ -2427,7 +2427,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   (SwitchToThisWindow e Alt+Tab de verdade voltam à tela cheia, swapchain 1920x1080 recriada, foco de volta); falta a
   confirmação do usuário no jogo. Corrigido em 34c0a021 (`FullscreenRestoreTests`), falta o usuário confirmar.
   Correção: 34c0a021 (12/11/2026). Teste: jogo em tela cheia (F11), Alt+Tab para outro aplicativo e voltar por Alt+Tab e pela barra de tarefas; volta em tela cheia, sem som de erro.
-- [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), novo relato (11/11/2026, build 2e7789b2): "várias texturas zuadas,
+- [x] (15/11/2026, usuário: fechado; reabre se aparecer de novo) [P1][G] Metal Gear Solid HD Collection (PCSE00020), novo relato (11/11/2026, build 2e7789b2): "várias texturas zuadas,
   a tela do PC fica na frente do personagem, texturas popando". Captura `PCSE00020_20261111_224104_tudo` (dump da GPU
   de 383 quadros; log: alvo 0x60E0CA00 amostrado enquanto é desenhado, cena sem superfície de cor, texturas P8;
   findings [flash] e [picture-order]). Três sintomas: texturas decodificadas erradas, profundidade/ordem (tela do PC
@@ -2463,7 +2463,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     desenho não tem dados de uniform de vértice, mas programas com todos os slots divididos (9078D650) o declaram;
     agora todo binding de um conjunto novo é escrito (o buffer dummy onde não há dados). Teste `UniformSetWritesTests`.
   Correção: ea4910da + 2f785aca (11/11/2026, tela do PC na frente e fantasma do bloom), 69cc05b5 + 0ba2934c (12/11/2026, cunhas = texturas zuadas) e 3a978652 (12/11/2026, quadros alternados). Teste: MGS2/MGS3 no PC, nas cenas das capturas de 11/11 (PCSE00020_20261111_224104_tudo): monitores atrás da cabeça, sem capacete/texto fantasma, sem cunhas vermelhas/azuis. O escurecimento de 1 quadro só com --msaa=native fica em "Bugs em aberto".
-- [ ] [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
+- [x] (15/11/2026, usuário: fechado; reabre se aparecer de novo) [P1][M] Android: um segundo load state logo depois do primeiro congela o jogo (a conferir no APK NativeAOT de hoje;
   06/11/2026, perf/android-8, APK LLVM dev
   db2d72d, Killzone PCSC00045, `VITASHARP_RES_SCALE=0.75;VITASHARP_RENDER_AREA_TRIM=1`). O roteiro mandou um só
   `loadstate@0:1` (`VITASHARP_ANDROID_INPUT_LIVE`); o log tem duas cargas: 15:57:41 "Estado do slot 1 carregado" e,
