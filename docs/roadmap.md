@@ -848,6 +848,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   "mid-scene breaks: Present" no mesmo ritmo dos [flash] (~3,7/s). Falta, no celular (o defeito só aparece lá), um A/B
   no ponto da captura: padrão x `VITASHARP_GPU_QUIRKS=-TileBased` (tira DONT_CARE/NONE do tiler) x
   `VITASHARP_DISPLAY_FLIP_ORDER=queue` (flip só na ordem da fila) x `VITASHARP_DEPTH_OPS_NONE=0`.
+  A/B no celular (state da captura, 15 s cada): padrão 4,2% dos quadros piscam; `VITASHARP_GPU_QUIRKS=-TileBased`
+  0,9% (fps 27 -> 19); `VITASHARP_DISPLAY_FLIP_ORDER=queue` 4,5% (sem efeito). A maior parte vem de algo ligado pelo
+  TileBased. No replay (perfil mali) as decisões NONE de depth caem só na cena final de tone map sem depth do jogo e não
+  batem com os quadros piscados, então o DEPTH_OPS_NONE é improvável. O TileBased também liga FETCH_LARGE (só com
+  rasterization-order attachment access, que o Mali tem e o NVIDIA/SwiftShader não: por isso o PC não reproduz),
+  FETCH_PASS_JOIN, FETCH_PASS_MERGE e DEPTH_FEEDBACK, todos no passe de luz/névoa do Uncharted sobre 0x60600000.
+  Próximo A/B no celular: padrão x `VITASHARP_FETCH_LARGE=0` x `VITASHARP_DEPTH_FEEDBACK=0` x
+  `VITASHARP_FETCH_PASS_JOIN=0` x `VITASHARP_FETCH_PASS_MERGE=0` x `VITASHARP_RENDER_AREA_TRIM=0`.
   O stall de 2.770 ms (present 2168) não é do jogo: é a pausa do menu para iniciar a gravação (log: "Emulation paused
   (pause menu) ... resumed after 2,7 s paused"; durante ela o worker logou "sync object still displayed after 250
   ms"). O analisador atribui a "the guest waited for the GPU" porque `FrameLedger.Time(GuestGpuWait)` conta o tempo
