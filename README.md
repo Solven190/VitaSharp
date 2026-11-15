@@ -224,10 +224,11 @@ performance is still the main work in progress. Measured today:
 Lighter games reach their native 30 or 60 fps; other games have not been measured on the phone yet. Adreno phones are
 barely tested.
 
-**Install the APK.** There is no APK on the Releases page yet. Every CI run builds one for arm64 phones: on the
-run's page in **Actions**, the artifact **VitaSharp-android-arm64-nativeaot** holds
-`VitaSharp-<version>-android-arm64.apk` (Release, Native AOT, with the device shader compiler and libadrenotools;
-signed with a throwaway debug key, so a later APK from another run or PC installs only after uninstalling the old one,
+**Install the APK.** Download `VitaSharp-<version>-android-arm64.apk` from the **Releases** page (every version and
+every automatic `build-<commit>` prerelease carries it). Every CI run also builds one for arm64 phones: on the run's
+page in **Actions**, the artifact **VitaSharp-android-arm64-packages** holds
+`VitaSharp-ci-<run>-android-arm64.apk`. The APK is the Release build (Native AOT, with the device shader compiler
+and libadrenotools; signed with a throwaway debug key, so a later APK from another run or PC installs only after uninstalling the old one,
 which deletes the app's data). Install it with `adb install` or by opening it on the phone. Copy the saves out first (see below). To build it on a PC: the
 .NET 10 SDK with the MAUI Android workload (`dotnet workload install maui-android`), a JDK 17, the Android SDK
 (platform 36) and the NDK (r30: `sdkmanager "ndk;30.0.16248370"`), then `build/build-android-apk.ps1` / `.sh`, the
@@ -386,7 +387,7 @@ What `dotnet test tests/VitaSharp.Tests` needs per system; a test whose requirem
 ## Releases
 
 - **Versions**: a `v*` tag (or **Actions > Release > Run workflow**) publishes a release with the Native AOT packages
-  for Windows, Linux and macOS and the `SHA256SUMS.txt`.
+  for Windows, Linux and macOS, the Android APK (`VitaSharp-<version>-android-arm64.apk`) and the `SHA256SUMS.txt`.
 - **Automatic builds**: every push to `main` whose CI passed becomes a `build-<commit>` prerelease with that CI run's
   packages (the 10 newest stay).
 - **Automatic update**: the packages check for a new version when they open (Settings > General > Updates: on/off,

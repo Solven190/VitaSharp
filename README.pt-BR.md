@@ -228,10 +228,11 @@ desempenho ainda é o principal trabalho em andamento. Medido hoje:
 Jogos mais leves chegam aos seus 30 ou 60 fps nativos; os outros jogos ainda não foram medidos no celular. Celulares
 Adreno foram pouco testados.
 
-**Instalar o APK.** Ainda não há APK na página de Releases. Toda execução do CI gera um para celulares arm64: na
-página da execução em **Actions**, o artefato **VitaSharp-android-arm64-nativeaot** traz o
-`VitaSharp-<versão>-android-arm64.apk` (Release, Native AOT, com o compilador de shaders do aparelho e o
-libadrenotools; assinado com uma chave de debug descartável, então um APK de outra execução ou de outro PC só instala
+**Instalar o APK.** Baixe o `VitaSharp-<versão>-android-arm64.apk` da página de **Releases** (toda versão e toda
+prerelease automática `build-<commit>` o traz). Toda execução do CI também gera um para celulares arm64: na página da
+execução em **Actions**, o artefato **VitaSharp-android-arm64-packages** traz o
+`VitaSharp-ci-<execução>-android-arm64.apk`. O APK é o build Release (Native AOT, com o compilador de shaders do
+aparelho e o libadrenotools; assinado com uma chave de debug descartável, então um APK de outra execução ou de outro PC só instala
 depois de desinstalar o anterior, o que apaga os dados do app). Instale com `adb install` ou abrindo-o no celular. Copie os saves antes (veja abaixo).
 Para compilar num PC: o SDK do .NET 10 com o workload MAUI Android (`dotnet workload install maui-android`), um JDK
 17, o Android SDK (plataforma 36) e o NDK (r30: `sdkmanager "ndk;30.0.16248370"`), e então
@@ -392,7 +393,7 @@ O que o `dotnet test tests/VitaSharp.Tests` precisa em cada sistema; um teste se
 ## Releases
 
 - **Versões**: uma tag `v*` (ou **Actions > Release > Run workflow**) publica uma release com os pacotes Native AOT de
-  Windows, Linux e macOS e o `SHA256SUMS.txt`.
+  Windows, Linux e macOS, o APK do Android (`VitaSharp-<versão>-android-arm64.apk`) e o `SHA256SUMS.txt`.
 - **Builds automáticos**: todo push na `main` cujo CI passou vira uma prerelease `build-<commit>` com os pacotes
   daquele CI (as 10 mais novas ficam).
 - **Atualização automática**: os pacotes procuram uma versão nova ao abrir (Configurações > Geral > Atualizações:
