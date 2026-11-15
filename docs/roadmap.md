@@ -614,6 +614,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
+- [ ] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
+  e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
+  compilar shaders em segundo plano em Ajustes (feat/android-shader-options); Ativar Plugins do Kernel já existe nos
+  dois (conferido no mesmo teste). Falta, nesta ordem: remapear botões e teclas por controle (hoje o Mapeamento do
+  Android só mostra), página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
+  (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
+  no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
 - [x] Antes de voltar ao Android (08/11/2026): `third_party/android-shaderc` e `third_party/android-adrenotools` da
   checkout principal estão vazias desde 07/11 22:13 (provavelmente apagadas por uma limpeza através de junction); um APK
   compilado agora sai sem `libshaderc*.so`/adrenotools. Refazer com `build/build-android-shaderc.ps1|.sh` e
