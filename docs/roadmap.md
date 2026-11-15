@@ -1479,6 +1479,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   guarda a config em `ur0:kernel_plugins` (a3ff504b). Dead Space rodou 5 min com kubridge + fd_fix sem crash (lead,
   procdump sem exceção não tratada). Faltam: o hardware (Bluetooth, SD2Vita) e a lista de plugins públicos validados
   (um teste por exportação e cada plugin rodando).
+- [ ] [P3][G] Modelo do chip syscon para o SceSysconForDriver (311 exportações, 198 importadas pelos módulos de kernel do
+  FW 3.74). 117 delas montam um pacote (comando de 16 bits, tamanho, dados) e chamam ksceSysconCmdExec/CmdExecAsync; o
+  syscon.skprx decompilado está em `fw374\decomp\os0__kd__syscon.skprx.c` (só estudo). Fazer: um modelo C# do chip (os
+  comandos que os módulos usam e as respostas de um PCH-1000: versão do baryon, hardware info, bateria, RTC, alarmes,
+  estado de energia) atrás de ksceSysconCmdExec, as exportações em cima dele, os callbacks registrados disparando nos
+  eventos que o VitaSharp tem (bateria, alarme, botão de energia). Antes: fonte confiável para os valores de hardware.
 - [ ] [P3][G] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das
