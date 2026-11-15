@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=c4e8cb7468014e9efb5e6b7a2ee2de98712b3dba4fb5b10962dacbb821ebe7b0 -->
+<!-- pair: README.pt-BR.md sha256=c21f0bf6b37a2f35b8b724665dd80a24e2dd8ac733616fabcb2e6b94a3aa682e -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -245,9 +245,13 @@ through Android's file picker (Storage Access Framework) and is read in place. I
 a `.vpk` (or `.zip`) or a `.pkg` with its license (`work.bin`, `.rif` or the pasted zRIF). The firmware is optional, as
 on the PC: **Ajustes > Firmware > Instalar firmware (.PUP)** with `PSVUPDAT.PUP`; then **Sistema do Vita** in the
 library boots the real home screen. Custom GPU drivers (Adreno, through libadrenotools) are installed in **Ajustes >
-Driver da GPU**. Everything lives in the app's own folder (`Android/data/io.github.vitasharp/files`, with the desktop's
-layout: games in `fs/ux0/app`, licenses in `fs/ux0/license/app`, saves in `fs/ux0/user/00/savedata`), reachable over
-USB/MTP or the Files app on most phones; uninstalling the app deletes it.
+Driver da GPU**. Everything lives in one data folder with the desktop's layout (games in `fs/ux0/app`, licenses in
+`fs/ux0/license/app`, saves in `fs/ux0/user/00/savedata`, `config/env.txt`...): without root it is **`.vitasharp`** at
+the root of the phone's storage (`/sdcard/.vitasharp`), visible and editable in any file manager and kept when the app
+is uninstalled; the app asks for **"All files access"** on its first start for that and moves the old
+`Android/data/io.github.vitasharp/files` there (checked file by file, resumed if interrupted). Until the permission is
+given, and on a rooted phone, the data stays in `Android/data/io.github.vitasharp/files`
+([details](docs/android/README.md#storage)).
 
 **Controls.** Translucent on-screen controls over the sides of the picture (D-pad, sticks, face buttons, L/R,
 SELECT/PS/START, a TRÁS toggle for the rear touchpad); touches on the picture are the front touch screen. Bluetooth or

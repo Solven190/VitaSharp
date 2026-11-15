@@ -3006,4 +3006,40 @@
   <data name="FastLoadingTip" xml:space="preserve">
     <value>Off (default): games read their data at the Vita memory card&apos;s speed (about 7 MB/s), as on the console. On: no speed limit, loading screens get much shorter. A few games only work with the real loading time (e.g. Silent Hill: Book of Memories stops at its first loading); if a game freezes or crashes while loading, turn this off.</value>
   </data>
+  <data name="MStorageAccessTitle" xml:space="preserve">
+    <value>Visible data folder</value>
+  </data>
+  <data name="MStorageAccessExplain" xml:space="preserve">
+    <value>VitaSharp keeps its data (games, firmware, saves, captures, logs, config/env.txt) in the folder .vitasharp at the root of the phone's storage, where any file manager can open and edit it. Android asks for "All files access" for that. Until it is allowed, the data stays in Android/data, which most phones hide.</value>
+  </data>
+  <data name="MStorageAccessAllow" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="MStorageWarning" xml:space="preserve">
+    <value>Data in a hidden folder</value>
+  </data>
+  <data name="MStorageWarningDetail" xml:space="preserve">
+    <value>Allow "All files access" to move the data to .vitasharp, where you can see and edit it</value>
+  </data>
+  <data name="MStorageMoving" xml:space="preserve">
+    <value>Moving the data</value>
+  </data>
+  <data name="MStorageMovingDetail" xml:space="preserve">
+    <value>To {0}. Every file is checked before the old copy is deleted; if this stops, it continues on the next start.</value>
+  </data>
+  <data name="MStorageMoveWaitsGame" xml:space="preserve">
+    <value>The data move waits until the game is closed</value>
+  </data>
+  <data name="MStorageMoveNoSpace" xml:space="preserve">
+    <value>Not enough free space to move the data ({0}). Nothing was lost: what was not moved is still in Android/data.</value>
+  </data>
+  <data name="MStorageMoveFailed" xml:space="preserve">
+    <value>The data move stopped ({0}). Nothing was lost: it continues from where it was.</value>
+  </data>
+  <data name="MStorageMoveProblems" xml:space="preserve">
+    <value>The data was moved to {0}, but some files were already missing before the move; the list is in {1}.</value>
+  </data>
+  <data name="MStorageMoveRetry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
 </root>

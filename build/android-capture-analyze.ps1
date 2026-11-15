@@ -5,7 +5,22 @@
 # Usage: build/android-capture-analyze.ps1 [CAPTURE_NAME|LOCAL_FOLDER] [-Out DIR] [-Perf EXE] [-GpuProfile mali] [-Desktop EXE]
 param([string]$Capture = '', [string]$Out = (Join-Path (Get-Location) 'captures'), [string]$Perf = '', [string]$GpuProfile = 'mali', [string]$Desktop = '')
 $ErrorActionPreference = 'Stop'
-$remote = '/sdcard/Android/data/io.github.vitasharp/files/captures'
+# the app's data folder (docs/android/README.md, "Storage"): /sdcard/.vitasharp once the app moved its data there
+# (no root, "All files access"), else the app-specific folder
+$dataRoot = ''
+try
+{
+    $dataRoot = (adb shell "if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/io.github.vitasharp/files; fi" 2>$null | Out-String).Trim()
+}
+catch
+{
+    $dataRoot = ''
+}
+if (-not $dataRoot)
+{
+    $dataRoot = '/sdcard/Android/data/io.github.vitasharp/files'
+}
+$remote = "$dataRoot/captures"
 & "$PSScriptRoot\android-awake.ps1" start   # the phone's screen is kept on until the end (build/android-awake.ps1)
 $here = Split-Path -Parent $PSScriptRoot
 function perf { if ($Perf) { & $Perf @args } else { dotnet run --project (Join-Path $here 'tools/VitaSharp.PerfTools') -c Release -p:VitaSharpDeveloper=true -m:2 -v q -- @args } }

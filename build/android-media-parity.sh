@@ -15,7 +15,12 @@ export MSYS_NO_PATHCONV=1
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly HERE
 readonly PKG=io.github.vitasharp
-readonly FILES="/sdcard/Android/data/${PKG}/files/media-parity"
+# the app's data folder (docs/android/README.md, "Storage"): /sdcard/.vitasharp once the app moved its data there
+# (no root, "All files access"), else the app-specific folder
+DATA_ROOT="$(adb shell "if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/${PKG}/files; fi" 2>/dev/null | tr -d '' || true)"
+DATA_ROOT="${DATA_ROOT:-/sdcard/Android/data/${PKG}/files}"
+readonly DATA_ROOT
+readonly FILES="${DATA_ROOT}/media-parity"
 readonly ACTIVITY="${PKG}/${PKG}.MediaParityActivity"
 readonly CLIPS="${HERE}/../tests/VitaSharp.Tests/Fixtures/Media"
 readonly TIMEOUT="${TIMEOUT:-120}"

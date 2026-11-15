@@ -122,6 +122,8 @@ public sealed class MainActivity : MauiAppCompatActivity
         // the game process may have changed the statistics and "last played"
         if (AppServices.Initialized)
             AppServices.ReloadPrefs();
+        // the data folder: asks for "All files access" once, moves the old folder when granted (StorageSetup)
+        StorageSetup.Check(this);
         Resumed?.Invoke();
     }
 

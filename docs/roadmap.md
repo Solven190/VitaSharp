@@ -610,6 +610,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
+- [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
+  "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
+  (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua
+  em `Android/data`. Roteiros `build/android-*` e docs resolvem o caminho no aparelho. Testes em
+  `AndroidDataRootTests`. Falta: confirmar no celular (permissão, migração com os dados reais, reinício na pasta
+  nova, Killzone carregando da `.vitasharp` sem perda de velocidade de leitura pelo FUSE)
 - [ ] Antes de voltar ao Android (08/11/2026): `third_party/android-shaderc` e `third_party/android-adrenotools` da
   checkout principal estão vazias desde 07/11 22:13 (provavelmente apagadas por uma limpeza através de junction); um APK
   compilado agora sai sem `libshaderc*.so`/adrenotools. Refazer com `build/build-android-shaderc.ps1|.sh` e

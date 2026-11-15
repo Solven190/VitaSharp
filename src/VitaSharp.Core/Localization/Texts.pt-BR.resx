@@ -3006,4 +3006,40 @@
   <data name="FastLoadingTip" xml:space="preserve">
     <value>Desligado (padrão): os jogos leem os dados na velocidade do cartão de memória do Vita (cerca de 7 MB/s), como no console. Ligado: sem limite de velocidade, as telas de carregamento ficam bem mais curtas. Alguns jogos só funcionam com o tempo real de carregamento (ex.: Silent Hill: Book of Memories para no primeiro carregamento); se um jogo travar ou fechar carregando, desligue.</value>
   </data>
+  <data name="MStorageAccessTitle" xml:space="preserve">
+    <value>Pasta de dados visível</value>
+  </data>
+  <data name="MStorageAccessExplain" xml:space="preserve">
+    <value>O VitaSharp guarda os dados (jogos, firmware, saves, capturas, logs, config/env.txt) na pasta .vitasharp na raiz do armazenamento do celular, onde qualquer gerenciador de arquivos abre e edita. Para isso o Android pede "Acesso a todos os arquivos". Enquanto não for permitido, os dados ficam em Android/data, que a maioria dos celulares esconde.</value>
+  </data>
+  <data name="MStorageAccessAllow" xml:space="preserve">
+    <value>Permitir</value>
+  </data>
+  <data name="MStorageWarning" xml:space="preserve">
+    <value>Dados numa pasta escondida</value>
+  </data>
+  <data name="MStorageWarningDetail" xml:space="preserve">
+    <value>Permita "Acesso a todos os arquivos" para mover os dados para .vitasharp, onde você vê e edita</value>
+  </data>
+  <data name="MStorageMoving" xml:space="preserve">
+    <value>Movendo os dados</value>
+  </data>
+  <data name="MStorageMovingDetail" xml:space="preserve">
+    <value>Para {0}. Cada arquivo é conferido antes de apagar a cópia antiga; se parar, continua na próxima abertura.</value>
+  </data>
+  <data name="MStorageMoveWaitsGame" xml:space="preserve">
+    <value>A mudança dos dados espera o jogo ser fechado</value>
+  </data>
+  <data name="MStorageMoveNoSpace" xml:space="preserve">
+    <value>Sem espaço livre para mover os dados ({0}). Nada foi perdido: o que não foi movido continua em Android/data.</value>
+  </data>
+  <data name="MStorageMoveFailed" xml:space="preserve">
+    <value>A mudança dos dados parou ({0}). Nada foi perdido: ela continua de onde estava.</value>
+  </data>
+  <data name="MStorageMoveProblems" xml:space="preserve">
+    <value>Os dados foram movidos para {0}, mas alguns arquivos já faltavam antes da mudança; a lista está em {1}.</value>
+  </data>
+  <data name="MStorageMoveRetry" xml:space="preserve">
+    <value>Tentar de novo</value>
+  </data>
 </root>

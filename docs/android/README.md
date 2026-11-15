@@ -375,7 +375,7 @@ happened with `mono-aot` and in the earlier phone runs, so it is a driver issue,
    Dungeon** (title, 3 minutes), **F1 2011** (intro movie skipped, menus, 3 minutes; the heaviest HLE/GXM load).
    Two runs per variant and game, alternating the variants (A B C D A B C D) so heat does not favour one.
 4. Capture: `adb logcat -c`, then `adb logcat -v monotonic -s VitaSharp VitaSharp-Guest > <v>_<game>_<n>.txt` during
-   the run; after it `adb pull /sdcard/Android/data/io.github.vitasharp/files/logs/last.log`. While it runs, every 30 s:
+   the run; after it `adb pull <data>/logs/last.log` (`<data>`: [Storage](#storage)). While it runs, every 30 s:
    `adb shell cat /proc/$(adb shell pidof io.github.vitasharp:game)/stat` (fields 14-15, utime and stime in ticks).
 5. Lines to read:
    - `Runtime: ... build <v>` (proves which APK ran), `Dynamic code: supported True, compiled True`,
@@ -436,19 +436,43 @@ happened with `mono-aot` and in the earlier phone runs, so it is a driver issue,
 
 ## Storage
 
-The data root is the **app-specific external storage** (`Context.GetExternalFilesDir(null)`,
-`/sdcard/Android/data/io.github.vitasharp/files`), or the internal files folder when it is not mounted; the layout is
-the desktop's (`fs/ux0/app` games, `fs/ux0/user/00/savedata` saves, `fs/vs0`... firmware, `logs`, `shadercache`,
-`np`, `config/app.json`, `config/games/TITLEID.json`, `config/input.json`, `gpu_driver.json`; `DataLayout`).
-GPU driver packages (`gpu_drivers/`, `gpu_driver_files/`) and the running game's marker (`run/game.json`) are in the
-**internal** files folder (`Context.FilesDir`) instead: the linker loads no library from shared storage. Why not a folder chosen with the Storage Access Framework: SAF gives `content://` URIs, not paths, and
-the emulator opens, maps and seeks guest files directly (and keeps the shader cache and saves next to them); the only
-way to a real path in a user folder is `MANAGE_EXTERNAL_STORAGE`, which needs a Play policy exception. So no storage
-permission is requested, and files come in through SAF: **Instalar VPK**, the firmware `.PUP` and GPU driver
-packages are picked with `ACTION_OPEN_DOCUMENT` and read in place through `ContentResolver.OpenFileDescriptor`
-(a provider that only streams, such as a cloud drive, is copied into the cache first). Uninstalling the app deletes
-the data folder (Android's rule for app-specific storage); a USB/MTP connection or the Files app can reach it on most
-phones.
+The data root is chosen in one place (`Mobile.Core/Storage/DataRoot.cs`, used by every screen, the game process and
+the developer activities):
+
+| Device | Data root |
+|---|---|
+| no root, **"All files access"** granted | **`/storage/emulated/0/.vitasharp`** (`/sdcard/.vitasharp`): visible and editable in any file manager or over USB/MTP, and kept when the app is uninstalled |
+| no root, permission not granted (yet) | the app-specific folder `/sdcard/Android/data/io.github.vitasharp/files`, with a warning card in **Biblioteca** that opens the permission screen |
+| rooted (`su` in PATH or in the usual root folders, `RootDetector`) | the app-specific folder, as before; nothing is asked |
+| shared storage not mounted | the app-specific folder, else the internal files folder |
+
+Without root the app asks once, on the first start, for **"All files access"** (`MANAGE_EXTERNAL_STORAGE`, the
+system screen `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`; on Android 8-10 the storage permission). Once it is
+granted, the old app-specific folder is **moved** to `.vitasharp` with a progress dialog (`DataMigration`): everything
+(`fs/` with games and firmware, saves, save states, captures, logs, `config/env.txt`, kernel plugins...) with the same
+layout. Each top-level folder is renamed when both folders are on the same mount; otherwise each file is copied to
+`name.part`, its size checked, renamed and only then deleted from the old folder. The list of every file
+(`.vitasharp/.migration-journal`) is written first, so a move stopped anywhere (app killed, phone off, full disk, I/O
+error) continues on the next start and the final check (count and size of every listed file) covers all of them; a
+file `.vitasharp` already had is kept as `name.before-migration`. The move waits while a game process is running, and
+the app restarts on the new folder when it ends.
+
+The layout is the desktop's (`fs/ux0/app` games, `fs/ux0/user/00/savedata` saves, `fs/vs0`... firmware, `logs`,
+`shadercache`, `np`, `config/app.json`, `config/games/TITLEID.json`, `config/input.json`, `gpu_driver.json`;
+`DataLayout`). GPU driver packages (`gpu_drivers/`, `gpu_driver_files/`) and the running game's marker
+(`run/game.json`) are in the **internal** files folder (`Context.FilesDir`) instead: the linker loads no library from
+shared storage. Files still come in through SAF too: **Instalar VPK**, the firmware `.PUP` and GPU driver packages are
+picked with `ACTION_OPEN_DOCUMENT` and read in place through `ContentResolver.OpenFileDescriptor` (a provider that only
+streams, such as a cloud drive, is copied into the cache first). `MANAGE_EXTERNAL_STORAGE` needs a Play policy
+exception, so a Play build would keep the app-specific folder.
+
+**Scripts and agents using adb:** the data folder on the phone is `/sdcard/.vitasharp` when it exists without a
+`.migration-journal` inside, else `/sdcard/Android/data/io.github.vitasharp/files`. The `build/android-*.ps1`/`.sh`
+scripts resolve it this way on their own (`DATA_ROOT`/`$dataRoot`); in commands below, `<data>` is that folder:
+
+```
+adb shell 'if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/io.github.vitasharp/files; fi'
+```
 
 ## Audio, video and GPU drivers
 
@@ -569,8 +593,8 @@ ignored). It applies to the next game started; the log shows each one (`env.txt:
 VITASHARP_NATIVE_VERIFY=1
 ```
 ```
-adb push env.txt /sdcard/Android/data/io.github.vitasharp/files/config/env.txt
-adb shell rm /sdcard/Android/data/io.github.vitasharp/files/config/env.txt
+adb push env.txt <data>/config/env.txt
+adb shell rm <data>/config/env.txt
 ```
 
 ## Screens

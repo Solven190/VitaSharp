@@ -42,7 +42,7 @@ public sealed class MediaParityActivity : Activity
             }
         }
 
-        string root = GetExternalFilesDir(null)?.AbsolutePath ?? FilesDir!.AbsolutePath;
+        string root = VitaSharp.Mobile.Core.Storage.DataRoot.Resolve(Services.StorageSetup.Inputs(this)).Root; // the app's data folder
         string folder = Path.Combine(root, "media-parity");
         var worker = new Thread(() => RunAndClose(folder)) { IsBackground = true, Name = "Media parity" };
         worker.Start();

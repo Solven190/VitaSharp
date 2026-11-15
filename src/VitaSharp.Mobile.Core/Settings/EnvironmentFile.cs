@@ -4,8 +4,9 @@ namespace VitaSharp.Mobile.Core.Settings;
 /// <c>&lt;data&gt;/config/env.txt</c>: the VITASHARP_* environment variables of the desktop (GPU quirks, ASTC, native
 /// verifier, logging switches...) for the Android app, where a process cannot be started with an environment. One
 /// <c>NAME=value</c> per line, <c>#</c> comments; only names starting with <c>VITASHARP_</c> are taken. Each process applies
-/// it at startup, before any emulator type reads its switches; push it with <c>adb push env.txt
-/// /sdcard/Android/data/io.github.vitasharp/files/config/</c> (docs/android/README.md, "Logging").
+/// it at startup, before any emulator type reads its switches; edit it in any file manager or push it
+/// with <c>adb push env.txt &lt;data&gt;/config/</c>, <c>&lt;data&gt;</c> being the data folder (<see cref="Storage.DataRoot"/>:
+/// /sdcard/.vitasharp, or /sdcard/Android/data/io.github.vitasharp/files; docs/android/README.md, "Storage").
 /// </summary>
 public static class EnvironmentFile
 {

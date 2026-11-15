@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=cbd2ba3441f1ab58ba6507ea8d724dd7c0d61fb91d5ae4254bd7a6171a7c46fa -->
+<!-- pair: README.md sha256=28e0c9a3a9b632c562758104885ac8c86993a0a652aca2075b709508da373ae6 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -250,9 +250,13 @@ seletor de arquivos do Android (Storage Access Framework) e é lido no lugar. Em
 um `.vpk` (ou `.zip`) ou um `.pkg` com a licença (`work.bin`, `.rif` ou o zRIF colado). O firmware é opcional, como no
 PC: **Ajustes > Firmware > Instalar firmware (.PUP)** com o `PSVUPDAT.PUP`; depois **Sistema do Vita** na biblioteca
 inicia a tela inicial de verdade. Drivers de GPU próprios (Adreno, pela libadrenotools) são instalados em **Ajustes >
-Driver da GPU**. Tudo fica na pasta do próprio app (`Android/data/io.github.vitasharp/files`, com a organização do
-desktop: jogos em `fs/ux0/app`, licenças em `fs/ux0/license/app`, saves em `fs/ux0/user/00/savedata`), acessível por USB/MTP
-ou pelo app Arquivos na maioria dos celulares; desinstalar o app apaga essa pasta.
+Driver da GPU**. Tudo fica numa pasta de dados com a organização do desktop (jogos em `fs/ux0/app`, licenças em
+`fs/ux0/license/app`, saves em `fs/ux0/user/00/savedata`, `config/env.txt`...): sem root ela é a **`.vitasharp`** na raiz
+do armazenamento do celular (`/sdcard/.vitasharp`), visível e editável em qualquer gerenciador de arquivos e mantida se o
+app for desinstalado; para isso o app pede **"Acesso a todos os arquivos"** na primeira abertura e move a antiga
+`Android/data/io.github.vitasharp/files` para lá (conferida arquivo por arquivo, retomada se for interrompida). Enquanto a
+permissão não é dada, e num celular com root, os dados ficam em `Android/data/io.github.vitasharp/files`
+([detalhes](docs/android/README.md#storage)).
 
 **Controles.** Controles translúcidos na tela, sobre as laterais da imagem (direcional, analógicos, botões de ação,
 L/R, SELECT/PS/START, um botão TRÁS para o touchpad traseiro); toques na imagem são a tela de toque frontal. Controles

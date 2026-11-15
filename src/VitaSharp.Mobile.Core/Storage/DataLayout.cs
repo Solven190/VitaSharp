@@ -16,9 +16,9 @@ namespace VitaSharp.Mobile.Core.Storage;
 /// &lt;internal&gt;/gpu_drivers/TITLE    installed GPU driver packages, &lt;internal&gt;/gpu_driver_files the driver's redirected files
 /// &lt;internal&gt;/run/game.json         the running game process (GameProcessMarker)
 /// </code>
-/// The root is the app-specific external storage (Context.GetExternalFilesDir(null),
-/// /sdcard/Android/data/&lt;package&gt;/files) when it is mounted, else the internal files folder. Both are plain
-/// POSIX paths the emulator opens and maps directly; neither needs a storage permission. &lt;internal&gt; is the internal
+/// The root is chosen by <see cref="DataRoot"/>: /storage/emulated/0/.vitasharp (no root, all-files access), else the
+/// app-specific external storage (Context.GetExternalFilesDir(null), /sdcard/Android/data/&lt;package&gt;/files), else
+/// the internal files folder. All are plain POSIX paths the emulator opens and maps directly. &lt;internal&gt; is the internal
 /// files folder (Context.FilesDir): GPU driver libraries must be there, because the linker refuses to load a library from
 /// shared storage (libadrenotools: "MUST NOT be on sdcard/storage").
 /// </summary>
