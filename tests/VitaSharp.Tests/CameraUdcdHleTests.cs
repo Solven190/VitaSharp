@@ -35,6 +35,25 @@ public sealed class CameraUdcdHleTests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(0, Property<int>(camera, "BufferMode"));
     }
 
+    /// <summary>The access check is the access control manager's (the program's capability), not where the program
+    /// was loaded from: a vs0: program without the system capability is refused, homebrew with it is answered.</summary>
+    [Fact]
+    public void UdcdQueriesAskTheAccessControlManager()
+    {
+        SystemServicesVsh services = _harness.Module<SystemServicesVsh>();
+        _harness.Emu.IsSystemProgram = true;
+        _harness.Emu.Access = new ProgramAccess(0x210000101CC404D8UL, new byte[ProgramAccess.CapabilitySize], false);
+        Assert.Equal(NotAllowed, Call(services, "sceUdcdGetDeviceInfo", 0u));
+        Assert.Equal(NotAllowed, Call(services, "sceUdcdGetDrvState", 0u));
+
+        _harness.Emu.IsSystemProgram = false;
+        byte[] capability = new byte[ProgramAccess.CapabilitySize];
+        capability[0] = 0x40;
+        _harness.Emu.Access = new ProgramAccess(0x2F00000000000001UL, capability, false);
+        Assert.Equal(unchecked((int)0x8024300A), Call(services, "sceUdcdGetDeviceInfo", 0u));
+        Assert.Equal(unchecked((int)0x8024300A), Call(services, "sceUdcdGetDrvState", 0u));
+    }
+
     [Fact]
     public void UdcdPowerModeIsForSystemProgramsAndOnlyOneIsBusPowered()
     {

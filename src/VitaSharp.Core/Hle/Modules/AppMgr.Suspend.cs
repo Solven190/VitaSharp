@@ -25,8 +25,9 @@ public sealed partial class AppMgr
     /// again. The kernel refuses a caller that is not a system program (ksceSblACMgrIsSystemProgram, 0x8080201F) and
     /// one with no application slot (0x8080201C); an application that is already the active one (slot state 2) gets 0
     /// at once; any other is marked suspending and its process suspended (sceAppMgrActivateApp resumes it), then 0.
-    /// The slot's counter at +0x1BC0, which also refuses the call (0x80802013) while it is not zero, is not kept by
-    /// the emulator's application slots: it reads zero.
+    /// A slot whose half-word at +0x1BC0 is set refuses the call (0x80802013): it marks an application started as
+    /// non-suspendable (sceAppMgrQuitForNonSuspendableApp clears it with bit 1 of +0x13C). The emulator starts no
+    /// application with that flag (as sceAppMgrQuitForNonSuspendableApp says), so that answer cannot come up.
     /// </summary>
     [Hle("sceAppMgrSuspendUntilActivated")]
     private int sceAppMgrSuspendUntilActivated()
