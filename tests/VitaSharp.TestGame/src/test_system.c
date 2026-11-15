@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <psp2/appmgr.h>
 #include <psp2/apputil.h>
 #include <psp2/common_dialog.h>
 #include <psp2/display.h>
@@ -25,6 +24,10 @@
 
 #define AREA "system"
 #define NET_MEMORY_SIZE (256 * 1024)
+
+/* VitaSDK ships the stubs of these two (libSceAppMgr_stub) but no declarations. */
+int sceAppMgrSuspendUntilActivated(void);
+int sceAppMgrEnableCoredumpForTest(void);
 
 static uint8_t g_netMemory[NET_MEMORY_SIZE];
 static SceWChar16 g_imeBuffer[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
