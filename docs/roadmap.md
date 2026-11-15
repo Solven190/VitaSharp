@@ -148,7 +148,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Mono LLVM e NativeAOT do mesmo código, mas um APK mono-aot sem LLVM recusa ("salvo por outra versão", StateOtherVersion)
   embora o hash de SnapshotSchema seja igual na compilação: o hash em tempo de execução depende do runtime/AOT (ordem de
   reflexão ou trimming?). Deixar o hash estável entre runtimes, ou medir a compatibilidade no lugar do hash.
-- [ ] [P1][M] Uncharted (PCSA00029) no Android congela depois de carregar um estado na tela de título (09/11/2026, main
+- [x] (15/11/2026, relato do usuário: não acontece mais) [P1][M] Uncharted (PCSA00029) no Android congela depois de carregar um estado na tela de título (09/11/2026, main
   9f21653, APK CoreCLR do and_rt; estado do slot 1 salvo no gameplay do Prologue pelo mesmo APK): o log diz "Estado do
   slot 1 carregado" (0,8 s parado), mas o jogo nunca mais apresenta um quadro (frames presented parado em 1964, GPU
   submitted == completed, o áudio continua, tela parada no título, 0 fps). 2 de 2 (carga em 30 s e em 50 s). Logs no
@@ -156,7 +156,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   No APK NativeAOT de 14/11 não se repete nos logs que existem: 21 sessões com um load cada (Uncharted slot 4 ~30 s
   depois do início, Killzone), todas seguem apresentando quadros (UC 13-48 fps depois do load; `abug14b\lab\ucfix*`,
   `kzfix`, `fila14\uc5` no scratchpad). Falta a prova no celular no título (slot livre) para fechar
-- [ ] [P1][P] F1 2011 (PCSE00002) no Android: carregar um estado durante os vídeos de abertura (30 s depois da primeira leitura
+- [x] (15/11/2026, relato do usuário: não acontece mais) [P1][P] F1 2011 (PCSE00002) no Android: carregar um estado durante os vídeos de abertura (30 s depois da primeira leitura
   do controle) falha com "thread 'AudioOutput' did not stop (in ); restart the game" (09/11/2026, main 9f21653, APK
   CoreCLR; log `lab\f1_clr1\clr_0\last.log` no scratchpad do agente); em 60 s carrega e roda. O roteiro de medida
   (`build/android-perf-run.sh`) carrega o F1 em 60 s por isso.
@@ -284,7 +284,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   luzes normais. Nenhum jogo instalado com sprites de ponto visíveis foi achado (The Deer God: 12 programas com
   tamanho de ponto, Killzone 0, pelo `shadertest`)
   Confirmado pelo usuário (07/11/2026)
-- [ ] [P3][M] Resolução interna maior no Android (opção por jogo nos ajustes e aviso de custo de GPU), depois de resolver o
+- [x] (15/11/2026: opção por jogo 0.5x-4x com aviso de custo, d1a8f9b9 + 739263a1) [P3][M] Resolução interna maior no Android (opção por jogo nos ajustes e aviso de custo de GPU), depois de resolver o
   desempenho do Android (ordem do usuário, 07/11/2026); o renderizador já aceita 2x-4x
 - [x] Taxa de quadros por jogo (pedido do usuário, 06/11/2026): uma opção **por jogo** (não global) com **Nativo**
   (padrão: o jogo roda exatamente como hoje, nada muda), **Fixo em 30**, **Fixo em 60** e **Sem limite**. Exemplo: o
