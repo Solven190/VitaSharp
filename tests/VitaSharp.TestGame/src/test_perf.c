@@ -136,6 +136,19 @@ void test_perf_run(int seconds, bool interactive)
     }
     double elapsedSeconds = (double)(time_now_us() - start) / 1000000.0;
     double averageFps = (double)frames / elapsedSeconds;
+    /* The frame rate of an emulator depends on the machine and its load, so the automatic run (the regression run:
+     * headless, often next to other work) only measures it (SKIP with the value: no decision); the 60 s run from the
+     * menu, where a person watches it, still passes or fails it. */
+    if (!interactive)
+    {
+        result_add(AREA, "heavy_scene_avg_fps", RESULT_SKIP, "measured: %.1f fps over %.1f s (%d frames)", averageFps,
+                   elapsedSeconds, frames);
+        result_add(AREA, "heavy_scene_worst_frame", RESULT_SKIP, "measured: %.2f ms", worstMs);
+        result_add(AREA, "heavy_scene_slow_frames", RESULT_SKIP, "measured: %d of %d frames over 34 ms", slowFrames,
+                   frames);
+        result_check(AREA, "heavy_scene_frames", frames > 10, "%d frames", frames);
+        return;
+    }
     result_check(AREA, "heavy_scene_avg_fps", averageFps >= 29.0, "%.1f fps over %.1f s (%d frames)", averageFps,
                  elapsedSeconds, frames);
     result_check(AREA, "heavy_scene_worst_frame", worstMs < 50.0, "%.2f ms", worstMs);

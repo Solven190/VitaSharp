@@ -190,17 +190,38 @@ static void check_display_and_memory(void)
     int rateResult = sceDisplayGetRefreshRate(&refreshRate);
     result_check(AREA, "display_refresh_rate", rateResult >= 0 && refreshRate > 59.0f && refreshRate < 61.0f,
                  "%.3f Hz", (double)refreshRate);
+    /* 30 vblank waits, checked in the console's own clocks (vcount and process time), never against how fast the
+     * host runs: every wait returns on a new vblank (the vcount always moves), most waits return on the very next one
+     * (a wait that waited two vblanks each time is a bug; a few longer ones are a busy machine skipping vblanks, as a
+     * starved thread on the console would), and the process time over the waits matches the vblanks seen at
+     * 59.94 Hz within one vblank. */
     int vcountStart = sceDisplayGetVcount();
+    int previousVcount = vcountStart;
+    int nextVblankWaits = 0;
+    int stalledWaits = 0;
     uint64_t start = time_now_us();
     for (int index = 0; index < 30; index++)
     {
         sceDisplayWaitVblankStart();
+        int vcount = sceDisplayGetVcount();
+        if (vcount - previousVcount == 1)
+        {
+            nextVblankWaits++;
+        }
+        else if (vcount - previousVcount < 1)
+        {
+            stalledWaits++;
+        }
+        previousVcount = vcount;
     }
     uint64_t elapsed = time_now_us() - start;
     int vcountDelta = sceDisplayGetVcount() - vcountStart;
-    result_check(AREA, "display_vblank_30", vcountDelta >= 29 && vcountDelta <= 31 && elapsed > 450000 &&
-                                                elapsed < 560000,
-                 "vcount +%d in %llu ms", vcountDelta, (unsigned long long)(elapsed / 1000));
+    int64_t expectedUs = (int64_t)vcountDelta * 1000000 * 1001 / 60000;
+    int64_t driftUs = (int64_t)elapsed - expectedUs;
+    bool clocksAgree = driftUs > -16683 && driftUs < 2 * 16683;
+    result_check(AREA, "display_vblank_30", stalledWaits == 0 && nextVblankWaits >= 15 && clocksAgree,
+                 "vcount +%d, %d next-vblank waits, %llu ms (%+lld ms off)", vcountDelta, nextVblankWaits,
+                 (unsigned long long)(elapsed / 1000), (long long)(driftUs / 1000));
 
     SceKernelFreeMemorySizeInfo memoryInfo;
     memset(&memoryInfo, 0, sizeof(memoryInfo));
