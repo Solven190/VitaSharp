@@ -208,9 +208,30 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>The next rendering is the scene's first: its samples are loaded from the surface.</summary>
     private bool _msNeedsLoad;
     private CommandBuffer _msCmd;
+
+    /// <summary>The open multisampled rendering was begun directly in the primary (<see cref="MsaaDirect"/>).</summary>
+    private bool _msDirect;
+
+    /// <summary>
+    /// Multisampled scene renderings are begun directly in the primary on desktop GPUs with dynamic rendering, as the
+    /// single-sampled ones are (<see cref="DefersSingleSampledRenderings"/>): recorded into secondaries and begun at
+    /// their end, a Metal Gear Solid HD Collection scene with native MSAA lost a strip of its later draws for one frame
+    /// in about one replay of five (a light band at the lower left of the cockpit, frame 2787 of the 010709 capture),
+    /// as the single-sampled ones did before. Tile-based GPUs and the render-pass path keep the secondaries (their
+    /// load/store ops are chosen when the rendering ends); VITASHARP_SCENE_BREAKS=defer keeps them on desktop too.
+    /// A direct rendering stores its samples and resolves afterwards (<see cref="ResolveMsaa"/>): the store and
+    /// resolve choice is not known when it begins, and a desktop GPU keeps nothing in tile memory.
+    /// </summary>
+    private bool MsaaDirect => !DeferredRenderings;
     private MsaaPass _msPass;
     private readonly HashSet<(uint, SampleCountFlags)> _msLogged = new();
-    private long _statMsScenes, _statMsPasses, _statMsDiscards, _statMsFetchCopies;
+    private long _statMsScenes, _statMsPasses, _statMsDiscards, _statMsFetchCopies, _statMsDirect;
+
+    /// <summary>Multisampled renderings begun directly in the primary so far (<see cref="MsaaDirect"/>; tests).</summary>
+    public long MsaaDirectRenderings => _statMsDirect;
+
+    /// <summary>This device begins multisampled renderings in the primary (<see cref="MsaaDirect"/>; tests).</summary>
+    public bool BeginsMsaaRenderingsDirectly => MsaaDirect;
 
     /// <summary>Rasterization samples of the current scene's pipelines.</summary>
     private SampleCountFlags SceneSamples => _multisampled ? _msSamples : SampleCountFlags.Count1Bit;
@@ -429,6 +450,12 @@ public sealed unsafe partial class VulkanRenderer
             _msSceneRaw = true;
         }
 
+        if (MsaaDirect)
+        {
+            BeginMsaaRenderingDirect(format, rt);
+            return;
+        }
+
         // the draws go into a secondary command buffer that inherits a render pass compatible with the one begun
         // when the rendering ends (load/store ops and the resolve attachment do not affect compatibility)
         CommandBuffer cb = AllocSecondary();
@@ -454,11 +481,86 @@ public sealed unsafe partial class VulkanRenderer
         }
     }
 
+    /// <summary>The direct form of <see cref="BeginMsaaRendering"/>: the render pass begins now in the primary, storing
+    /// its samples and depth (the resolve, if any, comes after it ends).</summary>
+    private void BeginMsaaRenderingDirect(Format format, RenderTarget rt)
+    {
+        MsaaPass msaaPass = _msPass;
+        MsaaRenderingBarriers(msaaPass);
+        CountOps(true, msaaPass.ColorLoad, AttachmentStoreOp.Store, true, msaaPass.DepthLoad, AttachmentStoreOp.Store);
+        RenderPass pass = MsaaRenderPass(new MsaaPassKey(msaaPass.Format, _msSamples, msaaPass.ColorLoad, AttachmentStoreOp.Store,
+            msaaPass.DepthLoad, AttachmentStoreOp.Store, false, msaaPass.Word.Handle != 0));
+        Framebuffer fb = MsaaFramebuffer(msaaPass.Image, pass, msaaPass.Color, msaaPass.Depth, default, msaaPass.Word);
+        ClearValue* clears = stackalloc ClearValue[3] { default, msaaPass.DepthClear, default };
+        var rbi = new RenderPassBeginInfo
+        {
+            SType = StructureType.RenderPassBeginInfo,
+            RenderPass = pass,
+            Framebuffer = fb,
+            RenderArea = new Rect2D(new Offset2D(0, 0), msaaPass.Area),
+            ClearValueCount = 2,
+            PClearValues = clears,
+        };
+        _vk.CmdBeginRenderPass(F.Cmd, in rbi, SubpassContents.Inline);
+        _msCmd = F.Cmd;
+        _msDirect = true;
+        _statMsDirect++;
+        _boundPipeline = default;
+        _rendering = true;
+        _statMsPasses++;
+        rt.Dirty = true;
+        rt.Version++;
+        _depth!.Version++;
+        if (_msNeedsLoad)
+        {
+            _msNeedsLoad = false;
+            RecordMsaaLoad(format, _tw1Active);
+        }
+    }
+
+    /// <summary>The previous rendering's sample, depth and tile-word writes come before this one's loads (render pass
+    /// instances are not ordered against each other without a dependency).</summary>
+    private void MsaaRenderingBarriers(MsaaPass msaaPass)
+    {
+        Barrier(msaaPass.Image.Image, ImageLayout.General, ImageLayout.General, ImageAspectFlags.ColorBit,
+            PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.TransferBit, PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.FragmentShaderBit,
+            AccessFlags.ColorAttachmentWriteBit | AccessFlags.TransferReadBit, AccessFlags.ColorAttachmentReadBit | AccessFlags.ColorAttachmentWriteBit | AccessFlags.InputAttachmentReadBit);
+        Barrier(msaaPass.DepthImage, ImageLayout.DepthStencilAttachmentOptimal, ImageLayout.DepthStencilAttachmentOptimal, ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit,
+            PipelineStageFlags.LateFragmentTestsBit, PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit,
+            AccessFlags.DepthStencilAttachmentWriteBit, AccessFlags.DepthStencilAttachmentReadBit | AccessFlags.DepthStencilAttachmentWriteBit);
+        if (msaaPass.WordImage.Handle != 0)
+        {
+            Barrier(msaaPass.WordImage, ImageLayout.General, ImageLayout.General, ImageAspectFlags.ColorBit,
+                PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.TransferBit, PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.FragmentShaderBit,
+                AccessFlags.ColorAttachmentWriteBit | AccessFlags.TransferWriteBit, AccessFlags.ColorAttachmentReadBit | AccessFlags.ColorAttachmentWriteBit | AccessFlags.InputAttachmentReadBit);
+        }
+    }
+
     /// <param name="final">the scene ends with this rendering: its samples (and transient depth) are not needed again</param>
     /// <param name="resolve">false: the scene goes on and nothing reads the surface before its next rendering, which
     /// resolves (programmable-blending copies, integer-view switches)</param>
     private void EndMsaaRendering(bool final, bool resolve)
     {
+        if (_msDirect)
+        {
+            _vk.CmdEndRenderPass(F.Cmd);
+            _msCmd = default;
+            _msDirect = false;
+            _boundPipeline = default;
+            if (final)
+            {
+                _statMsDiscards++;
+            }
+
+            _msUnresolved = true;
+            if (resolve || final)
+            {
+                ResolveMsaa(final);
+            }
+
+            return;
+        }
+
         CommandBuffer cb = _msCmd;
         _vk.EndCommandBuffer(cb).Ok("vkEndCommandBuffer(secondary)");
         _msCmd = default;

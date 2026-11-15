@@ -169,7 +169,7 @@ public sealed unsafe partial class VulkanRenderer
 
         bool readsOwn = reads != null && reads == _renderTarget
             && !(readRect is { } rr && !_multisampled && !_supersampled && !_msaaNoDownscale && _tileCmd.Handle != 0 && !DrawnInOpen(rr.X, rr.Y, rr.W, rr.H));
-        if (_rendering && !s_strictSceneBreaks && (_tileCmd.Handle != 0 || _msCmd.Handle != 0)
+        if (_rendering && !s_strictSceneBreaks && (_tileCmd.Handle != 0 || (_msCmd.Handle != 0 && !_msDirect))
             && !readsOwn && !readsDepth && !SampledByOpenRendering(writes))
         {
             _hoisting = true;

@@ -87,6 +87,13 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 Assert.Equal(1, w.Run(1));
                 h.Emu.Gpu.WaitIdle();
                 m = renderer.MsaaMode;
+                // a desktop device with dynamic rendering (the software one here) begins native MSAA renderings in the
+                // primary, as the single-sampled ones (Metal Gear's one-frame bands through secondaries)
+                if (m == "native" && multisample != 0)
+                {
+                    Assert.True(renderer.BeginsMsaaRenderingsDirectly, "a desktop device defers its multisampled renderings");
+                    Assert.True(renderer.MsaaDirectRenderings > 0, "the multisampled rendering went through a secondary");
+                }
                 w.Terminate();
             });
             mode = m;

@@ -2488,6 +2488,15 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     `--msaa=off` e `--msaa=ss` nenhuma em 5. As cenas MSAA nativas ainda são gravadas em secundários
     (`BeginMsaaRendering`), como as de 1 amostra eram: provável mesma causa. Próximo: gravar a rendering MSAA direto
     no primário em GPU desktop (ops de store/resolve escolhidos no começo) e medir com o mesmo replay.
+    Corrigido (15/11/2026, bugB, fix/msaa-direct-desktop): eram duas fontes de diferença entre execuções. (1) A
+    writeback do próprio renderizador (a cena 360x224 em 0x60E0CA00, que chega quando o quadro retira) contava como
+    escrita da CPU sobre o atlas de bloom 1024x512 no mesmo endereço, e o próximo alvo começava da memória ou do atlas
+    conforme a execução (quadro 2749, também com --msaa=off). Agora uma writeback que caiu nas páginas depois do
+    alvo renderizado não conta (`WritebackOverlapTests`). (2) As renderings MSAA nativas gravadas em secundários
+    perdiam uma faixa de desenhos (quadro 2787, 1 em 10); em GPU desktop elas começam direto no primário, como as de
+    1 amostra (`RendererPathsTests`). Replay 2735-2795 do 010709: 6 de 6 execuções idênticas com off e com native
+    (antes 1/6 e 2 quadros em 10); replay-gpu --compare de KZ, F1, FIFA, PCSE00269, PCSG00198, Salt, MGS 224104 e
+    shell: todos os quadros idênticos à base. Falta confirmar no jogo.
 - [x] A pasta da opção "Ativar Plugins do Kernel" fica dentro do ur0:, em `ur0:kernel_plugins/config.txt` (no host
   `fs/ur0/kernel_plugins`, igual em Windows, Linux, macOS e Android). Antes ficava em `<dados>/kernel_plugins`, ao
   lado de `fs/` (bugA2, 15/11/2026). A leitura continua: `ur0:kernel_plugins/config.txt`, senão o `config.txt` de
