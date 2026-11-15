@@ -53,13 +53,21 @@ public sealed partial class HleRegistry
             var hostByName = _functions.Where(f => f.Nid == 0 && f.Library == "host").ToDictionary(f => f.Name);
             var list = new List<HleFunction>(n) { _functions[0] };
             var index = new Dictionary<uint, int>();
+            var nids = new List<uint>(n) { 0 };
             for (int i = 1; i < n; i++)
             {
                 uint nid = r.ReadUInt32();
                 string name = r.ReadStringNotNull(), lib = r.ReadStringNotNull();
+                nids.Add(nid);
                 if (nid == 0 && lib == "host")
                 {
                     list.Add(hostByName.GetValueOrDefault(name) ?? throw new SnapshotException($"host function {name} of the saved session does not exist here"));
+                    continue;
+                }
+
+                if (nid == 0)
+                {
+                    list.Add(s_unbound); // a slot another process of the saved session used
                     continue;
                 }
                 // the existing record when there is one (call counts and warnings carry on)
@@ -71,6 +79,9 @@ public sealed partial class HleRegistry
             _functions.AddRange(list);
             _indexByNid.Clear();
             foreach (var (k, v) in index) _indexByNid[k] = v;
+            // the saved session's processes shared one table: it is this session's from now on (a state of a build
+            // whose processes each had their own table keeps this one apart, as that build ran it)
+            Indexes.Adopt(nids);
         }
         lock (_vars)
         {
