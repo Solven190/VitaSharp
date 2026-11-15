@@ -378,6 +378,26 @@ static void check_registry_system_only(void)
 }
 
 /*
+ * The registry reset, backup and restore (SceRegistryMgr 3.74) are system-only too: a game gets 0x80010058 before
+ * the path or level is looked at. The arguments are harmless even if a console answered differently: a category
+ * with no keys, a backup into this app's own data folder and a restore from a file that does not exist.
+ */
+int sceRegMgrResetRegistryLv(const char *category, int level);
+int sceRegMgrDbBackup(const char *path, int level);
+int sceRegMgrDbRestore(const char *path);
+
+static void check_registry_reset_backup_system_only(void)
+{
+    int reset = sceRegMgrResetRegistryLv("/CONFIG/VSTEST/", 0x10);
+    int backup = sceRegMgrDbBackup(VSTEST_DATA_DIR "/registry_backup.reg", 99);
+    int restore = sceRegMgrDbRestore(VSTEST_DATA_DIR "/registry_missing.reg");
+    bool refused = reset == REGMGR_NOT_SYSTEM_PROGRAM && backup == REGMGR_NOT_SYSTEM_PROGRAM &&
+                   restore == REGMGR_NOT_SYSTEM_PROGRAM;
+    result_check(AREA, "regmgr_reset_backup_restore_system_only", refused, "reset 0x%08X backup 0x%08X restore 0x%08X",
+                 (unsigned int)reset, (unsigned int)backup, (unsigned int)restore);
+}
+
+/*
  * The system's shader compiler module (sysmodule 0x3E, libshacccg) is for system and PlayStation Mobile programs:
  * a game's sceSysmoduleLoadModule is refused (0xC05A1000), which is why homebrew loads its own copy by path. The
  * PSM runtime passes the same check through its authority ID.
@@ -422,6 +442,7 @@ void test_system_run(bool withDialogs)
         check_display_and_memory();
         check_network();
         check_registry_system_only();
+        check_registry_reset_backup_system_only();
         check_psm_only_module();
         check_appmgr();
         return;
