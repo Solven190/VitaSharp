@@ -63,11 +63,17 @@ Divisão do trabalho: os jogos são testados pelo usuário; um erro que ele enco
 teria pegado; todo o resto do comportamento é garantido pela suíte do repositório, que qualquer pessoa roda sem nenhum
 jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança é validada rodando jogos.
 
-- [ ] [P3][P] **Checagens do TestGame que dependem do relógio do host:** `system/display_vblank_30` (30 vblanks contra o tempo
+- [x] [P3][P] **Checagens do TestGame que dependem do relógio do host:** `system/display_vblank_30` (30 vblanks contra o tempo
   de parede) e `perf/heavy_scene_avg_fps`, `heavy_scene_worst_frame`, `heavy_scene_slow_frames` dão FAIL ou OK conforme
   a carga do PC (13/11, 3 rodadas headless alternadas da base 5d2597ec e de fix/kz-avplayer-end na mesma vaga: falharam
   em 1-2 de 3 nas duas, nenhuma diferença entre elas). Medir no relógio emulado (vcount, tempo de guest) ou reportar
   como medida sem decidir aprovação, para que um FAIL do TestGame no emulador seja sempre um erro de verdade
+  Feito (15/11/2026, kill1, fix/testgame-host-clock): `display_vblank_30` mede só nos relógios do console (vcount e
+  tempo do processo): toda espera cai num vblank novo, a maioria no seguinte (uma espera de dois vblanks sempre é erro;
+  algumas longas são a máquina ocupada pulando vblanks, como uma thread sem CPU no console) e o tempo do processo bate
+  com os vblanks vistos a 59,94 Hz com folga de um vblank. As três medidas de fps do `perf` na rodada automática viram
+  SKIP com o valor medido (o fps de um emulador depende do host), e a checagem que decide é a cena desenhar (mais de
+  10 quadros); a rodada de 60 s do menu continua aprovando ou reprovando o fps.
 - [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
   (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
   `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
