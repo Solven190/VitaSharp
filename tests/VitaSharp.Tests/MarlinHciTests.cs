@@ -94,12 +94,19 @@ public sealed class MarlinHciTests(GuestMemoryFixture fixture) : IDisposable
         using var release = new ManualResetEventSlim();
         GuestRun holder = _harness.Start(_ =>
         {
-            Assert.Equal(0, Call(Services, "MarlinLock"));
-            locked.Set();
+            try
+            {
+                Assert.Equal(0, Call(Services, "MarlinLock"));
+            }
+            finally
+            {
+                locked.Set();
+            }
+
             release.Wait();
             Assert.Equal(0, Call(Services, "MarlinUnlock"));
         }, "holder");
-        locked.Wait();
+        locked.Wait(); // also set when the lock fails, so the test fails instead of waiting
 
         bool waiterGotIt = false;
         GuestRun waiter = _harness.Start(_ =>
