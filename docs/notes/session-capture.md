@@ -26,7 +26,8 @@ Tests: `tests/VitaSharp.Tests/SessionCaptureTests.cs`.
 >   apertar. No PC: Configurações > Geral > *"Pré-gravação"*, ou ligue o modo de depuração (F9). No Android: menu de
 >   pausa > *"Pré-gravação: ligada"*. Ela guarda um estado salvo a cada 30 s, o que pausa o jogo por um instante.
 > - Envie o arquivo `.zip` da pasta `captures` (dentro da pasta de dados do VitaSharp; no Android,
->   `Android/data/io.github.vitasharp/files/captures`).
+>   `.vitasharp/captures` na raiz do armazenamento, ou `Android/data/io.github.vitasharp/files/captures` com root ou
+>   sem a permissão "Acesso a todos os arquivos").
 >
 > Outras mensagens: *"Aguarde: a gravação anterior ainda está sendo salva"*, *"Falha ao iniciar a gravação: ..."*,
 > *"Falha ao salvar a gravação: ..."*. Ctrl+F8 grava só o dump da GPU; F9 (modo de depuração) e F10 (diagnóstico) continuam iguais.

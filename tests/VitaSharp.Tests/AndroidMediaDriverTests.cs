@@ -34,6 +34,8 @@ public sealed class AndroidMediaDriverTests : IDisposable
         public readonly List<short> Data = new();
         public int BufferFrames = int.MaxValue, Starts, Pauses, DisconnectOnWrite = -1, Writes;
         public bool Lost, Disposed;
+        /// <summary>A paused device: a blocking write on a full buffer finds no room (nothing drains).</summary>
+        public bool Frozen;
         public int XRuns;
         public long Read;
         public int SampleRate => rate;
@@ -57,7 +59,7 @@ public sealed class AndroidMediaDriverTests : IDisposable
                 return PcmSinkStatus.Disconnected;
             }
             long room = BufferFrames - (FramesWritten - Read);
-            if (room <= 0 && timeoutNanos > 0)
+            if (room <= 0 && timeoutNanos > 0 && !Frozen)
             {
                 Read = FramesWritten;
                 room = BufferFrames;
@@ -112,6 +114,44 @@ public sealed class AndroidMediaDriverTests : IDisposable
         Assert.Equal(6 * 256, sink.FramesWritten);
         Assert.Equal(6 * 256, s.PendingSamples);
         Assert.Equal(0, s.Underruns);
+    }
+
+    /// <summary>
+    /// A load state pauses the emulation (the stream pauses, the device stops draining) and then stops the guest
+    /// threads: the audio thread blocked in Submit on the full buffer must return when its thread is asked to stop,
+    /// or the load fails with "thread 'AudioOutput' did not stop" (F1 2011 on Android, during its opening films).
+    /// A pause alone keeps it waiting, and the resume lets it write the grain.
+    /// </summary>
+    [Fact]
+    public async Task SubmitWaitingWhilePausedReturnsWhenItsThreadIsStopped()
+    {
+        var hangGuard = TimeSpan.FromMinutes(2);
+        var sink = new FakeSink(48000, 192) { Frozen = true }; // capacity 4 grains, start 2
+        bool stop = false;
+        using var s = new BufferedPcmStream(_ => sink, 48000, 2, 256, stopRequested: () => Volatile.Read(ref stop));
+        for (int i = 0; i < 4; i++)
+        {
+            s.Submit(Grain(256));
+        }
+
+        Assert.Equal(4 * 256, sink.FramesWritten); // the device buffer is full
+        s.Pause();
+        Task blocked = Task.Factory.StartNew(() => s.Submit(Grain(256)), TaskCreationOptions.LongRunning);
+        await Task.WhenAny(blocked, Task.Delay(300));
+        Assert.False(blocked.IsCompleted); // paused: waits for the resume (only a false pass is possible here)
+        Volatile.Write(ref stop, true);
+        await blocked.WaitAsync(hangGuard);
+        Assert.Equal(4 * 256, sink.FramesWritten); // the grain was dropped
+
+        // a pause without a stop: the resume (the device drains again) lets the waiting grain through
+        Volatile.Write(ref stop, false);
+        Task resumed = Task.Factory.StartNew(() => s.Submit(Grain(256)), TaskCreationOptions.LongRunning);
+        await Task.WhenAny(resumed, Task.Delay(300));
+        Assert.False(resumed.IsCompleted);
+        sink.Frozen = false;
+        s.Resume();
+        await resumed.WaitAsync(hangGuard);
+        Assert.Equal(5 * 256, sink.FramesWritten);
     }
 
     [Fact]

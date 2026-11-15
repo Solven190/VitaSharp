@@ -142,10 +142,18 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   slot 1 carregado" (0,8 s parado), mas o jogo nunca mais apresenta um quadro (frames presented parado em 1964, GPU
   submitted == completed, o áudio continua, tela parada no título, 0 fps). 2 de 2 (carga em 30 s e em 50 s). Logs no
   scratchpad do agente: `lab\uc_clr1\clr_0\last.log`, `lab\uc_clr2\clr_0\last.log`. Ainda não conferido no APK mono.
+  No APK NativeAOT de 14/11 não se repete nos logs que existem: 21 sessões com um load cada (Uncharted slot 4 ~30 s
+  depois do início, Killzone), todas seguem apresentando quadros (UC 13-48 fps depois do load; `abug14b\lab\ucfix*`,
+  `kzfix`, `fila14\uc5` no scratchpad). Falta a prova no celular no título (slot livre) para fechar
 - [ ] [P1][P] F1 2011 (PCSE00002) no Android: carregar um estado durante os vídeos de abertura (30 s depois da primeira leitura
   do controle) falha com "thread 'AudioOutput' did not stop (in ); restart the game" (09/11/2026, main 9f21653, APK
   CoreCLR; log `lab\f1_clr1\clr_0\last.log` no scratchpad do agente); em 60 s carrega e roda. O roteiro de medida
   (`build/android-perf-run.sh`) carrega o F1 em 60 s por isso.
+  Causa e correção (15/11/2026, bugB): o load pausa a emulação (o stream de áudio do Android pausa e o dispositivo
+  para de consumir) e depois para as threads do guest; a thread de áudio presa no `BufferedPcmStream.Submit` com o
+  buffer cheio esperava o Resume para sempre e ignorava o pedido de parada (o OpenAL do PC já checava, por isso não
+  reproduz no PC). Agora o grão é descartado quando a thread recebe o stop
+  (`AndroidMediaDriverTests.SubmitWaitingWhilePausedReturnsWhenItsThreadIsStopped`). Falta confirmar no celular.
 - [x] Save states mais visuais, no estilo do PCSX2 (pedido do usuário, 06/11/2026): uma tela de estados por cima do
   jogo pausado (desktop e Android), com uma grade/lista de slots, cada um com o print da tela no momento do
   salvamento, data e hora, tempo de jogo e a versão do VitaSharp; slot vazio identificado. Ações: salvar no slot
@@ -621,6 +629,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Android só mostra), página do jogo (abrir já no último estado, lista de estados e de capturas), fonte de cada câmera
   (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
   no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
+- [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
+  "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá
+  (`DataRoot`/`DataMigration`, conferência por arquivo, retomada, nada apagado sem estar no destino); com root continua
+  em `Android/data`. Roteiros `build/android-*` e docs resolvem o caminho no aparelho. Testes em
+  `AndroidDataRootTests`. Falta: confirmar no celular (permissão, migração com os dados reais, reinício na pasta
+  nova, Killzone carregando da `.vitasharp` sem perda de velocidade de leitura pelo FUSE)
 - [x] Antes de voltar ao Android (08/11/2026): `third_party/android-shaderc` e `third_party/android-adrenotools` da
   checkout principal estão vazias desde 07/11 22:13 (provavelmente apagadas por uma limpeza através de junction); um APK
   compilado agora sai sem `libshaderc*.so`/adrenotools. Refazer com `build/build-android-shaderc.ps1|.sh` e
@@ -863,6 +877,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   é descartada. Falta: confirmação no celular. Diferenças que ficaram: com som, o firmware responde em CurrentTime o
   tempo do último áudio entregue (aqui ainda o da última imagem); o reinício do MediaCodec com a profundidade
   própria do SPS não muda a ordem de saída do libavc (precisaria recriar o codec)
+- [ ] Minecraft (PCSE00491) fica com a tela preta no boot no celular (só com o JIT ARM64; o x64 e o interpretador
+  passam): boot do zero, sem state, ~2 em 3 ficam pretos (interpretador 6/6; o APK 11390d36 também falha, não é
+  regressão de 14-15/11). Dois pontos de parada (`VITASHARP_THREAD_STATES=1`): (A) 'Toolkit::NP' chama sceNpInit e
+  sai (sceKernelExitThread), e a main espera para sempre em sceKernelWaitLwCond "Np Toolkit Condition Variable";
+  num boot bom essa thread fica viva esperando nessa condvar; (B) depois de '(4J) Trophy List' a main segue
+  apresentando quadros pretos sem criar '(4J) Load OptionsData'. Descartados: libSceFt2 pré-carregado ou em HLE
+  (`VITASHARP_HLE_MODULES=libSceFt2` 1/5), as rotinas lw em código guest (`VITASHARP_HLE_GUEST_CODE=nolw`), a junção
+  de barreiras (`VITASHARP_NATIVE_A64_NOOPT=fence` 1/5) e as chamadas HLE de dentro do código nativo
+  (`VITASHARP_NATIVE_HLE_CALLOUT=off` 0/5). Próximo: APK de teste com o modo de depuração (retornos de erro das
+  HLE por thread e as últimas 16 chamadas de cada thread na captura) para ver o que o Toolkit::NP recebe antes de sair
+- [ ] JIT ARM64 com todas as otimizações desligadas (`VITASHARP_NATIVE_A64_NOOPT=all`) trava o Minecraft no boot
+  (0 fps logo depois de criar 'Toolkit::NP'): alguma combinação das opções desligadas está errada; achar qual
+  (desligar uma a uma) e cobrir com teste do backend no sandbox
 - [ ] Minecraft (PCSE00491) fica lento jogando no celular: 45 -> 2 fps em ~8 min na captura de 10/11
   (`PCSE00491_20261110_034508_tudo`, build c41f784, GPU estável ~11-13 ms). O que se sabe:
   - Nas taxas por segundo (recalculadas das linhas cumulativas da captura) as threads do jogo andam num ritmo fixo:
@@ -2278,6 +2305,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   congela ~5 s depois de carregar ("Load state: module Mp4: the movie ... cannot be opened", as threads do avPlayer
   param). O estado tem que ser autossuficiente: guardar o que precisa do filme (ou a referência ao arquivo do jogo que
   originou o filme) e reabrir dele. Teste: salvar com um filme aberto, apagar o temporário, carregar e seguir.
+  Correção feita (15/11/2026, bugB): o estado guarda os bytes dos filmes que o emulador copiou para o temporário
+  (SceMp4 e SceAvPlayer, `TempMovies.ReadForState`; os arquivos do próprio jogo continuam só pelo caminho) e o load
+  grava de novo o temporário no mesmo caminho quando ele sumiu; estados de antes continuam carregando
+  (`SpooledMovieStateTests`). Falta confirmar no Wipeout.
 - [ ] [P2][M] Travada de 0,3 a 1,4 s sob carga na fila de exibição (achado do agente P1, 13/11/2026, Wipeout na corrida): a
   thread da fila de exibição espera a fence da GPU enquanto o worker da GPU espera o buffer ser liberado; só o limite
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
@@ -2344,7 +2375,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   X11/Wayland/macOS não têm o estado "ativa e minimizada" (ativar mapeia/desminiaturiza). O log agora mostra
   estado/foco/framebuffer da janela e os resultados do acquire/present. Correção feita e conferida no repro
   (SwitchToThisWindow e Alt+Tab de verdade voltam à tela cheia, swapchain 1920x1080 recriada, foco de volta); falta a
-  confirmação do usuário no jogo.
+  confirmação do usuário no jogo. Corrigido em 34c0a021 (`FullscreenRestoreTests`), falta o usuário confirmar.
 - [x] Trocar entre o modo claro e o modo escuro demora muito (relato do usuário, 11/11/2026). Medir quanto leva a
   troca e onde o tempo vai (recriar a interface inteira, recarregar recursos/ícones/capas, refazer o layout da
   biblioteca) e fazer a troca só reaplicar as cores. Conferir no launcher do Desktop e no app Android.
@@ -2693,9 +2724,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   buffer é o tamanho pedido arredondado para páginas de 4 KB (o bloco de memória que o threadmgr aloca; o campo de
   capacidade guarda o arredondado). Testes: ThreadMgrHleTests.MsgPipeSendReceiveModes,
   MsgPipeFullSendWaitsForRoomForTheWholeMessage. Correção feita, ainda não validada com jogo.
-- [ ] [P3][P] MsgPipe: pipe sem buffer (tamanho 0) e entrega direta a um receptor que espera (o firmware passa os dados ao
-  receptor antes do buffer), achados junto com o item de DONT_WAIT abaixo; conferir no threadmgr (FUN_81013dfc) antes
-  de mudar.
+- [x] MsgPipe: pipe sem buffer (tamanho 0) (bugA/bugA2, 15/11/2026; threadmgr 3.74 0x81013DFC / FUN_81015d10, só
+  estudo): o firmware não aloca bloco para tamanho 0 e não confere o tamanho no envio; os dados vão direto do
+  remetente para o receptor. `MsgPipeCapacity(0)` = 0 e `MsgPipe.SendUnbuffered`/`TakeOffered`: o envio entrega na
+  hora o que os receptores em espera pediram, e um remetente bloqueado deixa o resto oferecido para um receptor (também
+  o Try) copiar dos buffers dele; FreeSize, bits IN/OUT e DONT_WAIT seguem a mesma regra. Antes: buffer de 1 byte e
+  ILLEGAL_SIZE em toda mensagem maior. Testes: `ThreadMgrHleTests.MsgPipeWithoutABufferHandsDataStraightBetweenSenderAndReceiver`,
+  `MsgPipeWithoutABufferSenderTimeoutLeavesNothingBehind` (falham sem a correção). Correção feita, ainda não validada
+  com jogo. Fica de fora: a entrega direta a um receptor que espera num pipe COM buffer (o firmware copia para ele
+  antes do buffer; aqui passa pelo buffer, sem diferença de resultado conhecida).
 - [x] MsgPipe: DONT_WAIT (0x10) nas formas bloqueantes (sceKernelSendMsgPipe/ReceiveMsgPipe e Vector) não é "falhar em
   vez de esperar" no firmware: o threadmgr copia o vetor, enfileira o pedido para os threads "SceKernelMsgPipeAsync"
   (até 0x100 pedidos por processo, depois 0x80028225) e volta na hora; o envio/recebimento acontece depois nesse thread
@@ -3541,6 +3578,14 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   coisas: (1) por que o passo do roteiro rodou duas vezes (o ScriptedPad relido depois da carga?); (2) uma carga que
   falha no meio deixa o jogo parado em vez de voltar ao estado de antes. Em 25 corridas com uma carga só, nenhuma
   falhou. Parecido com o item abaixo (desktop). Com o agente de bugs
+  (1) explicado e corrigido (15/11/2026, fix/android-scripted-state-once): o `ScriptedPad` é lido por todas as threads
+  do guest que leem o controle, sem trava; duas ao mesmo tempo pegavam o mesmo passo `loadstate@` (ou liam o
+  `input_live` antes de uma apagar) e o load rodava duas vezes (`ScriptedPadTests`: 256 disparos para 64 passos sem a
+  correção). É do roteiro de teste, não do jogador: falta a série no celular (load seguido de outro, slot livre) para
+  saber se o 2º load do usuário congela
+- [ ] [P2][M] Um load state que falha depois de parar as threads ("thread X did not stop", erro no meio da carga)
+  deixa o jogo parado ("reinicie o jogo"): guardar um estado em memória antes de carregar e voltar a ele se a carga
+  falhar (como o "desfazer carregamento" do Dolphin), no desktop e no Android
 - [ ] [P2][M] Android: o vídeo de abertura do F1 2011 (PCSE00002) pisca (relato do usuário, 09/11/2026, APK com todos os
   ganhos, perf/android-all 577bce4): quadros pretos (a imagem inteira com luma 0 entre pictures de luma 16) e pictures
   fora de ordem. A captura do usuário (`PCSE00002_20261109_185836_tudo`, 3º filme, jogo a 20 fps) tem 13 piscadas

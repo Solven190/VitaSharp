@@ -7,14 +7,20 @@ inlines the handlers (`[AggressiveInlining]`) and folds the decoding. It takes t
 rejects and the blocks dominated by NEON callouts (native tier-up), and it is the first tier when the native
 backend is off (write watchpoints, `--cpu=il`).
 
-## Where guest instructions run (CPU tiers line)
+## Where guest code runs (CPU tiers line)
 
 Every run's end report (and the Android periodic summary) has a line
 
 ```
-CPU backend report: CPU tiers: executed guest instructions N M: native X% (of which Y% in interpreter callouts),
+CPU backend report: CPU tiers: executed guest cycles N M: native X% (of which ~Y% in interpreter callouts),
 il Z%, interpreter W% (blocks without compiled code, by state: not hot yet A%, queued B%, ...)
 ```
+
+The shares are in guest cycles (the block cost model, about one per instruction), counted by the dispatcher from the
+cycle budget every native run keeps: ARM64 native code counts no instructions by default (`A64Opt.NoBlockCounts`,
+`VITASHARP_NATIVE_COUNTERS=1` turns the counts back on), so a share by instructions read 0% native on every phone run.
+The interpreter-callout share is callout hits over cycles (approximate). The by-state breakdown is in interpreted
+instructions.
 
 and the `CPU backend:` line lists rejected blocks per backend with the reason
 (`[register allocation out of spill slots: n blocks, m instructions]`, `no dynamic code` under Native AOT).

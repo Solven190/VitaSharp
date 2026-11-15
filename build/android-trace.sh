@@ -16,7 +16,12 @@ export MSYS_NO_PATHCONV=1
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly HERE
 readonly PKG=io.github.vitasharp
-readonly FILES="/sdcard/Android/data/${PKG}/files"
+# the app's data folder (docs/android/README.md, "Storage"): /sdcard/.vitasharp once the app moved its data there
+# (no root, "All files access"), else the app-specific folder
+DATA_ROOT="$(adb shell "if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/${PKG}/files; fi" 2>/dev/null | tr -d '' || true)"
+DATA_ROOT="${DATA_ROOT:-/sdcard/Android/data/${PKG}/files}"
+readonly DATA_ROOT
+readonly FILES="${DATA_ROOT}"
 readonly TRACE="/data/misc/perfetto-traces/vitasharp.perfetto-trace"
 readonly USAGE="usage: android-trace.sh TITLEID [SECONDS] [DELAY] [INPUT]"
 

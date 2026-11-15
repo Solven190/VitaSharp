@@ -15,7 +15,22 @@ param(
 $ErrorActionPreference = 'Stop'
 $pkg = 'io.github.vitasharp'
 & "$PSScriptRoot\android-awake.ps1" start   # the phone's screen is kept on until the end (build/android-awake.ps1)
-$files = "/sdcard/Android/data/$pkg/files"
+# the app's data folder (docs/android/README.md, "Storage"): /sdcard/.vitasharp once the app moved its data there
+# (no root, "All files access"), else the app-specific folder
+$dataRoot = ''
+try
+{
+    $dataRoot = (adb shell "if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/io.github.vitasharp/files; fi" 2>$null | Out-String).Trim()
+}
+catch
+{
+    $dataRoot = ''
+}
+if (-not $dataRoot)
+{
+    $dataRoot = '/sdcard/Android/data/io.github.vitasharp/files'
+}
+$files = $dataRoot
 $trace = '/data/misc/perfetto-traces/vitasharp.perfetto-trace'
 $here = Split-Path -Parent $PSScriptRoot
 New-Item -ItemType Directory -Force $Out | Out-Null

@@ -94,7 +94,10 @@ main() {
 
   maxtemp="${MAXTEMP:-37}"
   pkg=io.github.vitasharp
-  files="/sdcard/Android/data/$pkg/files"
+  # the app's data folder (docs/android/README.md, "Storage"): /sdcard/.vitasharp once the app moved its data
+  # there (no root, "All files access"), else the app-specific folder
+  files="$(adb shell "if [ -d /sdcard/.vitasharp ] && [ ! -f /sdcard/.vitasharp/.migration-journal ]; then echo /sdcard/.vitasharp; else echo /sdcard/Android/data/${pkg}/files; fi" 2>/dev/null | tr -d '' || true)"
+  files="${files:-/sdcard/Android/data/${pkg}/files}"
   here="$(cd "$(dirname "$0")" && pwd)"
   case "$scene" in
     kz) title=PCSC00045; slot=1; at=30 ;;

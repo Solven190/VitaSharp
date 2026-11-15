@@ -93,6 +93,7 @@ public sealed class LibraryView : Screen<LibraryState>
                         Chip(Loc.Get("MPlayable"), State.Filter == GameLibrary.Filter.Playable, () => SetState(s => s.Filter = GameLibrary.Filter.Playable))
                     ).Spacing(8).Padding(20, 14, 20, 4),
                     last != null && State.Search.Length == 0 ? ContinueCard(last) : null,
+                    AppServices.StoragePlan.NeedsPermission ? StorageCard() : null,
                     SystemCard(),
                     State.Installing != null ? InstallCard() : null,
                     SectionTitle(State.Filter switch
@@ -144,6 +145,23 @@ public sealed class LibraryView : Screen<LibraryState>
             .BackgroundColor(Palette.Highlight).Margin(20, 12, 20, 0)
             .OnTapped(() => OpenGame(g));
     }
+
+    /// <summary>No root and no "All files access": the data is still in the hidden Android/data folder (StorageSetup).</summary>
+    VisualNode StorageCard() =>
+        Border(
+                VStack(
+                    Label(Loc.Get("MStorageWarning")).FontFamily(Fonts.InterSemiBold).FontSize(14),
+                    Label(Loc.Get("MStorageWarningDetail")).FontSize(12).TextColor(Palette.Muted)
+                ).Spacing(2).Padding(14, 12))
+            .StrokeShape(new RoundRectangle().CornerRadius(18)).Stroke(Palette.HighlightBorder).StrokeThickness(1)
+            .BackgroundColor(Palette.Surface).Margin(20, 12, 20, 0)
+            .OnTapped(() =>
+            {
+                if (MainActivity.Current is { } activity)
+                {
+                    StorageSetup.RequestAllFilesAccess(activity);
+                }
+            });
 
     VisualNode SystemCard()
     {

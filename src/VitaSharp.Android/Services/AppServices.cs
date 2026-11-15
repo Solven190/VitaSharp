@@ -27,11 +27,19 @@ public static class AppServices
     public static AndroidGamepads Gamepads { get; private set; } = new();
     public static bool Initialized { get; private set; }
 
+    /// <summary>The data folder decision of this process (<see cref="DataRoot.Resolve"/>), refreshed by StorageSetup.</summary>
+    public static DataRootPlan StoragePlan { get; set; }
+
+    /// <summary>The folder this process resolved at its start (<see cref="Data"/> may be the internal one when it was
+    /// unusable); a later decision for another folder restarts the app.</summary>
+    public static string PlannedRoot { get; private set; } = "";
+
     /// <summary>The app's package context (Application), for content resolvers and system services.</summary>
     public static Context AppContext { get; private set; } = null!;
 
     /// <summary>
-    /// Picks the data root (app-specific external storage, else internal files), installs the logcat sink, opens the
+    /// Picks the data root (<see cref="DataRoot"/>: the visible .vitasharp folder, the app-specific external storage or
+    /// the internal files), installs the logcat sink, opens the
     /// file log and loads the settings. The UI process logs to logs/app.log; the game process opens
     /// the log per title (SessionLog).
     /// </summary>
@@ -64,7 +72,12 @@ public static class AppServices
             }
             AppContext = context.ApplicationContext ?? context;
             LogcatSink.Install();
-            string root = context.GetExternalFilesDir(null)?.AbsolutePath is { Length: > 0 } ext ? ext : context.FilesDir!.AbsolutePath;
+            // the data folder (Mobile.Core DataRoot): with root the app-specific folder; without root
+            // /storage/emulated/0/.vitasharp once "All files access" is granted and the old folder was moved there
+            // (StorageSetup, in the screens' process), the app-specific folder until then
+            StoragePlan = DataRoot.Resolve(StorageSetup.Inputs(context));
+            PlannedRoot = Path.GetFullPath(StoragePlan.Root);
+            string root = StoragePlan.Root;
             Data = new DataLayout(root, context.FilesDir!.AbsolutePath);
             try
             {
@@ -87,8 +100,11 @@ public static class AppServices
                 Log.Warn($"{EnvironmentFile.FileName}: {e.Message}");
             }
             // the UI process keeps logs/app.log (truncated per start); a game session writes logs/last.log (SessionLog)
-            if (!gameProcess)
+            // (not while the old folder waits to be moved: the move checks every file's size)
+            if (!gameProcess && !StoragePlan.NeedsMigration)
+            {
                 Log.OpenFile(Path.Combine(Data.Logs, "app.log"));
+            }
             foreach (var (name, value) in env)
                 Log.Info($"{EnvironmentFile.FileName}: {name}={value}");
             Prefs = AppPreferences.Load(Data.AppSettingsFile);
