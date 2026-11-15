@@ -30,15 +30,18 @@ ux0:tai/algum_plugin.suprx
 
 Sem `config.txt`, ou com a opção desligada, nenhum plugin é carregado.
 
-A configuração fica na pasta do próprio emulador, `kernel_plugins/` ao lado de `fs/` na pasta de dados (Windows,
-Linux, macOS e Android igual): `kernel_plugins/config.txt`, lido com as mesmas regras. As linhas dele são caminhos do
-Vita (`ur0:tai/kubridge.skprx`): os plugins ficam em `ur0:tai` / `ux0:tai`, onde os homebrews conferem os arquivos;
-uma linha sem dispositivo (`meu.skprx`) é um arquivo de `kernel_plugins/` (caminho relativo à configuração); um arquivo
-que não está lá é pulado com um aviso no log. Sem o `kernel_plugins/config.txt` é lida a configuração do Vita acima.
-Só o carregador do emulador lê a configuração. Na primeira vez com a opção ligada e sem configuração na pasta, o
-`config.txt` do Vita vai para `kernel_plugins/` sem mudanças (uma cópia fica como `kernel_plugins/config.txt.bak`; o
-log avisa); um plugin que uma versão anterior tinha movido para a pasta volta para o caminho do Vita que o `.bak` indica.
-Os plugins, o arquivo do próprio framework e os arquivos de dados dos plugins nunca são movidos. Nada é apagado.
+A configuração fica na pasta do próprio emulador, `ur0:kernel_plugins/` ao lado de `ur0:tai` (no computador
+`fs/ur0/kernel_plugins/`; Windows, Linux, macOS e Android igual): `ur0:kernel_plugins/config.txt`, lido com as mesmas
+regras. As linhas dele são caminhos do Vita (`ur0:tai/kubridge.skprx`): os plugins ficam em `ur0:tai` / `ux0:tai`, onde
+os homebrews conferem os arquivos; uma linha sem dispositivo (`meu.skprx`) é um arquivo de `ur0:kernel_plugins/`
+(caminho relativo à configuração); um arquivo que não está lá é pulado com um aviso no log. Sem o
+`ur0:kernel_plugins/config.txt` é lida a configuração do Vita acima. Só o carregador do emulador lê a configuração. Na
+primeira vez com a opção ligada e sem configuração na pasta, o `config.txt` do Vita vai para `ur0:kernel_plugins/` sem
+mudanças (uma cópia fica como `ur0:kernel_plugins/config.txt.bak`; o log avisa); um plugin que uma versão anterior tinha
+movido para a pasta volta para o caminho do Vita que o `.bak` indica. A pasta das versões anteriores, `kernel_plugins/`
+ao lado de `fs/` na pasta de dados, vai uma vez para `ur0:kernel_plugins/` (cada item que ainda não está lá; a pasta
+antiga vazia é apagada). Os plugins, o arquivo do próprio framework e os arquivos de dados dos plugins nunca são
+movidos. Nada mais é apagado.
 
 O arquivo é lido com as regras do parser e do carregador de plugins do próprio ambiente homebrew: só
 um arquivo vale (`ux0:tai/config.txt`, senão `ur0:tai/config.txt`); `#` começa um comentário, `*` uma seção, e

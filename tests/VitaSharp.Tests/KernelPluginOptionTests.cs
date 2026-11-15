@@ -5,7 +5,7 @@ namespace VitaSharp.Tests;
 /// <summary>
 /// The emulator option "Enable Kernel Plugins" (<see cref="EmulatorOptions.KernelPlugins"/>): off, the default, the pure
 /// firmware runs and nothing loads even with a plugin configuration; on, the emulator reads the configuration of its own
-/// plugin folder (kernel_plugins, apart from the Vita's file system; paths relative to it), else the Vita's
+/// plugin folder (ur0:kernel_plugins, next to ur0:tai; paths relative to it), else the Vita's
 /// (ur0:tai / ux0:tai), and loads and starts the *KERNEL modules it lists. The first time, the Vita's configuration and
 /// the kernel plugins it lists move into the folder (a .bak copy kept, the moved lines rewritten), leaving the plugin
 /// framework's own file and the plugins' data. The plugins are synthetic kernel modules.
@@ -15,9 +15,16 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-pluginoption-" + Guid.NewGuid().ToString("N"));
 
-    private string Tai => Path.Combine(_root, "ur0", "tai");
+    /// <summary>The Vita's file system inside the test's data folder, as in the emulator's data folder.</summary>
+    private string Fs => Path.Combine(_root, "fs");
 
-    private string Folder => Path.Combine(_root, "kernel_plugins");
+    private string Tai => Path.Combine(Fs, "ur0", "tai");
+
+    /// <summary>The default plugin folder: ur0:kernel_plugins.</summary>
+    private string Folder => Path.Combine(Fs, "ur0", "kernel_plugins");
+
+    /// <summary>The folder of earlier versions: kernel_plugins next to fs in the data folder.</summary>
+    private string LegacyFolder => Path.Combine(_root, "kernel_plugins");
 
     public void Dispose()
     {
@@ -47,12 +54,11 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
     {
         return new Emulator(new EmulatorOptions
         {
-            FsRoot = _root,
+            FsRoot = Fs,
             Memory = fx.Memory,
             EnableJit = false,
             CpuBackend = "interp",
             KernelPlugins = kernelPlugins,
-            KernelPluginsDir = Folder,
         });
     }
 
@@ -180,5 +186,57 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
         Assert.True(File.Exists(Path.Combine(Tai, "probe.skprx")));
         Assert.False(File.Exists(Path.Combine(Folder, "probe.skprx")));
         Assert.Equal("*KERNEL\nur0:tai/probe.skprx\n", File.ReadAllText(Path.Combine(Folder, "config.txt")));
+    }
+
+    /// <summary>The plugin folder is ur0:kernel_plugins, inside the Vita's file system (fs/ur0/kernel_plugins), on every
+    /// system. Before, it was kernel_plugins next to fs in the data folder.</summary>
+    [Fact]
+    public void TheFolderIsUr0KernelPlugins()
+    {
+        using Emulator emu = NewEmulator(true);
+        Assert.Equal(Path.GetFullPath(Folder), Path.GetFullPath(emu.KernelPluginsFolder));
+        Assert.Equal(Path.GetFullPath(Folder), Path.GetFullPath(emu.Vfs.Resolve("ur0:kernel_plugins")!));
+    }
+
+    /// <summary>The folder of earlier versions (kernel_plugins next to fs) moves once into ur0:kernel_plugins with the
+    /// option on: config.txt, its .bak and the files the configuration names without a device; the old folder, empty, is
+    /// deleted, and the plugins load from the new place. With the option off nothing moves.</summary>
+    [Fact]
+    public void TheFolderOfEarlierVersionsMovesIntoUr0()
+    {
+        Directory.CreateDirectory(LegacyFolder);
+        Directory.CreateDirectory(Tai);
+        File.WriteAllText(Path.Combine(LegacyFolder, "config.txt"), "*KERNEL\nprobe.skprx\n");
+        File.WriteAllText(Path.Combine(LegacyFolder, "config.txt.bak"), "*KERNEL\nprobe.skprx\n");
+        File.WriteAllBytes(Path.Combine(LegacyFolder, "probe.skprx"), Probe("PluginProbe"));
+        using (Emulator off = NewEmulator(false))
+        {
+            Assert.Empty(off.LoadPluginsIfEnabled());
+        }
+
+        Assert.True(File.Exists(Path.Combine(LegacyFolder, "config.txt")));
+        using Emulator emu = NewEmulator(true);
+        Assert.Equal(["probe.skprx: loaded and started (PluginProbe)"], emu.LoadPluginsIfEnabled());
+        Assert.Equal("*KERNEL\nprobe.skprx\n", File.ReadAllText(Path.Combine(Folder, "config.txt")));
+        Assert.True(File.Exists(Path.Combine(Folder, "config.txt.bak")));
+        Assert.True(File.Exists(Path.Combine(Folder, "probe.skprx")));
+        Assert.False(Directory.Exists(LegacyFolder));
+    }
+
+    /// <summary>An entry of the old folder whose name is already in ur0:kernel_plugins stays where it is (nothing is
+    /// overwritten), and so does the old folder holding it.</summary>
+    [Fact]
+    public void AnOldEntryNeverOverwritesTheNewFolder()
+    {
+        Directory.CreateDirectory(LegacyFolder);
+        Directory.CreateDirectory(Folder);
+        File.WriteAllText(Path.Combine(LegacyFolder, "config.txt"), "*KERNEL\nold.skprx\n");
+        File.WriteAllText(Path.Combine(LegacyFolder, "notes.txt"), "mine");
+        File.WriteAllText(Path.Combine(Folder, "config.txt"), "*KERNEL\n");
+        using Emulator emu = NewEmulator(true);
+        emu.LoadPluginsIfEnabled();
+        Assert.Equal("*KERNEL\n", File.ReadAllText(Path.Combine(Folder, "config.txt")));
+        Assert.Equal("*KERNEL\nold.skprx\n", File.ReadAllText(Path.Combine(LegacyFolder, "config.txt")));
+        Assert.Equal("mine", File.ReadAllText(Path.Combine(Folder, "notes.txt")));
     }
 }

@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=5d7a4d8639c8fe226c29697a58029d1b3d2437cea416a13457dfffefe71c38ce -->
+<!-- pair: README.md sha256=8f39cdbc57ef284084e6342537e0cfd069e01f22174dee2f140b917c614d5947 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -178,17 +178,18 @@ busca de exports e imports, injeção de dados, hooks de função), como um cons
 
 - **Como ligar:** launcher **Configurações > Avançado**; Android **Configurações > Depuração**; linha de comando
   `--kernel-plugins=on|off`; ambiente `VITASHARP_KERNEL_PLUGINS=1` (as chaves valem sobre a variável).
-- **Pasta:** `kernel_plugins/`, ao lado de `fs/` na pasta de dados (igual no Windows, Linux, macOS e Android), guarda o
-  `config.txt`. As linhas dele são caminhos do Vita, como no Vita (`ur0:tai/kubridge.skprx`): os plugins ficam em
-  `fs/ur0/tai` (ou `fs/ux0/tai`), onde os homebrews conferem os arquivos. Uma linha sem dispositivo (`meu.skprx`) é um
-  arquivo que você coloca em `kernel_plugins/`. Seções como no Vita: `*KERNEL` para os plugins de kernel, `*ALL` /
-  `*TITLEID` para os de usuário, `*main` é a tela inicial.
-- **Alternativa:** sem `kernel_plugins/config.txt`, é lido o `fs/ux0/tai/config.txt` do Vita (senão
+- **Pasta:** `ur0:kernel_plugins/` (no computador `fs/ur0/kernel_plugins/`, igual no Windows, Linux, macOS e Android),
+  ao lado de `ur0:tai`, guarda o `config.txt`. As linhas dele são caminhos do Vita, como no Vita
+  (`ur0:tai/kubridge.skprx`): os plugins ficam em `fs/ur0/tai` (ou `fs/ux0/tai`), onde os homebrews conferem os
+  arquivos. Uma linha sem dispositivo (`meu.skprx`) é um arquivo que você coloca em `ur0:kernel_plugins/`. Seções como
+  no Vita: `*KERNEL` para os plugins de kernel, `*ALL` / `*TITLEID` para os de usuário, `*main` é a tela inicial.
+- **Alternativa:** sem `ur0:kernel_plugins/config.txt`, é lido o `fs/ux0/tai/config.txt` do Vita (senão
   `fs/ur0/tai/config.txt`), como copiado de um Vita.
-- **Mudança automática:** na primeira vez com a opção ligada, o `config.txt` do Vita vai para `kernel_plugins/` sem
-  mudanças (uma cópia fica como `kernel_plugins/config.txt.bak`); os plugins, o arquivo do próprio framework e os
-  arquivos de dados dos plugins ficam em `ur0:tai`. O arquivo do próprio framework nunca é carregado: o emulador
-  oferece as bibliotecas dele.
+- **Mudança automática:** na primeira vez com a opção ligada, o `config.txt` do Vita vai para `ur0:kernel_plugins/`
+  sem mudanças (uma cópia fica como `ur0:kernel_plugins/config.txt.bak`); os plugins, o arquivo do próprio framework e
+  os arquivos de dados dos plugins ficam em `ur0:tai`. O arquivo do próprio framework nunca é carregado: o emulador
+  oferece as bibliotecas dele. A pasta das versões anteriores (`kernel_plugins/` ao lado de `fs/` na pasta de dados)
+  vai do mesmo jeito para `ur0:kernel_plugins/`, e a pasta antiga vazia é apagada.
 - **Log:** uma linha por plugin, `kernel plugin <caminho>: loaded and started (<nome>)`, `... not started: no module
   provides ...` ou `... not loaded (...)`.
 
