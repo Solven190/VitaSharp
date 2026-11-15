@@ -2,7 +2,7 @@
 <rect width="1000" height="600" rx="8" fill="#0d1117"/>
 <g font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
 <text x="12" y="27" font-size="17" font-weight="600" fill="#e6edf3">HLE progress map</text>
-<text x="170" y="27" font-size="12" fill="#9198a1">308 libraries of firmware 3.74, area = exported functions, 84.4% implemented</text>
+<text x="170" y="27" font-size="12" fill="#9198a1">308 libraries of firmware 3.74, area = exported functions, 84.6% implemented</text>
 <text x="798" y="27" font-size="11" fill="#9198a1">0%</text>
 <rect x="820" y="16" width="24" height="14" rx="2" fill="#8e2929"/>
 <rect x="846" y="16" width="24" height="14" rx="2" fill="#8e5c29"/>
@@ -107,7 +107,7 @@
 <g><title>SceProcessmgr: 31/31 (100%)</title><rect x="823.9" y="332.6" width="29.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNpActivityNet: 30/30 (100%)</title><rect x="853.5" y="332.6" width="28.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceWebUIPlugin: 30/30 (100%)</title><rect x="882.2" y="332.6" width="28.6" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMgVideo: 0/29 (0%)</title><rect x="910.8" y="332.6" width="27.7" height="29.1" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMgVideo: 29/29 (100%), 29 default</title><rect x="910.8" y="332.6" width="27.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceHid: 28/28 (100%)</title><rect x="938.5" y="332.6" width="26.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceLibMtpHttp: 28/28 (100%)</title><rect x="965.3" y="332.6" width="26.7" height="29.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceLibMtpHttpWrapper: 28/28 (100%)</title><rect x="763.8" y="361.7" width="30" height="25.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
@@ -126,7 +126,7 @@
 <g><title>ScePgf: 23/23 (100%)</title><rect x="763.8" y="517.8" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceSulpha: 23/23 (100%)</title><rect x="763.8" y="542.5" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceUsbdForUser: 23/23 (100%), 21 default</title><rect x="763.8" y="567.3" width="25.8" height="24.7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceRegMgr: 19/22 (86.3%)</title><rect x="789.6" y="387.6" width="23.9" height="25.5" fill="#458e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceRegMgr: 22/22 (100%)</title><rect x="789.6" y="387.6" width="23.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceDisplay: 21/21 (100%)</title><rect x="813.5" y="387.6" width="22.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceMp4: 21/21 (100%)</title><rect x="836.4" y="387.6" width="22.9" height="25.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceSensMe: 2/21 (9.5%)</title><rect x="859.2" y="387.6" width="22.9" height="25.5" fill="#8e3d29" stroke="#0d1117" stroke-width="1"/></g>
@@ -248,7 +248,7 @@
 <g><title>SceDebugLed: 4/4 (100%)</title><rect x="925.8" y="560.6" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceGameUpdate: 4/4 (100%)</title><rect x="925.8" y="571" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceLibLocationProvider: 4/4 (100%)</title><rect x="925.8" y="581.5" width="10.6" height="10.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMgVideoForMiniApp: 0/4 (0%)</title><rect x="936.4" y="526.5" width="11.1" height="10" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMgVideoForMiniApp: 4/4 (100%), 4 default</title><rect x="936.4" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNpActivity: 4/4 (100%)</title><rect x="947.5" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceSblDmac5Mgr: 4/4 (100%), 3 default</title><rect x="958.7" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceSvcCtrl: 4/4 (100%)</title><rect x="969.8" y="526.5" width="11.1" height="10" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>

@@ -29,7 +29,7 @@ public sealed class RegMgrBackupTests(GuestMemoryFixture fixture) : IDisposable
     /// a development-only key (mask 0x2C) and backup levels 0 / 30 / 99 / 5.</summary>
     private Registry Keys()
     {
-        Registry registry = Registry.For(_harness.Root);
+        var registry = Registry.For(_harness.Root);
         registry.Define("/CONFIG/TESTR/low", Registry.KeyType.Int, 4, level: 0x10, backupLevel: 99);
         registry.Define("/CONFIG/TESTR/mid", Registry.KeyType.Int, 4, level: 0x20, backupLevel: 30);
         registry.Define("/CONFIG/TESTR/high", Registry.KeyType.Int, 4, level: 0x30, backupLevel: 0);
