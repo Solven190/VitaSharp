@@ -36,6 +36,23 @@ ainda nÃ£o tÃªm implementaÃ§Ã£o. Ã‰ o par do censo de kernel (`kernel-exports.md
 - Tabela por funÃ§Ã£o: [`data/user-exports.tsv`](data/user-exports.tsv) (os buracos: biblioteca, NID, nome, tipo,
   importadores, se estÃ¡ no VitaSDK).
 
+## Lote 14c (14/11/2026, feat/user-hle-14c)
+
+- Cobertas 9.452 de 19.406 (HLE de verdade 4.674, default 375, LLE 4.403): +12 funções, todas lidas no módulo do
+  FW 3.74 (SceAppMgr e SceCamera/SceUdcd do `bootimage.skprx`, SceMotion do `driver_us.suprx`).
+- SceAppMgr: `sceAppMgrSuspendUntilActivated`, `sceAppMgrEnableCoredumpForTest`. SceCamera `NID_99B5FB62` (conjunto de
+  buffers da câmera do processo), SceUdcd `NID_FCD876FB` (modo de energia do USB). SceMotion: `sceMotionGetStateExt`
+  (forma empacotada de 10 bits), `sceMotionGetDeadbandExt`, `sceMotionGetTiltCorrectionExt`, os três limiares da
+  orientação básica (`NID_CA0A798B`/`NID_F4E9D62E`), o zero do acelerômetro (`NID_02AC0F4B`) e as leituras dos outros
+  dois clientes de movimento (`NID_D23686B0`, `NID_D66D5192`).
+- Revalidado no SceMotion: `sceMotionGetState`/`GetSensorState` só respondem com a amostragem ligada (0x80360206) e
+  NULL é 0x80360209; `sceMotionGetStateInternal` é a leitura do cliente de localização; `sceMotionSetAngleThreshold`
+  aceita só 0 < ângulo <= 45; deadband e correção de inclinação guardam o valor recebido; porta Ext acima de 4 é
+  0x8036020B.
+- Ainda chegam ao HLE sem implementação e são importadas: 95 funções — SceGpuEs4User (41), SceMarlinHci (20),
+  SceMgVideo (20), SceGpuEs4UserForVsh (5), SceRegMgr (3), SceGpuEs4ForUser (3), SceThreadmgr
+  (`_sceKernelExitCallback`), SceDrmBridge e SceDrmBridgeUser (1 cada).
+
 ## Depois da regra do carregador (14/11/2026, release 82eec041 + esta branch)
 
 - Cobertas 9.440 de 19.406: HLE de verdade 4.662, default 375, LLE 4.403 (com os substitutos `FirmwareFallbackOnly`

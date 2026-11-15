@@ -4,8 +4,6 @@
 # libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).
 # games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
 library	nid	name	kind	games	system	vitasdk
-SceAppMgr	0x32FD0B99	sceAppMgrEnableCoredumpForTest	kernel-syscall	0	0	yes
-SceAppMgr	0xECEC7F90	sceAppMgrSuspendUntilActivated	kernel-syscall	0	0	yes
 SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0-user	0	1	-
 SceAppUtil	0x1E2A6158	NID_1E2A6158	vs0-user	0	0	-
 SceAppUtil	0x7DA34311	NID_7DA34311	vs0-user	0	0	-
@@ -16,7 +14,6 @@ SceAppUtil	0xC3CB128B	NID_C3CB128B	vs0-user	0	1	-
 SceAppUtil	0xCD0E5C59	NID_CD0E5C59	vs0-user	0	1	-
 SceAppUtil	0xE8CADCA9	NID_E8CADCA9	vs0-user	0	1	-
 SceAppUtil	0xF93C691C	NID_F93C691C	vs0-user	0	1	-
-SceCamera	0x99B5FB62	NID_99B5FB62	kernel-syscall	0	1	-
 SceCommonDialog	0x075E4490	NID_075E4490	vs0-user	0	2	-
 SceCommonDialog	0x089FB01E	NID_089FB01E	vs0-user	0	1	-
 SceCommonDialog	0x243D6A36	NID_243D6A36	vs0-user	0	13	-
@@ -271,14 +268,6 @@ SceMgVideoForMiniApp	0x02E5F373	NID_02E5F373	kernel-syscall	0	0	-
 SceMgVideoForMiniApp	0x3EBD4502	NID_3EBD4502	kernel-syscall	0	0	-
 SceMgVideoForMiniApp	0xCF0D2A06	NID_CF0D2A06	kernel-syscall	0	0	-
 SceMgVideoForMiniApp	0xEA3A897A	NID_EA3A897A	kernel-syscall	0	0	-
-SceMotion	0x02AC0F4B	NID_02AC0F4B	os0-user	0	0	-
-SceMotion	0xCA0A798B	NID_CA0A798B	os0-user	0	0	-
-SceMotion	0xD23686B0	NID_D23686B0	os0-user	0	2	-
-SceMotion	0xD66D5192	NID_D66D5192	os0-user	0	0	-
-SceMotion	0xF4E9D62E	NID_F4E9D62E	os0-user	0	0	-
-SceMotion	0xC0586367	sceMotionGetDeadbandExt	os0-user	0	0	-
-SceMotion	0x340BFBE6	sceMotionGetStateExt	os0-user	0	0	-
-SceMotion	0xCBD9CA97	sceMotionGetTiltCorrectionExt	os0-user	0	0	-
 SceMusicExport	0xD1011570	NID_D1011570	vs0-user	0	4	-
 SceNet	0x1F0080B3	NID_1F0080B3	vs0-user	0	0	-
 SceNet	0x522D2118	NID_522D2118	vs0-user	0	0	-
@@ -850,7 +839,6 @@ SceTriggerUtil	0x2C43AC0C	NID_2C43AC0C	vs0-user	0	5	-
 SceTriggerUtil	0x845BF533	NID_845BF533	vs0-user	0	0	-
 SceTriggerUtil	0x921FF8E1	NID_921FF8E1	vs0-user	0	0	-
 SceTriggerUtil	0xDA93949A	NID_DA93949A	vs0-user	0	5	-
-SceUdcd	0xFCD876FB	NID_FCD876FB	kernel-syscall	0	1	-
 SceUsbAudioIn	0x198A7C33	NID_198A7C33	kernel-syscall	0	0	-
 SceUsbDevSerial	0x4437FF2D	NID_4437FF2D	kernel-syscall	0	0	-
 SceUsbDevSerial	0x57FBB08C	NID_57FBB08C	kernel-syscall	0	0	-
