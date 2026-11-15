@@ -1286,6 +1286,21 @@ public static class Runner
         var graphics = new GraphicsHotkeys(emu, ro, () => emu.Gpu.Backend as VulkanRenderer, () => NewHeadlessRenderer(ro, diag), text => Log.Info($"[notice] {text}"));
         int seconds = int.TryParse(Opt(options, "--seconds"), out var sec) ? sec : 30;
         long frameLimit = long.TryParse(Opt(options, "--frames"), out var fl) ? fl : -1;
+        // --frames=N stops the guest on the frame that reaches the limit (an internal pause, on the presenting thread),
+        // so the run ends with exactly N frames however fast the guest presents or however late the loop below looks
+        Action? presentedBefore = VitaSharp.Core.Hle.Modules.Display.Presented;
+        if (frameLimit > 0)
+        {
+            VitaSharp.Core.Hle.Modules.Display.Presented = () =>
+            {
+                presentedBefore?.Invoke();
+                if (VitaSharp.Core.Hle.Modules.Display.FramesPresented >= frameLimit && !EmulationPause.IsPaused)
+                {
+                    EmulationPause.Pause("--frames limit", @internal: true);
+                }
+            };
+        }
+
         bool profileHle = options.Contains("--profile-hle");
         Sampler? sampler = options.Contains("--profile") || profileHle || Opt(options, "--profile-from") != null ? new Sampler(emu, long.TryParse(Opt(options, "--profile-from"), out var pfrom) ? pfrom : 0, profileHle) : null;
         if (Opt(options, "--seconds") == null && frameLimit > 0)
@@ -1348,6 +1363,7 @@ public static class Runner
                 }
             }
         }
+        VitaSharp.Core.Hle.Modules.Display.Presented = presentedBefore;
         capture.Capture.StopAndWait(); // a recording still running at the end (its GPU dump needs the worker)
         GpuDumpControl.StopAtExit();
         diag.WaitIdle();

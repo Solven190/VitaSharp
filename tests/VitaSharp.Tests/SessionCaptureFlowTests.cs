@@ -122,4 +122,49 @@ public sealed class SessionCaptureFlowTests(GuestMemoryFixture fixture) : IDispo
             cap.Dispose();
         }
     }
+
+    /// <summary>Arming the pre-roll starts the encoder thread and disarming it before that thread runs clears the
+    /// queue: the thread must work on the queue it was started with, not read the field after the stop cleared it
+    /// (that read crashed the whole test process with a NullReferenceException on the encoder thread).</summary>
+    [Fact]
+    public void PreRollDisarmedBeforeTheEncoderThreadRunsKeepsItsQueue()
+    {
+        var cap = new SessionCapture(_harness.Emu, new SessionCaptureOptions
+        {
+            Root = Path.Combine(_harness.Root, "captures_arm"),
+            SetPresentTap = _ => { },
+            StartState = false,
+            GpuDump = false,
+            Zip = false,
+            Threads = () => "no threads",
+            Info = () => "test info",
+        });
+        using var stopped = new ManualResetEventSlim();
+        using var started = new ManualResetEventSlim();
+        Thread? encoder = null;
+        cap.EncoderStarting = () =>
+        {
+            encoder = Thread.CurrentThread;
+            started.Set();
+            stopped.Wait();
+        };
+        try
+        {
+            cap.SetPreRoll(5);
+            Assert.True(started.Wait(TimeSpan.FromMinutes(2)), "the encoder thread did not start");
+            cap.SetPreRoll(0); // the stop clears the queue while the new encoder thread has not looked at it yet
+            Assert.False(cap.Armed);
+            stopped.Set();
+            Assert.True(encoder!.Join(TimeSpan.FromMinutes(2)), "the encoder thread did not end with its queue");
+            cap.EncoderStarting = null;
+            cap.SetPreRoll(5); // arming again starts a working encoder
+            Assert.True(cap.Armed);
+        }
+        finally
+        {
+            stopped.Set();
+            cap.Hurry();
+            cap.Dispose();
+        }
+    }
 }

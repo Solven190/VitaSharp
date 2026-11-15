@@ -213,20 +213,31 @@ public sealed class AstcTests(ITestOutputHelper output)
         Assert.True(psnr >= minPsnr, $"{name}: PSNR {psnr:F2} dB < {minPsnr}");
     }
 
-    // a speed floor: coverage instrumentation slows the encoder below it (build/coverage.* leaves Timing tests out)
-    [Fact, Trait("Category", "Timing")]
-    public void EncoderSpeed()
+    /// <summary>
+    /// The encoder's hot path allocates nothing (stack buffers only), the deterministic part of its speed: a per-block
+    /// allocation is the regression that made it slow before. The throughput is printed, not asserted (a host-clock
+    /// floor failed on loaded machines and under coverage instrumentation).
+    /// </summary>
+    [Fact]
+    public void EncoderAllocatesNothingAndReportsItsSpeed()
     {
         const int Width = 256, Height = 256;
         byte[] rgb = Textured(Width, Height, false, 7);
         byte[] rgba = Textured(Width, Height, true, 8);
-        RoundTrip(rgb, Width, Height, AstcChannels.Rgba, 0x7, out _); // warm up
+        byte[] blocks = new byte[(Width / 4) * (Height / 4) * 16];
+        AstcEncoder.Encode(rgb, Width, Height, blocks, AstcChannels.Rgba); // warm up (JIT, statics)
+        foreach ((byte[] img, AstcChannels channels) in new[] { (rgb, AstcChannels.Rgba), (rgba, AstcChannels.Rgba), (rgb, AstcChannels.R), (rgb, AstcChannels.Rg) })
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            AstcEncoder.Encode(img, Width, Height, blocks, channels);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.True(allocated == 0, $"{channels}: the encoder allocated {allocated} bytes for {Width}x{Height}");
+        }
         RoundTrip(rgb, Width, Height, AstcChannels.Rgba, 0x7, out double sRgb);
         RoundTrip(rgba, Width, Height, AstcChannels.Rgba, 0xF, out double sRgba);
         RoundTrip(rgb, Width, Height, AstcChannels.R, 0x1, out double sR);
         RoundTrip(rgb, Width, Height, AstcChannels.Rg, 0x3, out double sRg);
         output.WriteLine($"one thread: RGB {sRgb:F2}, RGBA {sRgba:F2}, R {sR:F2}, RG {sRg:F2} M texels/s");
-        Assert.True(sRgb > 0.1 && sRgba > 0.1);
     }
 
     [Fact]
