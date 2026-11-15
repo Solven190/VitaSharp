@@ -640,9 +640,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   a mesma regra de captura do desktop); página do jogo com os 6 slots (imagem e data; um toque abre o jogo já
   carregando o estado, com o executável em que ele foi salvo e depois de `SaveStates.StartLoadFrames` quadros, como o
   `--load-state`; com o jogo aberto, carrega nele; `--ei loadSlot N` pelo adb) e as gravações do Gravar tudo do jogo
-  com compartilhar (feat/android-game-states, `AndroidGameStatesTests`). Falta confirmar no celular (Killzone: tocar
-  num slot na página do jogo). Falta, nesta ordem: fonte de cada câmera
-  (aparelho, imagem fixa, nenhuma), tela inicial do Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
+  com compartilhar (feat/android-game-states, `AndroidGameStatesTests`; falta confirmar no celular: Killzone, tocar
+  num slot na página do jogo); fonte de cada câmera em Ajustes > Câmeras (aparelho, imagem fixa copiada para
+  `<data>/camera`, nenhuma), com a regra do desktop em `FacingCameras.FromSettings` (feat/android-camera-source,
+  `AndroidCameraSourceTests`; falta confirmar no celular num jogo com câmera). Falta, nesta ordem: tela inicial do
+  Sistema (tema, música, sons, abrir em Biblioteca/Sistema, clique
   no jogo: jogar/LiveArea) e, por último, resolução interna 3x/4x
 - [ ] Pasta de dados visível `/storage/emulated/0/.vitasharp` (feat/android-visible-data): sem root, o app pede
   "Acesso a todos os arquivos" na primeira abertura e move `Android/data/io.github.vitasharp/files` para lá

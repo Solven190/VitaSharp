@@ -125,6 +125,40 @@ public sealed class FacingCameras : ICameraSource
 
     public FacingCameras(ICameraSource? front, ICameraSource? back) => _sources = [front, back];
 
+    /// <summary>
+    /// The Vita's cameras from each camera's setting (<see cref="CameraSpec"/>; the desktop's "Camera frontal" /
+    /// "Camera traseira" and the Android app's camera settings): "none" = grey frames, a .png/.jpg path = that still
+    /// picture (<paramref name="imageRoot"/> resolves a relative one), else the host's cameras, made by
+    /// <paramref name="device"/> once and only when a side uses them (with each side's device selection: null = that
+    /// side's default). Null when neither camera has a source.
+    /// </summary>
+    public static ICameraSource? FromSettings(string? front, string? back, Func<string?, string?, ICameraSource?> device, string? imageRoot = null)
+    {
+        CameraSpec[] specs = [CameraSpec.Parse(front), CameraSpec.Parse(back)];
+        bool usesDevice = specs[0].Kind is CameraSpecKind.Default or CameraSpecKind.Device
+            || specs[1].Kind is CameraSpecKind.Default or CameraSpecKind.Device;
+        ICameraSource? host = usesDevice ? device(Selection(specs[0]), Selection(specs[1])) : null;
+        var sides = new ICameraSource?[2];
+        for (int i = 0; i < 2; i++)
+        {
+            sides[i] = specs[i].Kind switch
+            {
+                CameraSpecKind.None => null,
+                CameraSpecKind.Image => StillImageCamera.TryLoad(imageRoot != null ? Path.Combine(imageRoot, specs[i].Value) : specs[i].Value),
+                _ => host,
+            };
+        }
+
+        if (sides[0] == null && sides[1] == null)
+        {
+            return null;
+        }
+
+        return new FacingCameras(sides[0], sides[1]);
+
+        static string? Selection(CameraSpec spec) => spec.Kind == CameraSpecKind.Device ? spec.Value : null;
+    }
+
     public ICameraSource? this[CameraFacing facing] => _sources[(int)facing & 1];
 
     public IReadOnlyList<string> DeviceNames =>

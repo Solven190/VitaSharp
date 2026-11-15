@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=3b07d8ec2fa90c5a41abd854ac7d283fdf89970e82ae6e355355b33231aa363d -->
+<!-- pair: README.pt-BR.md sha256=fee264128c270b2cbfc58e2172718f5c6f013bb8cc40eaba5b1c55898508d7d7 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -280,6 +280,8 @@ USB controllers are detected on their own with the desktop's positional layout (
 is connected), and a hardware keyboard uses the desktop's keys. **Controles** remaps each controller's buttons (tap a
 control, then press the button on the controller; **Restore defaults** goes back), and sets the O/X swap, deadzone, opacity,
 vibration (on every press, also with the other thumb on the stick; weak, medium or strong) and auto-hide. The phone's gyroscope and accelerometer feed the Vita's motion sensor.
+**Ajustes > Câmeras** chooses what each Vita camera shows, as the desktop's camera options: the phone's camera of
+that side (the default), a PNG/JPEG picture or none (grey frames).
 
 **Pause menu, save states and Record everything.** The PS button (on screen or on the controller) pauses a game
 started on its own: **Continuar**, **Salvar estado** / **Carregar estado** (6 slots with a picture), **Ajustes** (rear

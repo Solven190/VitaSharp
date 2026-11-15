@@ -84,6 +84,21 @@
   <data name="CameraPictureFileType" xml:space="preserve">
     <value>Imagens (PNG, JPEG)</value>
   </data>
+  <data name="MCameras" xml:space="preserve">
+    <value>Câmeras</value>
+  </data>
+  <data name="MCameraPhone" xml:space="preserve">
+    <value>Câmera do aparelho</value>
+  </data>
+  <data name="MCameraFrontDetail" xml:space="preserve">
+    <value>O que a câmera frontal do Vita mostra: a câmera frontal do celular, uma imagem ou cinza. Vale ao iniciar um jogo</value>
+  </data>
+  <data name="MCameraBackDetail" xml:space="preserve">
+    <value>O que a câmera traseira do Vita mostra: a câmera traseira do celular, uma imagem ou cinza. Vale ao iniciar um jogo</value>
+  </data>
+  <data name="MCameraPictureInvalid" xml:space="preserve">
+    <value>Escolha uma imagem PNG ou JPEG.</value>
+  </data>
   <data name="Cancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>

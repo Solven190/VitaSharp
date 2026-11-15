@@ -252,14 +252,19 @@ public sealed partial class EmulationSession : IDisposable
         _emu.Host.TextInput = keyboard;
     }
 
-    /// <summary>The phone's (or a controller's) motion sensors for SceMotion and the phone's cameras for SceCamera
+    /// <summary>The phone's (or a controller's) motion sensors for SceMotion and, for SceCamera, what Ajustes chose for
+    /// each Vita camera (the phone's camera of that side, a picture, nothing), as the desktop's camera options
     /// (GameSensors). The motion source set before (the keyboard's tilt keys) becomes the fallback.</summary>
     public void SetSensors(AndroidMotion motion, VitaSharp.Core.Host.ICameraSource camera)
     {
         if (!ReferenceEquals(_emu.Host.Motion, motion))
+        {
             motion.Fallback ??= _emu.Host.Motion;
+        }
+
         _emu.Host.Motion = motion;
-        _emu.Host.Camera = camera;
+        var prefs = AppServices.Prefs;
+        _emu.Host.Camera = VitaSharp.Core.Host.FacingCameras.FromSettings(prefs.CameraFront, prefs.CameraBack, (_, _) => camera, AppServices.Data.Root);
     }
 
     /// <summary>surfaceCreated: the first one boots the game, later ones re-attach the renderer.</summary>

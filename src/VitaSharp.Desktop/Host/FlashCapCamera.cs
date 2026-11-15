@@ -30,27 +30,8 @@ public sealed class FlashCapCamera : ICameraSource
     /// index into <see cref="ListDevices"/>. Both webcam sides share one instance, so a single webcam serving both
     /// cameras keeps its capture across a sensor switch. Null when neither camera has a source.
     /// </summary>
-    public static ICameraSource? CreateForVita(string? front, string? back)
-    {
-        var specs = new[] { CameraSpec.Parse(front), CameraSpec.Parse(back) };
-        FlashCapCamera? webcam = specs.Any(s => s.Kind is CameraSpecKind.Default or CameraSpecKind.Device)
-            ? new FlashCapCamera(DeviceSel(specs[0]), DeviceSel(specs[1]))
-            : null;
-        var sides = specs.Select(s => s.Kind switch
-        {
-            CameraSpecKind.None => null,
-            CameraSpecKind.Image => (ICameraSource?)StillImageCamera.TryLoad(s.Value),
-            _ => webcam,
-        }).ToArray();
-        if (sides[0] == null && sides[1] == null)
-        {
-            return null;
-        }
-
-        return new FacingCameras(sides[0], sides[1]);
-
-        static string? DeviceSel(CameraSpec s) => s.Kind == CameraSpecKind.Device ? s.Value : null;
-    }
+    public static ICameraSource? CreateForVita(string? front, string? back) =>
+        FacingCameras.FromSettings(front, back, static (frontDevice, backDevice) => new FlashCapCamera(frontDevice, backDevice));
 
     static readonly object EnumerationLock = new();
     static Task<List<CaptureDeviceDescriptor>>? _enumeration;

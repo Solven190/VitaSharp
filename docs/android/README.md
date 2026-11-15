@@ -550,6 +550,12 @@ and follows the activity: listeners and cameras only between `onResume` and `onP
   hardware) is asked the first time a game starts a camera; denied, the game sees the grey "no camera" frames of a
   desktop without a webcam, for the rest of the process. In the background the camera is closed and reopened on resume;
   a disconnect (another app took it) or error is retried with a growing delay.
+- **Camera source** (Ajustes > Cameras, `AppPreferences.CameraFront` / `CameraBack`, `CameraSettings`): what each
+  Vita camera shows, as the desktop's "Camera frontal" / "Camera traseira": the phone's camera of that side (the
+  default), a still PNG/JPEG picture (picked with the system's file picker and copied to `<data>/camera/front.<ext>`
+  or `back.<ext>`, stored relative to the data folder) or none (grey frames). The game process builds the sources with
+  the desktop's rule (`FacingCameras.FromSettings`); the phone's camera is only opened, and the permission only asked,
+  when a side uses it.
 
 ## Logging
 

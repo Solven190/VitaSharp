@@ -2,6 +2,7 @@ using VitaSharp.Core.Localization;
 using MauiReactor;
 using VitaSharp.Android.Services;
 using VitaSharp.Android.Ui;
+using VitaSharp.Core.Host;
 using VitaSharp.Core.Util;
 using VitaSharp.Mobile.Core.Firmware;
 using VitaSharp.Mobile.Core.Settings;
@@ -71,6 +72,14 @@ public sealed class SettingsView : Screen<SettingsState>
                         else
                             Navigation?.PushAsync<FirmwarePage>();
                     }, detail: Loc.Get("MShellDetail"))
+                ),
+                SectionTitle(Loc.Get("MCameras")),
+                Card(
+                    Row(Loc.Get("CameraFront"), CameraSettings.Label(p.CameraFront), () => PickCamera(CameraFacing.Front),
+                        detail: Loc.Get("MCameraFrontDetail")),
+                    Divider(),
+                    Row(Loc.Get("CameraBack"), CameraSettings.Label(p.CameraBack), () => PickCamera(CameraFacing.Back),
+                        detail: Loc.Get("MCameraBackDetail"))
                 ),
                 SectionTitle(Loc.Get("MPerformance")),
                 Card(
@@ -143,6 +152,68 @@ public sealed class SettingsView : Screen<SettingsState>
         var v = await Choose(title, choices);
         if (v != null)
             Change(_ => apply(v));
+    }
+
+    /// <summary>"Camera frontal" / "Camera traseira": the phone's camera, a picture (picked with the system's file
+    /// picker and copied into the data folder, so the game process can read it) or none. Applies on the next start.</summary>
+    async void PickCamera(CameraFacing facing)
+    {
+        string title = Loc.Get(facing == CameraFacing.Front ? "CameraFront" : "CameraBack");
+        string? choice = await Choose(title, CameraSettings.Choices);
+        if (choice == null)
+        {
+            return;
+        }
+
+        if (choice != CameraSettings.PictureChoice)
+        {
+            SetCamera(facing, choice);
+            return;
+        }
+
+        PickedDocument? picked = await Saf.PickAsync("image/png", "image/jpeg");
+        if (picked == null)
+        {
+            return;
+        }
+
+        if (CameraSettings.PictureSetting(facing, picked.DisplayName) is not { } setting)
+        {
+            await Alert(title, Loc.Get("MCameraPictureInvalid"));
+            return;
+        }
+
+        await Run(title, async () =>
+        {
+            string root = AppServices.Data.Root;
+            string cache = System.IO.Path.Combine(AppServices.AppContext.CacheDir!.AbsolutePath, "imports");
+            await Task.Run(() =>
+            {
+                string target = System.IO.Path.Combine(root, setting);
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
+                string temporary = target + ".tmp";
+                using (Stream source = picked.OpenSeekable(cache))
+                {
+                    using FileStream output = File.Create(temporary);
+                    source.CopyTo(output);
+                }
+
+                File.Move(temporary, target, true);
+            });
+            SetCamera(facing, setting);
+        });
+    }
+
+    void SetCamera(CameraFacing facing, string value)
+    {
+        if (facing == CameraFacing.Front)
+        {
+            Change(x => x.CameraFront = value);
+        }
+        else
+        {
+            Change(x => x.CameraBack = value);
+        }
     }
 
     /// <summary>The language row: the choice is saved and applied at once; the screens already built keep their texts
