@@ -1,4 +1,4 @@
-<!-- pair: compatibility.md sha256=c35b030a77f0e92c172a4aef0f037d749c14831f5abeccd50c0496309787a198 -->
+<!-- pair: compatibility.md sha256=1bc139741a443f963d496f4315195bd0319f689ee06afc3d75bb65498e4dae6d -->
 # Compatibilidade
 
 [English](compatibility.md) | **Português**
@@ -80,7 +80,7 @@ uma promessa, e o ponto mais distante a que um cenário chega não é o fim do j
 | Silent Hill: Book of Memories | PCSE00011 | No jogo | Criação de personagem e cena de introdução | `shbom_boot` |
 | Silverio Vendetta -Verse of Orpheus- | PCSG00845 | No jogo | Visual novel: título, prólogo e texto da história (precisa das fontes do firmware) | `verse_orpheus_boot` |
 | Skullgirls 2nd Encore | PCSE00606 | No jogo | Lutas | `skullgirls_boot` |
-| Sonic Mania (port homebrew) | MANIA0001 | Não roda | Precisa do taiHEN, que não consegue iniciar no VitaSharp (o início dele precisa de patches nas checagens de assinatura e de DRM do firmware): veja [plugins](notes/plugins.pt-BR.md). Chegava ao gameplay a 60 fps enquanto o emulador tinha um substituto próprio do taiHEN, removido para só rodarem módulos de verdade | — |
+| Sonic Mania (port homebrew) | MANIA0001 | Não confirmado | Precisa do framework de plugins: rode com a opção do emulador **Ativar Plugins do Kernel** (veja [plugins](notes/plugins.pt-BR.md)); ainda não confirmado com a opção | — |
 | The Deer God | PCSB01070 | Menus | Menus e o texto de introdução; quadros sem ritmo (214-348 fps) | `deergod` |
 | Tearaway (Trial & Unlock) | PCSF00476 | No jogo | Perfil novo até o primeiro tutorial de papel | `tearaway_tutorial` |
 | Unit 13 | PCSF00034 | No jogo | Primeira missão com HUD | `unit13_boot` |

@@ -3,8 +3,8 @@ using VitaSharp.Core.Loader;
 namespace VitaSharp.Tests;
 
 /// <summary>
-/// The plugin configuration read with taiHEN's rules (taihen-parser lexer.c/parser.c, taiHEN plugin.c/hen.c): exact
-/// section names, ALL for every process but not the kernel, the '!' halt, files taiHEN refuses as a whole, and
+/// The plugin configuration read with the scene plugin loader's rules (its lexer, parser and plugin loader): exact
+/// section names, ALL for every process but not the kernel, the '!' halt, files the loader refuses as a whole, and
 /// ux0:tai before ur0:tai.
 /// </summary>
 [Collection("guest")]
@@ -30,7 +30,7 @@ public sealed class PluginConfigTests(GuestMemoryFixture fixture)
     }
 
     [Fact]
-    public void CrlfAndWhitespaceAreLikeTaihenReadsThem()
+    public void CrlfAndWhitespaceAreReadLikeThePluginLoader()
     {
         const string Config = "\r\n\t*KERNEL \r\n\tur0:tai/a.skprx\t\r\n#*ALL\r\n";
         Assert.True(PluginConfig.IsValid(Config));
@@ -65,7 +65,7 @@ public sealed class PluginConfigTests(GuestMemoryFixture fixture)
     /// <summary>The emulator loads the plugins of the file with these rules: the '!' section and the exact title ID
     /// (the old reading took "!KERNEL" for a name and compared title IDs ignoring case).</summary>
     [Fact]
-    public void EmulatorLoadsThePluginsTaihenWouldLoad()
+    public void EmulatorLoadsThePluginsThePluginLoaderWouldLoad()
     {
         using HleHarness harness = new(fixture, "taicfg");
         string ux0 = Path.Combine(harness.Root, "ux0", "tai");

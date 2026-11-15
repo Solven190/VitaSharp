@@ -2535,6 +2535,18 @@
   <data name="MDebugging" xml:space="preserve">
     <value>Depuração</value>
   </data>
+  <data name="KernelPlugins" xml:space="preserve">
+    <value>Ativar Plugins do Kernel</value>
+  </data>
+  <data name="KernelPluginsDetail" xml:space="preserve">
+    <value>Opção do emulador (o Vita não tem): carrega os plugins da pasta kernel_plugins do emulador (config.txt; senão ur0:tai/config.txt), como um console com o ambiente homebrew instalado. Desligada: firmware puro, nenhum plugin</value>
+  </data>
+  <data name="MKernelPlugins" xml:space="preserve">
+    <value>Ativar Plugins do Kernel</value>
+  </data>
+  <data name="MKernelPluginsDetail" xml:space="preserve">
+    <value>Carrega os plugins do kernel_plugins/config.txt no próximo jogo. Desligada: firmware puro</value>
+  </data>
   <data name="MDebugMode" xml:space="preserve">
     <value>Modo de depuração</value>
   </data>

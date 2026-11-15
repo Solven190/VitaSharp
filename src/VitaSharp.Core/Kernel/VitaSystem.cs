@@ -117,7 +117,7 @@ public sealed class VitaSystem
     /// <summary>The power button, the power callbacks, standby and power off (ScePower), for every process.</summary>
     public SystemPower Power { get; } = new();
 
-    /// <summary>The plugin configuration's *KERNEL modules were loaded (or tried) for this session: taiHEN loads them
+    /// <summary>The plugin configuration's *KERNEL modules were loaded (or tried) for this session: the plugin loader loads them
     /// once, at boot; a later process does not load (or retry) them.</summary>
     internal bool KernelPluginsLoaded { get; set; }
 
