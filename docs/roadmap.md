@@ -105,6 +105,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   são código de usuário de poucas instruções; os getters de prioridade de `sceIo*` estão como espera; as funções de
   libgxm/librtc que a HLE não implementa caem em entrada no kernel. Cada mudança mexe no tempo de guest: uma por vez,
   com fonte (firmware 3.74, PPSSPP) e A/B em gameplay.
+  Feito em parte (15/11/2026, kill1, fix/hle-cost-classes): pelo SceCtrl/SceTouch do 3.74 (decompilados em
+  `fw374\decomp\SceCtrl.c`/`SceTouch.c`) só as leituras (`sceCtrlRead*`, `sceTouchRead*`, `sceTouchReadRegion*`)
+  esperam o event flag da amostra; Peek, modos, barra de luz, regiões e estado de amostragem pegam o mutex do driver e
+  copiam/guardam: viraram entrada no kernel (12.000 -> 2.000 ciclos). `__rtabi_*` são código de usuário do libkernel
+  (o export desvia direto para a rotina, sem syscall): chamada curta de usuário (2.000 -> 50). Getters/setters de
+  prioridade de `sceIo*`: entrada no kernel. Prova: `HleCostTests` (19 casos falham sem a correção). Falta: as
+  funções de libgxm/librtc que a HLE não implementa (caem em entrada no kernel) e o A/B em gameplay pelo usuário.
 - [ ] [P3][G] **CPU ARM:** cada instrução e cada modo comparado com uma referência (resultado, flags, exceções), nos três
   backends (native, IL, interpretador).
 - [ ] [P3][G] **GXM e tradução de shaders:** sequências sintéticas de comandos (cenas, sync objects, fila de display, MSAA,

@@ -72,6 +72,29 @@ public sealed class HleCostTests : IDisposable
     [InlineData("sceKernelWaitEventFlag", HleCost.SchedulerWait)]
     [InlineData("sceIoRead", HleCost.SchedulerWait)]
     [InlineData("sceCtrlReadBufferPositive", HleCost.SchedulerWait)]
+    [InlineData("sceCtrlReadBufferNegative2", HleCost.SchedulerWait)]
+    [InlineData("sceTouchRead", HleCost.SchedulerWait)]
+    [InlineData("sceTouchReadRegion", HleCost.SchedulerWait)]
+    // SceCtrl/SceTouch (FW 3.74): only the reads wait on the driver's sampling event flag; Peek, the modes, the light
+    // bar and the regions take the driver mutex and copy or store
+    [InlineData("sceCtrlPeekBufferPositive", HleCost.KernelEntry)]
+    [InlineData("sceCtrlPeekBufferPositiveExt2", HleCost.KernelEntry)]
+    [InlineData("sceCtrlSetSamplingMode", HleCost.KernelEntry)]
+    [InlineData("sceCtrlGetSamplingModeExt", HleCost.KernelEntry)]
+    [InlineData("sceCtrlSetLightBar", HleCost.KernelEntry)]
+    [InlineData("sceCtrlGetProcessStatus", HleCost.KernelEntry)]
+    [InlineData("sceTouchPeek", HleCost.KernelEntry)]
+    [InlineData("sceTouchPeekRegion", HleCost.KernelEntry)]
+    [InlineData("sceTouchSetSamplingState", HleCost.KernelEntry)]
+    [InlineData("sceTouchGetSamplingState", HleCost.KernelEntry)]
+    // the I/O priority getters and setters store a value, no blocking I/O
+    [InlineData("sceIoGetPriority", HleCost.KernelEntry)]
+    [InlineData("sceIoSetThreadDefaultPriority", HleCost.KernelEntry)]
+    [InlineData("sceIoGetProcessDefaultPriority", HleCost.KernelEntry)]
+    // SceRtabi: user-mode code in libkernel (the exports branch straight into the routine, no syscall)
+    [InlineData("__rtabi_uidiv", HleCost.UserCall)]
+    [InlineData("__rtabi_ldivmod", HleCost.UserCall)]
+    [InlineData("__rtabi_lmul", HleCost.UserCall)]
     public void DeclaredClass(string name, HleCost expected)
     {
         HleFunction function = Function(name);
@@ -189,6 +212,9 @@ public sealed class HleCostTests : IDisposable
     [InlineData("sceKernelGetSystemTimeWide", 200)]
     [InlineData("sceDisplayGetVcount", 2_000)]
     [InlineData("sceKernelDelayThread", 12_000)]
+    [InlineData("sceCtrlPeekBufferPositive", 2_000)]
+    [InlineData("sceTouchPeek", 2_000)]
+    [InlineData("__rtabi_lmul", 50)]
     public void ACallChargesItsClassToTheCallingThread(string name, long cycles)
     {
         HleRegistry hle = _harness.Emu.Hle;

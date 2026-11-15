@@ -393,9 +393,11 @@ public sealed partial class Display : HleModule
 
 public sealed partial class Ctrl : HleModule
 {
-    /// <summary>libctrl's calls are syscalls into the controller driver; the reads wait for the next sample through the
-    /// thread manager.</summary>
-    public override HleCost DefaultCost => HleCost.SchedulerWait;
+    /// <summary>libctrl's calls are syscalls into the controller driver (SceCtrl, FW 3.74): Peek, the sampling mode, the
+    /// rapid-fire rules and the light bar take the driver's mutex and copy or store, a kernel entry. Only the Read*
+    /// calls wait for the next sample (the driver's read waits on its sampling event flag), and they declare the
+    /// scheduler wait.</summary>
+    public override HleCost DefaultCost => HleCost.KernelEntry;
 
     uint _samplingMode;
     long _lastRead;
@@ -493,16 +495,16 @@ public sealed partial class Ctrl : HleModule
     int sceCtrlPeekBufferPositive(int port, uint data, uint count) => Peek(Port(port), data, count, false, Api.Standard);
 
     [Hle] int sceCtrlPeekBufferNegative(int port, uint data, uint count) => Peek(Port(port), data, count, true, Api.Standard);
-    [Hle] int sceCtrlReadBufferPositive(int port, uint data, uint count) => Read(Port(port), data, count, false, Api.Standard);
-    [Hle] int sceCtrlReadBufferNegative(int port, uint data, uint count) => Read(Port(port), data, count, true, Api.Standard);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferPositive(int port, uint data, uint count) => Read(Port(port), data, count, false, Api.Standard);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferNegative(int port, uint data, uint count) => Read(Port(port), data, count, true, Api.Standard);
     [Hle] int sceCtrlPeekBufferPositiveExt(int port, uint data, uint count) => Peek(Port(port), data, count, false, Ext);
-    [Hle] int sceCtrlReadBufferPositiveExt(int port, uint data, uint count) => Read(Port(port), data, count, false, Ext);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferPositiveExt(int port, uint data, uint count) => Read(Port(port), data, count, false, Ext);
     [Hle] int sceCtrlPeekBufferPositive2(int port, uint data, uint count) => Peek(Port(port), data, count, false, V2);
-    [Hle] int sceCtrlReadBufferPositive2(int port, uint data, uint count) => Read(Port(port), data, count, false, V2);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferPositive2(int port, uint data, uint count) => Read(Port(port), data, count, false, V2);
     [Hle] int sceCtrlPeekBufferPositiveExt2(int port, uint data, uint count) => Peek(Port(port), data, count, false, V2);
-    [Hle] int sceCtrlReadBufferPositiveExt2(int port, uint data, uint count) => Read(Port(port), data, count, false, V2);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferPositiveExt2(int port, uint data, uint count) => Read(Port(port), data, count, false, V2);
     [Hle] int sceCtrlPeekBufferNegative2(int port, uint data, uint count) => Peek(Port(port), data, count, true, V2);
-    [Hle] int sceCtrlReadBufferNegative2(int port, uint data, uint count) => Read(Port(port), data, count, true, V2);
+    [Hle(Cost = HleCost.SchedulerWait)] int sceCtrlReadBufferNegative2(int port, uint data, uint count) => Read(Port(port), data, count, true, V2);
 
     [Hle] int sceCtrlSetSamplingMode(uint mode) { uint old = _samplingMode; _samplingMode = mode; return (int)old; }
     [Hle] int sceCtrlSetSamplingModeExt(uint mode) { uint old = _samplingMode; _samplingMode = mode; return (int)old; }
@@ -624,9 +626,11 @@ public sealed partial class Hid : HleModule
 
 public sealed partial class Touch : HleModule
 {
-    /// <summary>libtouch's calls are syscalls into the touch driver; the reads wait for the next sample through the
-    /// thread manager.</summary>
-    public override HleCost DefaultCost => HleCost.SchedulerWait;
+    /// <summary>libtouch's calls are syscalls into the touch driver (SceTouch, FW 3.74): Peek, the regions and the
+    /// sampling state take the driver's mutex and copy or store, a kernel entry. Only sceTouchRead* and
+    /// sceTouchReadRegion* wait for the next sample (the driver's read waits on the panel's event flag), and they declare
+    /// the scheduler wait.</summary>
+    public override HleCost DefaultCost => HleCost.KernelEntry;
 
     const int ERR_INVALID_ARG = unchecked((int)0x80350001);
     const int MaxBuffers = 64;
@@ -759,8 +763,8 @@ public sealed partial class Touch : HleModule
     readonly long[] _lastRead = [-1, -1];
 
     /// <summary>Blocks only until a sample newer than the previous read exists (one per vblank), like the hardware.</summary>
-    [Hle("sceTouchRead")]
-    [Hle("sceTouchRead2")]
+    [Hle("sceTouchRead", Cost = HleCost.SchedulerWait)]
+    [Hle("sceTouchRead2", Cost = HleCost.SchedulerWait)]
     int sceTouchRead(int port, uint data, uint count)
     {
         if (data == 0 || port is < 0 or > 1 || count > MaxBuffers) return ERR_INVALID_ARG;
@@ -773,8 +777,8 @@ public sealed partial class Touch : HleModule
     [Hle("sceTouchPeekRegionExt")]
     int sceTouchPeekRegion(int port, uint data, uint count, int region) => region > 0xFF ? ERR_INVALID_ARG : sceTouchPeek(port, data, count);
 
-    [Hle("sceTouchReadRegion")]
-    [Hle("sceTouchReadRegionExt")]
+    [Hle("sceTouchReadRegion", Cost = HleCost.SchedulerWait)]
+    [Hle("sceTouchReadRegionExt", Cost = HleCost.SchedulerWait)]
     int sceTouchReadRegion(int port, uint data, uint count, int region) => region > 0xFF ? ERR_INVALID_ARG : sceTouchRead(port, data, count);
 
     /// <summary>(port, region, rect: u16 x, y, width, height in panel coordinates, attr). The shell's ime_plugin keeps

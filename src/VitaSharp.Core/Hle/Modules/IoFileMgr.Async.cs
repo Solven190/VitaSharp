@@ -196,6 +196,7 @@ public sealed partial class IoFileMgr
     // VitaSharp has no I/O queue (requests complete synchronously), so priorities are only stored and reported.
     // The valid range and the initial process default are not documented; values are kept as given (negative ones
     // are rejected) and the process default starts at 0 until a title shows otherwise.
+    // The getters and setters only read or store a value: a kernel entry, not the module's blocking-I/O wait.
 
     int _processDefaultPriority;
     readonly ConditionalWeakTable<GuestThread, StrongBox<int>> _threadPriority = new();
@@ -211,16 +212,16 @@ public sealed partial class IoFileMgr
         }
     }
 
-    [Hle]
-    [Hle("sceIoGetPriorityForSystem")]
+    [Hle(Cost = HleCost.KernelEntry)]
+    [Hle("sceIoGetPriorityForSystem", Cost = HleCost.KernelEntry)]
     int sceIoGetPriority(int fd)
     {
         if (!_files.TryGetValue(fd, out var f)) return IsSpecialFd(fd) ? ThreadDefaultPriority : SceError.IO_EBADF;
         return f.Priority >= 0 ? f.Priority : ThreadDefaultPriority;
     }
 
-    [Hle]
-    [Hle("sceIoSetPriorityForSystem")]
+    [Hle(Cost = HleCost.KernelEntry)]
+    [Hle("sceIoSetPriorityForSystem", Cost = HleCost.KernelEntry)]
     int sceIoSetPriority(int fd, int priority)
     {
         if (!_files.TryGetValue(fd, out var f)) return SceError.IO_EBADF;
@@ -229,12 +230,12 @@ public sealed partial class IoFileMgr
         return 0;
     }
 
-    [Hle]
-    [Hle("sceIoGetThreadDefaultPriorityForSystem")]
+    [Hle(Cost = HleCost.KernelEntry)]
+    [Hle("sceIoGetThreadDefaultPriorityForSystem", Cost = HleCost.KernelEntry)]
     int sceIoGetThreadDefaultPriority() => ThreadDefaultPriority;
 
-    [Hle]
-    [Hle("sceIoSetThreadDefaultPriorityForSystem")]
+    [Hle(Cost = HleCost.KernelEntry)]
+    [Hle("sceIoSetThreadDefaultPriorityForSystem", Cost = HleCost.KernelEntry)]
     int sceIoSetThreadDefaultPriority(int priority)
     {
         if (priority < 0) return SceError.ILLEGAL_PRIORITY;
@@ -244,9 +245,9 @@ public sealed partial class IoFileMgr
         return 0;
     }
 
-    [Hle] int sceIoGetProcessDefaultPriority() => _processDefaultPriority;
+    [Hle(Cost = HleCost.KernelEntry)] int sceIoGetProcessDefaultPriority() => _processDefaultPriority;
 
-    [Hle]
+    [Hle(Cost = HleCost.KernelEntry)]
     int sceIoSetProcessDefaultPriority(int priority)
     {
         if (priority < 0) return SceError.ILLEGAL_PRIORITY;
