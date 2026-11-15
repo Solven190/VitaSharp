@@ -255,10 +255,12 @@ public sealed class Registry
         return true;
     }
 
-    /// <summary>Stores a value; false for a key the firmware does not define.</summary>
+    /// <summary>Stores a value; false for a key the firmware does not define. <see cref="Changed"/> is raised only when
+    /// the value differs from the key's current one (SceRegistryMgr compares before it notifies its callbacks).</summary>
     public bool Set(string category, string name, ReadOnlySpan<byte> value)
     {
         string path = Normalize(category, name);
+        bool changed;
         lock (_lock)
         {
             if (!_keys.TryGetValue(path, out Key? k))
@@ -268,10 +270,17 @@ public sealed class Registry
 
             byte[] stored = new byte[k.Type == KeyType.Int ? 4 : Math.Max(k.Size, value.Length)];
             value[..Math.Min(value.Length, stored.Length)].CopyTo(stored);
+            byte[]? before = Get(path);
+            changed = before == null || !before.AsSpan().SequenceEqual(stored);
             _written[path] = stored;
             Save();
         }
-        Changed?.Invoke(path);
+
+        if (changed)
+        {
+            Changed?.Invoke(path);
+        }
+
         return true;
     }
 

@@ -9,7 +9,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// SceRegMgrService: the system software's access to the registry (<see cref="Registry"/>, the firmware's own key
 /// list and defaults, persisted under vd0:registry). The keys games read through SceRegMgrForGame/SceAppUtil keep
 /// following the emulator's options (language, enter button, date format) until the system software writes them.
-/// Registry callbacks are accepted and recorded; changes do not notify them yet.
+/// Registry callbacks: RegMgrSystem.Callbacks.cs (a change notifies the started ones that watch the key).
 /// </summary>
 public sealed partial class RegMgrSystem : HleModule
 {
@@ -140,20 +140,12 @@ public sealed partial class RegMgrSystem : HleModule
 
     [Hle] int sceRegMgrIsBlueScreen() => 0;
 
+    // the registry callbacks (Register/Add/Start/Stop/Unregister): RegMgrSystem.Callbacks.cs
+
+    /// <summary>What the callback stubs of older builds recorded, unused now: kept so the save states of those builds
+    /// (positional layouts) still read field by field.</summary>
     readonly HashSet<(int Cb, string Category)> _callbacks = new();
 
-    [Hle] int sceRegMgrRegisterCallback(int callback) => 0;
-    [Hle] int sceRegMgrUnregisterCallback(int callback) { lock (_callbacks) _callbacks.RemoveWhere(c => c.Cb == callback); return 0; }
-
-    [Hle]
-    int sceRegMgrAddRegistryCallback(int callback, uint category)
-    {
-        if (Str(category) is { } c) lock (_callbacks) _callbacks.Add((callback, c));
-        return 0;
-    }
-
-    [Hle] int sceRegMgrStartCallback(int callback) => 0;
-    [Hle] int sceRegMgrStopCallback(int callback) => 0;
     [Hle] int sceRegMgrRegisterDrvErrCallback(int callback) => 0;
     [Hle] int sceRegMgrUnregisterDrvErrCallback(int callback) => 0;
 
@@ -233,11 +225,15 @@ public sealed partial class RegMgrSystem : HleModule
     /// <summary>(int region): the product code (SceSblAimgr pscode +2: 0x103 J1, 0x104 US ... 0x10D CN) of a region-table
     /// index, returned directly, as SceRegistryMgr (FW 3.74): 0 is the unit's own code (a North American unit: 0x104,
     /// as _vshSblAimgrGetPscode); 11 is the unit's code only on a test/tool/DEX unit (0x100-0x102); 12 and anything
-    /// past 13 are out of range (0x800D0018). Only the shell process may ask (others: ENOSYS 0x80010058).</summary>
+    /// past 13 are out of range (0x800D0018). Only system programs may ask (ksceSblACMgrIsSystemProgram; others 0x80010058).</summary>
     [Hle]
     int sceRegMgrSrvCnvRegionPsCode(int region)
     {
-        if (!Emu.IsShell) return unchecked((int)0x80010058);
+        if (!Emu.Access.IsSystemProgram)
+        {
+            return ErrNotSystemProgram;
+        }
+
         const int OwnCode = 0x104, OutOfRange = unchecked((int)0x800D0018);
         return region switch
         {
