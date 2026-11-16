@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using VitaSharp.Core.Gpu;
+using VitaSharp.Core.Gxm;
 using VitaSharp.Core.Gxm.Shader;
 using VitaSharp.Core.Hle.Modules;
 using VitaSharp.Core.Memory;
@@ -286,8 +287,36 @@ public sealed class GxmFlowTests : IDisposable
         Assert.NotEqual(GuestMemory.R32(plain), GuestMemory.R32(gles));
         var fragmentPrograms = (System.Collections.Concurrent.ConcurrentDictionary<uint, VitaSharp.Core.Gxm.GxmFragmentProgram>)typeof(Gxm)
             .GetField("_fragmentPrograms", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Gxm)!;
-        Assert.Equal(new byte[] { 1, 0, 2, 3, 4, 5, 6, 7, 8, 9 }, fragmentPrograms[GuestMemory.R32(gles)].TexcoordRemap);
-        Assert.Null(fragmentPrograms[GuestMemory.R32(plain)].TexcoordRemap);
+        ulong packed = fragmentPrograms[GuestMemory.R32(gles)].TexcoordRemap;
+        Assert.Equal(GxmTexcoordRemap.Pack([1, 0, 2, 3, 4, 5, 6, 7, 8, 9]), packed);
+        Assert.Equal(1, GxmTexcoordRemap.Source(packed, 0));
+        Assert.Equal(0, GxmTexcoordRemap.Source(packed, 1));
+        Assert.Equal(9, GxmTexcoordRemap.Source(packed, 9));
+        Assert.Equal(0ul, fragmentPrograms[GuestMemory.R32(plain)].TexcoordRemap);
+        // every entry 0 is a remap too (not the identity's packed 0)
+        for (uint i = 0; i < 10; i++)
+        {
+            GuestMemory.Write(remap + i, (byte)0);
+        }
+
+        uint zeros = Out();
+        Assert.Equal(0, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, remap, new Ptr<uint>(zeros)));
+        Assert.NotEqual(0ul, fragmentPrograms[GuestMemory.R32(zeros)].TexcoordRemap);
+        Assert.Equal(0, GxmTexcoordRemap.Source(fragmentPrograms[GuestMemory.R32(zeros)].TexcoordRemap, 7));
+        // a save state keeps each program's remap (the programs are rebuilt by the load)
+        var writer = new VitaSharp.Core.SaveState.SnapshotWriter();
+        ((VitaSharp.Core.SaveState.ISnapshotState)Gxm).SaveState(writer);
+        ((VitaSharp.Core.SaveState.ISnapshotState)Gxm).LoadState(new VitaSharp.Core.SaveState.SnapshotReader(writer.Data.ToArray()));
+        Assert.Equal(packed, fragmentPrograms[GuestMemory.R32(gles)].TexcoordRemap);
+        Assert.Equal(0ul, fragmentPrograms[GuestMemory.R32(plain)].TexcoordRemap);
+        Assert.NotEqual(0ul, fragmentPrograms[GuestMemory.R32(zeros)].TexcoordRemap);
+        // a released program's remap goes with it
+        Assert.Equal(0, Call(Gxm, "sceGxmShaderPatcherReleaseFragmentProgram", patcher, GuestMemory.R32(zeros)));
+        Assert.False(fragmentPrograms.ContainsKey(GuestMemory.R32(zeros)));
+        var remaps = (ConcurrentDictionary<uint, ulong>)typeof(Gxm)
+            .GetField("_texcoordRemaps", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Gxm)!;
+        Assert.False(remaps.ContainsKey(GuestMemory.R32(zeros)));
+        Assert.True(remaps.ContainsKey(GuestMemory.R32(gles)));
     }
 
     [Fact]

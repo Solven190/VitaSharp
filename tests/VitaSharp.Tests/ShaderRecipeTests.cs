@@ -39,7 +39,8 @@ public class ShaderRecipeTests : IDisposable
                      FragmentHints(fetch: true) with { OutputRegisterFormat = 1, TileWord1 = true },
                      FragmentHints(fetch: true) with { FetchInputSingleSample = true }, VertexHints() with { VaryingMask = 0x31 },
                      VertexHints() with { ScaledPointSize = true }, VertexHints() with { VaryingMask = 0x31, ScaledPointSize = true },
-                     FragmentHints() with { FloatBitsOutput = true } })
+                     FragmentHints() with { FloatBitsOutput = true }, VertexHints() with { TexcoordRemap = 0x0F00000003 },
+                     VertexHints() with { TexcoordRemap = 0x31, VaryingMask = 0x31 } })
         {
             var r = new ShaderRecipe(0x1122334455667788, h.Key(), h.Attributes.Length > 0, h);
             var back = ShaderRecipe.Decode(r.Encode());
@@ -57,6 +58,7 @@ public class ShaderRecipeTests : IDisposable
             Assert.Equal(h.VaryingMask, back.Hints.VaryingMask);
             Assert.Equal(h.ScaledPointSize, back.Hints.ScaledPointSize);
             Assert.Equal(h.FloatBitsOutput, back.Hints.FloatBitsOutput);
+            Assert.Equal(h.TexcoordRemap, back.Hints.TexcoordRemap);
             Assert.Equal(h.Key(), back.Hints.Key());
         }
     }
@@ -151,6 +153,32 @@ public class ShaderRecipeTests : IDisposable
         Assert.Equal(4, withMask[0]);
         Assert.Equal(plain.Length + 8, withMask.Length);
         Assert.Null(ShaderRecipe.Decode(withMask.AsSpan(0, withMask.Length - 1)));
+    }
+
+    [Fact]
+    public void TexcoordRemapVariantsHaveTheirOwnKeyAndLeaveOthersUnchanged()
+    {
+        ShaderHints h = VertexHints();
+        ShaderHints remapped = h with
+        {
+            TexcoordRemap = 0x31
+        };
+        Assert.NotEqual(h.Key(), remapped.Key());
+        Assert.NotEqual(remapped.Key(), (h with
+        {
+            TexcoordRemap = 0x0F00000000
+        }).Key());
+        Assert.Equal(h.Key(), ShaderHints.MixTexcoordRemap(h.Key(), 0));
+        byte[] plain = new ShaderRecipe(1, h.Key(), true, h).Encode();
+        Assert.Equal(2, plain[0]); // records without a remap keep their tag
+        byte[] withRemap = new ShaderRecipe(1, remapped.Key(), true, remapped).Encode();
+        Assert.Equal(5, withRemap[0]);
+        Assert.Equal(plain.Length + 16, withRemap.Length);
+        Assert.Null(ShaderRecipe.Decode(withRemap.AsSpan(0, withRemap.Length - 1)));
+        // a tag 5 record must carry a remap
+        byte[] zero = (byte[])withRemap.Clone();
+        zero.AsSpan(zero.Length - 8).Clear();
+        Assert.Null(ShaderRecipe.Decode(zero));
     }
 
     [Fact]

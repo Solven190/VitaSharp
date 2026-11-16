@@ -46,6 +46,8 @@ public sealed class GpuDumpTests(GuestMemoryFixture fixture) : IDisposable
         Blend = new GxmBlendInfo(0xF, 1, 2, 3, 4, 5, 6),
         OutputFormat = 0x80000000,
         MultisampleMode = 2,
+        // a ForGles remap whose last entry sets the packed value's high byte
+        TexcoordRemap = GxmTexcoordRemap.Pack([3, 1, 2, 0, 4, 5, 6, 7, 8, 0]),
     };
 
     private static DrawCommand Draw(byte[] vu, byte[] fu, uint index)
@@ -88,6 +90,8 @@ public sealed class GpuDumpTests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(a.VertexProgram.Info.Program.Data, b.VertexProgram.Info.Program.Data);
         Assert.Equal(a.FragmentProgram.Blend, b.FragmentProgram.Blend);
         Assert.Equal(a.FragmentProgram.MultisampleMode, b.FragmentProgram.MultisampleMode);
+        Assert.Equal(a.FragmentProgram.IsMaskUpdate, b.FragmentProgram.IsMaskUpdate);
+        Assert.Equal(a.FragmentProgram.TexcoordRemap, b.FragmentProgram.TexcoordRemap);
         Assert.Equal(a.State, b.State);
         Assert.Equal(a.VertexUniformSpan.ToArray(), b.VertexUniformSpan.ToArray());
         Assert.Equal(a.FragmentUniformSpan.ToArray(), b.FragmentUniformSpan.ToArray());

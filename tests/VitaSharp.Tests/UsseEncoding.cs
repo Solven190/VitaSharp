@@ -77,6 +77,34 @@ public sealed class TestShaderProgramTests
         Assert.True(glsl.Contains("layout(location = 0) in"), glsl); // the attribute feeds pa0
     }
 
+    /// <summary>sceGxmShaderPatcherCreateFragmentProgramForGles: fragment TEXCOORDi reads the vertex program's
+    /// TEXCOORD[remap[i]]. The draw's vertex shader writes each location 4 + i from the coordinate its entry names (one
+    /// output feeding several locations, a location whose coordinate the program does not write getting zero), and
+    /// with a varying mask only the locations the fragment program reads.</summary>
+    [Fact]
+    public void TexcoordRemapRoutesTheVertexCoordinatesToTheFragmentLocations()
+    {
+        var p = new VitaSharp.Core.Gxm.Shader.GxpProgram(RendererTextureTests.VertexGxp(), 0x81000000);
+        var plain = new VitaSharp.Core.Gxm.Shader.ShaderHints([], [(0, 4, 9)], 0, false, 0);
+        // fragment TEXCOORD1 and TEXCOORD2 read the program's TEXCOORD0, fragment TEXCOORD0 its TEXCOORD3 (not written)
+        ulong remap = VitaSharp.Core.Gxm.GxmTexcoordRemap.Pack([3, 0, 0, 3, 4, 5, 6, 7, 8, 9]);
+        string glsl = VitaSharp.Core.Gxm.Shader.ShaderGenerator.Generate(p, plain with { TexcoordRemap = remap }).Glsl;
+        Assert.True(glsl.Contains("v_TexCoord1 = vec4(o[1].x, o[1].y, o[1].z, o[1].w);"), glsl);
+        Assert.True(glsl.Contains("v_TexCoord2 = vec4(o[1].x, o[1].y, o[1].z, o[1].w);"), glsl);
+        Assert.False(glsl.Contains("v_TexCoord0 = vec4(o[1]"), glsl);
+        Assert.True(glsl.Contains("v_TexCoord0 = vec4(0.0);"), glsl);
+        Assert.True(glsl.Contains("layout(location = 4) out vec4 v_TexCoord0;"), glsl);
+        Assert.True(glsl.Contains("layout(location = 5) out vec4 v_TexCoord1;"), glsl);
+        // the fragment program reads TEXCOORD1 only (location 5): TEXCOORD2 is neither declared nor written
+        string masked = VitaSharp.Core.Gxm.Shader.ShaderGenerator.Generate(p, plain with { TexcoordRemap = remap, VaryingMask = 1u | (1u << 5) }).Glsl;
+        Assert.True(masked.Contains("v_TexCoord1 = vec4(o[1].x, o[1].y, o[1].z, o[1].w);"), masked);
+        Assert.False(masked.Contains("v_TexCoord2"), masked);
+        Assert.False(masked.Contains("v_TexCoord0"), masked);
+        // the identity (packed 0) is the plain translation, byte for byte
+        Assert.Equal(VitaSharp.Core.Gxm.Shader.ShaderGenerator.Generate(p, plain).Glsl,
+            VitaSharp.Core.Gxm.Shader.ShaderGenerator.Generate(p, plain with { TexcoordRemap = VitaSharp.Core.Gxm.GxmTexcoordRemap.Pack([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) }).Glsl);
+    }
+
     [Fact]
     public void FragmentProgramOutputsTheTexture()
     {

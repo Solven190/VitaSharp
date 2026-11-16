@@ -27,10 +27,16 @@ namespace VitaSharp.Core.Gxm.Shader;
 /// F32F32): the colour goes out as its bits through the surface's integer view (<c>floatBitsToUint</c>,
 /// <see cref="GeneratedShader.RawColorBits"/> 32), so a draw joins a rendering that raw-bit programs keep open on that
 /// view instead of ending it (ShaderGenerator.FloatBitsOutputPossible)</param>
+/// <param name="TexcoordRemap">vertex shaders: the texture coordinate remap of the draw's fragment program
+/// (<see cref="GxmFragmentProgram.TexcoordRemap"/>, sceGxmShaderPatcherCreateFragmentProgramForGles), packed by
+/// <see cref="GxmTexcoordRemap"/>: varying location 4 + i gets the program's TEXCOORD[remap[i]], which fragment
+/// TEXCOORDi reads. 0 = the identity (its own key bit only when set: every other key is unchanged)</param>
 public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int ComponentCount, byte Format)[] Attributes, uint ColorFormat,
     bool FetchInputAttachment = false, uint OutputRegisterFormat = 0, bool TileWord1 = false, bool FetchInputSingleSample = false,
-    uint VaryingMask = 0, bool ScaledPointSize = false, bool FloatBitsOutput = false)
+    uint VaryingMask = 0, bool ScaledPointSize = false, bool FloatBitsOutput = false, ulong TexcoordRemap = 0)
 {
+    /// <summary>Mixed into the key, then the two words of <see cref="TexcoordRemap"/>, when it is set (other keys are unchanged).</summary>
+    public const uint TexcoordRemapKey = 0x54435250;
     /// <summary>Mixed into the key of <see cref="FloatBitsOutput"/> variants (other keys are unchanged).</summary>
     public const uint FloatBitsKey = 0x46425431;
     /// <summary>Mixed into the key of <see cref="ScaledPointSize"/> variants (other keys are unchanged).</summary>
@@ -97,7 +103,19 @@ public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int Comp
             h = Fnv.Mix(h, FloatBitsKey);
         }
 
+        h = MixTexcoordRemap(h, TexcoordRemap);
         return VaryingMask != 0 ? Fnv.Mix(Fnv.Mix(h, VaryingMaskKey), VaryingMask) : h;
+    }
+
+    /// <summary>Mixes <paramref name="texcoordRemap"/> into a key the way <see cref="Key"/> does (nothing for the identity).</summary>
+    public static ulong MixTexcoordRemap(ulong h, ulong texcoordRemap)
+    {
+        if (texcoordRemap == 0)
+        {
+            return h;
+        }
+
+        return Fnv.Mix(Fnv.Mix(Fnv.Mix(h, TexcoordRemapKey), (uint)texcoordRemap), (uint)(texcoordRemap >> 32));
     }
 
     public static class Fnv
@@ -824,7 +842,7 @@ float packC10(vec3 c) {
 
         if (vertex)
         {
-            EmitVertexFinalize(program, t, decl, hints.VaryingMask, hints.ScaledPointSize);
+            EmitVertexFinalize(program, t, decl, hints.VaryingMask, hints.ScaledPointSize, hints.TexcoordRemap);
         }
         else
         {
@@ -1797,7 +1815,10 @@ float packC10(vec3 c) {
         return new System.Runtime.CompilerServices.StrongBox<uint>(other ? 0 : mask | 1);
     }).Value;
 
-    private static void EmitVertexFinalize(GxpProgram program, UsseTranslator usseTranslator, StringBuilder decl, uint varyingMask, bool scaledPointSize)
+    /// <param name="texcoordRemap"><see cref="ShaderHints.TexcoordRemap"/>: with a remap, the program's TEXCOORDj goes to
+    /// every location 4 + i whose entry i is j (none, one or several), instead of location 4 + j</param>
+    private static void EmitVertexFinalize(GxpProgram program, UsseTranslator usseTranslator, StringBuilder decl, uint varyingMask, bool scaledPointSize,
+        ulong texcoordRemap)
     {
         bool Declared(int loc) => varyingMask == 0 || (varyingMask & (1u << loc)) != 0;
         int outputs = program.VertexOutputs(out byte[]? coordInfos);
@@ -1883,6 +1904,22 @@ float packC10(vec3 c) {
                 // GXM point sizes are in guest pixels: at an internal resolution above (or below) native the sprite
                 // covers res_multiplier times as many attachment pixels (Vita3K scales gl_PointSize the same way)
                 usseTranslator.Line(scaledPointSize ? $"gl_PointSize = {usseTranslator.Load(o, 1).E} * rinfo.res_multiplier;" : $"gl_PointSize = {usseTranslator.Load(o, 1).E};");
+            }
+            else if (texcoordRemap != 0 && loc >= 4)
+            {
+                int source = loc - 4;
+                string? value = null;
+                for (int target = 0; target < GxmTexcoordRemap.Length; target++)
+                {
+                    if (GxmTexcoordRemap.Source(texcoordRemap, target) != source || !Declared(4 + target))
+                    {
+                        continue;
+                    }
+
+                    value ??= usseTranslator.Load(o, 0xF).E;
+                    usseTranslator.Line($"v_TexCoord{target} = {value};");
+                    written.Add($"v_TexCoord{target}");
+                }
             }
             else if (Declared(loc))
             {

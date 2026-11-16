@@ -20,8 +20,10 @@ namespace VitaSharp.Core.Gpu;
 public static class GpuDumpFormat
 {
     public static ReadOnlySpan<byte> Magic => "VSGPUDMP"u8;
-    /// <summary>Format version: readers accept files up to this version.</summary>
-    public const uint Version = 1;
+    /// <summary>Format version: readers accept files up to this version. 2: the mask update byte of a fragment program
+    /// record is a flag byte (bit 0 mask update, bit 1 a u32 + u8 texture coordinate remap follows); version 1 files
+    /// read the same.</summary>
+    public const uint Version = 2;
     public const string Extension = ".vsgd";
 
     public const byte ChunkRecords = 1, ChunkEnd = 2;
@@ -37,7 +39,8 @@ public enum GpuDumpRecord : byte
     ProgramInfo = 2,
     /// <summary>var id, var info id, u32 handle, attributes, streams.</summary>
     VertexProgram = 3,
-    /// <summary>var id, var info id + 1 (0 = none), u32 handle, blend, output format, MSAA mode, mask update.</summary>
+    /// <summary>var id, var info id + 1 (0 = none), u32 handle, blend, output format, MSAA mode, flags (bit 0 mask
+    /// update, bit 1 texture coordinate remap), the packed remap's low u32 and high u8 when bit 1 is set.</summary>
     FragmentProgram = 4,
     /// <summary>var length, bytes: the recording backend's GPU-only state at the start (<see cref="IGpuBackend.ExportDumpState"/>).</summary>
     BackendState = 5,
@@ -519,7 +522,14 @@ public sealed class GpuDumpCodec
         }
         w.U32(gxmFragmentProgram.OutputFormat);
         w.U32(gxmFragmentProgram.MultisampleMode);
-        w.Bool(gxmFragmentProgram.IsMaskUpdate);
+        ulong remap = gxmFragmentProgram.TexcoordRemap;
+        w.U8((byte)((gxmFragmentProgram.IsMaskUpdate ? 1 : 0) | (remap != 0 ? 2 : 0)));
+        if (remap != 0)
+        {
+            w.U32((uint)remap);
+            w.U8((byte)(remap >> 32));
+        }
+
         return id;
     }
 
@@ -816,15 +826,23 @@ public sealed class GpuDumpCodec
                 int id = r.VarInt(), info = r.VarInt();
                 uint handle = r.U32();
                 GxmBlendInfo? blend = r.Bool() ? new GxmBlendInfo(r.U8(), r.U8(), r.U8(), r.U8(), r.U8(), r.U8(), r.U8()) : null;
-                Put(_fps, id, new GxmFragmentProgram
+                var fragmentProgram = new GxmFragmentProgram
                 {
                     Handle = handle,
                     Info = info > 0 ? _infos[info - 1] : null!,
                     Blend = blend,
                     OutputFormat = r.U32(),
                     MultisampleMode = r.U32(),
-                    IsMaskUpdate = r.Bool(),
-                });
+                };
+                byte flags = r.U8();
+                fragmentProgram.IsMaskUpdate = (flags & 1) != 0;
+                if ((flags & 2) != 0)
+                {
+                    uint low = r.U32();
+                    fragmentProgram.TexcoordRemap = low | ((ulong)r.U8() << 32);
+                }
+
+                Put(_fps, id, fragmentProgram);
                 break;
             }
             default:
