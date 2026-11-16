@@ -20,6 +20,29 @@ public sealed partial class Gxm
 
     [Hle] int sceGxmInitializedInternal() => _initialized ? 0 : ERR_UNINITIALIZED;
 
+    /// <summary>libgxm's GPU device data (the PVRSRV_DEV_DATA its own data segment holds: services connection and
+    /// device cookie), one block for the process like the module's static data; 0 until first asked for.</summary>
+    [SnapshotMissing] // states of builds before it: allocated again when asked for
+    uint _deviceData;
+
+    /// <summary>sceGxmGetTopContextInternal(): the address of libgxm's device data once sceGxmInitialize has run, NULL
+    /// before (and after sceGxmTerminate).</summary>
+    [Hle(ReturnsValue = true)]
+    uint sceGxmGetTopContextInternal()
+    {
+        if (!_initialized)
+        {
+            return 0;
+        }
+
+        if (_deviceData == 0)
+        {
+            _deviceData = AllocObj(16, "SceGxm device data");
+        }
+
+        return _deviceData;
+    }
+
     /// <summary>(const void *addr, SceSize size, uint flags): 0 when the range lies in memory mapped with
     /// sceGxmMapMemory.</summary>
     [Hle]

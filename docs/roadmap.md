@@ -1370,6 +1370,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Firmware e sistema
 
+- [ ] [P3] GXM: aplicar no tradutor de shaders o remapeamento de coordenadas de textura de
+  `sceGxmShaderPatcherCreateFragmentProgramForGles` (tabela de 10 bytes: TEXCOORDi do fragment lê o TEXCOORD[remap[i]]
+  do vertex). Hoje o programa guarda a tabela (`GxmFragmentProgram.TexcoordRemap`, fora do save state) e o gerador
+  ainda liga TEXCOORDi à saída i; falta o gerador usar a tabela (e a chave de cache do pipeline) e o save state
+  gravá-la, com teste de tradução.
 - [ ] [P3] NpMatching2: o Init do np_matching2 3.74 troca a porta de signaling para 0x2756 numa lista de títulos do
   próprio módulo (a porta padrão é 9305; NID_B096B7A9/NID_40585786 já a definem e leem). Reproduzir lendo a lista do
   np_matching2.suprx instalado (dados do firmware, não do emulador) quando o Matching2 tiver signaling real.

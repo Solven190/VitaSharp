@@ -89,6 +89,9 @@ public sealed class GxmFragmentProgram
     public uint OutputFormat;      // SceGxmOutputRegisterFormat
     public uint MultisampleMode;
     public bool IsMaskUpdate;
+    /// <summary>sceGxmShaderPatcherCreateFragmentProgramForGles's texture coordinate remap (fragment TEXCOORDi reads
+    /// the vertex program's TEXCOORD[remap[i]]), null for the identity.</summary>
+    public byte[]? TexcoordRemap;
     public int RefCount = 1;
     public object? BackendData;
 }

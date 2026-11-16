@@ -1854,6 +1854,62 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
         });
     }
 
+    /// <summary>A guest address that runs <paramref name="body"/> (an HLE host stub).</summary>
+    private uint HostStub(string name, Action<VitaSharp.Core.Hle.HleContext> body)
+    {
+        uint stub = _h.Alloc(16);
+        VitaSharp.Core.Loader.Linker.WriteHleStub(stub, _h.Emu.Hle.RegisterHostFunction(name, body), 0);
+        _h.Emu.Code.Invalidate(stub, 16);
+        return stub;
+    }
+
+    [Fact]
+    public void ExitCallbackEndsTheRunningCallbackWithItsResult()
+    {
+        // _sceKernelExitCallback(result) returns to where the kernel entered the callback: the rest of the callback
+        // does not run, and the result decides as a return would (non-zero deletes the callback)
+        int ran = 0, continued = 0;
+        uint result = 0;
+        uint function = HostStub("threadmgrtest:exit-callback", c =>
+        {
+            ran++;
+            Invoke(Tm, "_sceKernelExitCallback", (int)result);
+            continued++;
+            c.Return(0);
+        });
+        _h.OnGuest(self =>
+        {
+            int cb = Call(Tm, "sceKernelCreateCallback", "exit-cb", 0u, function, 0u);
+            _h.Join(_h.Start(_ => Call(Tm, "sceKernelNotifyCallback", cb, 1), "exit-cb-notify"));
+            Assert.Equal(1, Call(Tm, "sceKernelCheckCallback"));
+            Assert.Equal(1, ran);
+            Assert.Equal(0, continued);
+            Assert.Equal(0, self.CallbackDepth);
+            Assert.Equal(0, Call(Tm, "sceKernelGetCallbackCount", cb)); // result 0: kept
+            result = 1;
+            _h.Join(_h.Start(_ => Call(Tm, "sceKernelNotifyCallback", cb, 2), "exit-cb-notify2"));
+            Assert.Equal(1, Call(Tm, "sceKernelCheckCallback"));
+            Assert.Equal(2, ran);
+            Assert.Equal(0, continued);
+            Assert.Equal(SceError.UNKNOWN_CALLBACK_ID, Call(Tm, "sceKernelGetCallbackCount", cb)); // non-zero: deleted
+        });
+    }
+
+    [Fact]
+    public void ExitCallbackOutsideACallbackEndsTheThread()
+    {
+        // no callback frame to return to: the kernel ends the thread with SCE_KERNEL_ERROR_ILLEGAL_CONTEXT
+        bool continued = false;
+        GuestRun run = _h.Start(_ =>
+        {
+            Call(Tm, "_sceKernelExitCallback", 0);
+            continued = true;
+        }, "exit-cb-outside");
+        _h.Join(run);
+        Assert.False(continued);
+        Assert.Equal(unchecked((int)0x80027101), run.Thread.ExitStatus);
+    }
+
     // ------------------------------------------------------------------ timers
 
     [Fact]

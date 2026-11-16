@@ -1151,7 +1151,16 @@ public sealed partial class ThreadMgr : HleModule
                     arg = cb.NotifyArg;
                     cb.NotifyCount = 0;
                 }
-                uint r = t.CallGuest(cb.Function, (uint)cb.Uid, (uint)count, (uint)arg, cb.Arg);
+                uint r;
+                try
+                {
+                    r = t.CallGuest(cb.Function, (uint)cb.Uid, (uint)count, (uint)arg, cb.Arg);
+                }
+                catch (CallbackExitException exit)
+                {
+                    // _sceKernelExitCallback: the callback ended early with this value
+                    r = exit.Result;
+                }
                 ran++;
                 if (r != 0) K.Objects.Remove(cb.Uid);
             }

@@ -15,9 +15,10 @@ namespace VitaSharp.Core.Hle.Modules;
 /// emulated GPU never locks up, so it answers the kernel's wait timeout after 100 ms.</item>
 /// <item>sceGpu(Un)RegisterSalvage(SceUID): one salvage (crash dump) buffer registration; -1 is refused
 /// (0x804C0000), a second registration is 0x804C000E, unregistering another UID 0x804C0000.</item>
+/// <item>The PowerVR services bridge: PVRSRVOpen connects the calling process to the services (its per-process data,
+/// counted per open) and PVRSRVRelease drops one connection; PVRSRV_BridgeDispatchKM(?, package) takes a 0x1C-byte
+/// PVRSRV_BRIDGE_PACKAGE { bridgeId (0x1000 + index), size, in, inSize, out, outSize, hKernelServices }.</item>
 /// </list>
-/// The PVRSRV bridge (PVRSRVOpen/Release/BridgeDispatchKM) needs the services model of the PowerVR driver, which the
-/// emulator (GXM in HLE) does not have.
 /// </summary>
 public sealed class GpuEs4 : HleModule
 {
@@ -29,6 +30,122 @@ public sealed class GpuEs4 : HleModule
 
     ThreadMgr? _tm;
     ThreadMgr Tm => _tm ??= Emu.Hle.Modules.OfType<ThreadMgr>().First();
+
+    /// <summary>The driver's answer when it cannot copy the package or the buffers, the caller has no services
+    /// connection, or the bridge call is refused (-14, 0xFFFFFFF2).</summary>
+    const int BridgeFault = -14;
+    const uint BridgeIdBase = 0x1000, BridgePackageSize = 0x1C, BridgeCount = 0x94, BridgeBufferMax = 0x1000;
+    const uint BridgeConnectServices = 0x0C, BridgeDisconnectServices = 0x0D;
+
+    /// <summary>The handle of the process's per-process data (hKernelServices) that CONNECT_SERVICES hands out and the
+    /// other bridge calls name.</summary>
+    public const uint KernelServicesHandle = 1;
+
+    /// <summary>PVRSRVOpen calls not yet released: the process has per-process data while it is above 0.</summary>
+    int _servicesConnections;
+
+    /// <summary>PVRSRVOpen(): connects the process to the services (PVRSRVPerProcessDataConnect, then a GPU power
+    /// request); 0, or -1 when the connection fails.</summary>
+    [Hle("PVRSRVOpen")]
+    int PVRSRVOpen()
+    {
+        lock (_lock)
+        {
+            _servicesConnections++;
+        }
+
+        return 0;
+    }
+
+    /// <summary>PVRSRVRelease(): drops one connection of the process (PVRSRVPerProcessDataDisconnect); always 0.</summary>
+    [Hle("PVRSRVRelease")]
+    int PVRSRVRelease()
+    {
+        lock (_lock)
+        {
+            if (_servicesConnections > 0)
+            {
+                _servicesConnections--;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// PVRSRV_BridgeDispatchKM(?, package): copies the package from the caller (-14 when it cannot); CONNECT_SERVICES
+    /// needs the process's per-process data (PVRSRVOpen), every other call a hKernelServices that is the process's;
+    /// then the in/out buffers must be at most 0x1000 bytes and the index below 0x94. Before the services' init
+    /// server has run (it never does here: the emulator has no SGX device to initialise) the driver only accepts
+    /// CONNECT/DISCONNECT_SERVICES and the init server's own connect calls, and refuses the rest with -14; the init
+    /// server calls themselves need the SGX device and are refused too (the "default" part). CONNECT_SERVICES writes
+    /// { eError = PVRSRV_OK, hKernelServices }, DISCONNECT_SERVICES { eError = PVRSRV_OK }.
+    /// </summary>
+    [Hle("PVRSRV_BridgeDispatchKM", Default = true)]
+    int PVRSRV_BridgeDispatchKM(uint unused, uint package)
+    {
+        if (package == 0 || !GuestMemory.IsMapped(package) || !GuestMemory.IsMapped(package + BridgePackageSize - 1))
+        {
+            return BridgeFault;
+        }
+
+        uint bridgeId = GuestMemory.R32(package);
+        uint inBuffer = GuestMemory.R32(package + 8);
+        uint inSize = GuestMemory.R32(package + 12);
+        uint outBuffer = GuestMemory.R32(package + 16);
+        uint outSize = GuestMemory.R32(package + 20);
+        uint kernelServices = GuestMemory.R32(package + 24);
+        bool connected = Volatile.Read(ref _servicesConnections) > 0;
+        if (!connected || (bridgeId != BridgeIdBase + BridgeConnectServices && kernelServices != KernelServicesHandle))
+        {
+            return BridgeFault;
+        }
+
+        uint index = bridgeId - BridgeIdBase;
+        if (inSize > BridgeBufferMax || outSize > BridgeBufferMax || index >= BridgeCount)
+        {
+            return BridgeFault;
+        }
+
+        if (inSize != 0 && (inBuffer == 0 || !GuestMemory.IsMapped(inBuffer) || !GuestMemory.IsMapped(inBuffer + inSize - 1)))
+        {
+            return BridgeFault;
+        }
+
+        if (index == BridgeConnectServices)
+        {
+            WriteBridgeOut(outBuffer, outSize, 0, KernelServicesHandle);
+            return 0;
+        }
+
+        if (index == BridgeDisconnectServices)
+        {
+            WriteBridgeOut(outBuffer, outSize, 0, 0);
+            return 0;
+        }
+
+        return BridgeFault;
+    }
+
+    /// <summary>The driver copies the handler's output (eError, then the call's words) back into the caller's out
+    /// buffer, as many bytes as the package says.</summary>
+    static void WriteBridgeOut(uint outBuffer, uint outSize, uint error, uint second)
+    {
+        if (outBuffer == 0 || outSize == 0 || !GuestMemory.IsMapped(outBuffer) || !GuestMemory.IsMapped(outBuffer + outSize - 1))
+        {
+            return;
+        }
+
+        if (outSize >= 4)
+        {
+            GuestMemory.W32(outBuffer, error);
+        }
+
+        if (outSize >= 8)
+        {
+            GuestMemory.W32(outBuffer + 4, second);
+        }
+    }
 
     [Hle("sceGpuSignalWait")]
     int sceGpuSignalWait(uint count, uint timeoutUs)

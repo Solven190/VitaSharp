@@ -212,6 +212,66 @@ public sealed class GxmFlowTests : IDisposable
     }
 
     [Fact]
+    public void TopContextIsTheDeviceDataOnceInitialized()
+    {
+        // libgxm 3.74 hands out the address of its device data while it is initialized, NULL otherwise
+        Assert.Equal(0u, (uint)Invoke(Gxm, "sceGxmGetTopContextInternal")!);
+        Init();
+        uint top = (uint)Invoke(Gxm, "sceGxmGetTopContextInternal")!;
+        Assert.NotEqual(0u, top);
+        Assert.Equal(top, (uint)Invoke(Gxm, "sceGxmGetTopContextInternal")!);
+        Assert.Equal(0, Call(Gxm, "sceGxmTerminate"));
+        Assert.Equal(0u, (uint)Invoke(Gxm, "sceGxmGetTopContextInternal")!);
+        // the same static block after a new initialize
+        Init();
+        Assert.Equal(top, (uint)Invoke(Gxm, "sceGxmGetTopContextInternal")!);
+        Assert.Equal(0, Call(Gxm, "sceGxmTerminate"));
+    }
+
+    [Fact]
+    public void FragmentProgramForGlesChecksTheRemapAndSharesThePlainProgram()
+    {
+        uint pp = _harness.Alloc(0x40), o = Out();
+        Assert.Equal(0, Call(Gxm, "sceGxmShaderPatcherCreate", pp, new Ptr<uint>(o)));
+        uint patcher = GuestMemory.R32(o);
+        uint fid = Out(), plain = Out(), gles = Out();
+        Assert.Equal(0, Call(Gxm, "sceGxmShaderPatcherRegisterProgram", patcher, Program(true), new Ptr<uint>(fid)));
+        uint id = GuestMemory.R32(fid);
+        const string ForGles = "sceGxmShaderPatcherCreateFragmentProgramForGles";
+        Assert.Equal(INVALID_POINTER, Call(Gxm, ForGles, 0u, id, 0u, 0u, 0u, 0u, 0u, new Ptr<uint>(gles)));
+        Assert.Equal(INVALID_POINTER, Call(Gxm, ForGles, patcher, 0u, 0u, 0u, 0u, 0u, 0u, new Ptr<uint>(gles)));
+        Assert.Equal(INVALID_POINTER, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, 0u, new Ptr<uint>(0)));
+        Assert.Equal(INVALID_VALUE, Call(Gxm, ForGles, patcher, id, 9u, 0u, 0u, 0u, 0u, new Ptr<uint>(gles)));
+        Assert.Equal(INVALID_VALUE, Call(Gxm, ForGles, patcher, id, 0u, 3u, 0u, 0u, 0u, new Ptr<uint>(gles)));
+        // no remap: the program sceGxmShaderPatcherCreateFragmentProgram gives (the patcher's cache)
+        Assert.Equal(0, Call(Gxm, "sceGxmShaderPatcherCreateFragmentProgram", patcher, id, 0u, 0u, 0u, 0u, new Ptr<uint>(plain)));
+        Assert.Equal(0, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, 0u, new Ptr<uint>(gles)));
+        Assert.Equal(GuestMemory.R32(plain), GuestMemory.R32(gles));
+        // the identity remap is no remap
+        uint remap = _harness.Alloc(16);
+        for (uint i = 0; i < 10; i++)
+        {
+            GuestMemory.Write(remap + i, (byte)i);
+        }
+
+        Assert.Equal(0, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, remap, new Ptr<uint>(gles)));
+        Assert.Equal(GuestMemory.R32(plain), GuestMemory.R32(gles));
+        // an entry of 10 or more is refused
+        GuestMemory.Write(remap + 9, (byte)10);
+        Assert.Equal(INVALID_VALUE, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, remap, new Ptr<uint>(gles)));
+        // another remap: its own program, carrying the table
+        GuestMemory.Write(remap, (byte)1);
+        GuestMemory.Write(remap + 1, (byte)0);
+        GuestMemory.Write(remap + 9, (byte)9);
+        Assert.Equal(0, Call(Gxm, ForGles, patcher, id, 0u, 0u, 0u, 0u, remap, new Ptr<uint>(gles)));
+        Assert.NotEqual(GuestMemory.R32(plain), GuestMemory.R32(gles));
+        var fragmentPrograms = (System.Collections.Concurrent.ConcurrentDictionary<uint, VitaSharp.Core.Gxm.GxmFragmentProgram>)typeof(Gxm)
+            .GetField("_fragmentPrograms", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Gxm)!;
+        Assert.Equal(new byte[] { 1, 0, 2, 3, 4, 5, 6, 7, 8, 9 }, fragmentPrograms[GuestMemory.R32(gles)].TexcoordRemap);
+        Assert.Null(fragmentPrograms[GuestMemory.R32(plain)].TexcoordRemap);
+    }
+
+    [Fact]
     public void ContextsTargetsAndSyncObjects()
     {
         Init();

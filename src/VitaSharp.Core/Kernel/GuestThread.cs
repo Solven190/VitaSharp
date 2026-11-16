@@ -20,6 +20,16 @@ public sealed class GuestThreadExitException(int status, bool delete) : Exceptio
     public bool Delete { get; } = delete;
 }
 
+/// <summary>
+/// Thrown by _sceKernelExitCallback to end the running callback with <see cref="Result"/>: the kernel returns to the
+/// point where it entered the callback, past whatever guest frames the callback still has, as if the callback function
+/// had returned that value.
+/// </summary>
+public sealed class CallbackExitException(uint result) : Exception
+{
+    public uint Result { get; } = result;
+}
+
 /// <summary>Thrown when the guest executes an undefined instruction or crashes.</summary>
 public sealed class GuestFaultException(string message) : Exception(message);
 

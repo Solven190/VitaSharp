@@ -135,6 +135,23 @@ public sealed partial class ThreadMgr
     // ---- callbacks
     [Hle] int _sceKernelGetCallbackInfo(int uid, uint info, uint opt) => InfoWithOpt(info, opt, () => sceKernelGetCallbackInfo(uid, info));
 
+    /// <summary>
+    /// _sceKernelExitCallback(result) (threadmgr.skprx 3.74): stores the callback's result in the thread and returns to
+    /// the kernel where it entered the callback, so the callback ends there with that value (non-zero deletes it, as a
+    /// return would). A thread that is not running a callback has no callback frame to return to: the kernel ends the
+    /// thread with SCE_KERNEL_ERROR_ILLEGAL_CONTEXT (0x80027101) as its exit status.
+    /// </summary>
+    [Hle("_sceKernelExitCallback")]
+    int _sceKernelExitCallback(int result)
+    {
+        if (Self.CallbackDepth == 0)
+        {
+            throw new GuestThreadExitException(unchecked((int)0x80027101), false);
+        }
+
+        throw new CallbackExitException((uint)result);
+    }
+
     // ---- timers
     [Hle] int _sceKernelCreateTimer(string name, uint attr, uint opt) => sceKernelCreateTimer(name, attr, opt);
     [Hle] int _sceKernelGetTimerBase(int uid, Ptr<ulong> baseTime) => sceKernelGetTimerBase(uid, baseTime);

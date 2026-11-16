@@ -2458,6 +2458,76 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
+    /// <summary>
+    /// sceGxmShaderPatcherCreateFragmentProgramForGles(patcher, programId, outputFormat, multisampleMode, blendInfo,
+    /// vertexProgram, texcoordRemap, outFp): the fragment program creation libGLES uses, with an optional 10-byte table
+    /// (null = none) that makes fragment texture coordinate i read the vertex program's coordinate texcoordRemap[i].
+    /// NULL patcher, programId or outFp is SCE_GXM_ERROR_INVALID_POINTER, a remap entry of 10 or more (like an output
+    /// format above 8 or a multisample mode above 2) SCE_GXM_ERROR_INVALID_VALUE. Without a remap, or with the identity
+    /// one, it is sceGxmShaderPatcherCreateFragmentProgram; a program with another remap is its own object (the remap
+    /// is kept on it; the shader translator does not apply it yet, see docs/roadmap.md).
+    /// </summary>
+    [Hle]
+    int sceGxmShaderPatcherCreateFragmentProgramForGles(uint patcher, uint programId, uint outputFormat, uint multisampleMode, uint blendInfo,
+        uint vertexProgram, uint texcoordRemap, Ptr<uint> outFp)
+    {
+        if (patcher == 0 || programId == 0 || outFp.Address == 0)
+        {
+            return ERR_INVALID_POINTER;
+        }
+
+        if (outputFormat > 8 || multisampleMode > 2)
+        {
+            return ERR_INVALID_VALUE;
+        }
+
+        byte[]? remap = null;
+        if (texcoordRemap != 0)
+        {
+            bool identity = true;
+            remap = new byte[TexcoordRemapLength];
+            for (int i = 0; i < TexcoordRemapLength; i++)
+            {
+                remap[i] = GuestMemory.Read<byte>(texcoordRemap + (uint)i);
+                if (remap[i] >= TexcoordRemapLength)
+                {
+                    return ERR_INVALID_VALUE;
+                }
+
+                identity &= remap[i] == i;
+            }
+
+            if (identity)
+            {
+                remap = null;
+            }
+        }
+
+        if (remap == null)
+        {
+            return sceGxmShaderPatcherCreateFragmentProgram(patcher, programId, outputFormat, multisampleMode, blendInfo, vertexProgram, outFp);
+        }
+
+        if (!_patchers.ContainsKey(patcher))
+        {
+            return ERR_INVALID_POINTER;
+        }
+
+        uint program = GuestMemory.R32(programId);
+        uint handle = AllocObj(16, "SceGxmFragmentProgram");
+        GuestMemory.W32(handle + 4, program);
+        _fragmentPrograms[handle] = new GxmFragmentProgram
+        {
+            Handle = handle, Info = GxmProgramInfo.Get(program), Blend = GxmBlendInfo.Read(blendInfo), OutputFormat = outputFormat,
+            MultisampleMode = multisampleMode, TexcoordRemap = remap,
+        };
+        outFp.Value = handle;
+        return 0;
+    }
+
+    /// <summary>Entries of the ForGles texture coordinate remap (TEXCOORD0-9).</summary>
+    const int TexcoordRemapLength = 10;
+
     [Hle]
     int sceGxmShaderPatcherCreateMaskUpdateFragmentProgram(uint patcher, Ptr<uint> outFp)
     {

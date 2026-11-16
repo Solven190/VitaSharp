@@ -60,6 +60,59 @@ public sealed class HleBatch13Tests(GuestMemoryFixture fixture) : IDisposable
     }
 
     [Fact]
+    public void PvrServicesBridgeNeedsAConnection()
+    {
+        const int Fault = -14;
+        GpuEs4 g = Module<GpuEs4>();
+        // PVRSRV_BRIDGE_PACKAGE { bridgeId, size, in, inSize, out, outSize, hKernelServices }
+        uint package = Alloc(0x1C), output = Alloc(8);
+        void Package(uint index, uint outSize, uint kernelServices, uint inSize = 0)
+        {
+            GuestMemory.W32(package, 0x1000 + index);
+            GuestMemory.W32(package + 4, 0x1C);
+            GuestMemory.W32(package + 8, inSize == 0 ? 0 : output);
+            GuestMemory.W32(package + 12, inSize);
+            GuestMemory.W32(package + 16, output);
+            GuestMemory.W32(package + 20, outSize);
+            GuestMemory.W32(package + 24, kernelServices);
+        }
+
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, 0u));
+        // CONNECT_SERVICES before PVRSRVOpen: the process has no per-process data
+        Package(0x0C, 8, 0);
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Assert.Equal(0, I(g, "PVRSRVOpen"));
+        GuestMemory.W32(output, 0xFFFFFFFF);
+        Assert.Equal(0, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Assert.Equal(0u, GuestMemory.R32(output)); // eError = PVRSRV_OK
+        uint services = GuestMemory.R32(output + 4);
+        Assert.Equal(GpuEs4.KernelServicesHandle, services);
+        // the other calls name the process's handle
+        Package(0x0D, 4, 0);
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Package(0x0D, 4, services);
+        GuestMemory.W32(output, 0xFFFFFFFF);
+        Assert.Equal(0, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Assert.Equal(0u, GuestMemory.R32(output));
+        // buffers above 0x1000 bytes and indexes from 0x94 are refused
+        Package(0x0C, 0x1001, 0);
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Package(0x94, 4, services);
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        // before the services' init server has run, only the connection calls get through
+        Package(0x01, 4, services, 4);
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        // the connection is counted per open
+        Assert.Equal(0, I(g, "PVRSRVOpen"));
+        Assert.Equal(0, I(g, "PVRSRVRelease"));
+        Package(0x0C, 8, 0);
+        Assert.Equal(0, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Assert.Equal(0, I(g, "PVRSRVRelease"));
+        Assert.Equal(Fault, I(g, "PVRSRV_BridgeDispatchKM", 0u, package));
+        Assert.Equal(0, I(g, "PVRSRVRelease"));
+    }
+
+    [Fact]
     public void GpuSignalWaitReturnsTheCounter()
     {
         GpuEs4 g = Module<GpuEs4>();
