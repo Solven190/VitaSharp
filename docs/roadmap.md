@@ -1658,7 +1658,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (desktop e Android) que sobrepõe o idioma que o jogo recebe (SceSystemParamLang / `/CONFIG/SYSTEM/language`), para
   jogos sem o idioma do aparelho. Caso real: Killzone Mercenary PCSC00045 (lançamento asiático) só tem japonês
   (padrão) e inglês; com o sistema em pt-BR o jogo cai no japonês. Padrão: seguir o idioma do sistema/app
-- [ ] [P3][M] HLE lote 10b (09/11/2026, feat/hle-batch-10b, parado no fim do dia): feito o SceLibMtpHttpWrapper (26), o
+- [x] [P3][M] HLE lote 10b (09/11/2026, feat/hle-batch-10b, parado no fim do dia): feito o SceLibMtpHttpWrapper (26), o
   SceLibMtpHttp (28, libhttp/libssl sobre o MTP numa instância própria e offline do Http/Ssl), o sceHttpSetProxy
   (SceHttp 53B722F2), o SceLibMtp (153: núcleo Init/Start/Stop/End, sem PC conectado = os erros da checagem de conexão
   da biblioteca, configurações locais, callbacks, Wi-Fi sem PC registrado) e o SceMtpClient (163: sem cliente IPC do
@@ -1668,6 +1668,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   filhos, +0x29 nil, +0x18 tipo (0 int64 em +0x20, 1 string em *(+0x20)); chaves como 0xA1541070 nome, 0x21CA76B1
   categoria), o email_engine (223: classes C++ com vtables do módulo, getters/setters, construtores e destrutores) e os
   helpers do ScePsp2Compat. Falta validar o shell headless com este build (só testes de unidade).
+  Fechado (16/11/2026, conferido no código e no histórico): o lote entrou na main pelo lote 11 (c1fa95cc, 1fb77663),
+  com o shell e os apps do sistema validados sem cabeça ali; `HleBatch10bTests` segue na suíte. Os próximos passos
+  foram feitos depois: SceLsdb (getters do AppInfo no lote 12, hoje o módulo HLE `Lsdb`), SceEmailEngine (98
+  acessores no lote 12) e os helpers do ScePsp2Compat (~60 no lote 12, ~65 da camada POSIX no lote 13b). O que ainda
+  falta está nos registros dos lotes: o lado de banco do SceLsdb em "Não feito" do lote 12; o resto do SceEmailEngine
+  e do ScePsp2Compat (classes com vtables do módulo) em "Sobrou" do lote 13b.
 - [x] Diálogos comuns com interface de verdade (08/11/2026): o sceMsgDialog (e os outros diálogos comuns sem UI)
   respondia sozinho; hoje um SIM/NÃO responde SIM, menos logo depois de um NetCheckDialog cancelado, quando responde NÃO
   uma vez (282ec7d, 99Vidas sem rede). Como no Vita3K, mostrar o diálogo por cima do jogo e deixar o usuário escolher
