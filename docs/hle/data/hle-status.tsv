@@ -9,7 +9,7 @@ SceActivityDb	vs0:sys/external/activity_db.suprx	78	78	0	0	57	57	0	0	0	78
 SceAppMgr	os0:kd/bootimage.skprx/SceAppMgr	191	191	5	5	172	172	0	0	0	0
 SceAppMgrUser	os0:us/driver_us.suprx	128	128	10	10	99	99	0	0	0	0
 SceAppSettings	vs0:vsh/common/app_settings.suprx	24	24	0	0	15	15	0	0	0	24
-SceAppUtil	vs0:sys/external/apputil.suprx	56	54	33	33	9	9	0	0	0	0
+SceAppUtil	vs0:sys/external/apputil.suprx	56	56	33	33	9	9	0	0	0	0
 SceAppUtilAddcontForce	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	0
 SceAppUtilAppEventUserDefined	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	1
 SceAppUtilBook	vs0:sys/external/apputil.suprx	2	2	0	0	0	0	0	0	0	0
@@ -46,7 +46,7 @@ SceCamera	os0:kd/bootimage.skprx/SceCamera	46	46	23	23	9	9	0	0	0	0
 SceClipboard	vs0:sys/external/libclipboard.suprx	2	2	2	2	0	0	0	0	0	0
 SceCodecEngineUser	os0:us/avcodec_us.suprx	6	6	4	4	2	2	0	0	0	0
 SceCodecEngineWrapper	os0:kd/bootimage.skprx/SceCodecEngineWrapper	16	16	0	0	6	6	0	0	0	0
-SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	160	83	83	58	58	0	0	0	0
+SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	163	83	83	58	58	0	0	0	0
 SceCommonDialogMain	vs0:sys/external/libcdlg_main.suprx	15	15	0	0	11	11	0	0	0	15
 SceCommonGuiDialog	vs0:sys/external/common_gui_dialog.suprx	54	54	0	0	40	40	0	0	0	54
 SceCompanionUtil	vs0:sys/external/libSceCompanionUtil.suprx	14	14	0	0	14	14	0	0	0	14
@@ -97,7 +97,7 @@ SceGxmInternalForVsh	os0:us/libgxm_es4.suprx	5	5	1	1	4	4	0	0	0	0
 SceHandwriting	vs0:sys/external/libhandwriting.suprx	11	11	0	0	0	0	0	0	0	0
 SceHid	os0:kd/bootimage.skprx/SceHid	28	28	4	4	7	7	0	0	0	0
 SceHostAvch	vs0:vsh/common/av_content_handler.suprx	155	155	0	0	96	96	0	0	0	155
-SceHttp	vs0:sys/external/libhttp.suprx	116	100	46	46	20	20	0	0	0	2
+SceHttp	vs0:sys/external/libhttp.suprx	116	116	46	46	20	20	2	0	0	2
 SceIme	vs0:sys/external/libime.suprx	6	6	6	6	0	0	0	0	0	0
 SceImeVsh	vs0:sys/external/libime.suprx	17	17	0	0	0	0	0	0	0	17
 SceIncomingDialog	vs0:sys/external/incoming_dialog.suprx	6	6	0	0	2	2	0	0	0	0
@@ -160,7 +160,7 @@ SceNearUtil	vs0:sys/external/libSceNearUtil.suprx	49	49	46	46	0	0	0	0	0	0
 SceNet	vs0:sys/external/libnet.suprx	62	62	47	47	4	4	0	0	0	0
 SceNetAdhocMatching	vs0:sys/external/adhoc_matching.suprx	14	14	13	13	0	0	0	0	0	0
 SceNetCtl	vs0:sys/external/libnetctl.suprx	112	112	16	16	76	76	0	0	0	0
-SceNetInternal	vs0:sys/external/libnet.suprx	58	46	0	0	45	45	4	0	4	0
+SceNetInternal	vs0:sys/external/libnet.suprx	58	58	0	0	45	45	5	0	4	0
 SceNetPsForSyscalls	os0:kd/bootimage.skprx/SceNetPs	34	34	0	0	34	34	0	0	0	0
 SceNgs	vs0:sys/external/libngs.suprx	68	68	55	55	0	0	0	0	0	0
 SceNgsInternal	os0:kd/bootimage.skprx/SceNgs	62	62	0	0	61	61	5	0	5	0
@@ -169,16 +169,16 @@ SceNotificationUtilBgApp	vs0:sys/external/notification_util.suprx	1	1	0	0	0	0	0	
 SceNotificationUtilProgress	vs0:sys/external/notification_util.suprx	3	3	0	0	0	0	0	0	0	0
 SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
-SceNpBasic	vs0:sys/external/np_basic.suprx	41	34	25	25	4	4	0	0	0	0
+SceNpBasic	vs0:sys/external/np_basic.suprx	41	41	25	25	4	4	6	0	0	0
 SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	502	41	41	391	391	0	0	0	0
-SceNpCommon	vs0:sys/external/np_common.suprx	71	69	14	14	50	50	0	0	0	0
+SceNpCommon	vs0:sys/external/np_common.suprx	71	71	14	14	50	50	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
 SceNpDrm	os0:kd/bootimage.skprx/SceNpDrm	8	8	0	0	8	8	6	0	6	0
 SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
 SceNpFriendPrivacyLevel	vs0:sys/external/np_friend_privacylevel.suprx	16	16	0	0	8	8	0	0	0	16
 SceNpGriefReport	vs0:vsh/common/np_grief_report.suprx	18	18	0	0	14	14	0	0	0	18
 SceNpKdc	vs0:sys/external/np_kdc.suprx	7	7	0	0	7	7	0	0	0	7
-SceNpManager	vs0:sys/external/np_manager.suprx	91	84	15	15	65	65	0	0	0	0
+SceNpManager	vs0:sys/external/np_manager.suprx	91	91	15	15	65	65	7	0	0	0
 SceNpManagerOAuth	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerSP	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerTicket	vs0:sys/external/np_manager.suprx	5	5	0	0	0	0	0	0	0	5
@@ -195,7 +195,7 @@ SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	31	15	15	16	16	10	0	10	0
 SceNpTus	vs0:sys/external/np_tus.suprx	67	67	46	46	0	0	0	0	0	0
 SceNpUtility	vs0:sys/external/np_utility.suprx	140	80	33	33	46	46	30	0	30	0
 SceNpUtilityAvatarN	vs0:sys/external/np_utility.suprx	2	2	0	0	0	0	0	0	0	2
-SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	60	19	19	25	25	1	0	1	0
+SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	63	19	19	25	25	1	0	1	0
 SceNpWebApiCommonDialog	vs0:sys/external/libcdlg.suprx	10	10	8	8	2	2	0	0	0	0
 ScePafCommon	vs0:sys/external/libpaf.suprx	176	176	0	0	72	72	0	0	0	176
 ScePafGraphics	vs0:sys/external/libpaf.suprx	686	686	0	0	214	214	0	0	0	686
@@ -244,7 +244,7 @@ SceScreenShot	vs0:sys/external/libSceScreenShot.suprx	9	9	5	5	1	1	0	0	0	0
 SceSecondScreen	vs0:app/NPXS10013/libSceSecondScreen.suprx	3	3	0	0	3	3	0	0	0	3
 SceSensMe	vs0:vsh/common/mms/SensMe.suprx	21	21	0	0	18	18	0	0	0	21
 SceSharedFb	os0:kd/bootimage.skprx/SceAppMgr	12	12	5	5	7	7	0	0	0	0
-SceShell	vs0:vsh/shell/shell.self	33	27	0	0	27	27	26	0	26	0
+SceShell	vs0:vsh/shell/shell.self	33	33	0	0	27	27	32	0	26	0
 SceShellSvc	vs0:sys/external/libshellsvc.suprx	10	10	0	0	9	9	0	0	0	10
 SceShellUtil	vs0:sys/external/libshellsvc.suprx	40	40	0	0	34	34	0	0	0	40
 SceShellUtilLaunchApp	vs0:sys/external/libshellsvc.suprx	1	1	0	0	0	0	0	0	0	1
@@ -268,7 +268,7 @@ SceTeleportServer	vs0:sys/external/libSceTeleportServer.suprx	1	1	0	0	1	1	0	0	0	
 SceThreadmgr	os0:kd/threadmgr.skprx	184	184	54	54	102	102	0	0	0	1
 SceTiffPromoter	vs0:vsh/common/mms/tiff_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceTouch	os0:kd/bootimage.skprx/SceTouch	27	27	7	7	12	12	0	0	0	0
-SceTriggerUtil	vs0:sys/external/trigger_util.suprx	19	15	0	0	12	12	3	0	3	0
+SceTriggerUtil	vs0:sys/external/trigger_util.suprx	19	19	0	0	12	12	7	0	3	0
 SceUdcd	os0:kd/bootimage.skprx/SceUdcd	8	8	0	0	7	7	0	0	0	0
 SceUlobjDbg	vs0:sys/external/libfiber.suprx	2	2	2	2	0	0	0	0	0	0
 SceUlobjMgr	os0:kd/bootimage.skprx/SceUlobjMgr	3	3	1	1	2	2	0	0	0	0

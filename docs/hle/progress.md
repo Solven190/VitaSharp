@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
 | System imports | 7,276 | 6,907 | 369 | 0 | 7,320 | 99.3% |
-| General | 9,731 | 9,477 | 254 | 0 | 9,944 | 97.8% |
-| All firmware 3.74 exports | 19,149 | 5,029 | 629 | 13,491 | 19,406 | 98.6% |
+| General | 9,793 | 9,513 | 280 | 0 | 9,944 | 98.4% |
+| All firmware 3.74 exports | 19,211 | 5,065 | 655 | 13,491 | 19,406 | 98.9% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -296,7 +296,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceAppMgr | `os0:kd/bootimage.skprx/SceAppMgr` | 191 / 191 | 100% | - | 5 / 5 | 172 / 172 |
 | SceAppMgrUser | `os0:us/driver_us.suprx` | 128 / 128 | 100% | - | 10 / 10 | 99 / 99 |
 | SceAppSettings | `vs0:vsh/common/app_settings.suprx` | 24 / 24 | 100% | - | - | 15 / 15 |
-| SceAppUtil | `vs0:sys/external/apputil.suprx` | 54 / 56 | 96.4% | - | 33 / 33 | 9 / 9 |
+| SceAppUtil | `vs0:sys/external/apputil.suprx` | 56 / 56 | 100% | - | 33 / 33 | 9 / 9 |
 | SceAppUtilAddcontForce | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilAppEventUserDefined | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilBook | `vs0:sys/external/apputil.suprx` | 2 / 2 | 100% | - | - | - |
@@ -333,7 +333,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceClipboard | `vs0:sys/external/libclipboard.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceCodecEngineUser | `os0:us/avcodec_us.suprx` | 6 / 6 | 100% | - | 4 / 4 | 2 / 2 |
 | SceCodecEngineWrapper | `os0:kd/bootimage.skprx/SceCodecEngineWrapper` | 16 / 16 | 100% | - | - | 6 / 6 |
-| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 160 / 163 | 98.1% | - | 83 / 83 | 58 / 58 |
+| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 163 / 163 | 100% | - | 83 / 83 | 58 / 58 |
 | SceCommonDialogMain | `vs0:sys/external/libcdlg_main.suprx` | 15 / 15 | 100% | - | - | 11 / 11 |
 | SceCommonGuiDialog | `vs0:sys/external/common_gui_dialog.suprx` | 54 / 54 | 100% | - | - | 40 / 40 |
 | SceCompanionUtil | `vs0:sys/external/libSceCompanionUtil.suprx` | 14 / 14 | 100% | - | - | 14 / 14 |
@@ -384,7 +384,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceHandwriting | `vs0:sys/external/libhandwriting.suprx` | 11 / 11 | 100% | - | - | - |
 | SceHid | `os0:kd/bootimage.skprx/SceHid` | 28 / 28 | 100% | - | 4 / 4 | 7 / 7 |
 | SceHostAvch | `vs0:vsh/common/av_content_handler.suprx` | 155 / 155 | 100% | - | - | 96 / 96 |
-| SceHttp | `vs0:sys/external/libhttp.suprx` | 100 / 116 | 86.2% | - | 46 / 46 | 20 / 20 |
+| SceHttp | `vs0:sys/external/libhttp.suprx` | 116 / 116 | 100% | 2 | 46 / 46 | 20 / 20 |
 | SceIme | `vs0:sys/external/libime.suprx` | 6 / 6 | 100% | - | 6 / 6 | - |
 | SceImeVsh | `vs0:sys/external/libime.suprx` | 17 / 17 | 100% | - | - | - |
 | SceIncomingDialog | `vs0:sys/external/incoming_dialog.suprx` | 6 / 6 | 100% | - | - | 2 / 2 |
@@ -447,7 +447,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNet | `vs0:sys/external/libnet.suprx` | 62 / 62 | 100% | - | 47 / 47 | 4 / 4 |
 | SceNetAdhocMatching | `vs0:sys/external/adhoc_matching.suprx` | 14 / 14 | 100% | - | 13 / 13 | - |
 | SceNetCtl | `vs0:sys/external/libnetctl.suprx` | 112 / 112 | 100% | - | 16 / 16 | 76 / 76 |
-| SceNetInternal | `vs0:sys/external/libnet.suprx` | 46 / 58 | 79.3% | 4 | - | 45 / 45 |
+| SceNetInternal | `vs0:sys/external/libnet.suprx` | 58 / 58 | 100% | 5 | - | 45 / 45 |
 | SceNetPsForSyscalls | `os0:kd/bootimage.skprx/SceNetPs` | 34 / 34 | 100% | - | - | 34 / 34 |
 | SceNgs | `vs0:sys/external/libngs.suprx` | 68 / 68 | 100% | - | 55 / 55 | - |
 | SceNgsInternal | `os0:kd/bootimage.skprx/SceNgs` | 62 / 62 | 100% | 5 | - | 61 / 61 |
@@ -456,16 +456,16 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNotificationUtilProgress | `vs0:sys/external/notification_util.suprx` | 3 / 3 | 100% | - | - | - |
 | SceNpActivity | `vs0:sys/external/np_activity_sdk.suprx` | 4 / 4 | 100% | - | 3 / 3 | - |
 | SceNpActivityNet | `vs0:sys/external/np_activity.suprx` | 30 / 30 | 100% | - | - | 26 / 26 |
-| SceNpBasic | `vs0:sys/external/np_basic.suprx` | 34 / 41 | 82.9% | - | 25 / 25 | 4 / 4 |
+| SceNpBasic | `vs0:sys/external/np_basic.suprx` | 41 / 41 | 100% | 6 | 25 / 25 | 4 / 4 |
 | SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 502 / 502 | 100% | - | 41 / 41 | 391 / 391 |
-| SceNpCommon | `vs0:sys/external/np_common.suprx` | 69 / 71 | 97.1% | - | 14 / 14 | 50 / 50 |
+| SceNpCommon | `vs0:sys/external/np_common.suprx` | 71 / 71 | 100% | - | 14 / 14 | 50 / 50 |
 | SceNpCommonPs4 | `vs0:sys/external/np_common_ps4.suprx` | 713 / 713 | 100% | - | - | 246 / 246 |
 | SceNpDrm | `os0:kd/bootimage.skprx/SceNpDrm` | 8 / 8 | 100% | 6 | - | 8 / 8 |
 | SceNpDrmPackage | `os0:kd/bootimage.skprx/SceNpDrm` | 16 / 16 | 100% | 3 | - | 16 / 16 |
 | SceNpFriendPrivacyLevel | `vs0:sys/external/np_friend_privacylevel.suprx` | 16 / 16 | 100% | - | - | 8 / 8 |
 | SceNpGriefReport | `vs0:vsh/common/np_grief_report.suprx` | 18 / 18 | 100% | - | - | 14 / 14 |
 | SceNpKdc | `vs0:sys/external/np_kdc.suprx` | 7 / 7 | 100% | - | - | 7 / 7 |
-| SceNpManager | `vs0:sys/external/np_manager.suprx` | 84 / 91 | 92.3% | - | 15 / 15 | 65 / 65 |
+| SceNpManager | `vs0:sys/external/np_manager.suprx` | 91 / 91 | 100% | 7 | 15 / 15 | 65 / 65 |
 | SceNpManagerOAuth | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerSP | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerTicket | `vs0:sys/external/np_manager.suprx` | 5 / 5 | 100% | - | - | - |
@@ -482,7 +482,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpTus | `vs0:sys/external/np_tus.suprx` | 67 / 67 | 100% | - | 46 / 46 | - |
 | SceNpUtility | `vs0:sys/external/np_utility.suprx` | 80 / 140 | 57.1% | 30 | 33 / 33 | 46 / 46 |
 | SceNpUtilityAvatarN | `vs0:sys/external/np_utility.suprx` | 2 / 2 | 100% | - | - | - |
-| SceNpWebApi | `vs0:sys/external/np_webapi.suprx` | 60 / 63 | 95.2% | 1 | 19 / 19 | 25 / 25 |
+| SceNpWebApi | `vs0:sys/external/np_webapi.suprx` | 63 / 63 | 100% | 1 | 19 / 19 | 25 / 25 |
 | SceNpWebApiCommonDialog | `vs0:sys/external/libcdlg.suprx` | 10 / 10 | 100% | - | 8 / 8 | 2 / 2 |
 | ScePafCommon | `vs0:sys/external/libpaf.suprx` | 176 / 176 | 100% | - | - | 72 / 72 |
 | ScePafGraphics | `vs0:sys/external/libpaf.suprx` | 686 / 686 | 100% | - | - | 214 / 214 |
@@ -531,7 +531,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSecondScreen | `vs0:app/NPXS10013/libSceSecondScreen.suprx` | 3 / 3 | 100% | - | - | 3 / 3 |
 | SceSensMe | `vs0:vsh/common/mms/SensMe.suprx` | 21 / 21 | 100% | - | - | 18 / 18 |
 | SceSharedFb | `os0:kd/bootimage.skprx/SceAppMgr` | 12 / 12 | 100% | - | 5 / 5 | 7 / 7 |
-| SceShell | `vs0:vsh/shell/shell.self` | 27 / 33 | 81.8% | 26 | - | 27 / 27 |
+| SceShell | `vs0:vsh/shell/shell.self` | 33 / 33 | 100% | 32 | - | 27 / 27 |
 | SceShellSvc | `vs0:sys/external/libshellsvc.suprx` | 10 / 10 | 100% | - | - | 9 / 9 |
 | SceShellUtil | `vs0:sys/external/libshellsvc.suprx` | 40 / 40 | 100% | - | - | 34 / 34 |
 | SceShellUtilLaunchApp | `vs0:sys/external/libshellsvc.suprx` | 1 / 1 | 100% | - | - | - |
@@ -555,7 +555,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceThreadmgr | `os0:kd/threadmgr.skprx` | 184 / 184 | 100% | - | 54 / 54 | 102 / 102 |
 | SceTiffPromoter | `vs0:vsh/common/mms/tiff_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | SceTouch | `os0:kd/bootimage.skprx/SceTouch` | 27 / 27 | 100% | - | 7 / 7 | 12 / 12 |
-| SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 15 / 19 | 78.9% | 3 | - | 12 / 12 |
+| SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 19 / 19 | 100% | 7 | - | 12 / 12 |
 | SceUdcd | `os0:kd/bootimage.skprx/SceUdcd` | 8 / 8 | 100% | - | - | 7 / 7 |
 | SceUlobjDbg | `vs0:sys/external/libfiber.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceUlobjMgr | `os0:kd/bootimage.skprx/SceUlobjMgr` | 3 / 3 | 100% | - | 1 / 1 | 2 / 2 |

@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=44 general=213 vitasdk=0
+# firmware=3.74 games=0 system=44 general=151 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceSslInternal	0x04BAED82	NID_04BAED82	vs0:sys/external/libssl.suprx	0	1	vs0:sys/external/libhttp.suprx
@@ -46,11 +46,6 @@ system	SceSslInternal	0xD68D8421	NID_D68D8421	vs0:sys/external/libssl.suprx	0	1	
 system	SceSslInternal	0xE746465E	NID_E746465E	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
 system	SceSslInternal	0xEF9EBAC7	NID_EF9EBAC7	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
 system	SceSslInternal	0xFFE2ED51	NID_FFE2ED51	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
-general	SceAppUtil	0x1E2A6158	NID_1E2A6158	vs0:sys/external/apputil.suprx	0	0	-
-general	SceAppUtil	0x7DA34311	NID_7DA34311	vs0:sys/external/apputil.suprx	0	0	-
-general	SceCommonDialog	0x2CD0649B	NID_2CD0649B	vs0:sys/external/libcdlg.suprx	0	0	-
-general	SceCommonDialog	0x64D21971	NID_64D21971	vs0:sys/external/libcdlg.suprx	0	0	-
-general	SceCommonDialog	0xD474A749	NID_D474A749	vs0:sys/external/libcdlg.suprx	0	0	-
 general	SceGpuEs4User	0x09BB98B2	NID_09BB98B2	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0x768482F6	NID_768482F6	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0x9A4A5DAE	NID_9A4A5DAE	os0:us/libgpu_es4.suprx	0	0	-
@@ -58,50 +53,6 @@ general	SceGpuEs4User	0x9E8E2957	NID_9E8E2957	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xAAD85460	NID_AAD85460	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xC0D16CE5	NID_C0D16CE5	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xCCEE0336	NID_CCEE0336	os0:us/libgpu_es4.suprx	0	0	-
-general	SceHttp	0x031EBD2A	NID_031EBD2A	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x0B0D8E7A	NID_0B0D8E7A	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x0CC59EF6	NID_0CC59EF6	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x11C9BCE8	NID_11C9BCE8	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x175685B8	NID_175685B8	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x30F5D11F	NID_30F5D11F	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x42108FBE	NID_42108FBE	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x54847CFE	NID_54847CFE	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x802E3C30	NID_802E3C30	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x80E6013D	NID_80E6013D	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0x88116DB8	NID_88116DB8	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0xB0E41827	NID_B0E41827	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0xC498765A	NID_C498765A	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0xE0825488	NID_E0825488	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0xF8885CFD	NID_F8885CFD	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceHttp	0xFE60380A	NID_FE60380A	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceNetInternal	0x0F83B7A9	NID_0F83B7A9	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x4054D2D8	NID_4054D2D8	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x65AFF9BE	NID_65AFF9BE	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x7FD92AE7	NID_7FD92AE7	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x853EEABE	NID_853EEABE	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x873DE778	NID_873DE778	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0x97527BDB	NID_97527BDB	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0xA64CFBF5	NID_A64CFBF5	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0xAAA34850	NID_AAA34850	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0xE2F6CAEA	NID_E2F6CAEA	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0xF9E3A8B7	NID_F9E3A8B7	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNetInternal	0xFE8C89AE	NID_FE8C89AE	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNpBasic	0x0C9BAF57	NID_0C9BAF57	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0x375EABF2	NID_375EABF2	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0x748925A4	NID_748925A4	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0x999CC1E9	NID_999CC1E9	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0xA1C1A8E2	NID_A1C1A8E2	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0xA6BFBBFF	NID_A6BFBBFF	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpBasic	0xB93ADCDA	NID_B93ADCDA	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpCommon	0x13293ADC	NID_13293ADC	vs0:sys/external/np_common.suprx	0	0	-
-general	SceNpCommon	0x92DF18F6	NID_92DF18F6	vs0:sys/external/np_common.suprx	0	0	-
-general	SceNpManager	0x06EBD8B1	NID_06EBD8B1	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0x2EA038D8	NID_2EA038D8	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0x8C6EACC4	NID_8C6EACC4	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0xBA49FD24	NID_BA49FD24	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0xBBCD1B6D	NID_BBCD1B6D	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0xC7F6ADC4	NID_C7F6ADC4	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpManager	0xC80D8C3E	NID_C80D8C3E	vs0:sys/external/np_manager.suprx	0	0	-
 general	SceNpSnsFacebook	0x0CDD6B52	NID_0CDD6B52	vs0:sys/external/np_sns_facebook.suprx	0	0	-
 general	SceNpSnsFacebook	0x0FEBCA93	NID_0FEBCA93	vs0:sys/external/np_sns_facebook.suprx	0	0	-
 general	SceNpSnsFacebook	0x1375638F	NID_1375638F	vs0:sys/external/np_sns_facebook.suprx	0	0	-
@@ -221,15 +172,6 @@ general	SceNpUtility	0xF32ED701	NID_F32ED701	vs0:sys/external/np_utility.suprx	0
 general	SceNpUtility	0xF5086697	NID_F5086697	vs0:sys/external/np_utility.suprx	0	0	-
 general	SceNpUtility	0xF73C4411	NID_F73C4411	vs0:sys/external/np_utility.suprx	0	0	-
 general	SceNpUtility	0xFF9F1571	NID_FF9F1571	vs0:sys/external/np_utility.suprx	0	0	-
-general	SceNpWebApi	0x1140FA82	NID_1140FA82	vs0:sys/external/np_webapi.suprx	0	0	-
-general	SceNpWebApi	0x6E6AFA39	NID_6E6AFA39	vs0:sys/external/np_webapi.suprx	0	0	-
-general	SceNpWebApi	0x93BBA612	NID_93BBA612	vs0:sys/external/np_webapi.suprx	0	0	-
-general	SceShell	0x5928D835	NID_5928D835	vs0:vsh/shell/shell.self	0	0	-
-general	SceShell	0x6B8772A2	NID_6B8772A2	vs0:vsh/shell/shell.self	0	0	-
-general	SceShell	0x794BF5BE	NID_794BF5BE	vs0:vsh/shell/shell.self	0	0	-
-general	SceShell	0x7AD86CE1	NID_7AD86CE1	vs0:vsh/shell/shell.self	0	0	-
-general	SceShell	0x871A8E92	NID_871A8E92	vs0:vsh/shell/shell.self	0	0	-
-general	SceShell	0xA25CD3F2	NID_A25CD3F2	vs0:vsh/shell/shell.self	0	0	-
 general	SceSslInternal	0x00ABEBC3	NID_00ABEBC3	vs0:sys/external/libssl.suprx	0	0	-
 general	SceSslInternal	0x05F6A292	NID_05F6A292	vs0:sys/external/libssl.suprx	0	0	-
 general	SceSslInternal	0x09657E15	NID_09657E15	vs0:sys/external/libssl.suprx	0	0	-
@@ -255,7 +197,3 @@ general	SceSslInternal	0xDEC6DD27	NID_DEC6DD27	vs0:sys/external/libssl.suprx	0	0
 general	SceSslInternal	0xF4007DBE	NID_F4007DBE	vs0:sys/external/libssl.suprx	0	0	-
 general	SceSslInternal	0xFB51AE89	NID_FB51AE89	vs0:sys/external/libssl.suprx	0	0	-
 general	SceSslInternal	0xFEFE761C	NID_FEFE761C	vs0:sys/external/libssl.suprx	0	0	-
-general	SceTriggerUtil	0x1B615264	NID_1B615264	vs0:sys/external/trigger_util.suprx	0	0	-
-general	SceTriggerUtil	0x2AD6A378	NID_2AD6A378	vs0:sys/external/trigger_util.suprx	0	0	-
-general	SceTriggerUtil	0x845BF533	NID_845BF533	vs0:sys/external/trigger_util.suprx	0	0	-
-general	SceTriggerUtil	0x921FF8E1	NID_921FF8E1	vs0:sys/external/trigger_util.suprx	0	0	-

@@ -357,6 +357,8 @@
 0xD58DE5C7	NID_D58DE5C7	FirmwareConstants	SceAppSettings	-
 0xED46CAFD	NID_ED46CAFD	FirmwareConstants	SceAppSettings	-
 0x1CFFE892	NID_1CFFE892	AppUtil	SceAppUtil	-
+0x1E2A6158	NID_1E2A6158	AppUtil	SceAppUtil	-
+0x7DA34311	NID_7DA34311	AppUtil	SceAppUtil	-
 0xA3E0694F	NID_A3E0694F	AppUtil	SceAppUtil	-
 0xB2FE3BB1	NID_B2FE3BB1	AppUtil	SceAppUtil	-
 0xC0418B1C	NID_C0418B1C	AppUtil	SceAppUtil	-
@@ -956,6 +958,7 @@
 0x075E4490	NID_075E4490	CommonDialog	SceCommonDialog	-
 0x089FB01E	NID_089FB01E	CommonDialog	SceCommonDialog	-
 0x243D6A36	NID_243D6A36	CommonDialog	SceCommonDialog	-
+0x2CD0649B	NID_2CD0649B	CommonDialog	SceCommonDialog	-
 0x35387E0C	NID_35387E0C	CommonDialog	SceCommonDialog	-
 0x396D7B68	NID_396D7B68	CommonDialog	SceCommonDialog	-
 0x3D3F9AD6	NID_3D3F9AD6	CommonDialog	SceCommonDialog	-
@@ -968,6 +971,7 @@
 0x62B60B87	NID_62B60B87	CommonDialog	SceCommonDialog	-
 0x631DC45C	NID_631DC45C	CommonDialog	SceCommonDialog	-
 0x63B08CA3	NID_63B08CA3	CommonDialog	SceCommonDialog	-
+0x64D21971	NID_64D21971	CommonDialog	SceCommonDialog	-
 0x64F65B8D	NID_64F65B8D	CommonDialog	SceCommonDialog	-
 0x675248CA	NID_675248CA	CommonDialog	SceCommonDialog	-
 0x7030E4A6	NID_7030E4A6	CommonDialog	SceCommonDialog	-
@@ -980,6 +984,7 @@
 0xAC20DAF9	NID_AC20DAF9	CommonDialog	SceCommonDialog	-
 0xC2D6F7F2	NID_C2D6F7F2	CommonDialog	SceCommonDialog	-
 0xC36C7DD1	NID_C36C7DD1	CommonDialog	SceCommonDialog	-
+0xD474A749	NID_D474A749	CommonDialog	SceCommonDialog	-
 0xE7F645AE	NID_E7F645AE	CommonDialog	SceCommonDialog	-
 0xED2F1495	NID_ED2F1495	CommonDialog	SceCommonDialog	-
 0xEFABDD6F	NID_EFABDD6F	CommonDialog	SceCommonDialog	-
@@ -2298,10 +2303,26 @@
 0x6AE09257	NID_6AE09257	FirmwareConstants	SceHostAvch	-
 0xA9FEACD7	NID_A9FEACD7	FirmwareConstants	SceHostAvch	-
 0xDB232E28	NID_DB232E28	FirmwareConstants	SceHostAvch	-
+0x031EBD2A	NID_031EBD2A	Http	SceHttp	-
+0x0B0D8E7A	NID_0B0D8E7A	Http	SceHttp	-
+0x0CC59EF6	NID_0CC59EF6	Http	SceHttp	-
+0x11C9BCE8	NID_11C9BCE8	Http	SceHttp	-
+0x175685B8	NID_175685B8	Http	SceHttp	-
+0x30F5D11F	NID_30F5D11F	Http	SceHttp	-
+0x42108FBE	NID_42108FBE	Http	SceHttp	-
 0x43A7CC70	NID_43A7CC70	Http	SceHttp	-
+0x54847CFE	NID_54847CFE	Http	SceHttp	-	default
 0x5B6A0ACE	NID_5B6A0ACE	FirmwareConstants	SceHttp	-
+0x802E3C30	NID_802E3C30	Http	SceHttp	-
+0x80E6013D	NID_80E6013D	Http	SceHttp	-	default
+0x88116DB8	NID_88116DB8	Http	SceHttp	-
 0xA4CF892E	NID_A4CF892E	FirmwareConstants	SceHttp	-
 0xA9A39BA1	NID_A9A39BA1	Http	SceHttp	-
+0xB0E41827	NID_B0E41827	Http	SceHttp	-
+0xC498765A	NID_C498765A	Http	SceHttp	-
+0xE0825488	NID_E0825488	Http	SceHttp	-
+0xF8885CFD	NID_F8885CFD	Http	SceHttp	-
+0xFE60380A	NID_FE60380A	Http	SceHttp	-
 0xEA61662F	sceHttpAbortRequest	Http	SceHttp	vh
 0x3D44A6E5	sceHttpAbortRequestForce	Http	SceHttp	vh
 0x42E7DFF1	sceHttpAbortWaitRequest	Http	SceHttp	vh
@@ -5732,6 +5753,7 @@
 0x01B090F1	NID_01B090F1	Net	SceNetInternal	-
 0x04E6136D	NID_04E6136D	Net	SceNetInternal	-
 0x0DFC23D6	NID_0DFC23D6	Net	SceNetInternal	-
+0x0F83B7A9	NID_0F83B7A9	Net	SceNetInternal	-
 0x104E4820	NID_104E4820	Net	SceNetInternal	-
 0x16222ED6	NID_16222ED6	Net	SceNetInternal	-
 0x225C4801	NID_225C4801	Net	SceNetInternal	-
@@ -5739,21 +5761,29 @@
 0x2FEC8B74	NID_2FEC8B74	Net	SceNetInternal	-
 0x333F9CB3	NID_333F9CB3	Net	SceNetInternal	-
 0x3B5F94B7	NID_3B5F94B7	Net	SceNetInternal	-
+0x4054D2D8	NID_4054D2D8	Net	SceNetInternal	-
 0x46E28336	NID_46E28336	Net	SceNetInternal	-
 0x4EF96CD8	NID_4EF96CD8	Net	SceNetInternal	-
 0x4F5E0E8A	NID_4F5E0E8A	Net	SceNetInternal	-
 0x5B0E370C	NID_5B0E370C	Net	SceNetInternal	-	default
 0x6273AF23	NID_6273AF23	Net	SceNetInternal	-
+0x65AFF9BE	NID_65AFF9BE	Net	SceNetInternal	-
 0x689B9D7D	NID_689B9D7D	Net	SceNetInternal	-
 0x694F8996	NID_694F8996	Net	SceNetInternal	-
 0x7F63379E	NID_7F63379E	Net	SceNetInternal	-
+0x7FD92AE7	NID_7FD92AE7	Net	SceNetInternal	-
 0x8157DE3E	NID_8157DE3E	Net	SceNetInternal	-
+0x853EEABE	NID_853EEABE	Net	SceNetInternal	-
+0x873DE778	NID_873DE778	Net	SceNetInternal	-
+0x97527BDB	NID_97527BDB	Net	SceNetInternal	-
 0x9D12D8A4	NID_9D12D8A4	Net	SceNetInternal	-
 0x9DBD2F60	NID_9DBD2F60	Net	SceNetInternal	-
 0xA2C2BC5F	NID_A2C2BC5F	Net	SceNetInternal	-
+0xA64CFBF5	NID_A64CFBF5	Net	SceNetInternal	-
 0xA6B9F5D2	NID_A6B9F5D2	Net	SceNetInternal	-
 0xA9F2277C	NID_A9F2277C	Net	SceNetInternal	-	default
 0xAA414742	NID_AA414742	Net	SceNetInternal	-
+0xAAA34850	NID_AAA34850	Net	SceNetInternal	-	default
 0xB01ABD0A	NID_B01ABD0A	Net	SceNetInternal	-
 0xBDA92B76	NID_BDA92B76	Net	SceNetInternal	-	default
 0xC2FF615E	NID_C2FF615E	Net	SceNetInternal	-
@@ -5761,6 +5791,7 @@
 0xDEF2357F	NID_DEF2357F	Net	SceNetInternal	-
 0xDF815D48	NID_DF815D48	Net	SceNetInternal	-
 0xE03F6A77	NID_E03F6A77	Net	SceNetInternal	-
+0xE2F6CAEA	NID_E2F6CAEA	Net	SceNetInternal	-
 0xE62A2FAA	NID_E62A2FAA	Net	SceNetInternal	-
 0xEAC33599	NID_EAC33599	Net	SceNetInternal	-
 0xEDAA3453	NID_EDAA3453	Net	SceNetInternal	-
@@ -5770,6 +5801,8 @@
 0xEF421A65	NID_EF421A65	Net	SceNetInternal	-
 0xF3917021	NID_F3917021	Net	SceNetInternal	-
 0xF6291476	NID_F6291476	Net	SceNetInternal	-
+0xF9E3A8B7	NID_F9E3A8B7	Net	SceNetInternal	-
+0xFE8C89AE	NID_FE8C89AE	Net	SceNetInternal	-
 0x93F2FF08	sceNetInternalIcmConnect	Net	SceNetInternal	-
 0x916EA798	sceNetInternalInetPton	Net	SceNetInternal	-
 0x235DE96C	sceNetInternal_235DE96C	Net	SceNetInternal	-
@@ -5961,7 +5994,14 @@
 0x6BE90416	sceNpActivityPostAppStartupStatus	NpSocial	SceNpActivity	vh
 0xBC7FDC77	sceNpActivityPostStatus	NpSocial	SceNpActivity	vh
 0x9EA4901F	sceNpActivityTerm	NpSocial	SceNpActivity	vh
+0x0C9BAF57	NID_0C9BAF57	NpSocial	SceNpBasic	-	default
+0x375EABF2	NID_375EABF2	NpSocial	SceNpBasic	-	default
+0x748925A4	NID_748925A4	NpSocial	SceNpBasic	-	default
 0x7F13243D	NID_7F13243D	NpSocial	SceNpBasic	-
+0x999CC1E9	NID_999CC1E9	NpSocial	SceNpBasic	-
+0xA1C1A8E2	NID_A1C1A8E2	NpSocial	SceNpBasic	-	default
+0xA6BFBBFF	NID_A6BFBBFF	NpSocial	SceNpBasic	-	default
+0xB93ADCDA	NID_B93ADCDA	NpSocial	SceNpBasic	-	default
 0xFB1B7762	NID_FB1B7762	NpSocial	SceNpBasic	-
 0x20146AEC	sceNpBasicCheckCallback	Np	SceNpBasic	vh
 0xF51545D8	sceNpBasicCheckIfPlayerIsBlocked	NpSocial	SceNpBasic	vh
@@ -6497,6 +6537,7 @@
 0xFF13E2C3	sceNpCommerce2_FF13E2C3	NpCommerce2	SceNpCommerce2	-
 0xFFED270E	sceNpCommerce2_FFED270E	NpCommerce2	SceNpCommerce2	-
 0xFFFC0101	sceNpCommerce2_FFFC0101	NpCommerce2	SceNpCommerce2	-
+0x13293ADC	NID_13293ADC	NpManager	SceNpCommon	-
 0x38B88BA3	NID_38B88BA3	NpManager	SceNpCommon	-
 0x40724BEA	NID_40724BEA	NpManager	SceNpCommon	-
 0x40CC4D15	NID_40CC4D15	NpManager	SceNpCommon	-
@@ -6510,6 +6551,7 @@
 0x85503FA6	NID_85503FA6	NpManager	SceNpCommon	-
 0x85699AE2	NID_85699AE2	NpManager	SceNpCommon	-
 0x88B18A5B	NID_88B18A5B	NpManager	SceNpCommon	-
+0x92DF18F6	NID_92DF18F6	NpManager	SceNpCommon	-
 0x9AEF645B	NID_9AEF645B	NpManager	SceNpCommon	-
 0x9B7CAA67	NID_9B7CAA67	NpManager	SceNpCommon	-
 0xA04C77A1	NID_A04C77A1	NpManager	SceNpCommon	-
@@ -6659,8 +6701,15 @@
 0x200D2DE4	sceNpDrmSaveDataFormatOngoing	SystemServicesVsh	SceNpDrmPackage	vh
 0xA5E0F38C	sceNpDrmSaveDataInstallOngoing	SystemServicesVsh	SceNpDrmPackage	vh
 0x2D2D1B9B	NID_2D2D1B9B	FirmwareConstants	SceNpGriefReport	-
+0x06EBD8B1	NID_06EBD8B1	NpManager	SceNpManager	-	default
+0x2EA038D8	NID_2EA038D8	NpManager	SceNpManager	-	default
 0x44DF26F5	NID_44DF26F5	NpManager	SceNpManager	-
+0x8C6EACC4	NID_8C6EACC4	NpManager	SceNpManager	-	default
+0xBA49FD24	NID_BA49FD24	NpManager	SceNpManager	-	default
+0xBBCD1B6D	NID_BBCD1B6D	NpManager	SceNpManager	-	default
 0xBF8921C8	NID_BF8921C8	NpManager	SceNpManager	-
+0xC7F6ADC4	NID_C7F6ADC4	NpManager	SceNpManager	-	default
+0xC80D8C3E	NID_C80D8C3E	NpManager	SceNpManager	-	default
 0xECBC7614	sceNpAuthAbortOAuthRequest	NpManager	SceNpManager	vh
 0x555EB58C	sceNpAuthCreateOAuthRequest	NpManager	SceNpManager	vh
 0x8C94C7A5	sceNpAuthDeleteOAuthRequest	NpManager	SceNpManager	vh
@@ -7085,11 +7134,14 @@
 0x31B308AA	sceNpWordFilterWaitAsync	NpUtility	SceNpUtility	vh
 0x07913970	NID_07913970	NpWebApi	SceNpWebApi	-
 0x0D910413	NID_0D910413	NpWebApi	SceNpWebApi	-
+0x1140FA82	NID_1140FA82	NpWebApi	SceNpWebApi	-
 0x1D427258	NID_1D427258	NpWebApi	SceNpWebApi	-
 0x4D7CC67C	NID_4D7CC67C	NpWebApi	SceNpWebApi	-	default
 0x66CEC1A6	NID_66CEC1A6	NpWebApi	SceNpWebApi	-
 0x6CDD45B6	NID_6CDD45B6	NpWebApi	SceNpWebApi	-
+0x6E6AFA39	NID_6E6AFA39	NpWebApi	SceNpWebApi	-
 0x8D83A2D0	NID_8D83A2D0	NpWebApi	SceNpWebApi	-
+0x93BBA612	NID_93BBA612	NpWebApi	SceNpWebApi	-
 0xB280EA3D	NID_B280EA3D	NpWebApi	SceNpWebApi	-
 0xC18E6DAA	NID_C18E6DAA	NpWebApi	SceNpWebApi	-
 0xC359A88A	NID_C359A88A	NpWebApi	SceNpWebApi	-
@@ -9428,15 +9480,21 @@
 0x42053414	NID_42053414	Shell	SceShell	-	default
 0x449348B6	NID_449348B6	Shell	SceShell	-	default
 0x548A3111	NID_548A3111	Shell	SceShell	-	default
+0x5928D835	NID_5928D835	Shell	SceShell	-	default
 0x5DC4A753	NID_5DC4A753	Shell	SceShell	-	default
 0x60129092	NID_60129092	Shell	SceShell	-	default
 0x6A6123E3	NID_6A6123E3	Shell	SceShell	-	default
+0x6B8772A2	NID_6B8772A2	Shell	SceShell	-	default
 0x77642C92	NID_77642C92	Shell	SceShell	-	default
+0x794BF5BE	NID_794BF5BE	Shell	SceShell	-	default
+0x7AD86CE1	NID_7AD86CE1	Shell	SceShell	-	default
 0x7FE4E732	NID_7FE4E732	Shell	SceShell	-	default
 0x83D16CA8	NID_83D16CA8	Shell	SceShell	-	default
+0x871A8E92	NID_871A8E92	Shell	SceShell	-	default
 0x8858B876	NID_8858B876	Shell	SceShell	-	default
 0x8C1D932A	NID_8C1D932A	Shell	SceShell	-	default
 0x99893E59	NID_99893E59	Shell	SceShell	-
+0xA25CD3F2	NID_A25CD3F2	Shell	SceShell	-	default
 0xB4D888D5	NID_B4D888D5	Shell	SceShell	-	default
 0xC1886828	NID_C1886828	Shell	SceShell	-	default
 0xD4C7D2B7	NID_D4C7D2B7	Shell	SceShell	-	default
@@ -10480,8 +10538,12 @@
 0x7985B164	ksceTouchSetRegion	KernelTwins	SceTouchForDriver	-
 0x10A998DE	ksceTouchSetRegionAttr	KernelTwins	SceTouchForDriver	-
 0x1247257A	ksceTouchSetSamplingState	KernelTwins	SceTouchForDriver	-
+0x1B615264	NID_1B615264	TriggerUtil	SceTriggerUtil	-	default
 0x257BA954	NID_257BA954	TriggerUtil	SceTriggerUtil	-	default
+0x2AD6A378	NID_2AD6A378	TriggerUtil	SceTriggerUtil	-	default
 0x2C43AC0C	NID_2C43AC0C	TriggerUtil	SceTriggerUtil	-	default
+0x845BF533	NID_845BF533	TriggerUtil	SceTriggerUtil	-	default
+0x921FF8E1	NID_921FF8E1	TriggerUtil	SceTriggerUtil	-	default
 0xDA93949A	NID_DA93949A	TriggerUtil	SceTriggerUtil	-	default
 0xDD2CA8BB	sceTriggerUtilGetAutoStartStatus	TriggerUtil	SceTriggerUtil	vh
 0xDF3ED08E	sceTriggerUtilGetDailyEventInfo	TriggerUtil	SceTriggerUtil	vh
