@@ -18,6 +18,25 @@ public sealed unsafe class AddressSpaceTests(GuestMemoryFixture fixture)
     /// <summary>A second space; the tests pass trivially on hosts that cannot map shared memory twice (one space).</summary>
     private AddressSpace? NewSpace() => fixture.Memory.SeparateSpaces ? fixture.Memory.CreateSpace("test") : null;
 
+    /// <summary>
+    /// Windows, Linux and macOS map shared memory twice (a section, memfd, an unlinked shm object), so every process
+    /// gets its own space: with one space for all, a second process cannot map its fixed segment where the first has
+    /// its own (0x81000000; the shell opening an application). macOS had one space for all until it used shm_open.
+    /// </summary>
+    [Fact]
+    public void DesktopHostsGiveEveryProcessItsOwnSpace()
+    {
+        if (Environment.GetEnvironmentVariable(Core.Util.EnvVars.SharedAddressSpace) == "1")
+        {
+            return;
+        }
+
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            Assert.True(fixture.Memory.SeparateSpaces, "this host cannot map the shared regions in a second address space");
+        }
+    }
+
     [Fact]
     public void FixedUserAddressesArePrivatePerSpace()
     {

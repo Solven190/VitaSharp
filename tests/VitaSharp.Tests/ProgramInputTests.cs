@@ -48,10 +48,27 @@ public class ProgramInputTests
         Assert.Equal(0u, b.RegBlockSize);
     }
 
-    [Fact]
-    public void RegisterResidentBufferIsCopiedIntoSecondaryAttributes()
+    /// <summary>The copy's load follows <see cref="ShaderGenerator.UncheckedUniformLoads"/>, a process-wide flag the
+    /// renderer sets from its device (on by default on tile-based ones: MoltenVK on the macOS runner, Mali): both
+    /// values are pinned here, so the test does not depend on which renderer an earlier test built.</summary>
+    [Theory]
+    [InlineData(false, "sa[0].x = fetchMemory(")]
+    [InlineData(true, "sa[0].x = uintBitsToFloat(ub[")]
+    public void RegisterResidentBufferIsCopiedIntoSecondaryAttributes(bool uncheckedLoads, string expected)
     {
-        GeneratedShader gen = ShaderGenerator.Generate(Program(4, true, sa: 0, words: 1), new ShaderHints([], [], 0x01000000, false));
-        Assert.Contains("sa[0].x = fetchMemory(", gen.Glsl);
+        bool savedUnchecked = ShaderGenerator.UncheckedUniformLoads;
+        bool savedSplit = ShaderGenerator.SplitUniformSlots;
+        ShaderGenerator.UncheckedUniformLoads = uncheckedLoads;
+        ShaderGenerator.SplitUniformSlots = false;
+        try
+        {
+            GeneratedShader gen = ShaderGenerator.Generate(Program(4, true, sa: 0, words: 1), new ShaderHints([], [], 0x01000000, false));
+            Assert.Contains(expected, gen.Glsl);
+        }
+        finally
+        {
+            ShaderGenerator.UncheckedUniformLoads = savedUnchecked;
+            ShaderGenerator.SplitUniformSlots = savedSplit;
+        }
     }
 }
