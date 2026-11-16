@@ -74,7 +74,7 @@ public sealed class KernelGuidTests(GuestMemoryFixture fixture) : IDisposable
             Assert.Equal(0, S("ksceGUIDReferObjectWithClassLevel", guid, cls, 7u, out_));
             Assert.Equal(body, GuestMemory.R32(out_));
             Assert.Equal(0, S("ksceGUIDReferObjectWithSubclass", guid, cls, out_));
-            Assert.Equal(SceError.INVALID_UID_CLASS, S("ksceGUIDReferObjectWithSubclass", guid, NewClass("SceOther"), out_));
+            Assert.Equal(SceError.UID_NOT_OF_SUBCLASS, S("ksceGUIDReferObjectWithSubclass", guid, NewClass("SceOther"), out_));
         });
     }
 

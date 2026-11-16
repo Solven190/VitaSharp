@@ -186,17 +186,9 @@ public sealed partial class SysmemKernel
     }
 
     /// <summary>ksceGUIDReferObjectWithSubclass(guid, cls, SceObjectBase **obj): a reference when the object's class is
-    /// <paramref name="cls"/> or derives from it.</summary>
+    /// <paramref name="cls"/> or has it on its parent chain (0x80024509 otherwise, *obj cleared).</summary>
     [Hle(Nid = 0x72A98D17, Library = "SceSysmemForDriver")]
-    int ksceGUIDReferObjectWithSubclass(int guid, uint cls, uint objOut)
-    {
-        if (!IsGuidForm(guid))
-        {
-            return SceError.INVALID_UID;
-        }
-
-        return ksceGUIDReferObjectWithClass(guid, cls, objOut);
-    }
+    int ksceGUIDReferObjectWithSubclass(int guid, uint cls, uint objOut) => ReferObjectOfClass(guid, cls, objOut, true);
 
     /// <summary>kscePUIDGetClass(pid, puid, SceClass **cls).</summary>
     [Hle(Nid = 0xE9728A12, Library = "SceSysmemForDriver")]

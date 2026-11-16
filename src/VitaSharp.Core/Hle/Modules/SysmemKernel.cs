@@ -352,6 +352,8 @@ public sealed partial class SysmemKernel : HleModule
             uint name = cls + 0x2C;
             GuestMemory.WriteCString(name, "SceUIDClass", 0x14);
             WriteClass(cls, name, 0, 8, 0, 0, cls);
+            // the root class heads sysmem's circular list of classes (next/prev point to itself), with index 1
+            GuestMemory.Write(cls + 0x14, (byte)1);
             _rootClass = cls;
             return cls;
         }
@@ -380,23 +382,101 @@ public sealed partial class SysmemKernel : HleModule
 
     /// <summary>
     /// ksceKernelCreateClass (ksceUIDClassInitClass)(SceClass *cls, name, parent, itemsize, create, destroy): fills the
-    /// caller's class record. itemsize counts the SceObjectBase header (8 bytes) and is at most 0xFFFF.
+    /// caller's class record as the FW 3.74 sysmem does (decompiled, study only): no argument checks, the parent kept
+    /// as given (0 = none), itemsize stored as is and its allocation size rounded up to 4, 8, 16 or a multiple of 32,
+    /// then the class is linked at the tail of the circular class list that starts at the root class, with the index
+    /// one above the highest in the list (at most 0xFF). A class whose name (first 31 characters) is already in the
+    /// list, or that is already linked, is not linked again. Always 0.
     /// </summary>
     [Hle]
     int ksceKernelCreateClass(uint cls, uint name, uint parent, uint itemSize, uint create, uint destroy)
     {
-        if (cls == 0 || name == 0)
-        {
-            return SceError.ILLEGAL_ADDR;
-        }
-
-        if (itemSize < 8 || itemSize > 0xFFFF)
-        {
-            return SceError.ILLEGAL_SIZE;
-        }
-
-        WriteClass(cls, name, parent == 0 ? RootClass() : parent, itemSize, create, destroy, RootClass());
+        uint root = RootClass();
+        GuestMemory.Write(cls + 0x18, (ushort)itemSize);
+        GuestMemory.Write(cls + 0x1A, ClassAllocationSize(itemSize));
+        GuestMemory.W32(cls + 0x04, root);
+        GuestMemory.W32(cls + 0x0C, name);
+        GuestMemory.W32(cls + 0x10, parent);
+        GuestMemory.W32(cls + 0x14, 0);
+        GuestMemory.W32(cls + 0x1C, 0);
+        GuestMemory.W32(cls + 0x20, create);
+        GuestMemory.W32(cls + 0x24, destroy);
+        GuestMemory.W32(cls + 0x28, ClassMagic);
+        LinkClass(root, cls);
         return 0;
+    }
+
+    /// <summary>The bytes an object of a class takes (SceClass +0x1A): itemsize rounded up to 4, 8, 16 or a multiple of
+    /// 32.</summary>
+    static ushort ClassAllocationSize(uint itemSize)
+    {
+        if (itemSize < 5)
+        {
+            return 4;
+        }
+
+        if (itemSize < 9)
+        {
+            return 8;
+        }
+
+        if (itemSize < 0x11)
+        {
+            return 0x10;
+        }
+
+        return (ushort)((itemSize + 0x1F) & 0xFFE0);
+    }
+
+    /// <summary>Links <paramref name="cls"/> before <paramref name="head"/> (at the tail) of the circular class list
+    /// (next +0x00, prev +0x08, index byte +0x14), unless a class of the same name is in it or it is already there.</summary>
+    static void LinkClass(uint head, uint cls)
+    {
+        if (cls == head)
+        {
+            return;
+        }
+
+        string name = ClassName(cls);
+        uint highestIndex = 0;
+        uint current = head;
+        do
+        {
+            if (ClassName(current) == name)
+            {
+                return;
+            }
+
+            highestIndex = Math.Max(highestIndex, GuestMemory.Read<byte>(current + 0x14));
+            current = GuestMemory.R32(current);
+            if (current == 0)
+            {
+                return;
+            }
+
+            if (current == head)
+            {
+                uint tail = GuestMemory.R32(head + 0x08);
+                GuestMemory.W32(cls + 0x00, head);
+                GuestMemory.W32(cls + 0x08, tail);
+                if (tail != 0)
+                {
+                    GuestMemory.W32(tail, cls);
+                }
+
+                GuestMemory.W32(head + 0x08, cls);
+                GuestMemory.Write(cls + 0x14, (byte)(highestIndex == 0xFF ? 0xFF : highestIndex + 1));
+                return;
+            }
+        }
+        while (current != cls);
+    }
+
+    /// <summary>The first 31 characters of a class's name (the length the firmware compares), "" for none.</summary>
+    static string ClassName(uint cls)
+    {
+        uint name = GuestMemory.R32(cls + 0x0C);
+        return name == 0 ? "" : GuestMemory.ReadCString(name, 0x1F);
     }
 
     /// <summary>True when <paramref name="cls"/> is <paramref name="wanted"/> or derives from it.</summary>
@@ -515,23 +595,49 @@ public sealed partial class SysmemKernel : HleModule
         return 0;
     }
 
-    /// <summary>ksceGUIDReferObjectWithClass(guid, SceClass *cls, SceObjectBase **obj): the same, only for an object of
-    /// <paramref name="cls"/> or a class derived from it.</summary>
+    /// <summary>ksceGUIDReferObjectWithClass(guid, SceClass *cls, SceObjectBase **obj): the same, only for an object
+    /// whose class is exactly <paramref name="cls"/> (FW 3.74 sysmem; a mismatch clears *obj).</summary>
     [Hle]
-    int ksceGUIDReferObjectWithClass(int guid, uint cls, uint objOut)
+    int ksceGUIDReferObjectWithClass(int guid, uint cls, uint objOut) => ReferObjectOfClass(guid, cls, objOut, false);
+
+    /// <summary>The class check of the GUID reference calls (sysmem's GUIDReferObjectClassCheckCommon): the object's
+    /// class must be <paramref name="cls"/> (0x80024508), or with <paramref name="subclass"/> have it on its parent
+    /// chain (0x80024509); on a failure *obj is cleared.</summary>
+    int ReferObjectOfClass(int guid, uint cls, uint objOut, bool subclass)
     {
-        if (K.Objects.Get<KernelObject>(guid) is not { } o)
+        if (!IsGuidForm(guid))
         {
             return SceError.INVALID_UID;
         }
 
-        uint own = o is KernelData { Kind: KernelData.ClassObject } d ? d.Aux : RootClass();
-        if (cls != 0 && !DerivesFrom(own, cls))
+        if (K.Objects.Get<KernelObject>(guid) is not { } o)
         {
+            ClearObjectOut(objOut);
+            return SceError.INVALID_UID;
+        }
+
+        uint own = o is KernelData { Kind: KernelData.ClassObject } d ? d.Aux : RootClass();
+        if (!subclass && own != cls)
+        {
+            ClearObjectOut(objOut);
             return SceError.INVALID_UID_CLASS;
         }
 
+        if (subclass && !DerivesFrom(own, cls))
+        {
+            ClearObjectOut(objOut);
+            return SceError.UID_NOT_OF_SUBCLASS;
+        }
+
         return ksceGUIDReferObject(guid, objOut);
+    }
+
+    static void ClearObjectOut(uint objOut)
+    {
+        if (objOut != 0)
+        {
+            GuestMemory.W32(objOut, 0);
+        }
     }
 
     /// <summary>ksceGUIDReleaseObject(guid): drops a reference taken by ksceGUIDReferObject.</summary>

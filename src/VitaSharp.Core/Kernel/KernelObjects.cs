@@ -253,6 +253,8 @@ public static class SceError
     public const int ILLEGAL_ELF_HEADER = unchecked((int)0x80025001);
     public const int ILLEGAL_SELF_HEADER = unchecked((int)0x80025002);
     public const int INVALID_UID_CLASS = unchecked((int)0x80024508);
+    /// <summary>The object's class chain does not contain the class asked (sysmem's subclass reference).</summary>
+    public const int UID_NOT_OF_SUBCLASS = unchecked((int)0x80024509);
     public const int ILLEGAL_HEAP_ID = unchecked((int)0x80024901);
     public const int INVALID_PID = unchecked((int)0x80029001);
     public const int NO_PROCESS_DATA = unchecked((int)0x8002900B);

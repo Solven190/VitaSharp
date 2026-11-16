@@ -195,10 +195,9 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
         GuestMemory.Write(create, (ushort)0x2155);
         GuestMemory.Write(create + 2, (ushort)0x6081);
         GuestMemory.Write(create + 4, (ushort)0x4770);
-        Assert.Equal(SceError.ILLEGAL_SIZE, Call(Sysmem, "ksceKernelCreateClass", cls, name, 0u, 4u, 0u, 0u));
         Assert.Equal(0, Call(Sysmem, "ksceKernelCreateClass", cls, name, 0u, 0x20u, create | 1, 0u));
         uint root = Convert.ToUInt32(Invoke(Sysmem, "ksceKernelGetUidClass"));
-        Assert.Equal(root, GuestMemory.R32(cls + 0x10)); // the parent defaults to the root class
+        Assert.Equal(0u, GuestMemory.R32(cls + 0x10)); // the parent is kept as given (FW 3.74: no default)
         Assert.Equal(0xABCE9DA5u, GuestMemory.R32(cls + 0x28));
         Assert.Equal(0x20, GuestMemory.Read<ushort>(cls + 0x18));
         Assert.Equal("SceUIDClass", GuestMemory.ReadCString(GuestMemory.R32(root + 0x0C)));
@@ -216,7 +215,8 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
             uint got = _harness.Alloc(4);
             Assert.Equal(0, Call(Sysmem, "ksceGUIDReferObjectWithClass", guid, cls, got));
             Assert.Equal(obj, GuestMemory.R32(got));
-            Assert.Equal(0, Call(Sysmem, "ksceGUIDReferObjectWithClass", guid, root, got)); // a base class matches
+            Assert.Equal(SceError.INVALID_UID_CLASS, Call(Sysmem, "ksceGUIDReferObjectWithClass", guid, root, got)); // the class must match exactly
+            Assert.Equal(0, Call(Sysmem, "ksceGUIDReferObjectWithClass", guid, cls, got));
             Assert.Equal(SceError.INVALID_UID_CLASS, Call(Sysmem, "ksceGUIDReferObjectWithClass", guid, _harness.Alloc(0x2C), got));
             Assert.Equal(0, Call(Sysmem, "ksceGUIDReferObject", guid, got));
             Assert.Equal(obj, GuestMemory.R32(got));
