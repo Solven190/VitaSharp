@@ -562,7 +562,27 @@ public sealed unsafe class WindowHost : IPresentationSurface, IInputBackend, IDi
         VitaSharp.Core.Util.NativeThread.Register("Window");
         try
         {
-            _window.Run();
+            // Silk.NET's Run() extension without its final Reset(): the native window stays until Dispose, so the
+            // renderer's swapchain and surface are destroyed while it still exists (a VkSurfaceKHR must not outlive
+            // its window). Destroying the window first let the GPU worker present to a lost surface and the teardown
+            // corrupt the native heap: the hidden-window test run exited with 0xC0000374 about once in 20 runs
+            _window.Initialize();
+            _window.Run(() =>
+            {
+                _window.DoEvents();
+                if (!_window.IsClosing)
+                {
+                    _window.DoUpdate();
+                }
+
+                if (!_window.IsClosing)
+                {
+                    _window.DoRender();
+                }
+            });
+            _window.DoEvents();
+            // closed: off the screen at once, while the renderer shuts down
+            _window.IsVisible = false;
         }
         finally
         {
@@ -1036,5 +1056,6 @@ public sealed unsafe class WindowHost : IPresentationSurface, IInputBackend, IDi
         _hostInput.Dispose();
         _input?.Dispose();
         _window.Dispose();
+        Log.Info("Window: native window destroyed");
     }
 }

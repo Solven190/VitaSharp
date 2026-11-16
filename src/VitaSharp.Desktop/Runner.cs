@@ -811,6 +811,9 @@ public static class Runner
         EmulationPause.Resume("window closed"); // parked threads see the stop; the summary's timings stay right
         diag.WaitIdle(20000);
         PrintStats(emu);
+        // the renderer (its swapchain and window surface) goes before the window: the window is disposed first at the
+        // end of this method (declared after the emulator), and a surface must not outlive its window
+        emu.Gpu.ReplaceBackend(null);
         return 0;
     }
 

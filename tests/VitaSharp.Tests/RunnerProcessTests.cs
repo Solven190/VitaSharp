@@ -123,6 +123,14 @@ public sealed class RunnerProcessTests : IDisposable
         Assert.True(colours.Length >= 60, $"{colours.Length} frames:\n{Tail(r.Output)}");
         Assert.Contains(SyntheticTitle.Pressed, colours);
         Assert.Equal(SyntheticTitle.Idle, colours[^1]);
+        // Vulkan: a surface must not outlive its window. The renderer (swapchain and surface; its session summary is
+        // the last line of its teardown) goes before the native window, and no present meets a lost surface: the window
+        // destroyed first left the GPU worker presenting to it and the teardown corrupted the native heap (exit
+        // 0xC0000374, about one run in 20)
+        int rendererGone = r.Output.LastIndexOf("[shadercache] session VSTS00001", StringComparison.Ordinal);
+        int windowGone = r.Output.IndexOf("Window: native window destroyed", StringComparison.Ordinal);
+        Assert.True(rendererGone >= 0 && windowGone > rendererGone, $"renderer teardown at {rendererGone}, window destroyed at {windowGone}:\n{Tail(r.Output)}");
+        Assert.DoesNotContain("ErrorSurfaceLost", r.Output);
     }
 
     /// <summary>
