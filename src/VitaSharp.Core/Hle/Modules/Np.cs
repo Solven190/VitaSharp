@@ -779,6 +779,11 @@ public sealed partial class NpSocial : HleModule
     int sceNpBasicSysGetMetadata(uint query, uint outBuf, uint size) => query == 0 || outBuf == 0 ? BASIC_INVALID_ARGUMENT : PsnAccount.Current.ServerError;
     [Hle("sceNpBasic_B414E768", Nid = 0xB414E768, Library = "SceNpBasic")] int sceNpBasicSysEndRequest(uint p) => 0;
     [Hle] int sceNpBasicGetFriendOnlineStatus(uint friendId, uint status) => FriendQuery(friendId, status);
+
+    /// <summary>NID_1CAAF066(friendId, out): np_basic.suprx 3.74 runs sceNpBasicGetFriendOnlineStatus's code with
+    /// another request to the NP service (0x3D instead of 0x2C): the same checks, and the server cannot be reached.</summary>
+    [Hle("sceNpBasic_1CAAF066", Nid = 0x1CAAF066, Library = "SceNpBasic")]
+    int NID_1CAAF066(uint friendId, uint outPtr) => FriendQuery(friendId, outPtr);
     [Hle] int sceNpBasicGetFriendContextState(uint friendId, uint state) => FriendQuery(friendId, state);
     [Hle] int sceNpBasicGetGamePresenceOfFriend(uint friendId, uint presence) => FriendQuery(friendId, presence);
     [Hle] int sceNpBasicGetGameJoiningPresence(uint friendId, uint presence) => PsnAccount.Current.ServerError;

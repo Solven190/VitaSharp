@@ -26,6 +26,19 @@ public sealed partial class NpManager
     /// <summary>(int *out).</summary>
     [Hle("sceNpManager_4C5D2A19", Nid = 0x4C5D2A19, Library = "SceNpManager")] int NpSvcA0003(uint p) => Svc(0xA0003, [], [Buf(p, 4)]);
     [Hle("sceNpManager_1796CD2E", Nid = 0x1796CD2E, Library = "SceNpManager")] int NpSvcB0011() => Svc(0xB0011, Val(0));
+
+    /// <summary>(void *out 0x20): method 0xA0006 fills 32 bytes (the 0xA0003 request's code with another method and size).</summary>
+    [Hle("sceNpManager_38626F73", Nid = 0x38626F73, Library = "SceNpManager")]
+    int NpSvcA0006(uint p) => Svc(0xA0006, [], [Buf(p, 0x20)]);
+
+    /// <summary>(uint32_t *out): method 0xB0018 fills 4 bytes; NULL is the library's invalid argument (the code of
+    /// sceNpManagerGetNpId, method 0xB0010, with another method and size).</summary>
+    [Hle("sceNpManager_4341692A", Nid = 0x4341692A, Library = "SceNpManager")]
+    int NpSvcB0018(uint p) => p == 0 ? MGR_INVALID_ARGUMENT : Svc(0xB0018, [], [Buf(p, 4)]);
+
+    /// <summary>(void): method 0xB0014 with a 0 word (the 0xB0011 request's code with another method).</summary>
+    [Hle("sceNpManager_D83C8CCB", Nid = 0xD83C8CCB, Library = "SceNpManager")]
+    int NpSvcB0014() => Svc(0xB0014, Val(0));
     [Hle("sceNpManager_BB384A4D", Nid = 0xBB384A4D, Library = "SceNpManager")] int NpSvcB0022() => Svc(0xB0022, Val(0));
     [Hle("sceNpManager_4E94274C", Nid = 0x4E94274C, Library = "SceNpManager")] int NpSvcB001D() => Svc(0xB001D);
     [Hle("sceNpManager_D4180D28", Nid = 0xD4180D28, Library = "SceNpManager")] int NpSvcB0016() => Svc(0xB0016);

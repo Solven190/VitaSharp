@@ -78,4 +78,42 @@ public sealed partial class CommonDialog
 
         return sceCompanionUtilDialogInit(param);
     }
+
+    /// <summary>NID_9800F871(param, block): the variant Init of the IME dialog (libcdlg family 0x4): its OnInit2 checks
+    /// the param as the public Init does and ignores the block: sceImeDialogInit.</summary>
+    [Hle(Nid = 0x9800F871, Library = "SceCommonDialog")]
+    int NID_9800F871(uint param, uint block) => sceImeDialogInit(param);
+
+    /// <summary>NID_FBE52F6D(param, block): the variant Init of the video import dialog (libcdlg family 0x1C): a NULL
+    /// param is SCE_COMMON_DIALOG_ERROR_NULL; the block's first word (a count) must be 1..255 and the next 32 bytes
+    /// zero, or SCE_COMMON_DIALOG_ERROR_INVALID_ARGUMENT; then sceVideoImportDialogInit.</summary>
+    [Hle(Nid = 0xFBE52F6D, Library = "SceCommonDialog")]
+    int NID_FBE52F6D(uint param, uint block)
+    {
+        if (param == 0)
+        {
+            return CommonDialogError.NULL;
+        }
+
+        if (block == 0)
+        {
+            return CommonDialogError.NULL; // the module reads the block without a check
+        }
+
+        uint count = GuestMemory.R32(block);
+        if (count is < 1 or > 0xFF)
+        {
+            return CommonDialogError.INVALID_ARGUMENT;
+        }
+
+        for (uint offset = 4; offset < 0x24; offset++)
+        {
+            if (GuestMemory.Read<byte>(block + offset) != 0)
+            {
+                return CommonDialogError.INVALID_ARGUMENT;
+            }
+        }
+
+        return sceVideoImportDialogInit(param);
+    }
 }
