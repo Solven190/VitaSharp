@@ -158,6 +158,18 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
+- [x] Cascas dos módulos de firmware em HLE (FirmwareKernelModules, rr3c) ocupam o tamanho real do código dos módulos de
+  kernel (~20 MB de memória de kernel do guest preenchidos com a armadilha 0xE7FDDEFE), que ia inteiro para cada save
+  state. Feito (fix/bug6-shells, 16/11/2026): uma página que é uma só palavra de 32 bits repetida (a armadilha, um
+  memset) é gravada como essa palavra (4 bytes em vez de 4 KB), num segundo bitmap da seção `memw:` do bloco; blocos sem
+  páginas assim continuam na seção `mem:` de antes, e estados antigos carregam sem mudança (sem subir o
+  `ManualVersion`). Uma página da armadilha com código escrito por cima vai inteira. O conteúdo da memória, o
+  `module_get_offset` e a armadilha não mudam. Testes: `SaveStateGuestTests.PagesOfOneRepeatedWordAreStoredAsTheWordAndComeBackWhole`,
+  `SaveStateRollbackTests.ABlockWithPagesOfOneWordRoundTripsThroughAStateFile` (arquivo de estado de verdade)
+  e `FirmwareKernelModulesTests.AFirmwareModulesCodeSegmentCostsASaveStateOneWordPerPage` (falham sem a correção). Não
+  feito: a RAM do host continua com os ~20 MB preenchidos (reservar sem apoio exigiria mapear uma página compartilhada
+  copy-on-write por sistema, ou a CPU tratar zero como armadilha só nesses segmentos, o que muda o que o código de kernel
+  lê ali).
 - [x] (15/11/2026, não se aplica ao que se distribui: o Release é NativeAOT único, docs/android/README.md; só vale para trocar de runtime em builds de comparação) [P3][M] Save state e runtime do Android (a conferir: o Release é NativeAOT desde 09/11/2026 e os outros runtimes ficaram
   só para comparação; vale para quem troca de runtime; 09/11/2026, laboratório): um estado salvo por um APK
   CoreCLR carrega em APKs

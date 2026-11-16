@@ -15,7 +15,7 @@ namespace VitaSharp.Core.SaveState;
 public static class SaveStates
 {
     private const string SysSection = "system", FunctionsSection = "hle.functions", ObjectsSection = "kernel.objects",
-        BlocksSection = "memory.blocks", MemPrefix = "mem:", ModulePrefix = "hle:", LayoutsSection = "layouts";
+        BlocksSection = "memory.blocks", MemPrefix = "mem:", WordPagesMemPrefix = "memw:", ModulePrefix = "hle:", LayoutsSection = "layouts";
 
     /// <summary>Raised after a state was loaded (front-ends refresh what they show of the game).</summary>
     public static event Action<Emulator>? Loaded;
@@ -405,8 +405,8 @@ public static class SaveStates
         list.Add((BlocksSection, bt.Data.ToArray()));
         foreach (GuestMemory.Block b in blocks)
         {
-            byte[] data = emu.Memory.CopyContents(b);
-            list.Add((MemPrefix + b.Address.ToString("X8"), data));
+            byte[] data = emu.Memory.CopyContents(b, out bool wordPages);
+            list.Add(((wordPages ? WordPagesMemPrefix : MemPrefix) + b.Address.ToString("X8"), data));
             raw += data.Length;
         }
         Log.Info($"Save state: memory {blocks.Count} blocks, {raw >> 20} MB of non-zero pages copied in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
@@ -1010,15 +1010,16 @@ public static class SaveStates
             {
                 blocks = emu.Memory.RestoreBlocks(GuestMemory.ReadBlockTable(new SnapshotReader(data))).ToDictionary(b => b.Address);
             }
-            else if (name.StartsWith(MemPrefix, StringComparison.Ordinal))
+            else if (name.StartsWith(MemPrefix, StringComparison.Ordinal) || name.StartsWith(WordPagesMemPrefix, StringComparison.Ordinal))
             {
-                uint addr = Convert.ToUInt32(name[MemPrefix.Length..], 16);
+                bool wordPages = name.StartsWith(WordPagesMemPrefix, StringComparison.Ordinal);
+                uint addr = Convert.ToUInt32(name[(wordPages ? WordPagesMemPrefix : MemPrefix).Length..], 16);
                 if (blocks == null || !blocks.TryGetValue(addr, out GuestMemory.Block? b))
                 {
                     throw new SnapshotException($"memory block 0x{addr:X8} is missing from the block table");
                 }
 
-                emu.Memory.RestoreContents(b, data);
+                emu.Memory.RestoreContents(b, data, wordPages);
             }
             else
             {
