@@ -239,6 +239,10 @@ public sealed partial class HleRegistry : IImportResolver
     readonly HashSet<uint> _valueReturns = new();
     /// <summary>What each implemented NID is on the Vita: its declared cost class and callback-wait flag.</summary>
     readonly Dictionary<uint, (HleCost Cost, bool CallbackWait)> _declarations = new();
+    /// <summary>The <see cref="HleModule.DefaultCost"/> of the HLE modules that implement functions of each firmware
+    /// library (by the library's name in the NID database, a name the firmware fixes), null when two of them declare
+    /// different classes: what the library's other NIDs are when the HLE does not implement them.</summary>
+    readonly Dictionary<string, HleCost?> _libraryCosts = new(StringComparer.Ordinal);
     readonly Dictionary<uint, Func<uint>> _varFactories = new();
     readonly Dictionary<uint, uint> _vars = new();
     public List<HleModule> Modules { get; } = new();
@@ -283,6 +287,7 @@ public sealed partial class HleRegistry : IImportResolver
             foreach (var nid in nids)
             {
                 NoteModuleNid(module, nid);
+                NoteLibraryCost(NidDatabase.Lookup(nid)?.Library ?? b.Library, module.DefaultCost);
                 if (!module.FirmwareFallbackOnly) _serviceNids.Add(nid);
                 if (module.FirmwareForEveryImporter) _firmwareForEveryImporterNids.Add(nid);
                 _impls[nid] = invoker;
@@ -392,20 +397,7 @@ public sealed partial class HleRegistry : IImportResolver
             }
 
             var info = NidDatabase.Lookup(nid);
-            var f = new HleFunction
-            {
-                Nid = nid,
-                Name = _implNames.GetValueOrDefault(nid) ?? info?.Name ?? $"NID_{nid:X8}",
-                Library = libName,
-                Invoke = _impls.GetValueOrDefault(nid),
-                ReturnsValue = _valueReturns.Contains(nid),
-            };
-            // a NID the HLE does not implement keeps the kernel entry charge
-            if (_declarations.TryGetValue(nid, out (HleCost Cost, bool CallbackWait) declaration))
-            {
-                Declare(f, declaration);
-            }
-
+            HleFunction f = NewFunction(nid, _implNames.GetValueOrDefault(nid) ?? info?.Name ?? $"NID_{nid:X8}", libName);
             Place(index, f);
             _indexByNid[nid] = index;
             return (uint)index;
@@ -440,6 +432,72 @@ public sealed partial class HleRegistry : IImportResolver
 
     /// <summary>After a save state load: places this build's guest-code routines again (<see cref="HleGuestCode.Replace"/>).</summary>
     public Func<uint, bool> ReplaceGuestCode() => HleGuestCode.Replace(_emu.Memory, n => GetHleFunctionIndex(n, 0, NidDatabase.Lookup(n)?.Library ?? ""), this);
+
+    /// <summary>The record of <paramref name="nid"/> imported from <paramref name="library"/>: its implementation and
+    /// declaration, or, for a NID the HLE does not implement, the class of its library
+    /// (<see cref="UnimplementedCost"/>).</summary>
+    HleFunction NewFunction(uint nid, string name, string library)
+    {
+        var f = new HleFunction
+        {
+            Nid = nid,
+            Name = name,
+            Library = library,
+            Invoke = _impls.GetValueOrDefault(nid),
+            ReturnsValue = _valueReturns.Contains(nid),
+        };
+        if (_declarations.TryGetValue(nid, out (HleCost Cost, bool CallbackWait) declaration))
+        {
+            Declare(f, declaration);
+        }
+        else
+        {
+            f.SetCost(UnimplementedCost(nid, library));
+        }
+
+        return f;
+    }
+
+    void NoteLibraryCost(string? library, HleCost cost)
+    {
+        if (string.IsNullOrEmpty(library))
+        {
+            return;
+        }
+
+        if (!_libraryCosts.TryGetValue(library, out HleCost? known))
+        {
+            _libraryCosts[library] = cost;
+        }
+        else if (known != cost)
+        {
+            _libraryCosts[library] = null;
+        }
+    }
+
+    /// <summary>
+    /// What a NID the HLE does not implement charges: a function of a user-mode library (libgxm, librtc, libngs,
+    /// libfiber, the C library: the library's HLE module declares a user-mode <see cref="HleModule.DefaultCost"/>) is
+    /// user code on the Vita, its library's class; anything else is a kernel entry, the class of a syscall (a service
+    /// function the HLE does not have is not assumed to wait). The library is the NID database's, else the importing
+    /// stub's.
+    /// </summary>
+    public HleCost UnimplementedCost(uint nid, string library)
+    {
+        string? name = NidDatabase.Lookup(nid)?.Library;
+        if (string.IsNullOrEmpty(name))
+        {
+            name = library;
+        }
+
+        if (!string.IsNullOrEmpty(name) && _libraryCosts.TryGetValue(name, out HleCost? cost)
+            && cost is HleCost.UserInline or HleCost.UserCall or HleCost.UserLibrary)
+        {
+            return cost.Value;
+        }
+
+        return HleCost.KernelEntry;
+    }
 
     static void Declare(HleFunction function, (HleCost Cost, bool CallbackWait) declaration)
     {

@@ -16,7 +16,13 @@ public sealed class HleCostTests : IDisposable
 {
     private readonly HleHarness _harness;
 
-    public HleCostTests(GuestMemoryFixture fixture) => _harness = new HleHarness(fixture, "hlecost");
+    private readonly GuestMemoryFixture _fixture;
+
+    public HleCostTests(GuestMemoryFixture fixture)
+    {
+        _fixture = fixture;
+        _harness = new HleHarness(fixture, "hlecost");
+    }
 
     public void Dispose() => _harness.Dispose();
 
@@ -188,9 +194,66 @@ public sealed class HleCostTests : IDisposable
         Assert.Equal(2_000, host.Cost);
         Assert.False(host.IsCallbackWait);
 
-        NidInfo unimplemented = NidDatabase.All.First(n => !hle.Implements(n.Nid));
+        // a NID of a kernel service library the HLE does not implement: a syscall
+        NidInfo unimplemented = NidDatabase.All.First(n => !hle.Implements(n.Nid) && n.Library == "SceLibKernel");
         HleFunction function = hle.GetFunction(hle.GetHleFunctionIndex(unimplemented.Nid, 0, unimplemented.Library));
         Assert.Equal(HleCost.KernelEntry, function.CostClass);
+    }
+
+    /// <summary>A save state's function table, loaded into a session that never indexed those NIDs: the records the
+    /// load makes have the same declarations as the ones the import resolution makes (they were all kernel entries,
+    /// a wait in the scheduler included).</summary>
+    [Fact]
+    public void FunctionsALoadAddKeepTheirDeclaration()
+    {
+        HleRegistry saved = _harness.Emu.Hle;
+        NidInfo wait = NidDatabase.LookupName("sceDisplayWaitVblankStart").First(n => saved.Implements(n.Nid));
+        NidInfo gxm = NidDatabase.All.First(n => n.Library == "SceGxm" && !saved.Implements(n.Nid));
+        saved.GetHleFunctionIndex(wait.Nid, 0, wait.Library);
+        saved.GetHleFunctionIndex(gxm.Nid, 0, gxm.Library);
+        var writer = new VitaSharp.Core.SaveState.SnapshotWriter();
+        saved.SaveState(writer);
+
+        using var other = new HleHarness(_fixture, "hlecost-load");
+        HleRegistry loaded = other.Emu.Hle;
+        Assert.DoesNotContain(loaded.Functions, f => f.Nid == wait.Nid || f.Nid == gxm.Nid);
+        loaded.LoadState(new VitaSharp.Core.SaveState.SnapshotReader(writer.Data.ToArray()));
+        Assert.Equal(HleCost.SchedulerWait, loaded.Functions.Single(f => f.Nid == wait.Nid).CostClass);
+        Assert.Equal(HleCost.UserLibrary, loaded.Functions.Single(f => f.Nid == gxm.Nid).CostClass);
+    }
+
+    /// <summary>A NID the HLE does not implement is what its library is on the Vita: a function of a user-mode library
+    /// (libgxm, librtc, libngs, libfiber; the library's module declares a user-mode class) is user code, not a kernel
+    /// entry; one of a service library (the thread manager, I/O, display) keeps the syscall's kernel entry, without
+    /// being assumed to wait.</summary>
+    [Theory]
+    [InlineData("SceGxm", HleCost.UserLibrary)]
+    [InlineData("SceRtc", HleCost.UserLibrary)]
+    [InlineData("SceNgs", HleCost.UserLibrary)]
+    [InlineData("SceLibKernel", HleCost.KernelEntry)]
+    [InlineData("SceIofilemgr", HleCost.KernelEntry)]
+    [InlineData("SceDisplay", HleCost.KernelEntry)]
+    public void UnimplementedFunctionsTakeTheirLibrarysClass(string library, HleCost expected)
+    {
+        HleRegistry hle = _harness.Emu.Hle;
+        // a NID the database does not know (every NID of some of these libraries is implemented): the importing
+        // stub's library decides
+        Assert.Equal(expected, hle.UnimplementedCost(0xFFFFFFF0, library));
+        HleFunction unknown = hle.GetFunction(hle.GetHleFunctionIndex(0xFFFFFFF0 - (uint)library.Length, 0, library));
+        Assert.Equal(expected, unknown.CostClass);
+        Assert.Equal(HleCosts.Cycles(expected), unknown.Cost);
+        Assert.False(unknown.IsCallbackWait);
+        // a NID the database has and the HLE does not implement, where the library has one
+        if (NidDatabase.All.FirstOrDefault(n => n.Library == library && !hle.Implements(n.Nid)) is { } unimplemented)
+        {
+            HleFunction function = hle.GetFunction(hle.GetHleFunctionIndex(unimplemented.Nid, 0, unimplemented.Library));
+            Assert.Equal(expected, function.CostClass);
+            Assert.Equal(expected, hle.UnimplementedCost(unimplemented.Nid, ""));
+        }
+        else
+        {
+            Assert.NotEqual("SceGxm", library); // libgxm still has NIDs the HLE does not implement
+        }
     }
 
     [Fact]
