@@ -184,4 +184,58 @@ public sealed partial class MediaExport : HleModule
         if (r == 0) Progress(progress, user);
         return r;
     }
+
+    /// <summary>libSceMusicExport 3.74's error for a bad argument of the batch export.</summary>
+    internal const int MusicErrInvalid = unchecked((int)0x80105301);
+
+    /// <summary>Most files one batch export takes, and the sizes of its input (path[0x400] first) and result
+    /// entries (path[0x400], then two words the module sets to -1 before the export).</summary>
+    internal const int MusicBatchMax = 10, MusicBatchInSize = 0x444, MusicBatchOutSize = 0x408;
+
+    /// <summary>
+    /// NID_D1011570(entries, count, workingMemory, cancelCb, progressCb, user, mode, results): the system's batch
+    /// export (the Music app). libSceMusicExport 3.74 checks entries != NULL, count 1..10 and mode 0..2 (0x80105301),
+    /// clears each result (path zeroed, the two words -1), sends the count * 0x444-byte entries to the media server
+    /// and polls it, then copies the results back. Here each entry's file is copied into music0: as
+    /// sceMusicExportFromFile does, its result entry gets the new path and the first word the file's result.
+    /// </summary>
+    [Hle("NID_D1011570", Nid = 0xD1011570, Library = "SceMusicExport")]
+    int MusicExportBatch(uint entries, uint count, uint workingMemory, uint cancelCb, uint progress, uint user, int mode, uint results)
+    {
+        if (entries == 0 || count == 0 || count > MusicBatchMax || mode is < 0 or > 2)
+        {
+            return MusicErrInvalid;
+        }
+
+        if (results != 0)
+        {
+            for (uint i = 0; i < count; i++)
+            {
+                uint result = results + i * MusicBatchOutSize;
+                GuestMemory.Fill(result, 0, PathMax);
+                GuestMemory.W32(result + PathMax, 0xFFFFFFFF);
+                GuestMemory.W32(result + PathMax + 4, 0xFFFFFFFF);
+            }
+        }
+
+        int first = 0;
+        for (uint i = 0; i < count; i++)
+        {
+            string path = GuestMemory.ReadCString(entries + i * MusicBatchInSize, PathMax);
+            uint result = results == 0 ? 0 : results + i * MusicBatchOutSize;
+            int r = path.Length == 0 ? MusicErrInvalid : CopyFile(nameof(MusicExportBatch), "music0", path, result, result == 0 ? 0 : (uint)PathMax, out _);
+            if (result != 0)
+            {
+                GuestMemory.W32(result + PathMax, unchecked((uint)r));
+            }
+
+            if (r != 0 && first == 0)
+            {
+                first = r;
+            }
+        }
+
+        Progress(progress, user);
+        return first;
+    }
 }

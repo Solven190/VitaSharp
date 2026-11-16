@@ -112,6 +112,7 @@ public sealed partial class Net
             case 0x20000019 when size >= 0xC: return 0;
             case 0x20000003 when size >= 8: return 0;
             case 0x20000020 when size >= 4: return 0;
+            case 0x21: return 0; // the {word, word} entries of the stack's flagged list, size / 8 at most: none here
             case 0x10000018 when size >= 8: // { int value; int flags }: read setting 0x18 (bit 0 of flags picks the slot)
                 lock (_netLock) GuestMemory.W32(data, (uint)((GuestMemory.R32(data + 4) & 1) == 0 ? _ctl18a : _ctl18b));
                 return 0;
@@ -131,6 +132,68 @@ public sealed partial class Net
     /// <summary>SceNetInternal's user-side version (libnet): the same, with SceNet error codes and errno.</summary>
     [Hle("NID_84257F65", Nid = 0x84257F65, Library = "SceNet")] // same entry as sceNetInternalIcmConnect in libnet.suprx 3.74
     [Hle("sceNetInternalIcmConnect")] int sceNetInternalIcmConnect(int s, int flags) => CheckSock(s);
+
+    /// <summary>libnet.suprx 3.74 NID_522D2118 (SceNet) = NID_9DBD2F60 (SceNetInternal)(value, flags, reserved): needs
+    /// sceNetInit (ENOTINIT), reserved 0 and only flag bit 0 (EINVAL), then hands the stack { value, 0, flags } as
+    /// control 0x20000019 (s = -1), a setting the stack takes (see <see cref="sceNetSyscallControl"/>).</summary>
+    [Hle("NID_522D2118", Nid = 0x522D2118, Library = "SceNet")]
+    [Hle("NID_9DBD2F60", Nid = 0x9DBD2F60, Library = "SceNetInternal")]
+    int NetStackSetting19(uint value, uint flags, uint reserved)
+    {
+        if (!Initialized)
+        {
+            return NetErr(ENOTINIT);
+        }
+
+        if (reserved != 0 || (flags & ~1u) != 0)
+        {
+            return NetErr(EINVAL);
+        }
+
+        return 0;
+    }
+
+    /// <summary>libnet.suprx 3.74 NID_1F0080B3 (SceNet) = NID_46E28336 (SceNetInternal)(entries, count, reserved):
+    /// needs sceNetInit, reserved 0 (EINVAL), then control 0x21 (s = -1) with count 8-byte entries; the stack's error
+    /// comes back as a SceNet error (0x80410100 | errno).</summary>
+    [Hle("NID_1F0080B3", Nid = 0x1F0080B3, Library = "SceNet")]
+    [Hle("NID_46E28336", Nid = 0x46E28336, Library = "SceNetInternal")]
+    int NetStackFlaggedList(uint entries, int count, uint reserved)
+    {
+        if (!Initialized)
+        {
+            return NetErr(ENOTINIT);
+        }
+
+        if (reserved != 0)
+        {
+            return NetErr(EINVAL);
+        }
+
+        int result = sceNetSyscallControl(-1, 0x21, entries, count << 3);
+        return result < 0 ? NetErr(unchecked((int)0x80410100) | -result) : result;
+    }
+
+    /// <summary>libnet.suprx 3.74 NID_D886F498 (SceNet)(mac, flags): needs sceNetInit; a non-NULL mac and exactly one of
+    /// flag bits 0 (eth0) and 1 (wlan0), else EINVAL. It looks the interface up (NID_235DE96C's search) and copies the
+    /// 6-byte hardware address of its record, 0 when the lookup does not fail. Only lo0 exists on this stack: the
+    /// interface is not found and the address stays the empty one.</summary>
+    [Hle("NID_D886F498", Nid = 0xD886F498, Library = "SceNet")]
+    int NetInterfaceHardwareAddress(uint mac, uint flags)
+    {
+        if (!Initialized)
+        {
+            return NetErr(ENOTINIT);
+        }
+
+        if (mac == 0 || flags == 0 || (flags & ~3u) != 0 || flags == 3)
+        {
+            return NetErr(EINVAL);
+        }
+
+        GuestMemory.Fill(mac, 0, 6);
+        return 0;
+    }
 
     /// <summary>The stack setting 0x18 (control 0x10000018 reads it, 0x20000018 writes it), two slots by flag bit 0.</summary>
     int _ctl18a, _ctl18b;

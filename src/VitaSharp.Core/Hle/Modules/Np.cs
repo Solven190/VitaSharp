@@ -859,4 +859,21 @@ public sealed partial class NpSocial : HleModule
     [Hle] int sceNpPartyGetId(uint id) => ERR_NOT_IN_PARTY;
     [Hle] int sceNpPartyGetMemberSessionInfo(uint memberId, uint info) => ERR_NOT_IN_PARTY;
     [Hle] int sceNpPartyGetGameSessionReadyState(uint state) => ERR_NOT_IN_PARTY;
+
+    /// <summary>NID_6370CEB6 / NID_089134D1 (): np_party.suprx 3.74 sends the party service the argument-less requests
+    /// 0x110018 / 0x110019 and answers the service's result. The party service has no party here (nothing to join
+    /// without PSN), so it answers as the other party requests do: not in a party.</summary>
+    [Hle("NID_6370CEB6", Nid = 0x6370CEB6, Library = "SceNpPartyGameUtil", Default = true)]
+    int NpPartyRequest110018()
+    {
+        Log.InfoOnce("party-110018", "SceNpPartyGameUtil NID_6370CEB6: no party service party: not in a party");
+        return ERR_NOT_IN_PARTY;
+    }
+
+    [Hle("NID_089134D1", Nid = 0x089134D1, Library = "SceNpPartyGameUtil", Default = true)]
+    int NpPartyRequest110019()
+    {
+        Log.InfoOnce("party-110019", "SceNpPartyGameUtil NID_089134D1: no party service party: not in a party");
+        return ERR_NOT_IN_PARTY;
+    }
 }

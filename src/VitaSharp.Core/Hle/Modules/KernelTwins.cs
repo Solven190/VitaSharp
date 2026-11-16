@@ -706,20 +706,6 @@ public sealed partial class KernelTwins : HleModule
     [Hle]
     void ksceCtrlSetSamplingMode(HleContext context) => Forward(context, 0xA497B150);
 
-    // ------------------------------------------------------------------ SceDipswForDriver
-
-    /// <summary>ksceKernelCheckDipsw (SceDipswForDriver 0xA98FC2FD): sceKernelCheckDipsw.</summary>
-    [Hle]
-    void ksceKernelCheckDipsw(HleContext context) => Forward(context, 0x1C783FB2);
-
-    /// <summary>ksceKernelClearDipsw (SceDipswForDriver 0xF1F3E9FE): sceKernelClearDipsw.</summary>
-    [Hle]
-    void ksceKernelClearDipsw(HleContext context) => Forward(context, 0x800EDCC1);
-
-    /// <summary>ksceKernelSetDipsw (SceDipswForDriver 0x82E45FBF): sceKernelSetDipsw.</summary>
-    [Hle]
-    void ksceKernelSetDipsw(HleContext context) => Forward(context, 0x817053D4);
-
     // ------------------------------------------------------------------ SceDisplayForDriver
 
     /// <summary>ksceDisplayGetFrameBuf (SceDisplayForDriver 0xEEDA2E54): sceDisplayGetFrameBuf.</summary>

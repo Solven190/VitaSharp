@@ -20,7 +20,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// PVRSRV_BRIDGE_PACKAGE { bridgeId (0x1000 + index), size, in, inSize, out, outSize, hKernelServices }.</item>
 /// </list>
 /// </summary>
-public sealed class GpuEs4 : HleModule
+public sealed partial class GpuEs4 : HleModule
 {
     const int ERR_INVALID = unchecked((int)0x804C0000), ERR_ALREADY = unchecked((int)0x804C000E), KernelWaitTimeout = unchecked((int)0x80028005);
     const uint LockupTimeoutUs = 100_000;
@@ -95,6 +95,25 @@ public sealed class GpuEs4 : HleModule
         uint outBuffer = GuestMemory.R32(package + 16);
         uint outSize = GuestMemory.R32(package + 20);
         uint kernelServices = GuestMemory.R32(package + 24);
+        bool inReadable = inSize == 0 || (inBuffer != 0 && GuestMemory.IsMapped(inBuffer) && GuestMemory.IsMapped(inBuffer + inSize - 1));
+        int result = BridgeDispatch(bridgeId, inSize, inReadable, outSize, kernelServices, out uint error, out uint second);
+        if (result == 0)
+        {
+            WriteBridgeOut(outBuffer, outSize, error, second);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The driver's checks and handlers of one bridge call (the part of PVRSRV_BridgeDispatchKM after the package is
+    /// copied): 0 with the handler's eError and first output word, or -14. <paramref name="inReadable"/> = the caller's
+    /// in buffer can be copied (the user library's wrappers build it on their own stack).
+    /// </summary>
+    int BridgeDispatch(uint bridgeId, uint inSize, bool inReadable, uint outSize, uint kernelServices, out uint error, out uint second)
+    {
+        error = 0;
+        second = 0;
         bool connected = Volatile.Read(ref _servicesConnections) > 0;
         if (!connected || (bridgeId != BridgeIdBase + BridgeConnectServices && kernelServices != KernelServicesHandle))
         {
@@ -107,20 +126,19 @@ public sealed class GpuEs4 : HleModule
             return BridgeFault;
         }
 
-        if (inSize != 0 && (inBuffer == 0 || !GuestMemory.IsMapped(inBuffer) || !GuestMemory.IsMapped(inBuffer + inSize - 1)))
+        if (!inReadable)
         {
             return BridgeFault;
         }
 
         if (index == BridgeConnectServices)
         {
-            WriteBridgeOut(outBuffer, outSize, 0, KernelServicesHandle);
+            second = KernelServicesHandle;
             return 0;
         }
 
         if (index == BridgeDisconnectServices)
         {
-            WriteBridgeOut(outBuffer, outSize, 0, 0);
             return 0;
         }
 

@@ -37,6 +37,20 @@ public sealed class Compat : HleModule
     readonly int[] _intrSema = [-1, -1, -1];
     readonly int[] _requestSema = Enumerable.Repeat(-1, 16).ToArray();
     uint _fbParam;
+    int _displayColorSpaceMode; // ksceDisplaySetColorSpaceMode's mode SceAVConfig last set (0 at boot)
+
+    /// <summary>Tests: the colour space mode NID_6EBD9E01 kept.</summary>
+    internal int DisplayColorSpaceMode => _displayColorSpaceMode;
+
+    /// <summary>NID_6EBD9E01 (SceCompatForDriver)(int mode): SceAVConfig tells SceCompat the display colour space mode
+    /// it just set (ksceDisplaySetColorSpaceMode(0, mode)); the PSP emulator's display path sets that mode again when
+    /// it gives the display back. Always 0.</summary>
+    [Hle("NID_6EBD9E01", Nid = 0x6EBD9E01, Library = "SceCompatForDriver")]
+    int ksceCompatSetDisplayColorSpaceMode(int mode)
+    {
+        _displayColorSpaceMode = mode;
+        return 0;
+    }
 
     bool Allowed => Emu.IsSystemProgram;
     bool Owner => _owner == Emu.Pid;
