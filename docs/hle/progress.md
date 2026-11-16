@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,139 | 2,133 | 6 | 0 | 2,139 | 100% |
-| System imports | 6,118 | 5,893 | 225 | 0 | 7,322 | 83.5% |
+| System imports | 6,125 | 5,900 | 225 | 0 | 7,322 | 83.6% |
 | General | 8,205 | 7,994 | 211 | 0 | 9,945 | 82.5% |
-| All firmware 3.74 exports | 16,462 | 4,687 | 442 | 11,333 | 19,406 | 84.8% |
+| All firmware 3.74 exports | 16,469 | 4,694 | 442 | 11,333 | 19,406 | 84.8% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -284,7 +284,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceAppMgr | `os0:kd/bootimage.skprx/SceAppMgr` | 191 / 191 | 100% | - | 5 / 5 | 172 / 172 |
 | SceAppMgrUser | `os0:us/driver_us.suprx` | 128 / 128 | 100% | - | 10 / 10 | 99 / 99 |
 | SceAppSettings | `vs0:vsh/common/app_settings.suprx` | 24 / 24 | 100% | - | - | 15 / 15 |
-| SceAppUtil | `vs0:sys/external/apputil.suprx` | 46 / 56 | 82.1% | - | 33 / 33 | 1 / 9 |
+| SceAppUtil | `vs0:sys/external/apputil.suprx` | 50 / 56 | 89.2% | - | 33 / 33 | 5 / 9 |
 | SceAppUtilAddcontForce | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilAppEventUserDefined | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilBook | `vs0:sys/external/apputil.suprx` | 2 / 2 | 100% | - | - | - |
@@ -446,7 +446,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpActivityNet | `vs0:sys/external/np_activity.suprx` | 30 / 30 | 100% | - | - | 26 / 26 |
 | SceNpBasic | `vs0:sys/external/np_basic.suprx` | 31 / 41 | 75.6% | - | 25 / 25 | 2 / 4 |
 | SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 432 / 502 | 86% | - | 41 / 41 | 391 / 391 |
-| SceNpCommon | `vs0:sys/external/np_common.suprx` | 48 / 71 | 67.6% | - | 14 / 14 | 33 / 50 |
+| SceNpCommon | `vs0:sys/external/np_common.suprx` | 50 / 71 | 70.4% | - | 14 / 14 | 35 / 50 |
 | SceNpCommonPs4 | `vs0:sys/external/np_common_ps4.suprx` | 713 / 713 | 100% | - | - | 246 / 246 |
 | SceNpDrm | `os0:kd/bootimage.skprx/SceNpDrm` | 8 / 8 | 100% | 6 | - | 8 / 8 |
 | SceNpDrmPackage | `os0:kd/bootimage.skprx/SceNpDrm` | 16 / 16 | 100% | 3 | - | 16 / 16 |
@@ -457,7 +457,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpManagerOAuth | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerSP | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerTicket | `vs0:sys/external/np_manager.suprx` | 5 / 5 | 100% | - | - | - |
-| SceNpMatching2 | `vs0:sys/external/np_matching2.suprx` | 50 / 55 | 90.9% | - | 44 / 44 | 0 / 3 |
+| SceNpMatching2 | `vs0:sys/external/np_matching2.suprx` | 51 / 55 | 92.7% | - | 44 / 44 | 1 / 3 |
 | SceNpMessage | `vs0:sys/external/np_message.suprx` | 11 / 11 | 100% | - | 10 / 10 | - |
 | SceNpMessageContacts | `vs0:sys/external/np_message_contacts.suprx` | 16 / 16 | 100% | - | - | 12 / 12 |
 | SceNpMessageDialogPlugin | `vs0:sys/external/np_message_dialog_impl.suprx` | 5 / 5 | 100% | - | - | 4 / 4 |

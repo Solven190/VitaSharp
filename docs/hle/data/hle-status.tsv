@@ -9,7 +9,7 @@ SceActivityDb	vs0:sys/external/activity_db.suprx	78	78	0	0	57	57	0	0	0	78
 SceAppMgr	os0:kd/bootimage.skprx/SceAppMgr	191	191	5	5	172	172	0	0	0	0
 SceAppMgrUser	os0:us/driver_us.suprx	128	128	10	10	99	99	0	0	0	0
 SceAppSettings	vs0:vsh/common/app_settings.suprx	24	24	0	0	15	15	0	0	0	24
-SceAppUtil	vs0:sys/external/apputil.suprx	56	46	33	33	9	1	0	0	0	0
+SceAppUtil	vs0:sys/external/apputil.suprx	56	50	33	33	9	5	0	0	0	0
 SceAppUtilAddcontForce	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	0
 SceAppUtilAppEventUserDefined	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	1
 SceAppUtilBook	vs0:sys/external/apputil.suprx	2	2	0	0	0	0	0	0	0	0
@@ -171,7 +171,7 @@ SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
 SceNpBasic	vs0:sys/external/np_basic.suprx	41	31	25	25	4	2	0	0	0	0
 SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	432	41	41	391	391	0	0	0	0
-SceNpCommon	vs0:sys/external/np_common.suprx	71	48	14	14	50	33	0	0	0	0
+SceNpCommon	vs0:sys/external/np_common.suprx	71	50	14	14	50	35	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
 SceNpDrm	os0:kd/bootimage.skprx/SceNpDrm	8	8	0	0	8	8	6	0	6	0
 SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
@@ -182,7 +182,7 @@ SceNpManager	vs0:sys/external/np_manager.suprx	91	79	15	15	65	63	0	0	0	0
 SceNpManagerOAuth	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerSP	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerTicket	vs0:sys/external/np_manager.suprx	5	5	0	0	0	0	0	0	0	5
-SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	50	44	44	3	0	0	0	0	0
+SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	51	44	44	3	1	0	0	0	0
 SceNpMessage	vs0:sys/external/np_message.suprx	11	11	10	10	0	0	0	0	0	0
 SceNpMessageContacts	vs0:sys/external/np_message_contacts.suprx	16	16	0	0	12	12	0	0	0	16
 SceNpMessageDialogPlugin	vs0:sys/external/np_message_dialog_impl.suprx	5	5	0	0	4	4	0	0	0	5
