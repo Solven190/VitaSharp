@@ -349,8 +349,9 @@ public sealed class GxmContext
     public uint VisFrontIndex, VisBackIndex, VisBuffer, VisStride;
     /// <summary>Razor user marker nesting (sceGxmPush/PopUserMarker), debug only.</summary>
     public int MarkerDepth;
-    /// <summary>sceGxmSetYuvProfile for the two colour space converters (CSC0, CSC1): BT601 standard / full range by default.</summary>
-    public readonly byte[] YuvProfile = [0, 2];
+    /// <summary>sceGxmSetYuvProfile for the two colour space converters (CSC0, CSC1): BT601 standard / BT709 standard
+    /// after sceGxmCreateContext (libgxm 3.74).</summary>
+    public readonly byte[] YuvProfile = [0, 1];
 
     // ---- deferred contexts (sceGxmCreateDeferredContext): draws are recorded into command lists
     public bool Deferred, InCommandList, ViewportSet, RegionClipSet;

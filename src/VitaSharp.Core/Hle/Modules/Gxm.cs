@@ -985,13 +985,28 @@ public sealed partial class Gxm : HleModule
     [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackLineFillLastPixelEnable(uint ctx, uint e) { if (Ctx(ctx) is { } c) c.State.Back.LineFillLastPixel = e != 0; }
 
     /// <summary>YUV->RGB matrix of the colour space converter <paramref name="index"/> (0/1): BT601 0, BT709 1,
-    /// BT601 full range 2, BT709 full range 3. Stored per context; the texture decoder still uses its fixed matrices.</summary>
+    /// BT601 full range 2, BT709 full range 3. Stored per context; the texture decoder still uses its fixed matrices.
+    /// As libgxm 3.74: NULL or unknown context 0x805B0004; a deferred context, index above 1 or profile above 3 (any
+    /// profile is taken from programs built with an SDK before 2.50) 0x805B0003; inside a scene 0x805B0007.</summary>
     [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetYuvProfile(uint ctx, uint index, uint profile)
     {
-        if (Ctx(ctx) is not { } c) return ERR_INVALID_POINTER;
-        if (index > 1 || profile > 3) return ERR_INVALID_VALUE;
-        c.YuvProfile[index] = (byte)profile;
+        if (Ctx(ctx) is not { } context)
+        {
+            return ERR_INVALID_POINTER;
+        }
+
+        if (context.Deferred || index > 1 || (profile > 3 && !LenientSdk))
+        {
+            return ERR_INVALID_VALUE;
+        }
+
+        if (context.InScene)
+        {
+            return ERR_WITHIN_SCENE;
+        }
+
+        context.YuvProfile[index] = (byte)profile;
         return 0;
     }
     [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontPointLineWidth(uint ctx, uint w) { if (Ctx(ctx) is { } c) c.State.Front.PointLineWidth = (byte)w; }
@@ -1067,14 +1082,33 @@ public sealed partial class Gxm : HleModule
     [Hle(Cost = HleCost.UserCall)] void sceGxmSetFrontVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisFrontIncrement = op == VisibilityOpIncrement; }
     [Hle(Cost = HleCost.UserCall)] void sceGxmSetBackVisibilityTestOp(uint ctx, uint op) { if (Ctx(ctx) is { } c) c.VisBackIncrement = op == VisibilityOpIncrement; }
 
+    /// <summary>As libgxm 3.74: NULL or unknown context 0x805B0004, a deferred one 0x805B0003, base or stride not
+    /// 16-byte aligned 0x805B0005, inside a scene 0x805B0007 (in that order).</summary>
     [Hle(Cost = HleCost.UserCall)]
     int sceGxmSetVisibilityBuffer(uint ctx, uint bufferBase, uint stride)
     {
-        if (Ctx(ctx) is not { } c) return ERR_INVALID_POINTER;
-        if ((bufferBase & (VisibilityAlignment - 1)) != 0) return ERR_INVALID_ALIGNMENT;
-        if (c.Deferred) return ERR_INVALID_VALUE;
-        c.VisBuffer = bufferBase;
-        c.VisStride = stride;
+        if (Ctx(ctx) is not { } context)
+        {
+            return ERR_INVALID_POINTER;
+        }
+
+        if (context.Deferred)
+        {
+            return ERR_INVALID_VALUE;
+        }
+
+        if ((bufferBase & (VisibilityAlignment - 1)) != 0 || (stride & (VisibilityAlignment - 1)) != 0)
+        {
+            return ERR_INVALID_ALIGNMENT;
+        }
+
+        if (context.InScene)
+        {
+            return ERR_WITHIN_SCENE;
+        }
+
+        context.VisBuffer = bufferBase;
+        context.VisStride = stride;
         return 0;
     }
 

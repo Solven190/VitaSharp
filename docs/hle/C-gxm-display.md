@@ -558,11 +558,14 @@ Como aplicar no Vulkan:
   `BT601_STANDARD = 0`, `BT709_STANDARD = 1`, `BT601_FULL_RANGE = 2`, `BT709_FULL_RANGE = 3`.
 - **Comportamento:** define a matriz de conversão YUV→RGB dos dois "CSC" do hardware (`index` 0 ou 1). Texturas
   YUV420/YUV422 escolhem CSC0 ou CSC1 pelo bit de swizzle.
-- **Retorno/erros:** 0; `SCE_GXM_ERROR_INVALID_VALUE` para `index > 1` ou `profile > 3` (a confirmar);
-  `INVALID_POINTER` com contexto nulo.
+- **Retorno/erros (libgxm_es4 3.74, conferido no módulo):** 0; `INVALID_POINTER` com contexto nulo ou
+  desconhecido; `INVALID_VALUE` para contexto deferred, `index > 1` ou `profile > 3` (qualquer perfil é aceito de
+  programas feitos com SDK anterior a 2.50, bit 13 da palavra de compatibilidade da libgxm); `WITHIN_SCENE`
+  (0x805B0007) dentro de uma cena, sem gravar.
 - **Estruturas:** nenhuma.
-- **Implementação no VitaSharp:** `GxmContext` ganha `byte[] YuvProfile = [0, 2]` (padrão que reproduz o decodificador
-  atual: CSC0 = BT.601 estúdio, CSC1 = BT.601 full — TextureDecoder.cs:220; padrão real a confirmar). Copiar para o
+- **Implementação no VitaSharp:** `GxmContext.YuvProfile = [0, 1]`, o padrão que o `sceGxmCreateContext` 3.74 grava
+  (CSC0 = BT.601 estúdio, CSC1 = BT.709 estúdio). O decodificador (TextureDecoder) ainda usa as matrizes fixas
+  (CSC1 = BT.601 full) e não lê o perfil. Copiar para o
   `DrawCommand` (campo novo `YuvProfiles`, 2 bytes). No renderer, `TextureDecoder.YuvToRgb` recebe o perfil
   (coeficientes BT.601 vs BT.709 e range) e o perfil entra na **chave do cache de textura** — senão uma textura YUV já
   decodificada não muda quando o perfil muda.
