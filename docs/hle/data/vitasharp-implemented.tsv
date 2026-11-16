@@ -954,15 +954,39 @@
 0xDE5EF6CC	_sceCodecEngineSetClockFrequency	CodecEngine	SceCodecEngineWrapper	vh
 0x771190E7	SceCodecEngineWrapperForDebugger_771190E7	SystemServicesVsh	SceCodecEngineWrapperForDebugger	-	default
 0x075E4490	NID_075E4490	CommonDialog	SceCommonDialog	-
+0x089FB01E	NID_089FB01E	CommonDialog	SceCommonDialog	-
 0x243D6A36	NID_243D6A36	CommonDialog	SceCommonDialog	-
+0x35387E0C	NID_35387E0C	CommonDialog	SceCommonDialog	-
+0x396D7B68	NID_396D7B68	CommonDialog	SceCommonDialog	-
 0x3D3F9AD6	NID_3D3F9AD6	CommonDialog	SceCommonDialog	-
 0x40CD30CD	NID_40CD30CD	CommonDialog	SceCommonDialog	-
 0x452DA757	NID_452DA757	CommonDialog	SceCommonDialog	-
+0x460FDFF7	NID_460FDFF7	CommonDialog	SceCommonDialog	-
+0x463DB9ED	NID_463DB9ED	CommonDialog	SceCommonDialog	-
+0x47E7AD8E	NID_47E7AD8E	CommonDialog	SceCommonDialog	-
+0x500229F0	NID_500229F0	CommonDialog	SceCommonDialog	-
 0x62B60B87	NID_62B60B87	CommonDialog	SceCommonDialog	-
+0x631DC45C	NID_631DC45C	CommonDialog	SceCommonDialog	-
+0x63B08CA3	NID_63B08CA3	CommonDialog	SceCommonDialog	-
+0x64F65B8D	NID_64F65B8D	CommonDialog	SceCommonDialog	-
+0x675248CA	NID_675248CA	CommonDialog	SceCommonDialog	-
+0x7030E4A6	NID_7030E4A6	CommonDialog	SceCommonDialog	-
+0x76A52CDE	NID_76A52CDE	CommonDialog	SceCommonDialog	-
 0x9800F871	NID_9800F871	CommonDialog	SceCommonDialog	-
+0x9FA21E09	NID_9FA21E09	CommonDialog	SceCommonDialog	-
+0xA68A44EA	NID_A68A44EA	CommonDialog	SceCommonDialog	-
+0xA785D111	NID_A785D111	CommonDialog	SceCommonDialog	-
 0xAA624C1F	NID_AA624C1F	CommonDialog	SceCommonDialog	-
 0xAC20DAF9	NID_AC20DAF9	CommonDialog	SceCommonDialog	-
+0xC2D6F7F2	NID_C2D6F7F2	CommonDialog	SceCommonDialog	-
+0xC36C7DD1	NID_C36C7DD1	CommonDialog	SceCommonDialog	-
+0xE7F645AE	NID_E7F645AE	CommonDialog	SceCommonDialog	-
+0xED2F1495	NID_ED2F1495	CommonDialog	SceCommonDialog	-
+0xEFABDD6F	NID_EFABDD6F	CommonDialog	SceCommonDialog	-
+0xF2F0049E	NID_F2F0049E	CommonDialog	SceCommonDialog	-
+0xFA26EB30	NID_FA26EB30	CommonDialog	SceCommonDialog	-
 0xFBE52F6D	NID_FBE52F6D	CommonDialog	SceCommonDialog	-
+0xFCDA2F0D	NID_FCDA2F0D	CommonDialog	SceCommonDialog	-
 0xFEBF87EB	NID_FEBF87EB	CommonDialog	SceCommonDialog	-
 0xC6DB0740	SceCommonDialog_C6DB0740	UserTwins	SceCommonDialog	-
 0x8852B9A4	sceCameraImportDialogAbort	CommonDialog	SceCommonDialog	vh
@@ -6430,6 +6454,7 @@
 0x73BDFF32	NID_73BDFF32	NpManager	SceNpCommon	-
 0x85503FA6	NID_85503FA6	NpManager	SceNpCommon	-
 0x85699AE2	NID_85699AE2	NpManager	SceNpCommon	-
+0x88B18A5B	NID_88B18A5B	NpManager	SceNpCommon	-
 0x9AEF645B	NID_9AEF645B	NpManager	SceNpCommon	-
 0x9B7CAA67	NID_9B7CAA67	NpManager	SceNpCommon	-
 0xA04C77A1	NID_A04C77A1	NpManager	SceNpCommon	-
@@ -6795,6 +6820,29 @@
 0x0B48FADB	sceNpSignalingSetCtxOpt	NpSignaling	SceNpSignaling	vh
 0xBC892D18	sceNpSignalingTerm	NpSignaling	SceNpSignaling	vh
 0xA413F8C2	sceNpSignalingTerminateConnection	NpSignaling	SceNpSignaling	vh
+0x06A167FC	NID_06A167FC	NpSnsFacebook	SceNpSnsFacebook	-
+0x18041141	NID_18041141	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x3574800C	NID_3574800C	NpSnsFacebook	SceNpSnsFacebook	-
+0x46C23078	NID_46C23078	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x4A453D97	NID_4A453D97	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x501CCC39	NID_501CCC39	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x5069C04E	NID_5069C04E	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x64E5B424	NID_64E5B424	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x6A170F5D	NID_6A170F5D	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x6CAB3583	NID_6CAB3583	NpSnsFacebook	SceNpSnsFacebook	-
+0x8770E114	NID_8770E114	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x9A0A4832	NID_9A0A4832	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x9C6AAB52	NID_9C6AAB52	NpSnsFacebook	SceNpSnsFacebook	-
+0x9DE0B1BC	NID_9DE0B1BC	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xA9C661E9	NID_A9C661E9	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xABF56333	NID_ABF56333	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xB22D89FD	NID_B22D89FD	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xC10D390C	NID_C10D390C	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xC9ACC1C1	NID_C9ACC1C1	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xCB2ED352	NID_CB2ED352	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xFA6FBAAE	NID_FA6FBAAE	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xFB99FF8E	NID_FB99FF8E	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xFD842B21	NID_FD842B21	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x32FB2721	sceNpSnsFacebookAbortRequest	NpSnsFacebook	SceNpSnsFacebook	vh
 0x9CF1BC76	sceNpSnsFacebookCreateRequest	NpSnsFacebook	SceNpSnsFacebook	vh
 0xA537FF90	sceNpSnsFacebookDeleteRequest	NpSnsFacebook	SceNpSnsFacebook	vh
@@ -6802,6 +6850,22 @@
 0xA3C9041D	sceNpSnsFacebookGetLongAccessToken	NpSnsFacebook	SceNpSnsFacebook	vh
 0x80557AA0	sceNpSnsFacebookInit	NpSnsFacebook	SceNpSnsFacebook	vh
 0xA71E6847	sceNpSnsFacebookTerm	NpSnsFacebook	SceNpSnsFacebook	vh
+0x061DE3F5	NID_061DE3F5	NpTrophy	SceNpTrophy	-	default
+0x0AC3CEA8	NID_0AC3CEA8	NpTrophy	SceNpTrophy	-	default
+0x10182F1B	NID_10182F1B	NpTrophy	SceNpTrophy	-	default
+0x10371F25	NID_10371F25	NpTrophy	SceNpTrophy	-
+0x17FB1D9E	NID_17FB1D9E	NpTrophy	SceNpTrophy	-
+0x2B0CC831	NID_2B0CC831	NpTrophy	SceNpTrophy	-	default
+0x2EE76D88	NID_2EE76D88	NpTrophy	SceNpTrophy	-	default
+0x3AC04020	NID_3AC04020	NpTrophy	SceNpTrophy	-	default
+0x44E0F73E	NID_44E0F73E	NpTrophy	SceNpTrophy	-
+0x62E37599	NID_62E37599	NpTrophy	SceNpTrophy	-	default
+0x97D19AB6	NID_97D19AB6	NpTrophy	SceNpTrophy	-
+0xC338E582	NID_C338E582	NpTrophy	SceNpTrophy	-	default
+0xC80794CF	NID_C80794CF	NpTrophy	SceNpTrophy	-
+0xCCDEB18B	NID_CCDEB18B	NpTrophy	SceNpTrophy	-	default
+0xD70DAFA7	NID_D70DAFA7	NpTrophy	SceNpTrophy	-	default
+0xFD34F7CF	NID_FD34F7CF	NpTrophy	SceNpTrophy	-
 0xD55C6F4C	sceNpTrophyAbortHandle	NpTrophy	SceNpTrophy	vh
 0xC49FD33F	sceNpTrophyCreateContext	NpTrophy	SceNpTrophy	vh
 0x4EBC6977	sceNpTrophyCreateHandle	NpTrophy	SceNpTrophy	vh
@@ -6884,6 +6948,42 @@
 0x6B2A54EB	sceNpTusTryAndSetVariableVUser	NpTus	SceNpTus	vh
 0x518A64B9	sceNpTusTryAndSetVariableVUserAsync	NpTus	SceNpTus	vh
 0x3907A8BC	sceNpTusWaitAsync	NpTus	SceNpTus	vh
+0x01C44B07	NID_01C44B07	NpUtility	SceNpUtility	-	default
+0x08893FA1	NID_08893FA1	NpUtility	SceNpUtility	-	default
+0x14437509	NID_14437509	NpUtility	SceNpUtility	-
+0x23B387A5	NID_23B387A5	NpUtility	SceNpUtility	-	default
+0x25D26B6F	NID_25D26B6F	NpUtility	SceNpUtility	-	default
+0x31423835	NID_31423835	NpUtility	SceNpUtility	-
+0x31D3542E	NID_31D3542E	NpUtility	SceNpUtility	-	default
+0x34B42669	NID_34B42669	NpUtility	SceNpUtility	-	default
+0x4013244C	NID_4013244C	NpUtility	SceNpUtility	-	default
+0x418E1324	NID_418E1324	NpUtility	SceNpUtility	-	default
+0x44A2F444	NID_44A2F444	NpUtility	SceNpUtility	-	default
+0x485F368A	NID_485F368A	NpUtility	SceNpUtility	-	default
+0x4A479D1D	NID_4A479D1D	NpUtility	SceNpUtility	-	default
+0x548625FC	NID_548625FC	NpUtility	SceNpUtility	-	default
+0x54C48F92	NID_54C48F92	NpUtility	SceNpUtility	-
+0x6C1161AD	NID_6C1161AD	NpUtility	SceNpUtility	-	default
+0x7A86C37E	NID_7A86C37E	NpUtility	SceNpUtility	-	default
+0x7BC7E7F7	NID_7BC7E7F7	NpUtility	SceNpUtility	-	default
+0x866D737A	NID_866D737A	NpUtility	SceNpUtility	-
+0x89C8F74E	NID_89C8F74E	NpUtility	SceNpUtility	-	default
+0x944FE83C	NID_944FE83C	NpUtility	SceNpUtility	-	default
+0x9D8E0730	NID_9D8E0730	NpUtility	SceNpUtility	-	default
+0xA08E60BA	NID_A08E60BA	NpUtility	SceNpUtility	-	default
+0xA0991531	NID_A0991531	NpUtility	SceNpUtility	-	default
+0xA3E828ED	NID_A3E828ED	NpUtility	SceNpUtility	-	default
+0xB2FD5E9D	NID_B2FD5E9D	NpUtility	SceNpUtility	-	default
+0xB7A52202	NID_B7A52202	NpUtility	SceNpUtility	-	default
+0xB9FFB253	NID_B9FFB253	NpUtility	SceNpUtility	-	default
+0xC2598A46	NID_C2598A46	NpUtility	SceNpUtility	-	default
+0xC9283605	NID_C9283605	NpUtility	SceNpUtility	-	default
+0xCD3A3712	NID_CD3A3712	NpUtility	SceNpUtility	-
+0xD46E45DE	NID_D46E45DE	NpUtility	SceNpUtility	-	default
+0xE2135903	NID_E2135903	NpUtility	SceNpUtility	-
+0xE64B4101	NID_E64B4101	NpUtility	SceNpUtility	-	default
+0xED2B86ED	NID_ED2B86ED	NpUtility	SceNpUtility	-	default
+0xF4B21646	NID_F4B21646	NpUtility	SceNpUtility	-	default
 0x32B068C4	sceNpBandwidthTestAbort	NpUtility	SceNpUtility	vh
 0xE0EBFBF6	sceNpBandwidthTestGetStatus	NpUtility	SceNpUtility	vh
 0x081FA13C	sceNpBandwidthTestInitStart	NpUtility	SceNpUtility	vh
@@ -9262,6 +9362,33 @@
 0x3889ACF8	sceSharedFbUpdateProcess	SharedFb	SceSharedFb	vh
 0xF9754AD9	sceSharedFbUpdateProcessBegin	SharedFb	SceSharedFb	vh
 0x565A9AB6	sceSharedFbUpdateProcessEnd	SharedFb	SceSharedFb	vh
+0x0025417F	NID_0025417F	Shell	SceShell	-	default
+0x05D6FCB0	NID_05D6FCB0	Shell	SceShell	-	default
+0x29A14252	NID_29A14252	Shell	SceShell	-	default
+0x2E0B6FA6	NID_2E0B6FA6	Shell	SceShell	-	default
+0x3059EEBC	NID_3059EEBC	Shell	SceShell	-	default
+0x36788D70	NID_36788D70	Shell	SceShell	-	default
+0x3E737FBE	NID_3E737FBE	Shell	SceShell	-	default
+0x3F41E440	NID_3F41E440	Shell	SceShell	-	default
+0x42053414	NID_42053414	Shell	SceShell	-	default
+0x449348B6	NID_449348B6	Shell	SceShell	-	default
+0x548A3111	NID_548A3111	Shell	SceShell	-	default
+0x5DC4A753	NID_5DC4A753	Shell	SceShell	-	default
+0x60129092	NID_60129092	Shell	SceShell	-	default
+0x6A6123E3	NID_6A6123E3	Shell	SceShell	-	default
+0x77642C92	NID_77642C92	Shell	SceShell	-	default
+0x7FE4E732	NID_7FE4E732	Shell	SceShell	-	default
+0x83D16CA8	NID_83D16CA8	Shell	SceShell	-	default
+0x8858B876	NID_8858B876	Shell	SceShell	-	default
+0x8C1D932A	NID_8C1D932A	Shell	SceShell	-	default
+0x99893E59	NID_99893E59	Shell	SceShell	-
+0xB4D888D5	NID_B4D888D5	Shell	SceShell	-	default
+0xC1886828	NID_C1886828	Shell	SceShell	-	default
+0xD4C7D2B7	NID_D4C7D2B7	Shell	SceShell	-	default
+0xE3D3A162	NID_E3D3A162	Shell	SceShell	-	default
+0xEC75C2F3	NID_EC75C2F3	Shell	SceShell	-	default
+0xF197032C	NID_F197032C	Shell	SceShell	-	default
+0xFDAA5D2E	NID_FDAA5D2E	Shell	SceShell	-	default
 0x1FAB9A1E	NID_1FAB9A1E	ShellUtil	SceShellSvc	-
 0x8D4F9F2E	NID_8D4F9F2E	ShellUtil	SceShellSvc	-	default
 0xB452A177	NID_B452A177	ShellUtil	SceShellSvc	-

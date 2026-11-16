@@ -46,7 +46,7 @@ SceCamera	os0:kd/bootimage.skprx/SceCamera	46	46	23	23	9	9	0	0	0	0
 SceClipboard	vs0:sys/external/libclipboard.suprx	2	2	2	2	0	0	0	0	0	0
 SceCodecEngineUser	os0:us/avcodec_us.suprx	6	6	4	4	2	2	0	0	0	0
 SceCodecEngineWrapper	os0:kd/bootimage.skprx/SceCodecEngineWrapper	16	16	0	0	6	6	0	0	0	0
-SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	136	83	83	58	34	0	0	0	0
+SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	160	83	83	58	58	0	0	0	0
 SceCommonDialogMain	vs0:sys/external/libcdlg_main.suprx	15	15	0	0	11	11	0	0	0	15
 SceCommonGuiDialog	vs0:sys/external/common_gui_dialog.suprx	54	54	0	0	40	40	0	0	0	54
 SceCompanionUtil	vs0:sys/external/libSceCompanionUtil.suprx	14	14	0	0	14	14	0	0	0	14
@@ -171,7 +171,7 @@ SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
 SceNpBasic	vs0:sys/external/np_basic.suprx	41	34	25	25	4	4	0	0	0	0
 SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	502	41	41	391	391	0	0	0	0
-SceNpCommon	vs0:sys/external/np_common.suprx	71	68	14	14	50	49	0	0	0	0
+SceNpCommon	vs0:sys/external/np_common.suprx	71	69	14	14	50	50	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
 SceNpDrm	os0:kd/bootimage.skprx/SceNpDrm	8	8	0	0	8	8	6	0	6	0
 SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
@@ -190,10 +190,10 @@ SceNpPartyAppUtil	vs0:app/NPXS10001/np_party_app.suprx	15	15	0	0	15	15	0	0	0	15
 SceNpPartyGameUtil	vs0:sys/external/np_party.suprx	13	13	8	8	0	0	2	0	0	0
 SceNpScore	vs0:sys/external/np_ranking.suprx	32	32	26	26	0	0	0	0	0	0
 SceNpSignaling	vs0:sys/external/np_signaling.suprx	18	18	12	12	0	0	0	0	0	0
-SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	7	6	6	23	0	0	0	0	0
-SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	15	15	15	16	0	0	0	0	0
+SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	30	6	6	23	23	19	0	19	0
+SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	31	15	15	16	16	10	0	10	0
 SceNpTus	vs0:sys/external/np_tus.suprx	67	67	46	46	0	0	0	0	0	0
-SceNpUtility	vs0:sys/external/np_utility.suprx	140	44	33	33	46	10	0	0	0	0
+SceNpUtility	vs0:sys/external/np_utility.suprx	140	80	33	33	46	46	30	0	30	0
 SceNpUtilityAvatarN	vs0:sys/external/np_utility.suprx	2	2	0	0	0	0	0	0	0	2
 SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	60	19	19	25	25	1	0	1	0
 SceNpWebApiCommonDialog	vs0:sys/external/libcdlg.suprx	10	10	8	8	2	2	0	0	0	0
@@ -244,7 +244,7 @@ SceScreenShot	vs0:sys/external/libSceScreenShot.suprx	9	9	5	5	1	1	0	0	0	0
 SceSecondScreen	vs0:app/NPXS10013/libSceSecondScreen.suprx	3	3	0	0	3	3	0	0	0	3
 SceSensMe	vs0:vsh/common/mms/SensMe.suprx	21	21	0	0	18	18	0	0	0	21
 SceSharedFb	os0:kd/bootimage.skprx/SceAppMgr	12	12	5	5	7	7	0	0	0	0
-SceShell	vs0:vsh/shell/shell.self	33	0	0	0	27	0	0	0	0	0
+SceShell	vs0:vsh/shell/shell.self	33	27	0	0	27	27	26	0	26	0
 SceShellSvc	vs0:sys/external/libshellsvc.suprx	10	10	0	0	9	9	0	0	0	10
 SceShellUtil	vs0:sys/external/libshellsvc.suprx	40	40	0	0	34	34	0	0	0	40
 SceShellUtilLaunchApp	vs0:sys/external/libshellsvc.suprx	1	1	0	0	0	0	0	0	0	1
