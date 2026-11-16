@@ -2515,6 +2515,22 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 ## Bugs em aberto
 
 - [ ] [P1][M] Textura quebrada no MGS3 depois de trocar de jogo pelo shell (relato do usuário, 15/11/2026; captura `shell_20261115_225727_tudo`, com dump da GPU de 177 quadros): shell → Metal Gear Solid HD → God of War Collection → de volta ao MGS, e na abertura do MGS3 (avião) a cabeça do tripulante sai com textura errada e sombra em blocos. Pistas do log: dois jogos vivos ao mesmo tempo ("scenes of several processes interleaved"), e `[vram] pressure 198% ... evicting 0 MB` repetido (VRAM acima do orçamento e nada liberado). Suspeitas: cache de texturas/alvos chaveado só pelo endereço do guest e compartilhado entre processos (o GoW usa os mesmos endereços), ou textura descartada/não recarregada sob pressão de VRAM. Primeiro passo: `replay-gpu --frame=37` do dump e comparar com o MGS aberto direto, sem o GoW.
+  Achados (16/11/2026, kill2, 1h20): (1) o `--frame` do replay-gpu é o número do present, não o índice no dump:
+  o "quadro 37" da captura é `--frame=17120`. (2) O defeito **reproduz no replay de um renderer novo**, inclusive com
+  `--no-targets` (sem o estado de render targets gravado no início do dump): não vem de estado do renderer deixado
+  pelo GoW, e a hipótese do cache chaveado só pelo endereço fica descartada para este quadro (as texturas já levam o
+  espaço de endereço; os blocos CDRAM do GoW, 0x6B8xxxxx, não cruzam os do MGS, 0x60D00000-0x62FFFFFF). (3) O
+  `[vram] pressure 198%` é do heap 2 (72 MB, host-visible) e não das texturas: ruído do log, nada a liberar ali.
+  (4) No quadro 17120 (`--trace-draws=17120`) a cena 3D principal (alvo 0x61800000 768x480, depth 0x61980000
+  carregado) sai quase vazia (escura, só silhuetas), e a imagem da cabeça vem do alvo 0x88A43400 640x360 (memória
+  do processo), composto pela draw 498 a partir de 0x61800000 e do depth 0x61980000 como textura; o relatório da
+  captura marca o quadro como "frozen-picture" (a mesma imagem 1,6-3,9 s com o jogo flipando). No dump bom
+  `PCSE00020_20261112_225611_tudo` (mesmo trecho dos créditos, sem troca de jogo) o alvo equivalente 0x60B00000
+  768x480 tem a cena inteira. (5) Os render targets do GoW (0x6B8xxxxx 720x408/960x544) continuam no renderer depois
+  que o processo terminou (o ProcessEndedCommand só fecha a cena aberta): vazamento a corrigir à parte, não é a
+  causa deste quadro. Próximo passo: comparar a cena 0x61800000 do dump ruim com a do dump bom draw a draw
+  (`--draw-limit=N@17120` para achar a primeira draw que diverge: depth carregado de 0x61980000 com valores velhos
+  é o suspeito), e uma captura do mesmo plano com o MGS aberto direto (sem o GoW) para saber se depende da troca.
 - [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), subitem que sobrou do relato de 11/11/2026 (o resto está em "Corrigido, falta o usuário testar"):
   - **Ainda aberto: escurecimento de um quadro (cabeça do tripulante e bloom, flashes 2752-2778 da captura
     010709; são os flashes que sobram com a correção acima).** No replay do dump 010709 (quadros 2740-2790) aparecem
