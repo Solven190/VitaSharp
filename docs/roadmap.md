@@ -458,7 +458,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   padrão de todos os jogos (o Silent Hill depende dos 333 MHz). Opções para o usuário decidir: uma opção por jogo de
   "Relógio da CPU" (333 / 444 / sem ritmo) como a taxa de quadros, ou conferir num Vita de verdade se este menu com o
   mod e 480 de largura fica a 60 a 333 MHz (se ficar, o custo do laço de pixels está alto no modelo)
-- [ ] [P3][P] Opção por jogo "Relógio da CPU" (333 MHz / 444 MHz / sem ritmo), como a taxa de quadros por jogo: **pendente da
+- [x] (16/11/2026, usuário: já funciona) [P3][P] Opção por jogo "Relógio da CPU" (333 MHz / 444 MHz / sem ritmo), como a taxa de quadros por jogo: **pendente da
   decisão do usuário, não implementar antes** (anotado em 08/11/2026, perf/desktop-12). Motivo: o menu do Sonic Mania
   (item acima) e outros jogos presos na CPU emulada a 333 MHz; hoje só --cpu-mhz=/VITASHARP_CPU_MHZ mudam isso
 - [x] (15/11/2026, usuário: concluído) [P2][M] Sonic Mania: travadas de 3-5 s nos carregamentos (quadros ~1131 e ~1856 do `mania_boot`, 6-17 fps nesses 5 s)
