@@ -46,7 +46,7 @@ SceCamera	os0:kd/bootimage.skprx/SceCamera	46	46	23	23	9	9	0	0	0	0
 SceClipboard	vs0:sys/external/libclipboard.suprx	2	2	2	2	0	0	0	0	0	0
 SceCodecEngineUser	os0:us/avcodec_us.suprx	6	6	4	4	2	2	0	0	0	0
 SceCodecEngineWrapper	os0:kd/bootimage.skprx/SceCodecEngineWrapper	16	16	0	0	6	6	0	0	0	0
-SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	124	83	83	58	25	0	0	0	0
+SceCommonDialog	vs0:sys/external/libcdlg.suprx	163	133	83	83	58	34	0	0	0	0
 SceCommonDialogMain	vs0:sys/external/libcdlg_main.suprx	15	15	0	0	11	11	0	0	0	15
 SceCommonGuiDialog	vs0:sys/external/common_gui_dialog.suprx	54	54	0	0	40	40	0	0	0	54
 SceCompanionUtil	vs0:sys/external/libSceCompanionUtil.suprx	14	14	0	0	14	14	0	0	0	14

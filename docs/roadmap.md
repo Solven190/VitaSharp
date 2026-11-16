@@ -1494,6 +1494,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   mudança ao secure monitor (smc 0x110, 0x111, 0x113, 0x114; TrustZone, ver a regra do processador de segurança).
   Falta: kscePervasiveDsiSetPixelClock, NID_243D0E78 e NID_7E813FC5 (tabela de 20 pixel clocks do módulo e o estado
   por porta DSI) e NID_E9D95643 (troca do clock base pelo caminho de transição da tabela do módulo).
+- [ ] [P3][G] sceAppMgrPspSaveDataRootMount (HLE) escreve `ux0:pspemu` como ponto de montagem sem registrar uma
+  montagem no AppMgr, então um sceAppMgrUmount dele falha: conferir no appmgr 3.74 o que é montado (o SAVEDATA do
+  emulador de PSP) e o ponto devolvido, e depois fazer o par do apputil.suprx NID_C3CB128B/NID_C0418B1C (montagem da
+  raiz de saves do PSP com contagem de uso, dono 0xCA).
 - [ ] [P3][G] Temas do Vita (pedido do usuário, 10/11/2026): instalar e usar temas como no aparelho. (1) Instalação: `.pkg` de
   tema da loja (content type de tema; o agente de PKG já detecta o tipo) com a licença, extraído para `ux0:theme/<id>`
   com o `theme.xml` e as imagens/sons, e registrado como o firmware faz (banco do shell / app.db, lista de temas das

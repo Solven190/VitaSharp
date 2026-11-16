@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,139 | 2,133 | 6 | 0 | 2,139 | 100% |
-| System imports | 6,125 | 5,900 | 225 | 0 | 7,322 | 83.6% |
+| System imports | 6,134 | 5,909 | 225 | 0 | 7,322 | 83.7% |
 | General | 8,205 | 7,994 | 211 | 0 | 9,945 | 82.5% |
-| All firmware 3.74 exports | 16,469 | 4,694 | 442 | 11,333 | 19,406 | 84.8% |
+| All firmware 3.74 exports | 16,478 | 4,703 | 442 | 11,333 | 19,406 | 84.9% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -321,7 +321,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceClipboard | `vs0:sys/external/libclipboard.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceCodecEngineUser | `os0:us/avcodec_us.suprx` | 6 / 6 | 100% | - | 4 / 4 | 2 / 2 |
 | SceCodecEngineWrapper | `os0:kd/bootimage.skprx/SceCodecEngineWrapper` | 16 / 16 | 100% | - | - | 6 / 6 |
-| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 124 / 163 | 76% | - | 83 / 83 | 25 / 58 |
+| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 133 / 163 | 81.5% | - | 83 / 83 | 34 / 58 |
 | SceCommonDialogMain | `vs0:sys/external/libcdlg_main.suprx` | 15 / 15 | 100% | - | - | 11 / 11 |
 | SceCommonGuiDialog | `vs0:sys/external/common_gui_dialog.suprx` | 54 / 54 | 100% | - | - | 40 / 40 |
 | SceCompanionUtil | `vs0:sys/external/libSceCompanionUtil.suprx` | 14 / 14 | 100% | - | - | 14 / 14 |
