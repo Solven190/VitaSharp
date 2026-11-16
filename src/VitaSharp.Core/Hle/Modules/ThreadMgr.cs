@@ -522,9 +522,29 @@ public sealed partial class ThreadMgr : HleModule
     [Hle("sceKernelWaitEventFlag", Cost = HleCost.SchedulerWait)]
     [Hle("sceKernelWaitEventFlagCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
     internal int sceKernelWaitEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits, Ptr<uint> timeout)
-        => Obj<EventFlag>(uid)?.WaitFlag(bits, mode, outBits, timeout) ?? SceError.UNKNOWN_EVF_ID;
+    {
+        // the mode and the bits are checked before the UID (FW 3.74 threadmgr)
+        int invalid = EventFlag.CheckWaitArguments(bits, mode);
+        if (invalid != SceError.OK)
+        {
+            return invalid;
+        }
 
-    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelPollEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits) => Obj<EventFlag>(uid)?.Poll(bits, mode, outBits) ?? SceError.UNKNOWN_EVF_ID;
+        return Obj<EventFlag>(uid)?.WaitFlag(bits, mode, outBits, timeout) ?? SceError.UNKNOWN_EVF_ID;
+    }
+
+    [Hle(Cost = HleCost.SchedulerWait)]
+    int sceKernelPollEventFlag(int uid, uint bits, uint mode, Ptr<uint> outBits)
+    {
+        // the bits and the mode are checked before the UID (FW 3.74 threadmgr)
+        int invalid = EventFlag.CheckPollArguments(bits, mode);
+        if (invalid != SceError.OK)
+        {
+            return invalid;
+        }
+
+        return Obj<EventFlag>(uid)?.Poll(bits, mode, outBits) ?? SceError.UNKNOWN_EVF_ID;
+    }
     [Hle] int sceKernelCancelEventFlag(int uid, uint pattern, Ptr<int> numWait) => Obj<EventFlag>(uid)?.Cancel(pattern, numWait) ?? SceError.UNKNOWN_EVF_ID;
 
     [Hle]

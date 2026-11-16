@@ -228,6 +228,10 @@ public static class Wait
 
     private static long ElapsedUs(long startTicks) => (long)((GuestClock.Ticks - startTicks) * 1_000_000 / Stopwatch.Frequency * TimeScale.Wait);
 
+    /// <summary>A wait that started at <paramref name="startTicks"/> with a limit of <paramref name="limitUs"/> has run
+    /// out of guest time (the clock and scale every wait's timeout uses).</summary>
+    internal static bool Expired(long startTicks, long limitUs) => ElapsedUs(startTicks) >= limitUs;
+
     private static void WriteRemaining(Ptr<uint> timeout, long? limitUs, long startTicks)
     {
         if (timeout.IsNull || !limitUs.HasValue)
@@ -467,6 +471,11 @@ public sealed partial class EventFlag : KernelObject
         public uint Consumed;
         /// <summary>A cancel or delete took it off the queue (it returns that error).</summary>
         public bool Dequeued;
+        /// <summary>Guest time at the wait and its limit in microseconds (-1: none).</summary>
+        public long StartTicks;
+        public long LimitUs = -1;
+        /// <summary>Its timeout had passed when a set reached it: off the queue, it returns WAIT_TIMEOUT.</summary>
+        public bool Expired;
     }
 
     /// <summary>The wait queue, in the order the kernel checks it on a set.</summary>
@@ -477,11 +486,41 @@ public sealed partial class EventFlag : KernelObject
 
     private bool Matches(uint bits, uint mode) => (mode & WaitOr) != 0 ? (Pattern & bits) != 0 : (Pattern & bits) == bits;
 
-    public int WaitFlag(uint bits, uint mode, Ptr<uint> outBits, Ptr<uint> timeout)
+    /// <summary>A wait mode threadmgr accepts (FW 3.74 wait and poll): only the OR, CLEAR and CLEAR_PAT bits, and not
+    /// both clears at once; any other mode is ILLEGAL_MODE.</summary>
+    public static bool IsLegalMode(uint mode) => (mode & ~(WaitOr | WaitClear | WaitClearPat)) == 0
+        && (mode & (WaitClear | WaitClearPat)) != (WaitClear | WaitClearPat);
+
+    /// <summary>The checks threadmgr's wait makes before it looks the flag up: ILLEGAL_MODE, then INVALID_ARGUMENT for
+    /// no bits.</summary>
+    public static int CheckWaitArguments(uint bits, uint mode)
+    {
+        if (!IsLegalMode(mode))
+        {
+            return SceError.ILLEGAL_MODE;
+        }
+
+        return bits == 0 ? SceError.INVALID_ARGUMENT : SceError.OK;
+    }
+
+    /// <summary>The checks threadmgr's poll makes before it looks the flag up: INVALID_ARGUMENT for no bits, then
+    /// ILLEGAL_MODE (the other order from the wait's).</summary>
+    public static int CheckPollArguments(uint bits, uint mode)
     {
         if (bits == 0)
         {
             return SceError.INVALID_ARGUMENT;
+        }
+
+        return IsLegalMode(mode) ? SceError.OK : SceError.ILLEGAL_MODE;
+    }
+
+    public int WaitFlag(uint bits, uint mode, Ptr<uint> outBits, Ptr<uint> timeout)
+    {
+        int invalid = CheckWaitArguments(bits, mode);
+        if (invalid != SceError.OK)
+        {
+            return invalid;
         }
 
         int result;
@@ -507,13 +546,15 @@ public sealed partial class EventFlag : KernelObject
                 Mode = mode,
                 Priority = GuestThread.Current?.Priority ?? 0,
                 CancelGeneration = _cancelled,
+                StartTicks = GuestClock.Ticks,
+                LimitUs = timeout.IsNull ? -1 : timeout.Value,
             };
             Enqueue(request);
             Waiters++;
             try
             {
                 result = Wait.UntilGranted(this, (flag: this, request), static t => t.request.Granted, timeout,
-                    static t => t.request.Granted ? 0 : t.flag._deleted ? SceError.WAIT_DELETE : t.flag._cancelled != t.request.CancelGeneration ? SceError.WAIT_CANCEL : 0,
+                    static t => t.request.Granted ? 0 : t.request.Expired ? SceError.WAIT_TIMEOUT : t.flag._deleted ? SceError.WAIT_DELETE : t.flag._cancelled != t.request.CancelGeneration ? SceError.WAIT_CANCEL : 0,
                     WaitDescription, out woken);
             }
             finally
@@ -532,6 +573,14 @@ public sealed partial class EventFlag : KernelObject
             {
                 result = SceError.OK; // satisfied by a set: a timeout or cancel that came after it does not undo that
                 outBits.TrySet(request.Result);
+            }
+            else if (request.Dequeued)
+            {
+                outBits.TrySet(request.Result); // the pattern when the cancel, delete or timeout woke it
+                if (request.Expired)
+                {
+                    timeout.TrySet(0);
+                }
             }
             else
             {
@@ -575,10 +624,23 @@ public sealed partial class EventFlag : KernelObject
         }
     }
 
+    /// <summary>sceKernelPollEventFlag. On a flag without SCE_EVENT_WAITMULTIPLE that a thread waits on, another
+    /// thread's poll is refused like a second wait (EVF_MULTI, FW 3.74 threadmgr), without touching the pattern.</summary>
     public int Poll(uint bits, uint mode, Ptr<uint> outBits)
     {
+        int invalid = CheckPollArguments(bits, mode);
+        if (invalid != SceError.OK)
+        {
+            return invalid;
+        }
+
         lock (this)
         {
+            if ((Attr & AttrMulti) == 0 && Waiters > 0)
+            {
+                return SceError.EVF_MULTI;
+            }
+
             outBits.TrySet(Pattern);
             if (!Matches(bits, mode))
             {
@@ -595,18 +657,33 @@ public sealed partial class EventFlag : KernelObject
     /// sceKernelSetEventFlag, as the kernel does it (threadmgr): ORs the bits in, then walks the wait queue in order and
     /// satisfies every waiter whose condition now holds, applying its clear mode right there (so the next waiter in
     /// the queue, and any call after this one, sees the pattern without the consumed bits), until the pattern is
-    /// empty. A satisfied waiter returns that result whenever its thread runs again; it never re-checks the flag.
+    /// empty. A satisfied waiter returns that result whenever its thread runs again; it never re-checks the flag. A
+    /// waiter whose timeout has passed in guest time is no longer in the kernel's queue (its timer took it off at the
+    /// deadline), however late its host thread is to notice: it is not satisfied and returns WAIT_TIMEOUT.
     /// </summary>
     public void Set(uint bits)
     {
         lock (this)
         {
+            uint patternBefore = Pattern;
             Pattern |= bits;
             RecordSignal();
             bool satisfied = false;
+            bool expired = false;
             for (int i = 0; i < _queue.Count && Pattern != 0;)
             {
                 WaitRequest request = _queue[i];
+                if (request.LimitUs >= 0 && Wait.Expired(request.StartTicks, request.LimitUs))
+                {
+                    request.Expired = true;
+                    request.Dequeued = true;
+                    request.Result = patternBefore; // its timer fired before this set
+                    _queue.RemoveAt(i);
+                    Waiters--;
+                    expired = true;
+                    continue;
+                }
+
                 if (!Matches(request.Bits, request.Mode))
                 {
                     i++;
@@ -626,6 +703,10 @@ public sealed partial class EventFlag : KernelObject
             if (satisfied)
             {
                 WakeWaiters();
+            }
+            else if (expired)
+            {
+                Monitor.PulseAll(this); // only timed-out waiters: nobody was woken by this thread
             }
         }
     }
@@ -661,12 +742,15 @@ public sealed partial class EventFlag : KernelObject
         }
     }
 
-    /// <summary>Cancel and delete release every waiter at once: a set that follows cannot satisfy them any more.</summary>
+    /// <summary>Cancel and delete release every waiter at once: a set that follows cannot satisfy them any more. Each
+    /// one returns the pattern of this moment (threadmgr's wake writes the waiter's outBits under the flag's lock), not
+    /// the one it finds when its thread runs again.</summary>
     private void DequeueAll()
     {
         foreach (WaitRequest request in _queue)
         {
             request.Dequeued = true;
+            request.Result = Pattern;
         }
 
         _queue.Clear();
