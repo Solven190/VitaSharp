@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,139 | 2,133 | 6 | 0 | 2,139 | 100% |
 | System imports | 6,134 | 5,909 | 225 | 0 | 7,322 | 83.7% |
-| General | 8,237 | 8,026 | 211 | 0 | 9,945 | 82.8% |
-| All firmware 3.74 exports | 16,510 | 4,735 | 442 | 11,333 | 19,406 | 85% |
+| General | 8,272 | 8,061 | 211 | 0 | 9,945 | 83.1% |
+| All firmware 3.74 exports | 16,545 | 4,770 | 442 | 11,333 | 19,406 | 85.2% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -321,7 +321,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceClipboard | `vs0:sys/external/libclipboard.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceCodecEngineUser | `os0:us/avcodec_us.suprx` | 6 / 6 | 100% | - | 4 / 4 | 2 / 2 |
 | SceCodecEngineWrapper | `os0:kd/bootimage.skprx/SceCodecEngineWrapper` | 16 / 16 | 100% | - | - | 6 / 6 |
-| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 133 / 163 | 81.5% | - | 83 / 83 | 34 / 58 |
+| SceCommonDialog | `vs0:sys/external/libcdlg.suprx` | 134 / 163 | 82.2% | - | 83 / 83 | 34 / 58 |
 | SceCommonDialogMain | `vs0:sys/external/libcdlg_main.suprx` | 15 / 15 | 100% | - | - | 11 / 11 |
 | SceCommonGuiDialog | `vs0:sys/external/common_gui_dialog.suprx` | 54 / 54 | 100% | - | - | 40 / 40 |
 | SceCompanionUtil | `vs0:sys/external/libSceCompanionUtil.suprx` | 14 / 14 | 100% | - | - | 14 / 14 |
@@ -392,7 +392,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceLibFflVuMp4 | `vs0:vsh/common/libSenvuabsFFsdk.suprx` | 61 / 61 | 100% | - | - | 13 / 13 |
 | SceLibGcc | `os0:us/libkernel.suprx` | 20 / 20 | 100% | - | - | - |
 | SceLibJson | `vs0:sys/external/libSceJson.suprx` | 179 / 179 | 100% | - | 50 / 50 | 16 / 16 |
-| SceLibKernel | `os0:us/libkernel.suprx` | 329 / 341 | 96.4% | 30 | 122 / 122 | 67 / 67 |
+| SceLibKernel | `os0:us/libkernel.suprx` | 331 / 341 | 97% | 30 | 122 / 122 | 67 / 67 |
 | SceLibLocation | `vs0:sys/external/liblocation.suprx` | 22 / 33 | 66.6% | - | 5 / 5 | 14 / 25 |
 | SceLibLocationExtension | `vs0:sys/external/liblocation_extension.suprx` | 3 / 3 | 100% | - | - | 1 / 1 |
 | SceLibLocationFactory | `vs0:sys/external/liblocation_factory.suprx` | 1 / 1 | 100% | - | - | - |
@@ -434,7 +434,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNearUtil | `vs0:sys/external/libSceNearUtil.suprx` | 49 / 49 | 100% | - | 46 / 46 | - |
 | SceNet | `vs0:sys/external/libnet.suprx` | 59 / 62 | 95.1% | - | 47 / 47 | 4 / 4 |
 | SceNetAdhocMatching | `vs0:sys/external/adhoc_matching.suprx` | 14 / 14 | 100% | - | 13 / 13 | - |
-| SceNetCtl | `vs0:sys/external/libnetctl.suprx` | 94 / 112 | 83.9% | - | 16 / 16 | 76 / 76 |
+| SceNetCtl | `vs0:sys/external/libnetctl.suprx` | 101 / 112 | 90.1% | - | 16 / 16 | 76 / 76 |
 | SceNetInternal | `vs0:sys/external/libnet.suprx` | 7 / 58 | 12% | - | - | 6 / 45 |
 | SceNetPsForSyscalls | `os0:kd/bootimage.skprx/SceNetPs` | 34 / 34 | 100% | - | - | 34 / 34 |
 | SceNgs | `vs0:sys/external/libngs.suprx` | 68 / 68 | 100% | - | 55 / 55 | - |
@@ -445,7 +445,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpActivity | `vs0:sys/external/np_activity_sdk.suprx` | 4 / 4 | 100% | - | 3 / 3 | - |
 | SceNpActivityNet | `vs0:sys/external/np_activity.suprx` | 30 / 30 | 100% | - | - | 26 / 26 |
 | SceNpBasic | `vs0:sys/external/np_basic.suprx` | 31 / 41 | 75.6% | - | 25 / 25 | 2 / 4 |
-| SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 432 / 502 | 86% | - | 41 / 41 | 391 / 391 |
+| SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 457 / 502 | 91% | - | 41 / 41 | 391 / 391 |
 | SceNpCommon | `vs0:sys/external/np_common.suprx` | 50 / 71 | 70.4% | - | 14 / 14 | 35 / 50 |
 | SceNpCommonPs4 | `vs0:sys/external/np_common_ps4.suprx` | 713 / 713 | 100% | - | - | 246 / 246 |
 | SceNpDrm | `os0:kd/bootimage.skprx/SceNpDrm` | 8 / 8 | 100% | 6 | - | 8 / 8 |
