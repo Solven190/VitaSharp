@@ -423,6 +423,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `last_frag_in` (input attachment 0, variantes fetch-input do `ShaderGenerator`) numa biblioteca de fragmento ou na
   ligação com renderização dinâmica e `colorAttachmentCount` 0. Pôr os anexos de cor da chave na biblioteca e na
   ligação não resolveu; a chamada exata ainda não foi identificada (quadros idênticos)
+  Medido de novo em 16/11/2026 com o replay que antecipa o prefetch um quadro (`replay-gpu --async-shaders=on
+  --speed=1`, caches do emulador e do driver frios, 4 CPUs, A/B alternado 2x): com as bibliotecas o Killzone não melhora
+  (quadros >= 50 ms 5/5 contra 5/6, >= 16,7 ms 5/5 contra 7/7, pior 3,6-3,7 s contra 3,5-3,9 s; 250 ligados em 3 ms, mas
+  os mesmos ~85 pipelines esperados nos workers). O que o GPU thread ainda monta sozinho em 5 dumps (linha da sessão,
+  por variante) não é tile-word nem visão inteira (0 em todos): Killzone 21 MSAA + 6 fetch, 13 deles no 1º quadro do dump,
+  com a fila dos workers cheia. O limite é a vazão: com `VITASHARP_SHADER_WORKERS=4` em vez dos 2 automáticos (4 CPUs)
+  o pior quadro cai de 3,7-4,5 s para 0,1-1,6 s no Killzone (esperas 75-87 -> 5-7) e de 1,4-3,0 s para 0,6-0,7 s no
+  PCSE00269. Próximo passo: medir em gameplay com o cache frio `--shader-workers=` acima do automático (metade das CPUs)
+  e, se ganhar lá, subir o padrão (o Dolphin usa todos os núcleos menos 3)
 - [ ] [P2][G] Engasgos de shader na primeira vez que se joga (plano escolhido): o custo é o driver montar cada pipeline
   (~80 ms por pipeline na GTX 1650; traduzir os shaders do Vita custa no máximo ~116 ms por sessão), e na segunda
   sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Três frentes:

@@ -808,6 +808,7 @@ public sealed unsafe partial class VulkanRenderer
             }
         }
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+        NoteGpuThreadPipelineKind(key);
         if (_pipelineLibrary && key.Static == 0)
         {
             // linked from shader libraries instead of compiled whole; optimised in the background
