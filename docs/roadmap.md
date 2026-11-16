@@ -5213,7 +5213,7 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
   NID_E45E4003 o SceNpId (+0, 0x24) e a URL do avatar (+0x38, 0x80) para um SceNpManagerCacheParam de 0xA4 bytes e
   devolve 0; o HLE dá o NpId da conta emulada (sem URL) ou tudo zero sem conta. O 99Vidas chama 4 vezes no boot e
   recebe "VitaSharp" (`--peek`, log `bugsC11_out/np_99vidas_peek/log.txt`) e segue para a abertura
-- [ ] [P2][M] Revalidação dos jogos do PC (31/10/2026, branch perf/android-phone-2; folhas e resumo em
+- [x] [P2][M] Revalidação dos jogos do PC (31/10/2026, branch perf/android-phone-2; folhas e resumo em
   `phone2_shots/pc`, `review.md`): The Deer God (PCSB01070) sem limite de quadros (214-348 fps; antes 60);
   Shinobido 2 (PCSE00015) com uma linha verde embaixo do filme de abertura e `sceKernelGetCpuId` sem implementação
   (31.410 chamadas) — corrigidos em 04/11/2026 (fix/user-bugs): o filme é 960x540 e o jogo amostra o buffer de 544
@@ -5295,6 +5295,12 @@ on-existing PPS 0 e nenhum quadro). Ainda aberto: depois da carga no meio do fil
     fogo e à fumaça da primeira área na rodada do agente B de hoje (`<scratchpad>\bB2\runs\soulsac_boot`).
   - NIDs que faltavam (FFBFC540, D5B26179, sceNpSnsFacebookInit, sceCoredumpRegisterCoredumpHandler): todos implementados;
     0 "Unimplemented" nas sete execuções
+  Fechado (16/11/2026, bug7, fix/bug7-immediate-pace-test): o que ficou aberto era o The Deer God sem limite de
+  quadros, já resolvido pela regra de um flip IMMEDIATE por vblank (ligada por padrão desde 10/11/2026, 56-60 fps
+  medidos; ver o item do The Deer God), que não tinha teste. `DisplayImmediatePaceTests` (relógio do guest congelado,
+  sem depender do host): um segundo flip IMMEDIATE no mesmo vblank espera o próximo; flips NEXTFRAME e o modo "sem
+  limite" não são segurados. O primeiro caso falha com a regra tirada do `Display.SetFrameBuf`. Silent Hill e o resto
+  já estavam corrigidos acima; o Crazy Market não está mais instalado.
 - [x] Suíte `Category!=Slow`: 3 falhas do NativeJitTests só na suíte completa (a classe sozinha passava 37/37; agente B,
   10/11/2026, fix/bugs-b-6). Causa: o construtor do `Emulator` escreve o `Jit.Enabled`/`Jit.Mode` do processo e os testes
   de HLE criam emuladores com `EnableJit = false` sem devolver; os testes que rodavam depois (Invalidation, TierUp,
