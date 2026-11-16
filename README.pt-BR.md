@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=08c5cb44f0c2085fbfcdd2d237555331da897ec5be012ec589760ac8f624ad91 -->
+<!-- pair: README.md sha256=ea906472e668a8fece56fcf2735735f62651af708f469f9bf84158448dfc3644 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -166,6 +166,9 @@ sistema e **Continuar** retoma o jogo. Detalhes e o que falta em [`docs/notes/sy
 
 **Idioma.** O launcher e a janela do jogo seguem o idioma do sistema (inglês ou português do Brasil);
 **Configurações > Geral > Aparência > Idioma** escolhe um (no Android: **Ajustes > Aparência > Idioma**). Os logs continuam em inglês.
+O idioma que um jogo vê é o idioma do sistema do Vita; para um jogo sem o seu (ex.: um lançamento asiático só com
+japonês e inglês, que cai no japonês), o ajuste **Idioma do sistema** dele (na página do jogo no launcher, nos detalhes
+do jogo no Android; `--system-language=<0-19>` na linha de comando) faz só esse jogo ver outro.
 
 Os dados ficam em `%APPDATA%\VitaSharp` no Windows (`~/.local/share/VitaSharp` no Linux,
 `~/Library/Application Support/VitaSharp` no macOS; `--data=<pasta>` ou `VITASHARP_DATA` trocam a pasta): jogos em
@@ -302,7 +305,7 @@ abaixo ficam as gravações do **Gravar tudo** do jogo, com data e tamanho; toca
 **Ajustes por jogo.** Nos detalhes do jogo: resolução interna (50%, 75%, nativa, 2x, 3x ou 4x, como no desktop), MSAA, taxa de quadros
 (**Nativo**, o ritmo do próprio jogo, por padrão; **Fixo em 30**, **Fixo em 60** ou **Sem limite**, como o `--frame-rate`
 do desktop; também no menu de pausa, vale na hora, e aparece ao lado do contador de FPS), VSync, o contador de FPS,
-backend de CPU, clock e perfil de GPU, salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
+backend de CPU, clock, perfil de GPU e o idioma do sistema que o jogo vê (**Idioma do sistema**), salvos por jogo (**Voltar ao padrão de Ajustes** volta aos ajustes gerais).
 
 **Limitações conhecidas.**
 

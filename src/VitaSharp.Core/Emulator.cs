@@ -22,6 +22,11 @@ public sealed class EmulatorOptions
     public string? CpuBackend { get; init; }
     public bool TraceHle { get; init; }
     public string Language { get; init; } = "en";
+    /// <summary>The emulator option "System language" of a game (the Vita has one language for the whole system): the
+    /// SceSystemParamLang (0..19) its applications read through SceAppUtil, SceRegMgrForGame, SceRegMgr and SceNp instead of
+    /// the system registry's /CONFIG/SYSTEM/language, for games without the system's language. The system software
+    /// (programs from vs0:) keeps the system's. Null: the system's language.</summary>
+    public int? SystemLanguage { get; init; }
     /// <summary>Directory with per-title code patch files (TITLEID.txt); null = built-in patches only.</summary>
     public string? PatchDir { get; init; }
     /// <summary>The emulated PSN account (signed in by default, see <see cref="PsnAccount"/>).</summary>

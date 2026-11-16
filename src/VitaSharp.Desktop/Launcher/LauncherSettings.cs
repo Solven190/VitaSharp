@@ -307,11 +307,25 @@ public sealed class GameOptions
         [(null, Core.Localization.Loc.Format("MDefaultParen", Core.Localization.Loc.Get(global ? "MOn" : "MOff"))),
          (true, Core.Localization.Loc.Get("MOn")), (false, Core.Localization.Loc.Get("MOff"))];
 
+    /// <summary>"Idioma do sistema": the SceSystemParamLang (0-19) this game reads instead of the system's language, for
+    /// games without it (null = the system's, the default), --system-language= (EmulatorOptions.SystemLanguage).</summary>
+    public int? SystemLanguage { get; set; }
+
+    /// <summary>System language choices: value (null = the system's) and label (each language in its own name).</summary>
+    public static (int? Value, string Label)[] SystemLanguages =>
+        [(null, Core.Localization.Loc.Get("SystemLanguageFollow")),
+         .. Core.Firmware.SystemLanguage.Names.Select((name, language) => ((int?)language, name))];
+
     public IEnumerable<string> RunOptions()
     {
         if (ResScale is >= 2 and <= 4)
         {
             yield return $"--res-scale={ResScale}";
+        }
+
+        if (SystemLanguage is int language && Core.Firmware.SystemLanguage.IsValid(language))
+        {
+            yield return $"--system-language={language}";
         }
 
         if (FrameRate is "30" or "60" or "unlimited")
@@ -322,7 +336,8 @@ public sealed class GameOptions
 
     /// <summary>Every option at its default: the entry can be dropped.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public bool IsDefault => ResScale is < 2 or > 4 && FrameRate is not ("30" or "60" or "unlimited") && FastLoading == null;
+    public bool IsDefault => ResScale is < 2 or > 4 && FrameRate is not ("30" or "60" or "unlimited") && FastLoading == null
+        && SystemLanguage == null;
 }
 
 /// <summary>Source-generated JSON metadata for the settings file (Native AOT has no reflection-based serializer).</summary>

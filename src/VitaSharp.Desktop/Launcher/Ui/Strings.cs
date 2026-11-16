@@ -206,6 +206,9 @@ public static class Strings
     public static string FrameRate => T();
     public static string FrameRateDetail => T();
     public static string FrameRateTip => T();
+    public static string SystemLanguage => T();
+    public static string SystemLanguageDetail => T();
+    public static string SystemLanguageTip => T();
     public static string FastLoading => T();
     public static string FastLoadingDetail => T();
     public static string FastLoadingGlobalDetail => T();

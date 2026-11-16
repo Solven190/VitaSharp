@@ -111,6 +111,10 @@ public sealed class GameSettings
     /// <summary>"Taxa de quadros": "30", "60" or "unlimited" (null = native, the game's own pacing; per game only, as the
     /// desktop launcher's --frame-rate=, Hle/Modules/Display.cs FrameRate).</summary>
     public string? FrameRate { get; set; }
+    /// <summary>"Idioma do sistema": the SceSystemParamLang ("0".."19") this game reads instead of the system's language,
+    /// for games without it (null = the system's; per game only, as the desktop launcher's --system-language=,
+    /// EmulatorOptions.SystemLanguage).</summary>
+    public string? SystemLanguage { get; set; }
 
     /// <summary>Total time played, in seconds.</summary>
     public long PlaySeconds { get; set; }
@@ -119,7 +123,8 @@ public sealed class GameSettings
     public double AverageFps { get; set; }
 
     [JsonIgnore]
-    public bool HasOverrides => CpuBackend != null || CpuMhz != null || GpuProfile != null || VSync != null || ShowFps != null || ResScale != null || Msaa != null || FastLoading != null || FrameRate != null;
+    public bool HasOverrides => CpuBackend != null || CpuMhz != null || GpuProfile != null || VSync != null || ShowFps != null || ResScale != null || Msaa != null || FastLoading != null || FrameRate != null
+        || SystemLanguage != null;
 
     public static GameSettings Load(string path) => SettingsFile.Load(path, PrefsJson.Default.GameSettings) ?? new();
     public void Save(string path) => SettingsFile.Save(path, this, PrefsJson.Default.GameSettings);
@@ -142,7 +147,7 @@ public sealed class GameSettings
 }
 
 /// <summary>What a game runs with: the game's settings over the global ones, validated.</summary>
-public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false, string FrameRate = "")
+public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false, string FrameRate = "", string SystemLanguage = "")
 {
     public static EffectiveSettings Resolve(AppPreferences app, GameSettings? game)
     {
@@ -162,8 +167,12 @@ public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string Gpu
         string res = SettingsChoices.ResScales.Any(c => c.Value == game?.ResScale) ? game!.ResScale! : "";
         string msaa = game?.Msaa == "off" ? "off" : "";
         string rate = SettingsChoices.FrameRates.Any(c => c.Value.Length > 0 && c.Value == game?.FrameRate) ? game!.FrameRate! : "";
-        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading, rate);
+        string language = SettingsChoices.SystemLanguages.Any(c => c.Value.Length > 0 && c.Value == game?.SystemLanguage) ? game!.SystemLanguage! : "";
+        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading, rate, language);
     }
+
+    /// <summary>EmulatorOptions.SystemLanguage for <see cref="SystemLanguage"/> (null = the system's language).</summary>
+    public int? SystemLanguageValue => int.TryParse(SystemLanguage, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int v) ? v : null;
 
     /// <summary>The frame rate mode the session starts with: the game's own choice, else VITASHARP_FRAME_RATE
     /// (<paramref name="environmentValue"/>, from config/env.txt), else native. Set at every start, so a mode never
@@ -212,6 +221,14 @@ public static class SettingsChoices
         new("30", Loc.Get("RateFixed30")),
         new("60", Loc.Get("RateFixed60")),
         new("unlimited", Loc.Get("RateUnlimited")),
+    ];
+
+    /// <summary>"Idioma do sistema": the system's language ("") or a SceSystemParamLang, each language in its own name
+    /// (Core/Firmware/SystemLanguage.cs; the desktop launcher's list).</summary>
+    public static IReadOnlyList<Choice> SystemLanguages { get; } =
+    [
+        new("", Loc.Get("SystemLanguageFollow")),
+        .. VitaSharp.Core.Firmware.SystemLanguage.Names.Select((name, language) => new Choice(language.ToString(System.Globalization.CultureInfo.InvariantCulture), name)),
     ];
 
     /// <summary>The frame rate choice after <paramref name="value"/>, wrapping around (the pause menu's row cycles

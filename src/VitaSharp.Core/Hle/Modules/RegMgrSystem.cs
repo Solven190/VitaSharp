@@ -34,7 +34,7 @@ public sealed partial class RegMgrSystem : HleModule
     int GetInt(string? category, string? name, Ptr<int> value, string fn)
     {
         if (category == null || name == null || value.IsNull) return ERR_INVALID;
-        if (!Reg.TryGetInt(category, name, out int v))
+        if (!TryReadInt(category, name, out int v))
         {
             Log.WarnOnce($"reg-{category}{name}", $"{fn}({category}, {name}): no such registry key");
             return ERR_INVALID;
@@ -42,6 +42,26 @@ public sealed partial class RegMgrSystem : HleModule
         value.Value = v;
         return 0;
     }
+
+    /// <summary>An integer key as this process reads it: the registry's value, except the language of an application
+    /// started with the emulator's per-game system language (<see cref="AppUtil.LanguageOverride"/>).</summary>
+    bool TryReadInt(string category, string name, out int value)
+    {
+        if (!Reg.TryGetInt(category, name, out value))
+        {
+            return false;
+        }
+
+        // comparing the path is safe: it is the firmware's fixed key of the system language
+        if (Registry.IsPath(category, name, LanguagePath) && AppUtil.LanguageOverride(Emu) is int language)
+        {
+            value = language;
+        }
+
+        return true;
+    }
+
+    const string LanguagePath = "/CONFIG/SYSTEM/language";
 
     int GetBytes(string? category, string? name, uint buf, int size, bool str, string fn)
     {
@@ -105,7 +125,7 @@ public sealed partial class RegMgrSystem : HleModule
         {
             uint k = keys + (uint)i * 16;
             string? n = Str(GuestMemory.R32(k + 4));
-            GuestMemory.W32(k + 12, n != null && Reg.TryGetInt(c, n, out int v) ? (uint)v : 0);
+            GuestMemory.W32(k + 12, n != null && TryReadInt(c, n, out int v) ? (uint)v : 0);
         }
         return 0;
     }

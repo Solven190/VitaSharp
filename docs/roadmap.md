@@ -1654,10 +1654,18 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   Manager, câmera/AR, apps de vídeo/música/browser) e abrir um item por recurso com o caminho (LLE do módulo real +
   HLE do que falta); os grupos que o plano do VitaSDK marcou como "não se aplica" (Mono do PSM, Piglet, ShaccCg)
   entram aqui como recursos a emular, não como ignorados
-- [ ] [P3][P] Idioma do sistema por jogo (pedido do usuário, 09/11/2026): opção "Idioma do sistema" nos ajustes de cada jogo
+- [x] [P3][P] Idioma do sistema por jogo (pedido do usuário, 09/11/2026): opção "Idioma do sistema" nos ajustes de cada jogo
   (desktop e Android) que sobrepõe o idioma que o jogo recebe (SceSystemParamLang / `/CONFIG/SYSTEM/language`), para
   jogos sem o idioma do aparelho. Caso real: Killzone Mercenary PCSC00045 (lançamento asiático) só tem japonês
   (padrão) e inglês; com o sistema em pt-BR o jogo cai no japonês. Padrão: seguir o idioma do sistema/app
+  Feito (16/11/2026, sys8, feat/per-game-language): `EmulatorOptions.SystemLanguage` (`--system-language=<0-19>`); o
+  processo de um aplicativo lê esse idioma por todos os caminhos do jogo (`sceAppUtilSystemParamGetInt`,
+  `sceRegMgrSystemParamGetInt`, `sceRegMgrGetKeyInt`/`GetKeys`/`UtilityGetInt`, idioma da conta do SceNp e textos dos
+  troféus); o software do sistema (programas de `vs0:`) e os outros parâmetros continuam com o registro. Linha
+  "Idioma do sistema" (Seguir o sistema + os 20 idiomas pelo nome próprio, lista única em
+  `Core/Firmware/SystemLanguage.cs`) na página do jogo do launcher e nos detalhes do jogo no Android. Prova:
+  `PerGameSystemLanguageTests` (8 casos; desligar o override do SceRegMgr faz o caso principal falhar: esperado
+  (0,0,0,0,0), obtido (0,0,17,17,0)). Falta: o usuário conferir o Killzone asiático em inglês.
 - [ ] [P3][M] HLE lote 10b (09/11/2026, feat/hle-batch-10b, parado no fim do dia): feito o SceLibMtpHttpWrapper (26), o
   SceLibMtpHttp (28, libhttp/libssl sobre o MTP numa instância própria e offline do Http/Ssl), o sceHttpSetProxy
   (SceHttp 53B722F2), o SceLibMtp (153: núcleo Init/Start/Stop/End, sem PC conectado = os erros da checagem de conexão

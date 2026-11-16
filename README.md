@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=3abb02139a7821464f2408d252bfb9e17b20bc08524cfccfeda00fd35126f4fa -->
+<!-- pair: README.pt-BR.md sha256=256f48e4b95d3a06ea8b2248913ff16ec5e615742f3f4b4a22b4c3548c7e4ab3 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -163,6 +163,9 @@ and **Continue** resumes the game. Details and what is missing in [`docs/notes/s
 
 **Language.** The launcher and the game window follow the system's language (English or Brazilian Portuguese);
 **Settings > General > Appearance > Language** picks one (on Android: **Settings > Appearance > Language**). Logs stay in English.
+The language a game sees is the Vita's system language; for a game without yours (e.g. an Asian release with only
+Japanese and English, which falls back to Japanese), its **System language** setting (the game's page in the launcher,
+the game's details on Android; `--system-language=<0-19>` on the command line) makes only that game see another one.
 
 Data lives in `%APPDATA%\VitaSharp` on Windows (`~/.local/share/VitaSharp` on Linux,
 `~/Library/Application Support/VitaSharp` on macOS; `--data=<folder>` or `VITASHARP_DATA` change the folder): games in
@@ -298,7 +301,8 @@ From adb: `am start ... --es titleId <ID> --ei loadSlot <1-6>`.
 **Per-game settings.** In the game's details: internal resolution (50%, 75%, native, 2x, 3x or 4x, as the desktop's), MSAA, frame rate (**Nativo**, the
 game's own pacing, by default; **Fixo em 30**, **Fixo em 60** or **Sem limite**, as the desktop's `--frame-rate`; also in
 the pause menu, applied right away, and shown next to the FPS counter), VSync, the FPS counter, CPU backend, clock and
-GPU profile, saved per game (**Voltar ao padrão de Ajustes** goes back to the global settings).
+GPU profile and the system language the game sees (**Idioma do sistema**), saved per game (**Voltar ao padrão de Ajustes**
+goes back to the global settings).
 
 **Known limitations.**
 

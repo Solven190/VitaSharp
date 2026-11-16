@@ -102,6 +102,7 @@ public sealed partial class EmulationSession : IDisposable
             Net = net,
             Rpcn = rpcn,
             KernelPlugins = prefs.KernelPlugins,
+            SystemLanguage = _settings.SystemLanguageValue, // "Idioma do sistema" of this game
         });
         _emu.Fatal += (t, e) =>
         {

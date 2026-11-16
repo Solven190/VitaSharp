@@ -3117,4 +3117,16 @@
   <data name="MStorageMovingProgress" xml:space="preserve">
     <value>{0} of {1} files · {2} of {3} MB</value>
   </data>
+  <data name="SystemLanguage" xml:space="preserve">
+    <value>System language</value>
+  </data>
+  <data name="SystemLanguageDetail" xml:space="preserve">
+    <value>The language the game sees, for games without yours</value>
+  </data>
+  <data name="SystemLanguageTip" xml:space="preserve">
+    <value>Follow the system (default): the game reads the language set on the Vita, as on the console. A language here makes only this game see that one, for games that do not have yours (e.g. an Asian release with only Japanese and English falls back to Japanese when the system is in Portuguese). The Vita System itself keeps its language. Applies when the game starts.</value>
+  </data>
+  <data name="SystemLanguageFollow" xml:space="preserve">
+    <value>Follow the system</value>
+  </data>
 </root>
