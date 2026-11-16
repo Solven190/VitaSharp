@@ -2531,6 +2531,15 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   causa deste quadro. Próximo passo: comparar a cena 0x61800000 do dump ruim com a do dump bom draw a draw
   (`--draw-limit=N@17120` para achar a primeira draw que diverge: depth carregado de 0x61980000 com valores velhos
   é o suspeito), e uma captura do mesmo plano com o MGS aberto direto (sem o GoW) para saber se depende da troca.
+  Bisect (16/11/2026, kill2, `--draw-limit=N@17120 --trace-draws=17120`): depois das draws 24-92 (a primeira cena
+  em 0x61800000) o alvo já mostra só a cabeça com o cabelo e o fone sobre o fundo verde chapado: o renderer desenha
+  o que recebe; é o **jogo que manda menos draws** (as cenas em 0x61800000 somam ~140 draws no quadro 17120 contra
+  ~240 na cena equivalente do dump bom de 12/11) e a câmera fica parada ("frozen-picture" com legendas avançando).
+  O cabelo é textura legítima (a tripulante ruiva de fone aparece nos créditos de 11/11); falta o cenário. Não há
+  consultas de visibilidade nas draws (não é culling por occlusion query). Suspeita agora: estado do jogo depois do
+  suspend/resume com outro jogo rodando (modelos do cenário não carregados, streaming ou animação da cutscene
+  parados); as threads do MGS no início da captura não estão presas em nada anormal. Falta a captura do mesmo plano
+  com o MGS aberto direto (pedida ao usuário em 16/11) para separar "depende da troca" de "o plano é assim aqui".
 - [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), subitem que sobrou do relato de 11/11/2026 (o resto está em "Corrigido, falta o usuário testar"):
   - **Ainda aberto: escurecimento de um quadro (cabeça do tripulante e bloom, flashes 2752-2778 da captura
     010709; são os flashes que sobram com a correção acima).** No replay do dump 010709 (quadros 2740-2790) aparecem
