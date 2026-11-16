@@ -12,6 +12,9 @@ public enum DialogType
     None, Msg, SaveData, Ime, NetCheck, NpMessage, NpTrophySetup, NpFriendList, NpFriendList2, KzUnknown,
     PhotoImport, PhotoReview, CameraImport, VideoImport, CompanionUtil, CrossController, RemoteOsk, StoreCheckout,
     NpProfile, NpSnsFacebook, Tw, TwLogin, PspSaveData,
+
+    /// <summary>libcdlg families only the system software uses, by their family number (no public names).</summary>
+    Libcdlg10, Near, Libcdlg1A, Libcdlg1B,
 }
 
 /// <summary>SceCommonDialogErrorCode (psp2/common_dialog.h).</summary>
