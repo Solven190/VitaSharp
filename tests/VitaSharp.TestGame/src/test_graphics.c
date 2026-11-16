@@ -324,14 +324,16 @@ static void encode_element(TexelKind kind, const uint8_t rgba[4], int paletteInd
         }
         case KIND_ETC1:
         {
-            /* Individual mode, both halves the same 4-bit colour, codeword 0, every pixel index 0 (+2). */
+            /* Individual mode, both halves the same 4-bit colour, codeword 0, every pixel index 0 (+2). The SGX reads
+               each 32-bit word of the Khronos block little-endian (vitaGL byte-swaps each word when it uploads ETC1):
+               the colour word R, G, B, flags is stored flags, B, G, R. */
             int qr = quantize((int)r, 4);
             int qg = quantize((int)g, 4);
             int qb = quantize((int)b, 4);
-            out[0] = (uint8_t)((qr << 4) | qr);
-            out[1] = (uint8_t)((qg << 4) | qg);
-            out[2] = (uint8_t)((qb << 4) | qb);
-            out[3] = 0;
+            out[3] = (uint8_t)((qr << 4) | qr);
+            out[2] = (uint8_t)((qg << 4) | qg);
+            out[1] = (uint8_t)((qb << 4) | qb);
+            out[0] = 0;
             out[4] = 0;
             out[5] = 0;
             out[6] = 0;

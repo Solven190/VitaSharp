@@ -2556,6 +2556,21 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   plugins de kernel os carrega de novo na nova imagem (`KernelPluginExecTests`, falha sem a correção). Falta: um app
   aberto pelo Sistema do Vita (processo ao lado do shell) também não vê os plugins de kernel, que só o primeiro
   processo carrega.
+- [x] Real Racing 3 (RR3VITA01): pista, carro e rodas com texturas em ruído azul-ciano/vermelho depois dos 99% (relato do
+  usuário, 16/11/2026, captura `RR3VITA01_20261116_122856_tudo`). **Corrigido** (fix/etc1-byte-order, 16/11/2026): todas
+  as texturas ETC1 (0x84000000, swizzled arbitrary) saíam erradas (`textures.txt` do `--trace-draws`: seams 2-3, noise
+  0,10-0,20, SUSPECT-SEAMS); o UBC3 e o U4U4U4U4 do mesmo quadro estavam certos. Como o console faz: o vitaGL, que roda
+  no Vita, troca os bytes de cada palavra de 32 bits do bloco da Khronos ao subir um ETC1 para o GXM
+  (texture_swizzler.cpp: `CopyETCBlock` com `__builtin_bswap32`, `CopyETC1Tile` com `vrev32q_u8`), ou seja, a SGX lê
+  as duas palavras do bloco em little-endian; o `Etc1.Decode` lia na ordem da Khronos. Agora ele volta cada palavra para
+  a ordem da Khronos antes de decodificar; o HLE do Piglet (glCompressedTexImage2D/SubImage com ETC1) grava os blocos na
+  ordem da SGX, como o GL do console; o caso ETC1 do `VitaSharp.TestGame` passa a codificar nessa ordem (falta gerar o
+  vpk de novo). Testes: `GxmTextureFormatTests` (os 3 de ETC1, incl. o novo
+  `Etc1BlocksAreReadWithEachWordLittleEndianAsTheConsoleHasThem`) e `PigletHleTests.Gl_TextureStorageAndUploads` falham sem a correção.
+  Replay do dump (`replay-gpu --trace-draws=555`): ETC1 com seams 0,7-1,9 e noise 0,001-0,035, Porsche azul com rodas
+  vermelhas e pista cinza (antes verde listrado e ruído). Outros dumps: só os do RR3 e o `VSTEST001_20261111` têm ETC1
+  (o caminho mudado é exclusivo do ETC1). O `GL_INVALID_VALUE: mtTextureGL::CreateEmpty` do log é outro assunto (o
+  vitaGL recusou um formato numa textura vazia) e não muda a imagem do replay. Falta o usuário confirmar no jogo.
 - [ ] [P1][M] Textura quebrada no MGS3 depois de trocar de jogo pelo shell (relato do usuário, 15/11/2026; captura `shell_20261115_225727_tudo`, com dump da GPU de 177 quadros): shell → Metal Gear Solid HD → God of War Collection → de volta ao MGS, e na abertura do MGS3 (avião) a cabeça do tripulante sai com textura errada e sombra em blocos. Pistas do log: dois jogos vivos ao mesmo tempo ("scenes of several processes interleaved"), e `[vram] pressure 198% ... evicting 0 MB` repetido (VRAM acima do orçamento e nada liberado). Suspeitas: cache de texturas/alvos chaveado só pelo endereço do guest e compartilhado entre processos (o GoW usa os mesmos endereços), ou textura descartada/não recarregada sob pressão de VRAM. Primeiro passo: `replay-gpu --frame=37` do dump e comparar com o MGS aberto direto, sem o GoW.
   Achados (16/11/2026, kill2, 1h20): (1) o `--frame` do replay-gpu é o número do present, não o índice no dump:
   o "quadro 37" da captura é `--frame=17120`. (2) O defeito **reproduz no replay de um renderer novo**, inclusive com
@@ -2737,7 +2752,8 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 - [ ] [P3][P] Achados do jogo de teste VitaSDK (repositório local `VitaSharp-testgame`, 11/11/2026; 182 OK / 3 FAIL / 2 SKIP
   no VitaSharp sem janela). 1) e 2) corrigidos (revalidação de 12/11/2026, `fix/revalidate-2`): o vita-headers
   (`gxm.h`) define `SCE_GXM_TEXTURE_BASE_FORMAT_ETC1 = 0x84000000` ("Requires SCE_GXM_INITIALIZE_FLAG_EXTENDED_FORMAT",
-  único formato `ETC1_1BGR`), agora decodificado na CPU com o formato da Khronos (`Etc1.cs`); e
+  único formato `ETC1_1BGR`), agora decodificado na CPU com o formato da Khronos (`Etc1.cs`; 16/11/2026: com cada palavra
+  de 32 bits em little-endian, como a SGX lê e o vitaGL grava; o caso do jogo de teste foi corrigido para essa ordem); e
   `SCE_GXM_COLOR_FORMAT_U2U10U10U10_ABGR` é "32-bit unsigned A2B10G10R10" (vermelho nos bits baixos): textura e
   superfície de cor passam a usar `A2B10G10R10UnormPack32`. Falta rodar de novo o jogo de teste para confirmar os dois
   casos. 3) A primeira espera de vblank depois do boot às vezes demora (+51 vblanks em 861 ms, esperado 30 em ~500 ms)

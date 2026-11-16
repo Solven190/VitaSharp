@@ -282,6 +282,19 @@ public sealed class PigletHleTests(GuestMemoryFixture fx, ITestOutputHelper outp
             Assert.Equal(GL_NEAREST, GuestMemory.R32(p));
             h.Call("glGenerateMipmap", GL_TEXTURE_2D);
             Assert.Equal(GL_INVALID_OPERATION, h.U("glGetError")); // compressed
+            // ETC1 4x4: GL's block (big-endian words) is stored with each word little-endian, as the SGX reads it
+            uint etc1 = h.Mem(8);
+            byte[] khronos = [0x88, 0x44, 0xCC, 0x00, 0x00, 0x00, 0xFF, 0xFF];
+            for (uint i = 0; i < 8; i++)
+            {
+                GuestMemory.Write(etc1 + i, khronos[i]);
+            }
+
+            h.Call("glCompressedTexImage2D", GL_TEXTURE_2D, 0, 0x8D64u, 4, 4, 0, 8, etc1);
+            Assert.Equal(GL_NO_ERROR, h.U("glGetError"));
+            t = h.Piglet.Texture(tex)!;
+            Assert.Equal(0x8844CC00u, GuestMemory.R32(t.Data)); // bytes 00 CC 44 88
+            Assert.Equal(0x0000FFFFu, GuestMemory.R32(t.Data + 4));
         });
     }
 
