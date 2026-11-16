@@ -1,6 +1,6 @@
 # User-side HLE holes of FW 3.74 (VitaSharp.Desktop hle-coverage --status; method in docs/hle/user-exports.md):
 # the functions the firmware exports to user code that have no [Hle] entry and can reach the HLE. kind: kernel-syscall
-# (os0:kd syscall export) and os0-user (os0:us module) always reach it; vs0-user rows are the missing functions of the vs0
+# (syscall export of a kernel module) and os0-user (os0:us module) always reach it; vs0-user rows are the missing functions of the vs0
 # libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).
 # games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
 library	nid	name	kind	games	system	vitasdk

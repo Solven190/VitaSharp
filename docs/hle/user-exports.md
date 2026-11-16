@@ -31,6 +31,9 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
   `os0`/`vs0`, os do `bootimage.skprx` lidos um a um) e os 55 jogos instalados; nomes do `Hle/Data/nids.txt`
   (vita-headers; `NID_xxxxxxxx` = sem nome público). A saída agora traz quantos jogos e quantos módulos do sistema
   importam cada função (cada importador contado uma vez; teste `FunctionCensusTests`).
+- Módulos reais (LLE) do firmware: todo `.suprx` de `vs0:` (`FirmwareLibraries`: primeiro `sys/external`, `vsh/common`,
+  `vsh/shell`; depois as outras pastas, como `vsh/common/mms`, `app/NPXS*/` e `data/external/webcore`, que os programas
+  carregam por caminho).
 - Situação no VitaSharp: `VitaSharp.Desktop hle-implemented` (os `[Hle]` e o módulo HLE de cada um) — dele sai quais
   bibliotecas o HLE serve.
 - Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv), gerada junto com o status por

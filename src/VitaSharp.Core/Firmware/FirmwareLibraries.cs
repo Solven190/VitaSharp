@@ -7,8 +7,9 @@ using VitaSharp.Core.Util;
 namespace VitaSharp.Core.Firmware;
 
 /// <summary>
-/// Which user-mode firmware module exports which library: every .suprx in the system module folders of vs0
-/// (sys/external, vsh/common, vsh/shell) read with <see cref="ModuleImage"/>. The kernel's module manager uses this
+/// Which user-mode firmware module exports which library: every .suprx of vs0 read with <see cref="ModuleImage"/>, the
+/// system module folders (sys/external, vsh/common, vsh/shell) first, then the modules programs load by path from the
+/// other folders (vs0:vsh/common/mms, vs0:app/NPXS*/, vs0:data/external/webcore...). The kernel's module manager uses this
 /// to load the modules a system program depends on (libpaf, libshellsvc, ...) before it starts, the way the Vita's
 /// modulemgr resolves a system executable's libraries against the firmware.
 /// The index is cached in &lt;FsRoot&gt;/firmware-libraries.txt (one line per module: path, size, mtime, libraries)
@@ -16,7 +17,8 @@ namespace VitaSharp.Core.Firmware;
 /// </summary>
 public sealed class FirmwareLibraries
 {
-    /// <summary>vs0 folders holding the user-mode modules of the system software, searched in this order.</summary>
+    /// <summary>vs0 folders holding the user-mode modules of the system software, searched in this order (their own
+    /// files only); the modules in every other vs0 folder come after them.</summary>
     public static readonly string[] ModuleFolders = ["sys/external", "vsh/common", "vsh/shell"];
 
     public sealed record Module(string VitaPath, string Name, IReadOnlyList<(string Library, uint LibNid)> Libraries);
@@ -29,7 +31,7 @@ public sealed class FirmwareLibraries
     /// <summary>The index of the firmware installed in <paramref name="fsRoot"/> (empty when there is none).</summary>
     public static FirmwareLibraries For(string fsRoot) => s_cache.GetOrAdd(Path.GetFullPath(fsRoot), r => new FirmwareLibraries(r));
 
-    /// <summary>The module exporting <paramref name="library"/> (first one in <see cref="ModuleFolders"/> order).</summary>
+    /// <summary>The module exporting <paramref name="library"/> (first one in <see cref="ModuleFiles"/> order).</summary>
     public Module? Provider(string library) => _byLibrary.GetValueOrDefault(library);
 
     private FirmwareLibraries(string fsRoot)
@@ -40,44 +42,34 @@ public sealed class FirmwareLibraries
         var lines = new List<string>();
         bool changed = false;
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        foreach (string folder in ModuleFolders)
+        foreach ((string vita, string file) in ModuleFiles(fsRoot))
         {
-            string dir = Path.Combine(fsRoot, "vs0", folder.Replace('/', Path.DirectorySeparatorChar));
-            if (!Directory.Exists(dir))
+            var fi = new FileInfo(file);
+            string stamp = $"{fi.Length}\t{fi.LastWriteTimeUtc.Ticks}";
+            Module? m = null;
+            if (cached.TryGetValue(vita, out (string Stamp, Module Module) c) && c.Stamp == stamp)
             {
-                continue;
+                m = c.Module;
             }
-
-            foreach (string? file in Directory.EnumerateFiles(dir, "*.suprx").Order(StringComparer.OrdinalIgnoreCase))
+            else
             {
-                string vita = $"vs0:{folder}/{Path.GetFileName(file)}";
-                var fi = new FileInfo(file);
-                string stamp = $"{fi.Length}\t{fi.LastWriteTimeUtc.Ticks}";
-                Module? m = null;
-                if (cached.TryGetValue(vita, out (string Stamp, Module Module) c) && c.Stamp == stamp)
+                changed = true;
+                try
                 {
-                    m = c.Module;
+                    var img = ModuleImage.Read(SelfDecryptor.ToElf(File.ReadAllBytes(file), null));
+                    m = new Module(vita, img.Name, img.Exports.Where(x => x.Library.Length > 0).Select(x => (x.Library, x.LibNid)).ToArray());
                 }
-                else
+                catch (Exception e) when (e is not OutOfMemoryException)
                 {
-                    changed = true;
-                    try
-                    {
-                        var img = ModuleImage.Read(SelfDecryptor.ToElf(File.ReadAllBytes(file), null));
-                        m = new Module(vita, img.Name, img.Exports.Where(x => x.Library.Length > 0).Select(x => (x.Library, x.LibNid)).ToArray());
-                    }
-                    catch (Exception e) when (e is not OutOfMemoryException)
-                    {
-                        Log.Debug($"firmware libraries: {vita}: {e.Message}");
-                        m = new Module(vita, "", []);
-                    }
+                    Log.Debug($"firmware libraries: {vita}: {e.Message}");
+                    m = new Module(vita, "", []);
                 }
-                modules.Add(m);
-                lines.Add($"{vita}\t{stamp}\t{m.Name}\t{string.Join(',', m.Libraries.Select(l => $"{l.Library}:{l.LibNid:X8}"))}");
-                foreach ((string? lib, uint _) in m.Libraries)
-                {
-                    _byLibrary.TryAdd(lib, m);
-                }
+            }
+            modules.Add(m);
+            lines.Add($"{vita}\t{stamp}\t{m.Name}\t{string.Join(',', m.Libraries.Select(l => $"{l.Library}:{l.LibNid:X8}"))}");
+            foreach ((string? lib, uint _) in m.Libraries)
+            {
+                _byLibrary.TryAdd(lib, m);
             }
         }
         Modules = modules;
@@ -92,6 +84,42 @@ public sealed class FirmwareLibraries
             {
                 Log.Debug($"firmware libraries: cannot write {cacheFile}: {e.Message}");
             }
+        }
+    }
+
+    /// <summary>Every user module of vs0 (Vita path, host path): the files of <see cref="ModuleFolders"/> in that order,
+    /// then the .suprx of every other vs0 folder, by Vita path.</summary>
+    public static IEnumerable<(string VitaPath, string HostPath)> ModuleFiles(string fsRoot)
+    {
+        string vs0 = Path.Combine(fsRoot, "vs0");
+        if (!Directory.Exists(vs0))
+        {
+            yield break;
+        }
+
+        var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string folder in ModuleFolders)
+        {
+            string dir = Path.Combine(vs0, folder.Replace('/', Path.DirectorySeparatorChar));
+            if (!Directory.Exists(dir))
+            {
+                continue;
+            }
+
+            foreach (string file in Directory.EnumerateFiles(dir, "*.suprx").Order(StringComparer.OrdinalIgnoreCase))
+            {
+                listed.Add(file);
+                yield return ($"vs0:{folder}/{Path.GetFileName(file)}", file);
+            }
+        }
+
+        var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, MatchCasing = MatchCasing.CaseInsensitive };
+        IOrderedEnumerable<(string, string)> others = Directory.EnumerateFiles(vs0, "*.suprx", options).Where(f => !listed.Contains(f))
+            .Select(f => ("vs0:" + Path.GetRelativePath(vs0, f).Replace(Path.DirectorySeparatorChar, '/'), f))
+            .OrderBy(f => f.Item1, StringComparer.OrdinalIgnoreCase);
+        foreach ((string vita, string file) in others)
+        {
+            yield return (vita, file);
         }
     }
 

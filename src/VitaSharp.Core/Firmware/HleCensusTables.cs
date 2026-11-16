@@ -70,11 +70,11 @@ public static class HleCensusTables
 
     /// <summary>Where a firmware function without an [Hle] entry would be served from, as the user-side census
     /// (docs/hle/user-exports.md) names it, or null when the real module serves it: kernel-syscall (a syscall
-    /// export of an os0:kd module, the bootimage's included) and os0-user (an os0:us module) always reach the HLE,
+    /// export of a kernel module, the bootimage's included) and os0-user (an os0:us module) always reach the HLE,
     /// vs0-user only when the HLE serves its library (<paramref name="firmwareServesLibrary"/> false).</summary>
     public static string? HoleKind(string module, string library, Func<string, bool> firmwareServesLibrary)
     {
-        if (module.StartsWith("os0:kd/", StringComparison.Ordinal))
+        if (module.StartsWith(Io.FirmwareLayout.KernelModules.Guest() + "/", StringComparison.Ordinal))
         {
             return "kernel-syscall";
         }
@@ -100,7 +100,7 @@ public static class HleCensusTables
         var b = new StringBuilder();
         b.Append("# User-side HLE holes of FW 3.74 (VitaSharp.Desktop hle-coverage --status; method in docs/hle/user-exports.md):\n");
         b.Append("# the functions the firmware exports to user code that have no [Hle] entry and can reach the HLE. kind: kernel-syscall\n");
-        b.Append("# (os0:kd syscall export) and os0-user (os0:us module) always reach it; vs0-user rows are the missing functions of the vs0\n");
+        b.Append("# (syscall export of a kernel module) and os0-user (os0:us module) always reach it; vs0-user rows are the missing functions of the vs0\n");
         b.Append("# libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).\n");
         b.Append("# games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.\n");
         b.Append("library\tnid\tname\tkind\tgames\tsystem\tvitasdk\n");
