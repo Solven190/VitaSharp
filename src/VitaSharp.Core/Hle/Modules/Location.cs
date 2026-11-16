@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -23,13 +24,15 @@ public sealed partial class Location : HleModule
     internal const uint DialogIdle = 0, DialogFinished = 2; // SceLocationDialogStatus
     internal const uint ResultNone = 0, ResultDisable = 1;  // SceLocationDialogResult
 
-    sealed class Handle
+    [GenerateSnapshot]
+    sealed partial class Handle
     {
         public uint LocateMethod, HeadingMethod;
         public uint ConfirmStatus = DialogIdle, ConfirmResult = ResultNone;
     }
 
     readonly object _lock = new();
+    [SnapshotMissing] // states of builds before it were refused while a handle was open: they had none
     readonly Dictionary<uint, Handle> _handles = new();
     uint _nextHandle = 1;
 

@@ -2,18 +2,13 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_ctx")]
-public sealed partial class NetAdhocMatching : ISnapshotState
+/// <summary>Save states: the contexts (mode, port, intervals, handler, hello data, running). The offline profile has
+/// no network session behind them (no peer is ever seen), so nothing is recreated on load.</summary>
+[GenerateSnapshot]
+public sealed partial class NetAdhocMatching
 {
-    string? ISnapshotState.CheckSnapshot()
-    {
-        if (_ctx.Count > 0) return "host resource ad hoc matching context (network) not supported yet";
-        return null;
-    }
-
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to recreate: the contexts are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _ctx.Clear();
     }
 }

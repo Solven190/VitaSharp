@@ -1,6 +1,7 @@
 using VitaSharp.Core.Hle.Audio;
 using VitaSharp.Core.Hle.Audio.Atrac9;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -31,6 +32,7 @@ public sealed partial class Atrac : HleModule
     readonly object _lock = new();
     bool _created;
     uint _totalCh, _usedCh;
+    [SnapshotMissing] // states of builds before it were refused while a handle existed: they had none
     readonly Dictionary<int, AtracStream> _handles = new();
 
     /// <summary>Superframe decoder per acquired handle (tests substitute a deterministic one).</summary>

@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Audio;
 
@@ -17,7 +18,8 @@ public static class SasCurve
 /// quarter of it above (the SPU "exponential" attack); exponential decrease/increase move by rate/2^31 of the distance
 /// to 0/Max; direct jumps to the rate value and moves to the next phase.
 /// </summary>
-public sealed class SasEnvelope
+[GenerateSnapshot]
+public sealed partial class SasEnvelope
 {
     public const int Max = 0x40000000;
     public int Height;
@@ -134,7 +136,8 @@ public sealed class SasEnvelope
 
 /// <summary>One mixer voice: a sample source (VAG/HEVAG ADPCM or S16 PCM in guest memory, or noise), pitch
 /// resampling with linear interpolation (0x1000 = one source sample per output sample), envelope and volumes.</summary>
-public sealed class SasVoice
+[GenerateSnapshot, SnapshotIgnoreFields("_blk")]
+public sealed partial class SasVoice
 {
     public SasVoiceType Type;
     public uint Addr, Size;
@@ -279,13 +282,16 @@ public sealed class SasVoice
 /// <summary>
 /// The libsas software mixer: N voices mixed into a dry bus and a wet (effect send) bus, the wet bus through a simple
 /// delay/feedback effect, then dry + wet into interleaved stereo S16. No dependency on HLE plumbing.
+/// Save states keep the voices (source, resampler, envelope) and the effect's delay line; the bus buffers are
+/// cleared at the start of every grain and are not saved.
 /// </summary>
-public sealed class SasEngine
+[GenerateSnapshot, SnapshotIgnoreFields("_dryL", "_dryR", "_wetL", "_wetR")]
+public sealed partial class SasEngine
 {
     public const int MaxGrain = 2048;
     public const int EffectOff = -1, EffectEcho = 6, EffectDelay = 7;
     public int Grain, OutputMode;
-    public readonly SasVoice[] Voices;
+    public SasVoice[] Voices;
     public bool DryOn = true, WetOn;
     public int EffectType = EffectOff, EffectDelayTime, EffectFeedback, EffectVolL = 0x1000, EffectVolR = 0x1000;
     public int DryPeakL, DryPeakR, WetPeakL, WetPeakR, PreMasterPeakL, PreMasterPeakR;
@@ -295,6 +301,12 @@ public sealed class SasEngine
     int _linePos;
     /// <summary>Output samples per delayTime unit: 0..127 maps to 0..~0.5 s at 48 kHz (unconfirmed).</summary>
     const int DelayUnit = 192;
+
+    /// <summary>An engine without voices, which a save state loads into.</summary>
+    internal SasEngine()
+        : this(0, 0)
+    {
+    }
 
     public SasEngine(int grain, int voices)
     {

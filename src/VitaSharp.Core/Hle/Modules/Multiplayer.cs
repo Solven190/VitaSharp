@@ -1,5 +1,6 @@
 using VitaSharp.Core.Hle.Np;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -331,7 +332,8 @@ public sealed partial class Rudp : HleModule
         ERR_NOT_BOUND = unchecked((int)0x80770013), ERR_ALREADY_EXISTS = unchecked((int)0x8077001E),
         ERR_INVALID_POLL_ID = unchecked((int)0x8077001F);
 
-    sealed class Context
+    [GenerateSnapshot]
+    sealed partial class Context
     {
         public int Sock = -1;
         public ushort Vport, RemoteVport;
@@ -340,7 +342,8 @@ public sealed partial class Rudp : HleModule
         public byte[]? Remote;
     }
 
-    sealed class Poll
+    [GenerateSnapshot]
+    sealed partial class Poll
     {
         public int Id, MaxEntries;
         public readonly Dictionary<int, ushort> Entries = new();
@@ -352,7 +355,9 @@ public sealed partial class Rudp : HleModule
     bool _initialized, _internalIoThread;
     int _nextContext = 1, _nextPoll = 1;
     ushort _mss = 1280;
+    [SnapshotMissing] // states of builds before it were refused while a context existed: they had none
     readonly Dictionary<int, Context> _contexts = new();
+    [SnapshotMissing] // the same for polls
     readonly Dictionary<int, Poll> _polls = new();
     int _blockedPollWaits;
 

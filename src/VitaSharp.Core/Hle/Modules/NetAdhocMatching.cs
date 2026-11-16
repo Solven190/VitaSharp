@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -20,7 +21,8 @@ public sealed partial class NetAdhocMatching : HleModule
 
     const int ModeParent = 1, ModeChild = 2, ModeP2P = 3;
 
-    sealed class Ctx
+    [GenerateSnapshot]
+    sealed partial class Ctx
     {
         public int Id, Mode, MaxNum, RxBufLen, RetryCount;
         public ushort Port;
@@ -32,6 +34,7 @@ public sealed partial class NetAdhocMatching : HleModule
     readonly object _lock = new();
     bool _inited;
     uint _poolSize, _poolPtr;
+    [SnapshotMissing] // states of builds before it were refused while a context existed: they had none
     readonly Dictionary<int, Ctx> _ctx = new();
     int _nextId = 1;
 

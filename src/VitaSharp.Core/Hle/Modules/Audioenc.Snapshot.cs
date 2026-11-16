@@ -2,18 +2,13 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_encoders")]
-public sealed partial class Audioenc : ISnapshotState
+/// <summary>Save states: the library and every encoder (bit rate, frame size, kind, context). The CELP frames carry no
+/// host encoder state (there is no CELP encoder: the payload is zero), so nothing is recreated on load.</summary>
+[GenerateSnapshot]
+public sealed partial class Audioenc
 {
-    string? ISnapshotState.CheckSnapshot()
-    {
-        if (_encoders.Count > 0) return "host resource audio encoder not supported yet";
-        return null;
-    }
-
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to recreate: the encoders are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _encoders.Clear();
     }
 }

@@ -2,18 +2,25 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_encoders")]
-public sealed partial class Videoenc : ISnapshotState
+/// <summary>Save states: the libraries and every encoder; each loaded encoder makes its FFmpeg encoder again at its
+/// next picture.</summary>
+[GenerateSnapshot]
+public sealed partial class Videoenc
 {
-    string? ISnapshotState.CheckSnapshot()
+    /// <summary>The running session's host encoders are closed before the saved encoders replace them.</summary>
+    void BeforeSnapshotLoad()
     {
-        if (_encoders.Count > 0) return "host resource video encoder not supported yet";
-        return null;
+        lock (_lock)
+        {
+            foreach (Encoder encoder in _encoders.Values)
+            {
+                encoder.Codec?.Dispose();
+            }
+        }
     }
 
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to read: the encoders are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _encoders.Clear();
     }
 }
