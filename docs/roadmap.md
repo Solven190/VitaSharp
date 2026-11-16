@@ -2237,10 +2237,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   comentário atualizado. **CI do Windows não mudou:** o runner não tem o lavapipe e cai sozinho no SwiftShader;
   trocar exigiria baixar o `.7z` do mesa-dist-win a cada execução e registrar o manifesto em HKLM (o runner é
   elevado) — fica como item abaixo.
-- [ ] [P3][P] CI do Windows com o lavapipe (como o local, 16/11/2026): baixar e guardar em cache o `x64` do
+  Nota (não é item aberto, usuário 16/11/2026: achados viram nota): [P3][P] CI do Windows com o lavapipe (como o local, 16/11/2026): baixar e guardar em cache o `x64` do
   mesa-dist-win, registrar o `lvp_icd.x86_64.json` em `HKLM\SOFTWARE\Khronos\Vulkan\Drivers` (o runner é elevado) e
   manter um job/passo com o SwiftShader para o teste do `VK_EXT_headless_surface`.
-- [ ] [P3][M] SwiftShader diverge da GPU no dump SILH00004_20261108_183315 (rm4, 16/11/2026): 44 de 131 quadros
+  Nota (não é item aberto, usuário 16/11/2026: achados viram nota): [P3][M] SwiftShader diverge da GPU no dump SILH00004_20261108_183315 (rm4, 16/11/2026): 44 de 131 quadros
   (993-998, 1037 em diante) saem brancos no SwiftShader e pretos na NVIDIA e no lavapipe (`replay-gpu`, os dois
   idênticos entre si). Ver se é comportamento indefinido do nosso renderizador (memória não iniciada, barreira faltando)
   que só o SwiftShader expõe, ou um erro do SwiftShader; `--trace-draws` do quadro 993 nos dois.
