@@ -150,6 +150,6 @@ public sealed class PluginFrameworkTests(GuestMemoryFixture fixture) : IDisposab
         File.WriteAllText(Path.Combine(dir, "config.txt"), "*KERNEL\nur0:tai/copy.skprx\nur0:tai/user.skprx\n");
         List<string> results = harness.Emu.LoadPluginsIfEnabled();
         Assert.Equal(["ur0:tai/copy.skprx: not loaded (the emulator provides its libraries)", "ur0:tai/user.skprx: loaded and started (FrameworkUser)"], results);
-        Assert.DoesNotContain(harness.Emu.Kernel.Modules.Values, m => m.Name == "FrameworkCopy");
+        Assert.DoesNotContain(HleHarness.KernelModules(harness.Emu).Values, m => m.Name == "FrameworkCopy");
     }
 }

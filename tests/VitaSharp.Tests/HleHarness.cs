@@ -27,6 +27,13 @@ public sealed class HleHarness : IDisposable
         Emu = new Emulator(new EmulatorOptions { FsRoot = Root, Memory = fixture.Memory, EnableJit = false, CpuBackend = "interp", KernelPlugins = kernelPlugins, KernelPluginsDir = Path.Combine(Root, "kernel_plugins") });
     }
 
+    /// <summary>The kernel modules of <paramref name="emu"/>'s system: the kernel process's (every kernel module lives
+    /// there once), or the emulator's own before the first kernel module loads.</summary>
+    public static System.Collections.Concurrent.ConcurrentDictionary<int, Core.Loader.LoadedModule> KernelModules(Emulator emu) => (emu.Vita.KernelProcess ?? emu).Kernel.Modules;
+
+    /// <summary>The linker of <paramref name="emu"/>'s kernel (the kernel process's): the kernel modules' own imports.</summary>
+    public static Core.Loader.Linker KernelLinker(Emulator emu) => (emu.Vita.KernelProcess ?? emu).Linker;
+
     public void Dispose()
     {
         foreach (GuestThread t in _threads)

@@ -117,14 +117,94 @@ public sealed class VitaSystem
     /// <summary>The power button, the power callbacks, standby and power off (ScePower), for every process.</summary>
     public SystemPower Power { get; } = new();
 
-    /// <summary>The process whose kernel holds the plugin configuration's *KERNEL modules (null: not loaded or tried yet).
-    /// The plugin loader loads them once, at boot; a later process does not load (or retry) them. A LoadExec of that
-    /// process rebuilds its kernel for the new image (<see cref="Emulator.PerformExec"/>), so it clears this and the
-    /// new image loads them again: on a Vita the kernel, with its modules, outlives the LoadExec.</summary>
-    internal Emulator? KernelPluginsProcess { get; set; }
+    /// <summary>The plugin configuration's *KERNEL modules were loaded (or tried) into the kernel: the plugin loader
+    /// loads them once, at boot, and every process then sees them; a later process, or a LoadExec, does not load (or
+    /// retry) them.</summary>
+    internal bool KernelPluginsLoaded { get; set; }
 
-    /// <summary>The *KERNEL modules were loaded (or tried) in some process of this session.</summary>
-    internal bool KernelPluginsLoaded => KernelPluginsProcess != null;
+    private readonly object _kernelGate = new();
+    private Emulator? _kernelProcess;
+
+    /// <summary>
+    /// The kernel process (<see cref="KernelSpace.KernelPid"/>): the one kernel of the system, created when the first
+    /// kernel module loads (a *KERNEL plugin at boot, ksceKernelLoadModule, the firmware's kernel modules shown to
+    /// kernel code). Every kernel module lives there, once, whichever process asked for it: its module list, its
+    /// linker (whose syscall exports every process's imports bind to), its threads (module_start, the threads kernel
+    /// code creates) and the process event handlers. It is not one of <see cref="Processes"/> (no application, no
+    /// display, no input) and it outlives every process, LoadExec included, until the system ends. Null until then.
+    /// </summary>
+    public Emulator? KernelProcess => Volatile.Read(ref _kernelProcess);
+
+    /// <summary>The kernel process, created now from <paramref name="from"/> (any process of this system) when it does
+    /// not exist yet.</summary>
+    internal Emulator KernelProcessFor(Emulator from)
+    {
+        if (Volatile.Read(ref _kernelProcess) is { } existing)
+        {
+            return existing;
+        }
+
+        lock (_kernelGate)
+        {
+            if (_kernelProcess == null)
+            {
+                Emulator kernel = from.CreateKernelProcess();
+                kernel.Linker.ExportsChanged += KernelExportsChanged;
+                Volatile.Write(ref _kernelProcess, kernel);
+            }
+
+            return _kernelProcess;
+        }
+    }
+
+    /// <summary>Registers the kernel process's record under <see cref="KernelSpace.KernelPid"/>.</summary>
+    internal void RegisterKernelProcess(Emulator kernel)
+    {
+        Objects.Put(new ProcessObject(kernel) { Uid = KernelSpace.KernelPid, OwnerPid = KernelSpace.KernelPid });
+    }
+
+    /// <summary>The kernel process ends with the system (the first process's <see cref="Emulator.Dispose"/>).</summary>
+    internal void EndKernelProcess()
+    {
+        Emulator? kernel;
+        lock (_kernelGate)
+        {
+            kernel = _kernelProcess;
+            _kernelProcess = null;
+        }
+
+        if (kernel == null)
+        {
+            return;
+        }
+
+        kernel.Linker.ExportsChanged -= KernelExportsChanged;
+        kernel.ReleaseKernelProcess();
+        Objects.Remove(KernelSpace.KernelPid);
+    }
+
+    /// <summary>A kernel module's exports came or went: every process's imports of them bind again, in its own space
+    /// (a process loaded before the module bound them to the HLE).</summary>
+    private void KernelExportsChanged(IReadOnlyList<(uint LibNid, uint Nid)> functions)
+    {
+        foreach (Emulator process in Processes)
+        {
+            using (ProcessScope.Enter(process))
+            {
+                process.Linker.RebindKernelImports(functions);
+            }
+        }
+    }
+
+    /// <summary>Every process with the kernel process (code patches and hooks reach all of them).</summary>
+    public IReadOnlyList<Emulator> ProcessesAndKernel
+    {
+        get
+        {
+            Emulator[] processes = Processes.ToArray();
+            return KernelProcess is { } kernel ? [.. processes, kernel] : processes;
+        }
+    }
 
     /// <summary>marlin_hci.skprx's "SceMarlinHciMutex" (one kernel module for every process): 0 until the first
     /// SceMarlinHci call makes the one the module's boot start creates, -1 after the module's stop entry deleted it.

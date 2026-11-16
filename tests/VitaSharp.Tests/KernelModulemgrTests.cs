@@ -76,7 +76,7 @@ public sealed class KernelModulemgrTests(GuestMemoryFixture fixture) : IDisposab
 
 
 
-    private LoadedModule ModuleOf(int uid) => _harness.Emu.Kernel.Modules[uid];
+    private LoadedModule ModuleOf(int uid) => _harness.Emu.Kernel.Modules.TryGetValue(uid, out LoadedModule? module) ? module : HleHarness.KernelModules(_harness.Emu)[uid];
 
 
 
@@ -122,7 +122,7 @@ public sealed class KernelModulemgrTests(GuestMemoryFixture fixture) : IDisposab
 
             Assert.Equal(0, Call(Modmgr, "ksceKernelStopUnloadModule", uid2, 0u, 0u, 0, 0u, status));
 
-            Assert.False(_harness.Emu.Kernel.Modules.ContainsKey(uid2));
+            Assert.False(HleHarness.KernelModules(_harness.Emu).ContainsKey(uid2));
 
 
 
@@ -134,7 +134,7 @@ public sealed class KernelModulemgrTests(GuestMemoryFixture fixture) : IDisposab
 
             Assert.Equal(2u, GuestMemory.R32(status));
 
-            Assert.False(_harness.Emu.Kernel.Modules.ContainsKey(uid3));
+            Assert.False(HleHarness.KernelModules(_harness.Emu).ContainsKey(uid3));
 
         });
 

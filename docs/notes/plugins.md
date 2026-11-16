@@ -54,8 +54,14 @@ modules of a section load in file order, and one that fails does not stop the ot
   `module_start` runs at once on a kernel thread; a module whose start does not report success is unloaded again, as
   the firmware's module manager does. The log says what happened to each one (`kernel plugin ...: loaded and started`,
   `... module_start of X returned 0x2, unloaded`).
-- `*KERNEL` modules load once, with the first process of the session (the shell when the system starts, as the plugin loader loads
-  them at boot); a later process finds them loaded.
+- `*KERNEL` modules load once, into the kernel process: the one kernel of the system, made at boot (with the shell, or with
+  the first game when no shell runs), as the plugin loader loads them at boot on the Vita. Every process sees them: the
+  shell, an application the shell opens next to it, the program a LoadExec starts. They stay until the system ends; a
+  kernel module a program loads (the kernel module manager) is the kernel's too and outlives that program.
+- Kernel code's process event handlers (`ksceKernelRegisterProcEventHandler`) are called as the firmware's process
+  manager calls them, in registration order: create when a process's main thread exists and before it starts (a create
+  handler that fails refuses the process, and the handlers called before it get exit), exit when a process ends by
+  itself, kill when it is ended (closed by the shell, a crash). Stop, start and switch events are not sent yet.
 - `*ALL` and `*TITLEID` modules load into every program's process, the system's own too (the plugin loader loads them after
   the process's preloaded modules), and start before its main thread. The
   section is the process's kernel title ID: `main` for the shell, the NPXS ID for a system application.
@@ -86,8 +92,8 @@ functions do nothing, as imports nothing provides. Function hooks are the next s
 
 ## Limits
 
-- Kernel modules live with the process of the program they were loaded for (the kernel is not yet one system-wide
-  process); they are unloaded when that process ends.
+- Save states do not hold the kernel process's own threads: a state cannot be saved while a thread a kernel module
+  made is running (the threads module_start runs on are gone once it returns).
 - A plugin that patches the firmware's own code by offset finds no firmware code there (VitaSharp implements the
   firmware's libraries itself).
 - Exceptions are not delivered to kernel handlers (the emulated CPU reports a guest fault as a crash); interrupt

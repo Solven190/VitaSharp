@@ -77,7 +77,7 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
         using Emulator emu = NewEmulator(false);
         Assert.False(emu.KernelPluginsEnabled);
         Assert.Empty(emu.LoadPluginsIfEnabled());
-        Assert.DoesNotContain(emu.Kernel.Modules.Values, m => m.IsKernel);
+        Assert.DoesNotContain(HleHarness.KernelModules(emu).Values, m => m.IsKernel);
         Assert.True(File.Exists(Path.Combine(Tai, "config.txt")));
         Assert.False(Directory.Exists(Folder));
     }
@@ -125,7 +125,7 @@ public sealed class KernelPluginOptionTests(GuestMemoryFixture fx) : IDisposable
         Assert.Equal(2, results.Count);
         Assert.StartsWith("missing.skprx: not loaded", results[0]);
         Assert.Equal("probe.skprx: loaded and started (PluginProbe)", results[1]);
-        Assert.Single(emu.Kernel.Modules.Values, m => m.IsKernel && m.Name == "PluginProbe");
+        Assert.Single(HleHarness.KernelModules(emu).Values, m => m.IsKernel && m.Name == "PluginProbe");
     }
 
     [Fact]

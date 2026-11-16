@@ -164,10 +164,11 @@ public sealed partial class ProcessmgrKernel : HleModule
     // ------------------------------------------------------------------ process events
 
     /// <summary>
-    /// ksceKernelRegisterProcEventHandler(name, const SceProcEventHandler *handler, a3): the handler table (0x1C bytes:
-    /// size, create, exit, kill, stop, start, switch) is copied (callers pass one on their stack). Returns the handler's
-    /// UID. The kernel modules of a session live with its process (docs/roadmap.md, kernel plugins): they end together,
-    /// so no process event reaches a handler yet.
+    /// ksceKernelRegisterProcEventHandler(name, const SceProcEventHandler *handler, argument): the handler table (0x1C
+    /// bytes: size, create, exit, kill, stop, start, switch) is copied (callers pass one on their stack), the entries
+    /// past its size left 0; <paramref name="a3"/> is the last argument every call of the handler gets. Returns the
+    /// handler's UID. The kernel process calls the handlers as processes are created, exit and are killed
+    /// (<see cref="ProcessEvents"/>).
     /// </summary>
     [Hle]
     int ksceKernelRegisterProcEventHandler(uint namePtr, uint handler, int a3)
@@ -184,11 +185,42 @@ public sealed partial class ProcessmgrKernel : HleModule
         }
 
         uint table = KernelAlloc(0x1C, "kernel:procevent");
+        GuestMemory.Fill(table, 0, 0x1C);
         GuestMemory.Copy(table, handler, size);
         using (ProcessScope.Enter(KernelSpace.KernelPid))
         {
-            return K.Objects.Register(new KernelData { Name = GuestMemory.ReadCString(namePtr, 32), Kind = KernelData.ProcEventHandler, Address = table, Size = size });
+            return K.Objects.Register(new KernelData
+            {
+                Name = GuestMemory.ReadCString(namePtr, 32),
+                Kind = KernelData.ProcEventHandler,
+                Address = table,
+                Size = size,
+                Aux = (uint)a3,
+            });
         }
+    }
+
+    /// <summary>
+    /// ksceKernelInvokeProcEventHandler(pid, event_id, event_type, param, int *failed_uid, stop_at): calls the
+    /// registered handlers for one event on the calling thread (<see cref="ProcessEvents.Run"/>), up to handler
+    /// <paramref name="stopAt"/>; with <paramref name="failedUidOut"/>, up to the first that fails, whose UID it
+    /// receives. Returns what the last handler returned.
+    /// </summary>
+    [Hle]
+    int ksceKernelInvokeProcEventHandler(int pid, int eventId, int eventType, uint param, uint failedUidOut, int stopAt)
+    {
+        if (GuestThread.Current is not { } thread)
+        {
+            return SceError.ERROR; // HLE calls come from guest threads
+        }
+
+        int result = ProcessEvents.Run(thread, ProcessEvents.Handlers(K.Objects), pid, eventId, eventType, param, failedUidOut != 0, stopAt, out int failedUid);
+        if (failedUid != 0)
+        {
+            GuestMemory.W32(failedUidOut, (uint)failedUid);
+        }
+
+        return result;
     }
 
     /// <summary>ksceKernelUnregisterProcEventHandler(uid).</summary>

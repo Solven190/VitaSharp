@@ -264,7 +264,7 @@ public sealed partial class PluginFramework
         }
 
         patch.RedirectedNid = redirectNid;
-        foreach (Emulator process in Emu.Vita.Processes.Append(Emu).Distinct())
+        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
         {
             process.Hle.Redirect(redirectNid, patch.Thunk);
             foreach (bool kernel in new[] { false, true })
@@ -288,13 +288,13 @@ public sealed partial class PluginFramework
             return;
         }
 
-        foreach (Emulator process in Emu.Vita.Processes.Append(Emu).Distinct())
+        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
         {
             process.Hle.ClearRedirect(patch.RedirectedNid);
         }
 
         // every import stub of the function, taken at the hook or bound while it was in place, binds as it would now
-        foreach (Emulator process in Emu.Vita.Processes.Append(Emu).Distinct())
+        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
         {
             process.Linker.RebindFunction(patch.RedirectedNid);
         }

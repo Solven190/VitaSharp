@@ -47,7 +47,7 @@ public sealed class KernelPluginExecTests : IDisposable
         _harness.Dispose();
     }
 
-    private bool PluginLoaded => _emu.Kernel.Modules.Values.Any(m => m.IsKernel && m.Name == "VsTestKernelPlugin" && m.Started);
+    private bool PluginLoaded => HleHarness.KernelModules(_emu).Values.Any(m => m.IsKernel && m.Name == "VsTestKernelPlugin" && m.Started);
 
     /// <summary>What a user import of the plugin's function binds to: its code, not an HLE stub.</summary>
     private bool ExportVisibleToUsers => _emu.Linker.TryGetVisibleExport(FuncNid, LibNid, kernelImporter: false, out _);
@@ -68,7 +68,7 @@ public sealed class KernelPluginExecTests : IDisposable
 
         Assert.True(PluginLoaded, "the kernel plugin is gone after the LoadExec");
         Assert.True(ExportVisibleToUsers, "the new program's imports of the kernel plugin have nothing to bind to");
-        Assert.Single(_emu.Kernel.Modules.Values, m => m.IsKernel && m.Name == "VsTestKernelPlugin");
+        Assert.Single(HleHarness.KernelModules(_emu).Values, m => m.IsKernel && m.Name == "VsTestKernelPlugin");
 
         // and a second LoadExec the same (Real Racing 3: eboot.bin, configurador.bin, eboot.bin)
         _emu.RequestExec("app0:eboot.bin", []);
@@ -86,7 +86,7 @@ public sealed class KernelPluginExecTests : IDisposable
         _emu.LoadTitle(app);
         Assert.True(PluginLoaded);
         Assert.Empty(_emu.LoadKernelPlugins());
-        Assert.Single(_emu.Kernel.Modules.Values, m => m.IsKernel && m.Name == "VsTestKernelPlugin");
+        Assert.Single(HleHarness.KernelModules(_emu).Values, m => m.IsKernel && m.Name == "VsTestKernelPlugin");
     }
 
     /// <summary>

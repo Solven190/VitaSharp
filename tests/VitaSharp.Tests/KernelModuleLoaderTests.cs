@@ -46,7 +46,7 @@ public sealed class KernelModuleLoaderTests(GuestMemoryFixture fixture) : IDispo
         return b.Export("TestSys", SysLib, 0x4001, (SysFn, sys)).Export("TestKern", KernLib, 0x0001, (KernFn, kern)).Build();
     }
 
-    private LoadedModule Loaded(string path) => _harness.Emu.Kernel.Modules.Values.Single(m => m.Path == path);
+    private LoadedModule Loaded(string path) => HleHarness.KernelModules(_harness.Emu).Values.Single(m => m.Path == path);
 
     [Fact]
     public void KernelPluginLoadsInTheKernelRegionAndStarts()
@@ -86,7 +86,7 @@ public sealed class KernelModuleLoaderTests(GuestMemoryFixture fixture) : IDispo
         List<string> results = _harness.Emu.LoadPlugins();
         Assert.Equal($"{failed}: not started: module_start of TestKernelProvider returned 0x2, unloaded", results[0]);
         Assert.StartsWith($"{noResident}: started and unloaded", results[1]);
-        Assert.DoesNotContain(_harness.Emu.Kernel.Modules.Values, m => m.IsKernel);
+        Assert.DoesNotContain(HleHarness.KernelModules(_harness.Emu).Values, m => m.IsKernel);
         // the exports went with them
         Assert.False(_harness.Emu.Linker.TryGetFunctionExport(SysFn, out _));
     }
@@ -145,7 +145,7 @@ public sealed class KernelModuleLoaderTests(GuestMemoryFixture fixture) : IDispo
         SceModuleBuilder kclient2 = new SceModuleBuilder("KernelClient2").Import("UserOnly", 0x0E5E0001, 0x44444444);
         kclient2.CallImport(0, 0);
         _harness.Emu.LoadModule(Write("kclient2.skprx", kclient2.Build()), kernel: true);
-        List<uint> kernelStubs = _harness.Emu.Linker.BoundStubs(0x44444444, 0x0E5E0001, kernel: true);
+        List<uint> kernelStubs = HleHarness.KernelLinker(_harness.Emu).BoundStubs(0x44444444, 0x0E5E0001, kernel: true);
         Assert.Single(kernelStubs);
         Assert.Equal(0xEFu, GuestMemory.R32(kernelStubs[0]) >> 24);
 

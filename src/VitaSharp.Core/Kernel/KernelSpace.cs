@@ -72,11 +72,16 @@ public static class KernelSpace
     }
 
     /// <summary>The process with id <paramref name="pid"/> as kernel code names it: 0 is the caller's process,
-    /// <see cref="KernelPid"/> the kernel (whose modules live in the caller's emulator, see
-    /// <see cref="ModulesOf"/>); null when there is no such process.</summary>
+    /// <see cref="KernelPid"/> the kernel process (<see cref="VitaSystem.KernelProcess"/>, where every kernel module
+    /// lives; the caller until the first kernel module loads); null when there is no such process.</summary>
     public static Emulator? ProcessOf(Emulator caller, int pid)
     {
-        if (pid == 0 || pid == caller.Pid || pid == KernelPid)
+        if (pid == KernelPid)
+        {
+            return caller.Vita.KernelProcess ?? caller;
+        }
+
+        if (pid == 0 || pid == caller.Pid)
         {
             return caller;
         }

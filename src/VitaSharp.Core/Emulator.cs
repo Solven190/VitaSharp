@@ -209,6 +209,88 @@ public sealed class Emulator : IDisposable
         InitProcess();
     }
 
+    /// <summary>The system's kernel process (<see cref="VitaSystem.KernelProcess"/>, pid <see cref="KernelSpace.KernelPid"/>):
+    /// shares the guest memory, GPU, host devices and object table of <paramref name="root"/>, with its own space for
+    /// its threads' stacks; it runs no executable and is not one of the system's application processes.</summary>
+    private Emulator(bool kernelProcess, Emulator root)
+    {
+        IsKernelProcess = kernelProcess;
+        Parent = root;
+        Options = root.Options;
+        Vita = root.Vita;
+        Memory = root.Memory;
+        Space = Memory.CreateSpace("kernel");
+        Space.Label = "kernel";
+        Code.Space = Space;
+        Host = root.Host;
+        Gpu = root.Gpu;
+        LocalPsn = root.LocalPsn;
+        TraceHle = root.TraceHle;
+        TraceHleFrames = root.TraceHleFrames;
+        TraceHleOnly = root.TraceHleOnly;
+        TraceHleThreads = root.TraceHleThreads;
+        TraceHleExclude = root.TraceHleExclude;
+        BacktraceHle = root.BacktraceHle;
+        Pid = KernelSpace.KernelPid;
+        Vita.RegisterKernelProcess(this);
+        Vfs = new Vfs(Options.FsRoot);
+        Running = true;
+        InitProcess();
+        Log.Info("Kernel process created: the kernel modules of every process live in it");
+    }
+
+    /// <summary>The kernel process (<see cref="VitaSystem.KernelProcess"/>): the one kernel every process of the
+    /// system shares, where the kernel modules live once. It never runs an executable, never ends before the system
+    /// and is not in <see cref="VitaSystem.Processes"/>.</summary>
+    public bool IsKernelProcess { get; }
+
+    /// <summary>Creates the system's kernel process (<see cref="VitaSystem.KernelProcessFor"/>).</summary>
+    internal Emulator CreateKernelProcess()
+    {
+        Emulator root = this;
+        while (root.Parent != null)
+        {
+            root = root.Parent;
+        }
+
+        return new Emulator(kernelProcess: true, root);
+    }
+
+    /// <summary>The system ends: the kernel process's threads stop and what it holds goes back.</summary>
+    internal void ReleaseKernelProcess()
+    {
+        Running = false;
+        Kernel.StopAllThreads();
+        if (!Kernel.WaitAllThreadsExit(5_000))
+        {
+            Log.Warn("kernel process: some threads did not stop in time");
+        }
+
+        Code.Clear();
+        Memory.FreeOwnedBy(Pid);
+        Memory.ReleaseSpace(Space);
+    }
+
+    /// <summary>Drops the translated code of a range: the kernel process's code (kernel memory) runs on the threads of
+    /// every process too (a user thread calling a kernel module's syscall export, kernel code calling a hooked
+    /// import), so a change there reaches every process's translation cache.</summary>
+    internal void InvalidateCode(uint address, uint size)
+    {
+        if (!IsKernelProcess)
+        {
+            Code.Invalidate(address, size);
+            return;
+        }
+
+        foreach (Emulator process in Vita.ProcessesAndKernel)
+        {
+            process.Code.Invalidate(address, size);
+        }
+    }
+
+    /// <summary>The kernel that holds the kernel modules: the system's kernel process (created now when needed).</summary>
+    internal Emulator KernelHost => IsKernelProcess ? this : Vita.KernelProcessFor(this);
+
     /// <summary>Fresh kernel, linker and HLE state (process start, and again after sceAppMgrLoadExec).</summary>
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(Kernel), nameof(Hle), nameof(Linker))]
     private void InitProcess()
@@ -216,7 +298,13 @@ public sealed class Emulator : IDisposable
         using ProcessScope.Scope scope = ProcessScope.Enter(this);
         Kernel = new Kernel.Kernel(this);
         Hle = new HleRegistry(this);
-        Linker = new Linker(Hle) { InvalidateCode = Code.Invalidate, Log = Log.Warn };
+        Linker = new Linker(Hle) { InvalidateCode = InvalidateCode, Log = Log.Warn };
+        if (!IsKernelProcess)
+        {
+            // the kernel modules' syscall exports are the system kernel's, seen by every process
+            Linker.SystemKernel = () => Vita.KernelProcess?.Linker;
+        }
+
         Kernel.Initialize();
         // every concrete HleModule of the core (generated table), in full type name order as before
         foreach (HleModuleEntry? hleModuleEntry in HleBindings.Modules.OrderBy(m => m.Type.FullName))
@@ -277,6 +365,7 @@ public sealed class Emulator : IDisposable
         if (Parent != null)
         {
             _exitStatus = status;
+            _exiting = true;
             Terminate($"exited (0x{status:X})");
             return;
         }
@@ -294,6 +383,7 @@ public sealed class Emulator : IDisposable
 
         LastProcessExitStatus = status;
         Log.Info($"Process exited (0x{status:X}): it was the last process, the session ends");
+        TellProcessEnd(ProcessEvents.Exit);
         Stop();
         ProcessExited?.Invoke(status);
     }
@@ -465,6 +555,118 @@ public sealed class Emulator : IDisposable
     private int _terminated, _exitStatus;
     private bool _background, _endedInFront;
 
+    /// <summary>The process ends by itself (sceKernelExitProcess): the handlers hear exit, not kill.</summary>
+    private bool _exiting;
+
+    /// <summary>The kernel's process event handlers were told the process was created (once per process: a LoadExec
+    /// keeps the process).</summary>
+    private bool _toldCreated;
+
+    /// <summary>Orders the create event before the end event (processmgr holds the process's lock across both): a
+    /// process ended while its create event runs hears the end once the create returned.</summary>
+    private readonly object _processEventGate = new();
+
+    /// <summary>
+    /// The create event (<see cref="ProcessEvents"/>): processmgr invokes it once the process's main thread exists,
+    /// before the process starts. A handler that fails refuses the process: the handlers called before it hear that it
+    /// exits, and the process does not start (<see cref="ProcessLoadException"/> with the handler's error).
+    /// </summary>
+    private void TellProcessCreated(GuestThread main)
+    {
+        if (IsKernelProcess)
+        {
+            return;
+        }
+
+        lock (_processEventGate)
+        {
+            if (_toldCreated)
+            {
+                return;
+            }
+
+            int result = InvokeProcessEvent(ProcessEvents.Create, stopAtFailure: true, stopAt: 0, out int refusedBy);
+            if (refusedBy != 0)
+            {
+                InvokeProcessEvent(ProcessEvents.Exit, stopAtFailure: false, stopAt: refusedBy, out _);
+                Kernel.DeleteThread(main);
+                Log.Warn($"{Describe()}: process event handler 0x{refusedBy:X} refused the process (0x{result:X8})");
+                throw new ProcessLoadException(result, new InvalidOperationException($"a kernel process event handler refused the process (0x{result:X8})"));
+            }
+
+            _toldCreated = true;
+        }
+    }
+
+    /// <summary>The exit or kill event, for a process the handlers were told was created.</summary>
+    private void TellProcessEnd(int eventId)
+    {
+        lock (_processEventGate)
+        {
+            if (!_toldCreated)
+            {
+                return;
+            }
+
+            _toldCreated = false;
+            InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _);
+        }
+    }
+
+    /// <summary>
+    /// Calls the kernel's process event handlers about this process (<see cref="ProcessEvents.Run"/>), on a kernel
+    /// thread of the kernel process, with the parameter block processmgr passes: its size word (0x14 for create, 0x10
+    /// otherwise), then fields whose meaning is not known (0 here). Returns what the last handler returned.
+    /// </summary>
+    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid)
+    {
+        failedUid = 0;
+        List<KernelData> handlers = ProcessEvents.Handlers(Vita.Objects);
+        if (handlers.Count == 0)
+        {
+            return 0;
+        }
+
+        Emulator kernel = KernelHost;
+        uint param;
+        using (ProcessScope.Enter(KernelSpace.KernelPid))
+        {
+            param = Memory.Alloc(0x20, "procevent:param", MemoryRegion.Kernel);
+        }
+
+        GuestMemory.Fill(param, 0, 0x20);
+        GuestMemory.W32(param, eventId == ProcessEvents.Create ? ProcessEvents.CreateParamSize : ProcessEvents.ParamSize);
+        int result = 0, failed = 0;
+        using (ProcessScope.Enter(kernel))
+        {
+            GuestThread thread = kernel.Kernel.CreateThread("SceProcessEvent", 0, 0x40, 0x4000, 0, 0x70000);
+            thread.KernelMode = true;
+            thread.HostBody = self =>
+            {
+                result = ProcessEvents.Run(self, handlers, Pid, eventId, 0, param, stopAtFailure, stopAt, out failed);
+            };
+            thread.Start(0, 0);
+            bool finished;
+            using (VitaSharp.Core.Kernel.Scheduler.Block())
+            {
+                finished = thread.WaitForExit(30_000);
+            }
+
+            if (finished)
+            {
+                kernel.Kernel.DeleteThread(thread);
+            }
+            else
+            {
+                Log.Warn($"{Describe()}: the process event handlers (event {eventId}) did not return in time");
+            }
+        }
+
+        Memory.Free(param);
+        failedUid = failed;
+        return result;
+    }
+
     /// <summary>The process's executable loaded and the system was told about it (a process whose load failed never was).</summary>
     private bool _announced;
 
@@ -472,6 +674,11 @@ public sealed class Emulator : IDisposable
     /// objects and gives the display back. The threads are joined on a host thread, so this can be called from one of them.</summary>
     public void Terminate(string why)
     {
+        if (IsKernelProcess)
+        {
+            return; // the kernel ends only with the system (VitaSystem.EndKernelProcess)
+        }
+
         if (Parent == null)
         {
             Stop();
@@ -483,6 +690,8 @@ public sealed class Emulator : IDisposable
         }
 
         Log.Info($"Process {Describe()} {why}");
+        // processmgr tells the kernel's process event handlers before the process's threads go
+        TellProcessEnd(_exiting ? ProcessEvents.Exit : ProcessEvents.Kill);
         Running = false;
         Vita.Power.Callbacks.RemoveProcess(this);
         // the screen goes back to the parent (the shell) at once, not after the threads are gone (that can take seconds)
@@ -532,12 +741,7 @@ public sealed class Emulator : IDisposable
         Vita.Unregister(this);
         Parent?._children.Remove(this);
         Gpu.ReleaseScene(Pid);
-        // the kernel modules loaded for this process go with it (VitaSharp's kernel lives in each process's emulator)
-        foreach (LoadedModule? loadedModule in Kernel.Modules.Values.Where(m => m.IsKernel).ToList())
-        {
-            UnloadModule(loadedModule);
-        }
-
+        // the kernel modules stay: they are the kernel process's, which outlives every process
         int objects = Vita.Objects.RemoveOwnedBy(Pid);
 
         // the GPU finishes the process's commands before its memory goes (bounded: a stuck GPU must not keep the space)
@@ -706,9 +910,14 @@ public sealed class Emulator : IDisposable
         Code.Clear();
         if (alone)
         {
-            Memory.FreeAll();
+            // the kernel (its modules, memory blocks, heaps and threads) outlives the LoadExec
+            Emulator? kernelProcess = Vita.KernelProcess;
+            Memory.FreeAllExcept(kernelProcess != null ? KernelSpace.KernelPid : null);
             Vita.Objects.RemoveOwnedBy(0);
-            VitaSharp.Core.Kernel.Scheduler.Reset();
+            if (kernelProcess == null || !kernelProcess.Kernel.Threads.Any(t => t.IsLive))
+            {
+                VitaSharp.Core.Kernel.Scheduler.Reset();
+            }
         }
         else
         {
@@ -720,14 +929,6 @@ public sealed class Emulator : IDisposable
         Space.Renew();
         Vita.Objects.RemoveOwnedBy(Pid);
         InitProcess();
-        // the kernel plugins lived in the old image's kernel, which is gone: the new image loads them again (on a Vita
-        // they stay loaded across a LoadExec; without this a homebrew port's eboot.bin, started by its configurador.bin,
-        // found no kubridge and its imports became stubs that did nothing: Real Racing 3 stuck at 99%)
-        if (Vita.KernelPluginsProcess == this)
-        {
-            Vita.KernelPluginsProcess = null;
-        }
-
         MainModule = null;
         ExecRequest = null;
         string self = path.StartsWith("app0:", StringComparison.OrdinalIgnoreCase) ? path[5..].TrimStart('/') : path;
@@ -1324,6 +1525,19 @@ public sealed class Emulator : IDisposable
         // a missing file or folder is the guest's error (the callers return it), never a host exception that ends the thread
         string host = hostFile ?? (Vfs.Resolve(vitaPath) is { } h && File.Exists(h) ? h : throw new FileNotFoundException(vitaPath));
         byte[] elf = SelfDecryptor.ToElf(File.ReadAllBytes(host), Klicensee);
+        if (kernel && !IsKernelProcess)
+        {
+            // the path is the caller's (its app0, its mounts): the module goes to the one kernel every process shares
+            return KernelHost.LoadModuleImage(elf, vitaPath, kernel: true);
+        }
+
+        return LoadModuleImage(elf, vitaPath, kernel);
+    }
+
+    /// <summary>Loads a decrypted module image into this process (a kernel module: into the kernel process).</summary>
+    private LoadedModule LoadModuleImage(byte[] elf, string vitaPath, bool kernel)
+    {
+        using ProcessScope.Scope processScope = ProcessScope.Enter(this);
         if (kernel)
         {
             // the firmware's kernel modules are in the kernel before any other kernel module, as on the Vita: the new
@@ -1339,7 +1553,7 @@ public sealed class Emulator : IDisposable
         }
 
         Kernel.Modules[loadedModule.Uid] = loadedModule;
-        Code.Invalidate(0, uint.MaxValue);
+        InvalidateCode(0, uint.MaxValue);
         Log.Info($"Loaded {(kernel ? "kernel " : "")}module {loadedModule.Name} ({vitaPath}) start=0x{loadedModule.StartEntry:X8} imports={loadedModule.Imports.Sum(i => i.FuncNids.Length)}");
         CheckPendingVariables(loadedModule);
         return loadedModule;
@@ -1347,8 +1561,11 @@ public sealed class Emulator : IDisposable
 
     private Hle.FirmwareKernelModules? _firmwareKernel;
 
-    /// <summary>The firmware's kernel modules as kernel code sees them (shown when the first other kernel module loads).</summary>
-    public Hle.FirmwareKernelModules FirmwareKernel => LazyInitializer.EnsureInitialized(ref _firmwareKernel, () => new Hle.FirmwareKernelModules(this));
+    /// <summary>The firmware's kernel modules as kernel code sees them (shown when the first other kernel module loads),
+    /// in the kernel process.</summary>
+    public Hle.FirmwareKernelModules FirmwareKernel => IsKernelProcess
+        ? LazyInitializer.EnsureInitialized(ref _firmwareKernel, () => new Hle.FirmwareKernelModules(this))
+        : KernelHost.FirmwareKernel;
 
     /// <summary>SCE_KERNEL_START_SUCCESS, _NO_RESIDENT and _FAILED: what module_start returns.</summary>
     public const int ModuleStartSuccess = 0, ModuleStartNoResident = 1, ModuleStartFailed = 2;
@@ -1359,12 +1576,18 @@ public sealed class Emulator : IDisposable
     /// </summary>
     public int StartKernelModule(LoadedModule loadedModule, uint args, uint argp)
     {
+        if (!IsKernelProcess)
+        {
+            return KernelHost.StartKernelModule(loadedModule, args, argp);
+        }
+
         loadedModule.Started = true;
         if (loadedModule.StartEntry == 0)
         {
             return ModuleStartSuccess;
         }
 
+        using ProcessScope.Scope scope = ProcessScope.Enter(this);
         GuestThread t = Kernel.CreateThread($"start:{loadedModule.Name}", loadedModule.StartEntry, 0x40, 0x4000, 0, 0x70000);
         t.KernelMode = true;
         t.Start(args, argp);
@@ -1374,6 +1597,8 @@ public sealed class Emulator : IDisposable
             return ModuleStartFailed;
         }
 
+        // the module manager deletes the thread it ran module_start on
+        Kernel.DeleteThread(t);
         return t.ExitStatus;
     }
 
@@ -1381,10 +1606,17 @@ public sealed class Emulator : IDisposable
     /// provider or to HLE, its segments are freed and the translated code of their range is dropped.</summary>
     public void UnloadModule(LoadedModule loadedModule)
     {
+        if (loadedModule.IsKernel && !IsKernelProcess && Vita.KernelProcess is { } kernelProcess)
+        {
+            kernelProcess.UnloadModule(loadedModule);
+            return;
+        }
+
+        using ProcessScope.Scope scope = ProcessScope.Enter(this);
         int rebound = Linker.UnregisterModule(loadedModule);
         foreach (SegmentInfo segmentInfo in loadedModule.Segments.Values)
         {
-            Code.Invalidate(segmentInfo.Address, segmentInfo.Size);
+            InvalidateCode(segmentInfo.Address, segmentInfo.Size);
             Memory.Free(segmentInfo.Address);
         }
         Kernel.Modules.TryRemove(loadedModule.Uid, out _);
@@ -1594,10 +1826,11 @@ public sealed class Emulator : IDisposable
             return results;
         }
 
-        Vita.KernelPluginsProcess = this;
+        Vita.KernelPluginsLoaded = true;
         foreach (string path in PluginConfig.ModulesFor(config, "KERNEL"))
         {
-            if (Kernel.Modules.Values.Any(m => m.IsKernel && string.Equals(m.Path, path, StringComparison.OrdinalIgnoreCase)))
+            if (Vita.KernelProcess is { } kernelProcess
+                && kernelProcess.Kernel.Modules.Values.Any(m => m.IsKernel && string.Equals(m.Path, path, StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
             }
@@ -1715,6 +1948,7 @@ public sealed class Emulator : IDisposable
 
         GuestThread main = Kernel.CreateThread(name, MainModule.StartEntry, priority, stackSize, 0, affinity);
         Kernel.MainThread = main;
+        TellProcessCreated(main);
 
         // Library module_start functions run (in load order) before the main thread.
         // (firmware dependencies of a system program first, each after the modules it imports from)
@@ -1780,6 +2014,14 @@ public sealed class Emulator : IDisposable
     /// the Vita); in the first process it is the front-end's fatal error.</summary>
     public void ReportFatal(GuestThread t, Exception e)
     {
+        if (IsKernelProcess && Parent is { } system)
+        {
+            // a kernel thread's crash is the system's: the first process reports it
+            Log.Error($"Kernel thread '{t.Name}' crashed: {e.Message}");
+            system.ReportFatal(t, e);
+            return;
+        }
+
         if (Parent != null && Fatal == null)
         {
             Emulator root = Parent;
@@ -1810,6 +2052,11 @@ public sealed class Emulator : IDisposable
         }
 
         Kernel.StopAllThreads();
+        if (Parent == null && Vita.KernelProcess is { } kernelProcess)
+        {
+            // the system stops: the kernel's threads too
+            kernelProcess.Kernel.StopAllThreads();
+        }
     }
 
     public void Dispose()
@@ -1819,6 +2066,8 @@ public sealed class Emulator : IDisposable
         {
             return; // the GPU and host devices are the first process's
         }
+
+        Vita.EndKernelProcess();
 
         if (_jitBefore is { } jit)
         {
