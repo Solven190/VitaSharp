@@ -4,35 +4,3 @@
 # libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).
 # games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
 library	nid	name	kind	games	system	vitasdk
-SceGpuEs4User	0x09BB98B2	NID_09BB98B2	os0-user	0	0	-
-SceGpuEs4User	0x768482F6	NID_768482F6	os0-user	0	0	-
-SceGpuEs4User	0x9A4A5DAE	NID_9A4A5DAE	os0-user	0	0	-
-SceGpuEs4User	0x9E8E2957	NID_9E8E2957	os0-user	0	0	-
-SceGpuEs4User	0xAAD85460	NID_AAD85460	os0-user	0	0	-
-SceGpuEs4User	0xC0D16CE5	NID_C0D16CE5	os0-user	0	0	-
-SceGpuEs4User	0xCCEE0336	NID_CCEE0336	os0-user	0	0	-
-SceSslInternal	0x00ABEBC3	NID_00ABEBC3	vs0-user	0	0	-
-SceSslInternal	0x05F6A292	NID_05F6A292	vs0-user	0	0	-
-SceSslInternal	0x09657E15	NID_09657E15	vs0-user	0	0	-
-SceSslInternal	0x0C693D36	NID_0C693D36	vs0-user	0	0	-
-SceSslInternal	0x133ED36D	NID_133ED36D	vs0-user	0	0	-
-SceSslInternal	0x26CBEEB6	NID_26CBEEB6	vs0-user	0	0	-
-SceSslInternal	0x2B90012E	NID_2B90012E	vs0-user	0	0	-
-SceSslInternal	0x3EF42454	NID_3EF42454	vs0-user	0	0	-
-SceSslInternal	0x422DFE70	NID_422DFE70	vs0-user	0	0	-
-SceSslInternal	0x4725F9E7	NID_4725F9E7	vs0-user	0	0	-
-SceSslInternal	0x6046C1F3	NID_6046C1F3	vs0-user	0	0	-
-SceSslInternal	0x6D0D3B11	NID_6D0D3B11	vs0-user	0	0	-
-SceSslInternal	0x6F3B9809	NID_6F3B9809	vs0-user	0	0	-
-SceSslInternal	0x92560B8D	NID_92560B8D	vs0-user	0	0	-
-SceSslInternal	0xB1745DAD	NID_B1745DAD	vs0-user	0	0	-
-SceSslInternal	0xC1299FB6	NID_C1299FB6	vs0-user	0	0	-
-SceSslInternal	0xCB83EA07	NID_CB83EA07	vs0-user	0	0	-
-SceSslInternal	0xCBEC7D13	NID_CBEC7D13	vs0-user	0	0	-
-SceSslInternal	0xD419451B	NID_D419451B	vs0-user	0	0	-
-SceSslInternal	0xD6D32A2F	NID_D6D32A2F	vs0-user	0	0	-
-SceSslInternal	0xDABB61EE	NID_DABB61EE	vs0-user	0	0	-
-SceSslInternal	0xDEC6DD27	NID_DEC6DD27	vs0-user	0	0	-
-SceSslInternal	0xF4007DBE	NID_F4007DBE	vs0-user	0	0	-
-SceSslInternal	0xFB51AE89	NID_FB51AE89	vs0-user	0	0	-
-SceSslInternal	0xFEFE761C	NID_FEFE761C	vs0-user	0	0	-

@@ -1871,6 +1871,7 @@
 0x807202B7	sceGpuUnregisterSalvage	GpuEs4	SceGpuEs4ForUser	vh
 0x0162A405	NID_0162A405	GpuEs4	SceGpuEs4User	-	default
 0x071E62F0	NID_071E62F0	GpuEs4	SceGpuEs4User	-	default
+0x09BB98B2	NID_09BB98B2	GpuEs4	SceGpuEs4User	-	default
 0x0BFE1685	NID_0BFE1685	GpuEs4	SceGpuEs4User	-	default
 0x0D27286F	NID_0D27286F	GpuEs4	SceGpuEs4User	-	default
 0x0EA7458D	NID_0EA7458D	GpuEs4	SceGpuEs4User	-	default
@@ -1889,6 +1890,7 @@
 0x5C3A6DFE	NID_5C3A6DFE	GpuEs4	SceGpuEs4User	-	default
 0x70800B46	NID_70800B46	GpuEs4	SceGpuEs4User	-	default
 0x73E945A1	NID_73E945A1	GpuEs4	SceGpuEs4User	-	default
+0x768482F6	NID_768482F6	GpuEs4	SceGpuEs4User	-	default
 0x7AF40138	NID_7AF40138	GpuEs4	SceGpuEs4User	-
 0x7DCCBCAF	NID_7DCCBCAF	GpuEs4	SceGpuEs4User	-	default
 0x7E965369	NID_7E965369	GpuEs4	SceGpuEs4User	-	default
@@ -1898,15 +1900,20 @@
 0x8A997DBB	NID_8A997DBB	GpuEs4	SceGpuEs4User	-	default
 0x8ED7D698	NID_8ED7D698	GpuEs4	SceGpuEs4User	-	default
 0x94286660	NID_94286660	GpuEs4	SceGpuEs4User	-	default
+0x9A4A5DAE	NID_9A4A5DAE	GpuEs4	SceGpuEs4User	-	default
 0x9D5C4326	NID_9D5C4326	GpuEs4	SceGpuEs4User	-	default
+0x9E8E2957	NID_9E8E2957	GpuEs4	SceGpuEs4User	-	default
 0xA5B14369	NID_A5B14369	GpuEs4	SceGpuEs4User	-
 0xA5E331FA	NID_A5E331FA	GpuEs4	SceGpuEs4User	-
+0xAAD85460	NID_AAD85460	GpuEs4	SceGpuEs4User	-	default
 0xAD20D1A0	NID_AD20D1A0	GpuEs4	SceGpuEs4User	-	default
 0xB000CA65	NID_B000CA65	GpuEs4	SceGpuEs4User	-	default
 0xB26DF3D2	NID_B26DF3D2	GpuEs4	SceGpuEs4User	-	default
 0xB6CFD213	NID_B6CFD213	GpuEs4	SceGpuEs4User	-	default
 0xB9178277	NID_B9178277	GpuEs4	SceGpuEs4User	-	default
 0xBDE2B9E1	NID_BDE2B9E1	GpuEs4	SceGpuEs4User	-	default
+0xC0D16CE5	NID_C0D16CE5	GpuEs4	SceGpuEs4User	-	default
+0xCCEE0336	NID_CCEE0336	GpuEs4	SceGpuEs4User	-	default
 0xD90B0707	NID_D90B0707	GpuEs4	SceGpuEs4User	-	default
 0xE98914E4	NID_E98914E4	GpuEs4	SceGpuEs4User	-
 0xF0CCE9DB	NID_F0CCE9DB	GpuEs4	SceGpuEs4User	-	default
@@ -9955,10 +9962,15 @@
 0x9B2F1BC1	sceSslGetSubjectName	Ssl	SceSsl	vh
 0x3C733316	sceSslInit	Ssl	SceSsl	vh
 0x03CE6E3A	sceSslTerm	Ssl	SceSsl	vh
+0x00ABEBC3	NID_00ABEBC3	Ssl	SceSslInternal	-	default
 0x04BAED82	NID_04BAED82	Ssl	SceSslInternal	-
+0x05F6A292	NID_05F6A292	Ssl	SceSslInternal	-	default
 0x08179EBD	NID_08179EBD	Ssl	SceSslInternal	-	default
 0x08ED1B25	NID_08ED1B25	Ssl	SceSslInternal	-	default
+0x09657E15	NID_09657E15	Ssl	SceSslInternal	-	default
+0x0C693D36	NID_0C693D36	Ssl	SceSslInternal	-
 0x0DB6C206	NID_0DB6C206	Ssl	SceSslInternal	-
+0x133ED36D	NID_133ED36D	Ssl	SceSslInternal	-	default
 0x144FA354	NID_144FA354	Ssl	SceSslInternal	-
 0x16D7C7CA	NID_16D7C7CA	Ssl	SceSslInternal	-
 0x170D595D	NID_170D595D	Ssl	SceSslInternal	-
@@ -9970,7 +9982,9 @@
 0x2464F9D0	NID_2464F9D0	Ssl	SceSslInternal	-	default
 0x24C6257F	NID_24C6257F	Ssl	SceSslInternal	-
 0x260F5A85	NID_260F5A85	Ssl	SceSslInternal	-
+0x26CBEEB6	NID_26CBEEB6	Ssl	SceSslInternal	-	default
 0x29AAC768	NID_29AAC768	Ssl	SceSslInternal	-
+0x2B90012E	NID_2B90012E	Ssl	SceSslInternal	-
 0x2F0FC3CD	NID_2F0FC3CD	Ssl	SceSslInternal	-
 0x306E2A22	NID_306E2A22	Ssl	SceSslInternal	-
 0x33737FDC	NID_33737FDC	FirmwareConstants	SceSslInternal	-
@@ -9978,8 +9992,11 @@
 0x349B0E73	NID_349B0E73	Ssl	SceSslInternal	-	default
 0x3746501F	NID_3746501F	Ssl	SceSslInternal	-	default
 0x3DE4F3DB	NID_3DE4F3DB	Ssl	SceSslInternal	-	default
+0x3EF42454	NID_3EF42454	Ssl	SceSslInternal	-
+0x422DFE70	NID_422DFE70	Ssl	SceSslInternal	-
 0x461C5990	NID_461C5990	Ssl	SceSslInternal	-
 0x46358909	NID_46358909	Ssl	SceSslInternal	-
+0x4725F9E7	NID_4725F9E7	Ssl	SceSslInternal	-
 0x4A1557A7	NID_4A1557A7	Ssl	SceSslInternal	-
 0x4AAF0D45	NID_4AAF0D45	Ssl	SceSslInternal	-	default
 0x4D80D3F7	NID_4D80D3F7	Ssl	SceSslInternal	-	default
@@ -9987,14 +10004,18 @@
 0x568F0E80	NID_568F0E80	Ssl	SceSslInternal	-	default
 0x56FE376A	NID_56FE376A	FirmwareConstants	SceSslInternal	-
 0x5E50CB55	NID_5E50CB55	Ssl	SceSslInternal	-
+0x6046C1F3	NID_6046C1F3	Ssl	SceSslInternal	-	default
 0x64BDF1BB	NID_64BDF1BB	Ssl	SceSslInternal	-
 0x67FB1CD3	NID_67FB1CD3	Ssl	SceSslInternal	-
 0x6CDB4EE8	NID_6CDB4EE8	Ssl	SceSslInternal	-
+0x6D0D3B11	NID_6D0D3B11	Ssl	SceSslInternal	-	default
 0x6D2A86F0	NID_6D2A86F0	Ssl	SceSslInternal	-	default
+0x6F3B9809	NID_6F3B9809	Ssl	SceSslInternal	-
 0x7D30F0A6	NID_7D30F0A6	Ssl	SceSslInternal	-	default
 0x81FA5DBE	NID_81FA5DBE	Ssl	SceSslInternal	-	default
 0x88391E03	NID_88391E03	Ssl	SceSslInternal	-
 0x91C2531C	NID_91C2531C	Ssl	SceSslInternal	-
+0x92560B8D	NID_92560B8D	Ssl	SceSslInternal	-	default
 0x93EAE08A	NID_93EAE08A	Ssl	SceSslInternal	-	default
 0x9E38815D	NID_9E38815D	Ssl	SceSslInternal	-
 0xA374CD7B	NID_A374CD7B	Ssl	SceSslInternal	-	default
@@ -10002,28 +10023,39 @@
 0xAC1DBE40	NID_AC1DBE40	Ssl	SceSslInternal	-	default
 0xAF50B945	NID_AF50B945	Ssl	SceSslInternal	-
 0xB0E4CB2F	NID_B0E4CB2F	Ssl	SceSslInternal	-
+0xB1745DAD	NID_B1745DAD	Ssl	SceSslInternal	-
 0xB5A099D2	NID_B5A099D2	Ssl	SceSslInternal	-
 0xB8E6E249	NID_B8E6E249	Ssl	SceSslInternal	-	default
 0xBF99D664	NID_BF99D664	Ssl	SceSslInternal	-
 0xC0B135F0	NID_C0B135F0	FirmwareConstants	SceSslInternal	-
+0xC1299FB6	NID_C1299FB6	Ssl	SceSslInternal	-
 0xC4D984C2	NID_C4D984C2	Ssl	SceSslInternal	-
+0xCB83EA07	NID_CB83EA07	Ssl	SceSslInternal	-
+0xCBEC7D13	NID_CBEC7D13	Ssl	SceSslInternal	-	default
 0xCC7F4211	NID_CC7F4211	Ssl	SceSslInternal	-
 0xCE37B69E	NID_CE37B69E	Ssl	SceSslInternal	-
 0xCEE46B33	NID_CEE46B33	Ssl	SceSslInternal	-	default
 0xD1A82B1A	NID_D1A82B1A	Ssl	SceSslInternal	-
 0xD28834E6	NID_D28834E6	Ssl	SceSslInternal	-	default
 0xD3C049B9	NID_D3C049B9	Ssl	SceSslInternal	-	default
+0xD419451B	NID_D419451B	Ssl	SceSslInternal	-	default
 0xD4ADF069	NID_D4ADF069	Ssl	SceSslInternal	-
 0xD68D8421	NID_D68D8421	Ssl	SceSslInternal	-	default
+0xD6D32A2F	NID_D6D32A2F	Ssl	SceSslInternal	-
 0xD776E2F8	NID_D776E2F8	Ssl	SceSslInternal	-
+0xDABB61EE	NID_DABB61EE	Ssl	SceSslInternal	-
+0xDEC6DD27	NID_DEC6DD27	Ssl	SceSslInternal	-	default
 0xE5EDD91B	NID_E5EDD91B	Ssl	SceSslInternal	-
 0xE746465E	NID_E746465E	Ssl	SceSslInternal	-	default
 0xEC9FAF42	NID_EC9FAF42	Ssl	SceSslInternal	-
 0xEF9EBAC7	NID_EF9EBAC7	Ssl	SceSslInternal	-	default
 0xF030A0DE	NID_F030A0DE	Ssl	SceSslInternal	-
 0xF2C9B744	NID_F2C9B744	Ssl	SceSslInternal	-
+0xF4007DBE	NID_F4007DBE	Ssl	SceSslInternal	-
 0xF71DB06F	NID_F71DB06F	Ssl	SceSslInternal	-
+0xFB51AE89	NID_FB51AE89	Ssl	SceSslInternal	-	default
 0xFBEB1FD7	NID_FBEB1FD7	Ssl	SceSslInternal	-
+0xFEFE761C	NID_FEFE761C	Ssl	SceSslInternal	-
 0xFFE2ED51	NID_FFE2ED51	Ssl	SceSslInternal	-	default
 0x064DFC99	sceSslInternalGetCertificateAuthority	Ssl	SceSslInternal	vh
 0x4B4A2307	sceSslInternalIsInitalized	Ssl	SceSslInternal	vh

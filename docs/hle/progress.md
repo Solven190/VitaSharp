@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
 | System imports | 7,320 | 6,925 | 395 | 0 | 7,320 | 100% |
-| General | 9,912 | 9,543 | 369 | 0 | 9,944 | 99.6% |
-| All firmware 3.74 exports | 19,374 | 5,113 | 770 | 13,491 | 19,406 | 99.8% |
+| General | 9,944 | 9,556 | 388 | 0 | 9,944 | 100% |
+| All firmware 3.74 exports | 19,406 | 5,126 | 789 | 13,491 | 19,406 | 100% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -372,7 +372,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGifPromoter | `vs0:vsh/common/mms/gif_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | SceGps | `os0:kd/bootimage.skprx/SceGps` | 11 / 11 | 100% | - | - | 11 / 11 |
 | SceGpuEs4ForUser | `os0:kd/bootimage.skprx/SceGpuEs4` | 7 / 7 | 100% | 1 | - | 4 / 4 |
-| SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 42 / 49 | 85.7% | 33 | - | 42 / 42 |
+| SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 49 / 49 | 100% | 40 | - | 42 / 42 |
 | SceGpuEs4UserForVsh | `os0:us/libgpu_es4.suprx` | 5 / 5 | 100% | 5 | - | 5 / 5 |
 | SceGriefReportDialog | `vs0:app/NPXS10065/grief_report_dialog.suprx` | 9 / 9 | 100% | - | - | 7 / 7 |
 | SceGxm | `os0:us/libgxm_es4.suprx` | 267 / 267 | 100% | - | 246 / 246 | - |
@@ -540,7 +540,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSqlite | `vs0:sys/external/libSceSqlite.suprx` | 171 / 171 | 100% | - | - | - |
 | SceSqliteVsh | `vs0:sys/external/sqlite.suprx` | 139 / 139 | 100% | - | - | 75 / 75 |
 | SceSsl | `vs0:sys/external/libssl.suprx` | 11 / 11 | 100% | - | 10 / 10 | 1 / 1 |
-| SceSslInternal | `vs0:sys/external/libssl.suprx` | 73 / 98 | 74.4% | 26 | - | 70 / 70 |
+| SceSslInternal | `vs0:sys/external/libssl.suprx` | 98 / 98 | 100% | 38 | - | 70 / 70 |
 | SceStitchAdapter | `vs0:app/NPXS10095/stitch_prx.suprx` | 14 / 14 | 100% | - | - | 11 / 11 |
 | SceStitcherCoreAdapter | `vs0:app/NPXS10095/stitch_core_prx.suprx` | 57 / 57 | 100% | - | - | 53 / 53 |
 | SceSulpha | `vs0:sys/external/libsulpha.suprx` | 23 / 23 | 100% | - | - | 10 / 10 |
