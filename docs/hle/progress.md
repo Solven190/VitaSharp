@@ -152,8 +152,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 1,073 | 1,016 | 57 | 3,918 | 27.3% |
-| Imported | 515 | - | - | 2,062 | 24.9% |
+| All | 1,079 | 1,017 | 62 | 3,918 | 27.5% |
+| Imported | 517 | - | - | 2,062 | 25% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -213,7 +213,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNetPsForDriver | 12 / 20 | 60% | - | 0 / 3 |
 | SceNpDrmForDriver | 0 / 26 | 0% | - | 0 / 20 |
 | SceOledForDriver | 0 / 21 | 0% | - | 0 / 12 |
-| ScePervasiveForDriver | 115 / 156 | 73.7% | - | 75 / 88 |
+| ScePervasiveForDriver | 121 / 156 | 77.5% | 5 | 77 / 88 |
 | ScePfsFacadeForKernel | 0 / 6 | 0% | - | 0 / 6 |
 | ScePfsMgrForKernel | 0 / 14 | 0% | - | 0 / 11 |
 | ScePmMgrForDriver | 0 / 2 | 0% | - | 0 / 1 |
