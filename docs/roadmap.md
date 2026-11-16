@@ -1188,6 +1188,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   diálogo. O zRIF é decodificado no Core (`Package/Zrif.cs`, dicionário do pkg2zip) e o `PkgInstaller` confere o
   content ID da licença contra o do `.pkg`; o `install <pkg> <rif|zRIF>` do CLI também aceita zRIF
 - [ ] Sistema do Vita (shell) não roda no Android (relato do usuário, 01/11/2026; log do celular
+  16/11/2026 (relato do usuário, APK com a correção da espera sem núcleo): o shell abre, mas demora, e as opções do app Configurações não funcionam/não aparecem. Próximo passo quando o Android voltar: captura "Gravar tudo" no app Configurações e comparar com o mesmo app no PC.
   `20261101_204800_SYSTEM.log`, Redmi Note 14, firmware 3.74 instalado no app): a sessão abre, a GPU apresenta só
   2 superfícies (0x6043E000 e 0x60240000) e 91 quadros em ~4 s, com apenas 7 shaders e 4 pipelines (no PC o shell
   chega à tela inicial com bem mais); depois o usuário pausou e saiu. Avisos: `SceNetPsForSyscalls::sceNetSyscall*`
