@@ -157,10 +157,10 @@ SceMusicExport	vs0:sys/external/libSceMusicExport.suprx	2	2	0	0	1	1	0	0	0	0
 SceNearDialogUtil	vs0:sys/external/libSceNearDialogUtil.suprx	33	33	0	0	0	0	0	0	0	0
 SceNearProfile	vs0:sys/external/near_profile.suprx	8	8	0	0	8	8	0	0	0	8
 SceNearUtil	vs0:sys/external/libSceNearUtil.suprx	49	49	46	46	0	0	0	0	0	0
-SceNet	vs0:sys/external/libnet.suprx	62	59	47	47	4	4	0	0	0	0
+SceNet	vs0:sys/external/libnet.suprx	62	62	47	47	4	4	0	0	0	0
 SceNetAdhocMatching	vs0:sys/external/adhoc_matching.suprx	14	14	13	13	0	0	0	0	0	0
 SceNetCtl	vs0:sys/external/libnetctl.suprx	112	101	16	16	76	76	0	0	0	0
-SceNetInternal	vs0:sys/external/libnet.suprx	58	7	0	0	45	6	0	0	0	0
+SceNetInternal	vs0:sys/external/libnet.suprx	58	9	0	0	45	8	0	0	0	0
 SceNetPsForSyscalls	os0:kd/bootimage.skprx/SceNetPs	34	34	0	0	34	34	0	0	0	0
 SceNgs	vs0:sys/external/libngs.suprx	68	68	55	55	0	0	0	0	0	0
 SceNgsInternal	os0:kd/bootimage.skprx/SceNgs	62	62	0	0	61	61	5	0	5	0
@@ -218,7 +218,7 @@ SceProcessmgr	os0:kd/processmgr.skprx	31	31	12	12	17	17	0	0	0	0
 ScePromoterUtil	vs0:sys/external/libScePromoterUtil.suprx	26	26	0	0	21	21	0	0	0	26
 ScePsmDrm	os0:kd/bootimage.skprx/SceNpDrm	6	6	6	6	0	0	6	6	0	0
 ScePsp2Compat	vs0:data/external/webcore/ScePsp2Compat.suprx	1047	1047	0	0	537	537	0	0	0	1047
-ScePspnetAdhoc	vs0:sys/external/pspnet_adhoc.suprx	32	28	10	10	3	0	0	0	0	0
+ScePspnetAdhoc	vs0:sys/external/pspnet_adhoc.suprx	32	32	10	10	3	3	2	0	1	0
 ScePvf	vs0:sys/external/libpvf.suprx	43	43	22	22	2	2	0	0	0	0
 SceRegMgr	os0:kd/bootimage.skprx/SceRegistryMgr	22	22	0	0	20	20	0	0	0	0
 SceRegMgrForGame	os0:kd/bootimage.skprx/SceRegistryMgr	7	7	2	2	4	4	0	0	0	0
@@ -279,7 +279,7 @@ SceUsbPspcm	os0:kd/bootimage.skprx/SceUsbPspcm	12	12	0	0	12	12	12	0	12	0
 SceUsbSerial	os0:kd/bootimage.skprx/SceUsbSerial	14	14	0	0	0	0	14	0	0	0
 SceUsbServ	os0:kd/bootimage.skprx/SceUsbServ	2	2	0	0	0	0	2	0	0	0
 SceUsbdForUser	os0:kd/bootimage.skprx/SceUsbd	23	23	0	0	2	2	21	0	0	0
-SceUsbstor	os0:kd/bootimage.skprx/SceUsbstorDriver	1	0	0	0	0	0	0	0	0	0
+SceUsbstor	os0:kd/bootimage.skprx/SceUsbstorDriver	1	1	0	0	0	0	1	0	0	0
 SceUsbstorVStor	os0:kd/bootimage.skprx/SceUsbstorVStorDriver	4	4	0	0	4	4	4	0	4	0
 SceVideoExport	vs0:sys/external/libSceVideoExport.suprx	1	1	0	0	1	1	0	0	0	0
 SceVideoExportData	vs0:sys/external/libSceVideoExport.suprx	3	3	0	0	0	0	0	0	0	3

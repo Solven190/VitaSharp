@@ -157,9 +157,6 @@ SceLibLocation	0x822BBF06	NID_822BBF06	vs0-user	0	1	-
 SceLibLocation	0x991AF2D0	NID_991AF2D0	vs0-user	0	1	-
 SceLibLocation	0xC1CFEC92	NID_C1CFEC92	vs0-user	0	5	-
 SceLibLocation	0xEFC9BD25	NID_EFC9BD25	vs0-user	0	2	-
-SceNet	0x1F0080B3	NID_1F0080B3	vs0-user	0	0	-
-SceNet	0x522D2118	NID_522D2118	vs0-user	0	0	-
-SceNet	0xD886F498	NID_D886F498	vs0-user	0	0	-
 SceNetCtl	0x15BEEEF5	NID_15BEEEF5	vs0-user	0	0	-
 SceNetCtl	0x54EBA0FB	NID_54EBA0FB	vs0-user	0	0	-
 SceNetCtl	0x586C4DD7	NID_586C4DD7	vs0-user	0	0	-
@@ -183,7 +180,6 @@ SceNetInternal	0x2FEC8B74	NID_2FEC8B74	vs0-user	0	1	-
 SceNetInternal	0x333F9CB3	NID_333F9CB3	vs0-user	0	5	-
 SceNetInternal	0x3B5F94B7	NID_3B5F94B7	vs0-user	0	1	-
 SceNetInternal	0x4054D2D8	NID_4054D2D8	vs0-user	0	0	-
-SceNetInternal	0x46E28336	NID_46E28336	vs0-user	0	1	-
 SceNetInternal	0x4EF96CD8	NID_4EF96CD8	vs0-user	0	1	-
 SceNetInternal	0x4F5E0E8A	NID_4F5E0E8A	vs0-user	0	2	-
 SceNetInternal	0x5B0E370C	NID_5B0E370C	vs0-user	0	2	-
@@ -197,7 +193,6 @@ SceNetInternal	0x853EEABE	NID_853EEABE	vs0-user	0	0	-
 SceNetInternal	0x873DE778	NID_873DE778	vs0-user	0	0	-
 SceNetInternal	0x97527BDB	NID_97527BDB	vs0-user	0	0	-
 SceNetInternal	0x9D12D8A4	NID_9D12D8A4	vs0-user	0	1	-
-SceNetInternal	0x9DBD2F60	NID_9DBD2F60	vs0-user	0	4	-
 SceNetInternal	0xA2C2BC5F	NID_A2C2BC5F	vs0-user	0	9	-
 SceNetInternal	0xA64CFBF5	NID_A64CFBF5	vs0-user	0	0	-
 SceNetInternal	0xA6B9F5D2	NID_A6B9F5D2	vs0-user	0	1	-
@@ -486,10 +481,6 @@ ScePhotoExport	0x2EFB7250	NID_2EFB7250	vs0-user	0	4	-
 ScePhotoExport	0x719ACE85	NID_719ACE85	vs0-user	0	1	-
 ScePhotoExport	0x76640642	NID_76640642	vs0-user	0	2	-
 ScePhotoExport	0xF4E0F7FF	NID_F4E0F7FF	vs0-user	0	3	-
-ScePspnetAdhoc	0x5C83C5C8	NID_5C83C5C8	vs0-user	0	1	-
-ScePspnetAdhoc	0x8938A4D0	NID_8938A4D0	vs0-user	0	0	-
-ScePspnetAdhoc	0xA3EC45B9	NID_A3EC45B9	vs0-user	0	1	-
-ScePspnetAdhoc	0xF87F9518	NID_F87F9518	vs0-user	0	1	-
 SceSslInternal	0x00ABEBC3	NID_00ABEBC3	vs0-user	0	0	-
 SceSslInternal	0x04BAED82	NID_04BAED82	vs0-user	0	1	-
 SceSslInternal	0x05F6A292	NID_05F6A292	vs0-user	0	0	-
@@ -597,4 +588,3 @@ SceUsbDevSerial	0x9F497D4E	NID_9F497D4E	kernel-syscall	0	0	-
 SceUsbDevSerial	0xC0FDECAF	NID_C0FDECAF	kernel-syscall	0	0	-
 SceUsbDevSerial	0xDAE5C362	NID_DAE5C362	kernel-syscall	0	0	-
 SceUsbDevSerial	0xF0C3F3D4	NID_F0C3F3D4	kernel-syscall	0	0	-
-SceUsbstor	0x5B3DF8DF	NID_5B3DF8DF	kernel-syscall	0	0	-

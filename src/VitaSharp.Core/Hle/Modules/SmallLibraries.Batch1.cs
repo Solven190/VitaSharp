@@ -33,6 +33,18 @@ public sealed partial class SystemServicesVsh
         return UsbSerialAllowed ? USBSERIAL_ERR_NOT_STARTED : SBL_ERR_PERM;
     }
 
+    // ------------------------------------------------------------------ SceUsbstor: no USB storage attached
+
+    /// <summary>SceUsbstor NID_5B3DF8DF() (SceUsbstorDriver 3.74, its only syscall): only for the QA settings or a
+    /// system program (ksceSblACMgrIsMiniSettingsForQA / ksceSblACMgrIsSystemProgram, else 0x80010058); then whether
+    /// any of the driver's registered storage units (up to 8) is active, the OR of their state bytes. No USB storage
+    /// unit is attached to the emulated console: 0.</summary>
+    [Hle("NID_5B3DF8DF", Nid = 0x5B3DF8DF, Library = "SceUsbstor", Default = true)]
+    int UsbstorAnyUnitActive()
+    {
+        return Emu.IsSystemProgram ? 0 : SBL_ERR_PERM;
+    }
+
     // ------------------------------------------------------------------ SceUsbAudioIn: no USB microphone
 
     /// <summary>sceUsbAudioInGetCurrentValueOfVolume (NID_198A7C33)(int id, int *value): the device is looked up

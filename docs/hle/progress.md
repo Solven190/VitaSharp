@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,985 | 6,752 | 233 | 0 | 7,320 | 95.4% |
-| General | 9,652 | 9,431 | 221 | 0 | 9,944 | 97% |
-| All firmware 3.74 exports | 18,779 | 4,828 | 460 | 13,491 | 19,406 | 96.7% |
+| System imports | 6,990 | 6,756 | 234 | 0 | 7,320 | 95.4% |
+| General | 9,657 | 9,434 | 223 | 0 | 9,944 | 97.1% |
+| All firmware 3.74 exports | 18,789 | 4,835 | 463 | 13,491 | 19,406 | 96.8% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -444,10 +444,10 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNearDialogUtil | `vs0:sys/external/libSceNearDialogUtil.suprx` | 33 / 33 | 100% | - | - | - |
 | SceNearProfile | `vs0:sys/external/near_profile.suprx` | 8 / 8 | 100% | - | - | 8 / 8 |
 | SceNearUtil | `vs0:sys/external/libSceNearUtil.suprx` | 49 / 49 | 100% | - | 46 / 46 | - |
-| SceNet | `vs0:sys/external/libnet.suprx` | 59 / 62 | 95.1% | - | 47 / 47 | 4 / 4 |
+| SceNet | `vs0:sys/external/libnet.suprx` | 62 / 62 | 100% | - | 47 / 47 | 4 / 4 |
 | SceNetAdhocMatching | `vs0:sys/external/adhoc_matching.suprx` | 14 / 14 | 100% | - | 13 / 13 | - |
 | SceNetCtl | `vs0:sys/external/libnetctl.suprx` | 101 / 112 | 90.1% | - | 16 / 16 | 76 / 76 |
-| SceNetInternal | `vs0:sys/external/libnet.suprx` | 7 / 58 | 12% | - | - | 6 / 45 |
+| SceNetInternal | `vs0:sys/external/libnet.suprx` | 9 / 58 | 15.5% | - | - | 8 / 45 |
 | SceNetPsForSyscalls | `os0:kd/bootimage.skprx/SceNetPs` | 34 / 34 | 100% | - | - | 34 / 34 |
 | SceNgs | `vs0:sys/external/libngs.suprx` | 68 / 68 | 100% | - | 55 / 55 | - |
 | SceNgsInternal | `os0:kd/bootimage.skprx/SceNgs` | 62 / 62 | 100% | 5 | - | 61 / 61 |
@@ -505,7 +505,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | ScePromoterUtil | `vs0:sys/external/libScePromoterUtil.suprx` | 26 / 26 | 100% | - | - | 21 / 21 |
 | ScePsmDrm | `os0:kd/bootimage.skprx/SceNpDrm` | 6 / 6 | 100% | 6 | 6 / 6 | - |
 | ScePsp2Compat | `vs0:data/external/webcore/ScePsp2Compat.suprx` | 1047 / 1047 | 100% | - | - | 537 / 537 |
-| ScePspnetAdhoc | `vs0:sys/external/pspnet_adhoc.suprx` | 28 / 32 | 87.5% | - | 10 / 10 | 0 / 3 |
+| ScePspnetAdhoc | `vs0:sys/external/pspnet_adhoc.suprx` | 32 / 32 | 100% | 2 | 10 / 10 | 3 / 3 |
 | ScePvf | `vs0:sys/external/libpvf.suprx` | 43 / 43 | 100% | - | 22 / 22 | 2 / 2 |
 | SceRegMgr | `os0:kd/bootimage.skprx/SceRegistryMgr` | 22 / 22 | 100% | - | - | 20 / 20 |
 | SceRegMgrForGame | `os0:kd/bootimage.skprx/SceRegistryMgr` | 7 / 7 | 100% | - | 2 / 2 | 4 / 4 |
@@ -566,7 +566,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceUsbSerial | `os0:kd/bootimage.skprx/SceUsbSerial` | 14 / 14 | 100% | 14 | - | - |
 | SceUsbServ | `os0:kd/bootimage.skprx/SceUsbServ` | 2 / 2 | 100% | 2 | - | - |
 | SceUsbdForUser | `os0:kd/bootimage.skprx/SceUsbd` | 23 / 23 | 100% | 21 | - | 2 / 2 |
-| SceUsbstor | `os0:kd/bootimage.skprx/SceUsbstorDriver` | 0 / 1 | 0% | - | - | - |
+| SceUsbstor | `os0:kd/bootimage.skprx/SceUsbstorDriver` | 1 / 1 | 100% | 1 | - | - |
 | SceUsbstorVStor | `os0:kd/bootimage.skprx/SceUsbstorVStorDriver` | 4 / 4 | 100% | 4 | - | 4 / 4 |
 | SceVideoExport | `vs0:sys/external/libSceVideoExport.suprx` | 1 / 1 | 100% | - | - | 1 / 1 |
 | SceVideoExportData | `vs0:sys/external/libSceVideoExport.suprx` | 3 / 3 | 100% | - | - | - |

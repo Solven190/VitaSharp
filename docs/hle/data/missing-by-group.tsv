@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=335 general=292 vitasdk=0
+# firmware=3.74 games=0 system=330 general=287 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -95,7 +95,6 @@ system	SceNetInternal	0x26EFF46D	NID_26EFF46D	vs0:sys/external/libnet.suprx	0	1	
 system	SceNetInternal	0x2FEC8B74	NID_2FEC8B74	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x333F9CB3	NID_333F9CB3	vs0:sys/external/libnet.suprx	0	5	vs0:app/NPXS10028/eboot.bin
 system	SceNetInternal	0x3B5F94B7	NID_3B5F94B7	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNetInternal	0x46E28336	NID_46E28336	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x4EF96CD8	NID_4EF96CD8	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x4F5E0E8A	NID_4F5E0E8A	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10021/tel_reg.suprx
 system	SceNetInternal	0x5B0E370C	NID_5B0E370C	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10028/eboot.bin
@@ -104,7 +103,6 @@ system	SceNetInternal	0x694F8996	NID_694F8996	vs0:sys/external/libnet.suprx	0	2	
 system	SceNetInternal	0x7F63379E	NID_7F63379E	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x8157DE3E	NID_8157DE3E	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x9D12D8A4	NID_9D12D8A4	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNetInternal	0x9DBD2F60	NID_9DBD2F60	vs0:sys/external/libnet.suprx	0	4	vs0:app/NPXS10015/eboot.bin
 system	SceNetInternal	0xA2C2BC5F	NID_A2C2BC5F	vs0:sys/external/libnet.suprx	0	9	vs0:app/NPXS10015/eboot.bin
 system	SceNetInternal	0xA6B9F5D2	NID_A6B9F5D2	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0xA9F2277C	NID_A9F2277C	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
@@ -237,9 +235,6 @@ system	ScePhotoExport	0x2EFB7250	NID_2EFB7250	vs0:sys/external/libScePhotoExport
 system	ScePhotoExport	0x719ACE85	NID_719ACE85	vs0:sys/external/libScePhotoExport.suprx	0	1	vs0:vsh/shell/shell.self
 system	ScePhotoExport	0x76640642	NID_76640642	vs0:sys/external/libScePhotoExport.suprx	0	2	vs0:app/NPXS10028/eboot.bin
 system	ScePhotoExport	0xF4E0F7FF	NID_F4E0F7FF	vs0:sys/external/libScePhotoExport.suprx	0	3	vs0:app/NPXS10004/eboot.bin
-system	ScePspnetAdhoc	0x5C83C5C8	NID_5C83C5C8	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
-system	ScePspnetAdhoc	0xA3EC45B9	NID_A3EC45B9	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
-system	ScePspnetAdhoc	0xF87F9518	NID_F87F9518	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
 system	SceShell	0x0025417F	NID_0025417F	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x05D6FCB0	NID_05D6FCB0	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x29A14252	NID_29A14252	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
@@ -407,9 +402,6 @@ general	SceLibKernel	0x56A59D4F	sceSblGcAuthMgrMsSaveBBCipherUpdate	os0:us/libke
 general	SceLibKernel	0x6C7365C4	NID_6C7365C4	os0:us/libkernel.suprx	0	0	-
 general	SceLibKernel	0x84C75DC3	sceSblGcAuthMgrAdhocBB160GetKeys	os0:us/libkernel.suprx	0	0	-
 general	SceLibKernel	0x9B28E1AF	sceSblGcAuthMgrAdhocBB160Init	os0:us/libkernel.suprx	0	0	-
-general	SceNet	0x1F0080B3	NID_1F0080B3	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNet	0x522D2118	NID_522D2118	vs0:sys/external/libnet.suprx	0	0	-
-general	SceNet	0xD886F498	NID_D886F498	vs0:sys/external/libnet.suprx	0	0	-
 general	SceNetCtl	0x15BEEEF5	NID_15BEEEF5	vs0:sys/external/libnetctl.suprx	0	0	-
 general	SceNetCtl	0x54EBA0FB	NID_54EBA0FB	vs0:sys/external/libnetctl.suprx	0	0	-
 general	SceNetCtl	0x586C4DD7	NID_586C4DD7	vs0:sys/external/libnetctl.suprx	0	0	-
@@ -584,7 +576,6 @@ general	SceNpUtility	0xFF9F1571	NID_FF9F1571	vs0:sys/external/np_utility.suprx	0
 general	SceNpWebApi	0x1140FA82	NID_1140FA82	vs0:sys/external/np_webapi.suprx	0	0	-
 general	SceNpWebApi	0x6E6AFA39	NID_6E6AFA39	vs0:sys/external/np_webapi.suprx	0	0	-
 general	SceNpWebApi	0x93BBA612	NID_93BBA612	vs0:sys/external/np_webapi.suprx	0	0	-
-general	ScePspnetAdhoc	0x8938A4D0	NID_8938A4D0	vs0:sys/external/pspnet_adhoc.suprx	0	0	-
 general	SceShell	0x5928D835	NID_5928D835	vs0:vsh/shell/shell.self	0	0	-
 general	SceShell	0x6B8772A2	NID_6B8772A2	vs0:vsh/shell/shell.self	0	0	-
 general	SceShell	0x794BF5BE	NID_794BF5BE	vs0:vsh/shell/shell.self	0	0	-
@@ -628,4 +619,3 @@ general	SceUsbDevSerial	0x9F497D4E	NID_9F497D4E	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xC0FDECAF	NID_C0FDECAF	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xDAE5C362	NID_DAE5C362	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xF0C3F3D4	NID_F0C3F3D4	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbstor	0x5B3DF8DF	NID_5B3DF8DF	os0:kd/bootimage.skprx/SceUsbstorDriver	0	0	-

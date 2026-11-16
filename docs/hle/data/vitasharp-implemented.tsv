@@ -5408,7 +5408,10 @@
 0xD22CB2DE	sceNearUtil_D22CB2DE	NearUtil	SceNearUtil	-
 0xDDEB6C8C	sceNearUtil_DDEB6C8C	NearUtil	SceNearUtil	-
 0xE608000B	sceNearUtil_E608000B	NearUtil	SceNearUtil	-
+0x1F0080B3	NID_1F0080B3	Net	SceNet	-
+0x522D2118	NID_522D2118	Net	SceNet	-
 0x84257F65	NID_84257F65	Net	SceNet	-
+0xD886F498	NID_D886F498	Net	SceNet	-
 0x1ADF9BB1	sceNetAccept	Net	SceNet	vh
 0x1296A94B	sceNetBind	Net	SceNet	vh
 0xFEC1166D	sceNetClearDnsCache	Net	SceNet	vh
@@ -5582,7 +5585,9 @@
 0xF081EFF9	sceNetCtl_F081EFF9	Net	SceNetCtl	-
 0xF30365D6	sceNetCtl_F30365D6	Net	SceNetCtl	-
 0xFFDC123A	sceNetCtl_FFDC123A	Net	SceNetCtl	-
+0x46E28336	NID_46E28336	Net	SceNetInternal	-
 0x6273AF23	NID_6273AF23	Net	SceNetInternal	-
+0x9DBD2F60	NID_9DBD2F60	Net	SceNetInternal	-
 0xDF815D48	NID_DF815D48	Net	SceNetInternal	-
 0x93F2FF08	sceNetInternalIcmConnect	Net	SceNetInternal	-
 0x916EA798	sceNetInternalInetPton	Net	SceNetInternal	-
@@ -8660,6 +8665,10 @@
 0xFB129366	NID_FB129366	Psp2Compat	ScePsp2Compat	-
 0xFB68CE8A	NID_FB68CE8A	FirmwareConstants	ScePsp2Compat	-
 0xFD31AE18	NID_FD31AE18	Psp2Compat	ScePsp2Compat	-
+0x5C83C5C8	NID_5C83C5C8	NetAdhoc	ScePspnetAdhoc	-
+0x8938A4D0	NID_8938A4D0	NetAdhoc	ScePspnetAdhoc	-	default
+0xA3EC45B9	NID_A3EC45B9	NetAdhoc	ScePspnetAdhoc	-	default
+0xF87F9518	NID_F87F9518	NetAdhoc	ScePspnetAdhoc	-
 0x02098B69	sceNetAdhocGetPdpStat	NetAdhoc	ScePspnetAdhoc	vh
 0xE45F0801	sceNetAdhocGetPtpStat	NetAdhoc	ScePspnetAdhoc	vh
 0xCA249F53	sceNetAdhocGetSocketAlert	NetAdhoc	ScePspnetAdhoc	vh
@@ -10262,6 +10271,7 @@
 0x716048C1	sceUsbdTransferData	SystemServicesVsh	SceUsbdForUser	vh	default
 0x0585EA80	sceUsbdUnregisterCallback	SystemServicesVsh	SceUsbdForUser	vh
 0x473692CC	sceUsbdUnregisterLdd	SystemServicesVsh	SceUsbdForUser	vh	default
+0x5B3DF8DF	NID_5B3DF8DF	SystemServicesVsh	SceUsbstor	-	default
 0x14455C20	sceUsbstorVStorSetDeviceInfo	SystemServicesVsh	SceUsbstorVStor	vh	default
 0x8C9F93AB	sceUsbstorVStorSetImgFilePath	SystemServicesVsh	SceUsbstorVStor	vh	default
 0xB606F1AF	sceUsbstorVStorStart	SystemServicesVsh	SceUsbstorVStor	vh	default
