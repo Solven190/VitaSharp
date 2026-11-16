@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=343 general=297 vitasdk=0
+# firmware=3.74 games=0 system=342 general=297 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -247,7 +247,6 @@ system	ScePhotoExport	0xF4E0F7FF	NID_F4E0F7FF	vs0:sys/external/libScePhotoExport
 system	ScePspnetAdhoc	0x5C83C5C8	NID_5C83C5C8	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
 system	ScePspnetAdhoc	0xA3EC45B9	NID_A3EC45B9	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
 system	ScePspnetAdhoc	0xF87F9518	NID_F87F9518	vs0:sys/external/pspnet_adhoc.suprx	0	1	vs0:sys/external/libcdlg_netcheck.suprx
-system	SceScreenShot	0x0757A17F	NID_0757A17F	vs0:sys/external/libSceScreenShot.suprx	0	1	vs0:app/NPXS10027/eboot.bin
 system	SceShell	0x0025417F	NID_0025417F	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x05D6FCB0	NID_05D6FCB0	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x29A14252	NID_29A14252	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx

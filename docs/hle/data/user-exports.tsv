@@ -502,7 +502,6 @@ ScePspnetAdhoc	0x5C83C5C8	NID_5C83C5C8	vs0-user	0	1	-
 ScePspnetAdhoc	0x8938A4D0	NID_8938A4D0	vs0-user	0	0	-
 ScePspnetAdhoc	0xA3EC45B9	NID_A3EC45B9	vs0-user	0	1	-
 ScePspnetAdhoc	0xF87F9518	NID_F87F9518	vs0-user	0	1	-
-SceScreenShot	0x0757A17F	NID_0757A17F	vs0-user	0	1	-
 SceSslInternal	0x00ABEBC3	NID_00ABEBC3	vs0-user	0	0	-
 SceSslInternal	0x04BAED82	NID_04BAED82	vs0-user	0	1	-
 SceSslInternal	0x05F6A292	NID_05F6A292	vs0-user	0	0	-

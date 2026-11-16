@@ -6,7 +6,7 @@ using VitaSharp.Core.Memory;
 
 namespace VitaSharp.Tests;
 
-/// <summary>SceGxm / SceDisplay / SceScreenShot HLE functions that only touch guest memory.</summary>
+/// <summary>SceGxm / SceDisplay HLE functions that only touch guest memory (SceScreenShot: ScreenShotTests).</summary>
 [Collection("guest")]
 public sealed class GxmHleTests(GuestMemoryFixture fixture)
 {
@@ -115,29 +115,6 @@ public sealed class GxmHleTests(GuestMemoryFixture fixture)
         GuestMemory.W32(b + 0x30, 1);
         Assert.False((bool)Call(gxm, "sceGxmProgramIsEquivalent", a, b)!);
         Assert.False((bool)Call(gxm, "sceGxmProgramIsEquivalent", a, 0u)!);
-    }
-
-    [Fact]
-    public void ScreenShotParamRoundTrip()
-    {
-        var ss = new ScreenShot();
-        uint p = fixture.Memory.Alloc(0x10, "ssparam"), title = fixture.Memory.Alloc(0x100, "sstitle"), outBuf = fixture.Memory.Alloc(0x100, "ssout");
-        ScreenShot.WriteUtf32(title, "Foto サ\U0001F600", 63);
-        GuestMemory.Fill(p, 0, 0x10);
-        GuestMemory.W32(p, title);
-        Assert.Equal(0, (int)Call(ss, "sceScreenShotSetParam", p)!);
-        Assert.Equal("Foto サ\U0001F600", ss.PhotoTitle);
-        Assert.Null(ss.GameTitle);
-        GuestMemory.W32(p + 12, 1);
-        Assert.Equal(unchecked((int)0x80102F01), (int)Call(ss, "sceScreenShotSetParam", p)!);
-        GuestMemory.W32(p + 12, 0);
-        GuestMemory.W32(p, outBuf);
-        Assert.Equal(0, (int)Call(ss, "sceScreenShotGetParam", p)!);
-        Assert.Equal("Foto サ\U0001F600", ScreenShot.ReadUtf32(outBuf, 64));
-        Call(ss, "sceScreenShotDisable");
-        Assert.False(ss.Enabled);
-        Call(ss, "sceScreenShotEnable");
-        Assert.True(ss.Enabled);
     }
 
     [Fact]

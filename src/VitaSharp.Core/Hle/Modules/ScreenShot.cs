@@ -14,8 +14,6 @@ public sealed partial class ScreenShot : HleModule
         ERR_FILE_NOT_FOUND = unchecked((int)0x80102F03), ERR_NOT_SUPPORTED_FORMAT = unchecked((int)0x80102F04),
         ERR_MEDIA_FULL = unchecked((int)0x80102F05), ERR_INTERNAL = unchecked((int)0x80102F06);
 
-    /// <summary>Max characters (without NUL) of photoTitle, gameTitle and gameComment (SCE_SCREENSHOT_MAX_*_LEN).</summary>
-    const int MaxTitleLen = 64, MaxCommentLen = 128;
 
     readonly object _lock = new();
 
@@ -63,32 +61,124 @@ public sealed partial class ScreenShot : HleModule
         GuestMemory.W32(addr + (uint)n * 4, 0);
     }
 
-    /// <summary>SceScreenShotParam (0x10): +0 photoTitle, +4 gameTitle, +8 gameComment (UTF-32), +0xC reserved (NULL).
-    /// Null string pointers leave the field undefined.</summary>
+    /// <summary>SceScreenShotParam (0x10): +0 photoTitle, +4 gameTitle, +8 gameComment (UTF-8 strings), +0xC reserved
+    /// (NULL). As libSceScreenShot 3.74: a NULL param or a non-NULL reserved word is 0x80102F01; a NULL string is an
+    /// empty one; a title of 0x100 bytes or more, or a comment of 0x200 or more, is 0x80102F01. The module then hands the
+    /// three strings to the screenshot service of the shell, which keeps them for the captures.</summary>
     [Hle]
     int sceScreenShotSetParam(uint param)
     {
-        if (param == 0 || GuestMemory.R32(param + 12) != 0) return ERR_INVALID_ARGUMENT;
-        string? photo = ReadUtf32(GuestMemory.R32(param), MaxTitleLen);
-        string? game = ReadUtf32(GuestMemory.R32(param + 4), MaxTitleLen);
-        string? comment = ReadUtf32(GuestMemory.R32(param + 8), MaxCommentLen);
-        lock (_lock) { PhotoTitle = photo; GameTitle = game; GameComment = comment; }
-        Log.Debug($"sceScreenShotSetParam(photo='{photo}', game='{game}', comment='{comment}')");
+        return SetParam(param, persistent: false);
+    }
+
+    /// <summary>NID_0757A17F(param): sceScreenShotSetParam's twin; the module sends the same request with its flag
+    /// byte set to 1 instead of 0.</summary>
+    [Hle("NID_0757A17F", Nid = 0x0757A17F, Library = "SceScreenShot")]
+    int ScreenShotSetParamFlagged(uint param)
+    {
+        return SetParam(param, persistent: true);
+    }
+
+    /// <summary>The flag byte of the last SetParam request (NID_0757A17F sends 1, sceScreenShotSetParam 0).</summary>
+    public bool ParamFlag { get; private set; }
+
+    int SetParam(uint param, bool persistent)
+    {
+        if (param == 0 || GuestMemory.R32(param + 12) != 0)
+        {
+            return ERR_INVALID_ARGUMENT;
+        }
+
+        string? photo = ReadParamString(GuestMemory.R32(param), TitleBytes);
+        string? game = ReadParamString(GuestMemory.R32(param + 4), TitleBytes);
+        string? comment = ReadParamString(GuestMemory.R32(param + 8), CommentBytes);
+        if (photo == null || game == null || comment == null)
+        {
+            return ERR_INVALID_ARGUMENT;
+        }
+
+        lock (_lock)
+        {
+            PhotoTitle = photo;
+            GameTitle = game;
+            GameComment = comment;
+            ParamFlag = persistent;
+        }
+
+        Log.Debug($"sceScreenShotSetParam(photo='{photo}', game='{game}', comment='{comment}', flag={(persistent ? 1 : 0)})");
         return 0;
     }
 
-    /// <summary>Inferred counterpart of SetParam: copies the stored strings into the caller's buffers (UTF-32, NUL
-    /// terminated, 256/256/512 bytes); an undefined field becomes an empty string.</summary>
-    [Hle]
-    int sceScreenShotGetParam(uint param)
+    /// <summary>A SetParam string: empty for a NULL pointer, null when it does not end within <paramref name="limit"/> - 1
+    /// bytes (the module's sceClibStrnlen(s, limit) &gt; limit - 1 check).</summary>
+    static string? ReadParamString(uint address, int limit)
     {
-        if (param == 0) return ERR_INVALID_ARGUMENT;
-        string? photo, game, comment;
-        lock (_lock) { photo = PhotoTitle; game = GameTitle; comment = GameComment; }
-        if (GuestMemory.R32(param) is var p and not 0) WriteUtf32(p, photo, MaxTitleLen - 1);
-        if (GuestMemory.R32(param + 4) is var g and not 0) WriteUtf32(g, game, MaxTitleLen - 1);
-        if (GuestMemory.R32(param + 8) is var c and not 0) WriteUtf32(c, comment, MaxCommentLen - 1);
-        return 0;
+        if (address == 0)
+        {
+            return "";
+        }
+
+        ReadOnlySpan<byte> bytes = GuestMemory.ReadSpan(address, limit);
+        int length = bytes.IndexOf((byte)0);
+        if (length < 0)
+        {
+            return null;
+        }
+
+        return Encoding.UTF8.GetString(bytes[..length]);
+    }
+
+    /// <summary>Bytes of the photo and game title fields and of the comment field (SceScreenShotParam strings and the
+    /// sceScreenShotGetParam record).</summary>
+    const int TitleBytes = 0x100, CommentBytes = 0x200;
+
+    /// <summary>sceScreenShotGetParam(const char *path, SceScreenShotParamInfo *info): the metadata of a photo file, as
+    /// libSceScreenShot 3.74 reads it (<see cref="ScreenShotFile.ReadParam"/>): +0 the photo title (the file name without
+    /// its extension), +0x100 the game title and +0x200 the comment (the maker note of the JPEG's Exif data), +0x400 the
+    /// capture date (DateTimeOriginal: year, month, day, hour, minute, second as 16-bit words, then a zero word).</summary>
+    [Hle]
+    int sceScreenShotGetParam(uint pathPtr, uint info)
+    {
+        if (info == 0)
+        {
+            // the module clears the record before anything else: a NULL record is a fault on the console
+            return ERR_INVALID_ARGUMENT;
+        }
+
+        string path = pathPtr == 0 ? "" : GuestMemory.ReadCString(pathPtr, 0x400);
+        string? host = path.Length == 0 ? null : Emu.Vfs.Resolve(path);
+        Stream? file = null;
+        try
+        {
+            if (host != null && File.Exists(host))
+            {
+                file = File.OpenRead(host);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            file = null;
+        }
+
+        if (file == null)
+        {
+            return ERR_FILE_NOT_FOUND;
+        }
+
+        using (file)
+        {
+            byte[] record = new byte[ScreenShotFile.ParamInfoSize];
+            int result = ScreenShotFile.ReadParam(file, GuestMemory.ReadSpan(pathPtr, Encoding.UTF8.GetByteCount(path)), record, out bool dated);
+            // the module clears the three strings first and writes each field as the parse reaches it
+            record.AsSpan(0, ScreenShotFile.StringsSize).CopyTo(GuestMemory.Span(info, ScreenShotFile.StringsSize));
+            if (dated)
+            {
+                int dateSize = ScreenShotFile.ParamInfoSize - ScreenShotFile.StringsSize;
+                record.AsSpan(ScreenShotFile.StringsSize, dateSize).CopyTo(GuestMemory.Span(info + ScreenShotFile.StringsSize, dateSize));
+            }
+
+            return result;
+        }
     }
 
     /// <summary>Registers the watermark drawn over captures (normally a PNG in app0:); a null path removes it.</summary>

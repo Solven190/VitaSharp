@@ -10,7 +10,7 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#9ed864"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#64d864"/>
 <text x="952" y="27" font-size="11" fill="#59636e">100%</text>
-<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 96.7% implemented (18,766/19,406)</text>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 96.7% implemented (18,767/19,406)</text>
 <g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="290.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#1f2328">PafWidget</text><text x="11" y="95" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="354.9" width="227.9" height="131.8" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="369.9" font-size="13" fill="#1f2328">PafMisc</text><text x="11" y="385.9" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePsp2Compat: 1047/1047 (100%)</title><rect x="8" y="486.7" width="227.9" height="128.4" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="501.7" font-size="13" fill="#1f2328">Psp2Compat</text><text x="11" y="517.7" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
@@ -198,7 +198,7 @@
 <g><title>SceShellSvc: 10/10 (100%)</title><rect x="870.8" y="582" width="16" height="17.4" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceGriefReportDialog: 9/9 (100%)</title><rect x="870.8" y="599.4" width="16" height="15.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceJpegEncArm: 8/9 (88.8%)</title><rect x="886.9" y="495" width="16" height="15.7" fill="#7ed864" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceScreenShot: 8/9 (88.8%)</title><rect x="902.9" y="495" width="16" height="15.7" fill="#7ed864" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceScreenShot: 9/9 (100%)</title><rect x="902.9" y="495" width="16" height="15.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceUsbAudioIn: 9/9 (100%), 9 default</title><rect x="918.9" y="495" width="16" height="15.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceG729: 8/8 (100%)</title><rect x="935" y="495" width="14.3" height="15.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceNearProfile: 8/8 (100%)</title><rect x="949.2" y="495" width="14.3" height="15.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
