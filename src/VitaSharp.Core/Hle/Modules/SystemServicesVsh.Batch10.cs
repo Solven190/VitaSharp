@@ -164,8 +164,6 @@ public sealed partial class SystemServicesVsh
     // ------------------------------------------------------------------ SceDipsw (sysmem): the debug switches
     [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     readonly uint[] _dipsw = new uint[4];
-    [Hle] int sceKernelSetDipsw(uint bit) { if (bit < 128) _dipsw[bit >> 5] |= 1u << (int)(bit & 31); return 0; }
-    [Hle] int sceKernelClearDipsw(uint bit) { if (bit < 128) _dipsw[bit >> 5] &= ~(1u << (int)(bit & 31)); return 0; }
 
     // ------------------------------------------------------------------ SceRegMgrService
     static readonly string[] RegionCodes = ["J1", "UC2", "AU3", "CEK", "CEL", "KR2", "E12", "TW1", "RU3", "MX2", "TOL", "BR2", "CN9"];

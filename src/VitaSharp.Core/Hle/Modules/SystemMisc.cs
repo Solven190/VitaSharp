@@ -895,5 +895,4 @@ public sealed partial class SystemMisc : HleModule
         GuestMemory.W32(data, size);
         return 0;
     }
-    [Hle] int sceKernelCheckDipsw(int bit) => 0;
 }

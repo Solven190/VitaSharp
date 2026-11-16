@@ -164,8 +164,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 1,081 | 1,019 | 62 | 3,918 | 27.5% |
-| Imported | 518 | - | - | 2,062 | 25.1% |
+| All | 1,093 | 1,025 | 68 | 3,918 | 27.8% |
+| Imported | 526 | - | - | 2,062 | 25.5% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -177,23 +177,23 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceBacktraceForDriver | 1 / 3 | 33.3% | - | - |
 | SceBbmcForDriver | 0 / 63 | 0% | - | 0 / 14 |
 | SceBtForDriver | 52 / 54 | 96.2% | 45 | 16 / 17 |
-| SceBusErrorForKernel | 0 / 1 | 0% | - | - |
+| SceBusErrorForKernel | 1 / 1 | 100% | 1 | - |
 | SceCameraForDriver | 0 / 25 | 0% | - | 0 / 2 |
 | SceCdramForDriver | 0 / 3 | 0% | - | - |
 | SceClockgenForDriver | 0 / 14 | 0% | - | 0 / 8 |
-| SceCodecEngineWrapperForDebugger | 0 / 1 | 0% | - | - |
+| SceCodecEngineWrapperForDebugger | 1 / 1 | 100% | 1 | - |
 | SceCodecEngineWrapperForDriver | 0 / 50 | 0% | - | 0 / 47 |
 | SceCodecForDriver | 0 / 9 | 0% | - | 0 / 7 |
-| SceCompatForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceCompatForDriver | 1 / 1 | 100% | - | 1 / 1 |
 | SceCoredumpForDriver | 0 / 21 | 0% | - | 0 / 19 |
-| SceCpuForDriver | 103 / 104 | 99% | - | 34 / 35 |
+| SceCpuForDriver | 104 / 104 | 100% | - | 35 / 35 |
 | SceCpuForKernel | 39 / 39 | 100% | - | 6 / 6 |
 | SceCsiForDriver | 0 / 6 | 0% | - | 0 / 6 |
 | SceCtrlForDriver | 11 / 40 | 27.5% | - | 2 / 23 |
 | SceDebugForDriver | 13 / 16 | 81.2% | - | 6 / 8 |
 | SceDebugForKernel | 7 / 17 | 41.1% | - | 2 / 6 |
 | SceDebugLedForDriver | 4 / 9 | 44.4% | - | 2 / 3 |
-| SceDipswForDriver | 3 / 4 | 75% | - | 1 / 2 |
+| SceDipswForDriver | 4 / 4 | 100% | - | 2 / 2 |
 | SceDisplayForDriver | 18 / 53 | 33.9% | - | 8 / 27 |
 | SceDmacmgrForDriver | 2 / 15 | 13.3% | - | 1 / 11 |
 | SceDsiForDriver | 0 / 15 | 0% | - | 0 / 10 |
@@ -204,7 +204,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGpuEs4ForDriver | 0 / 31 | 0% | - | 0 / 28 |
 | SceGrabForDriver | 0 / 8 | 0% | - | 0 / 5 |
 | SceHdmiForDriver | 0 / 25 | 0% | - | 0 / 19 |
-| SceHidForDriver | 28 / 30 | 93.3% | - | 0 / 1 |
+| SceHidForDriver | 30 / 30 | 100% | 1 | 1 / 1 |
 | SceHpremoteForDriver | 0 / 11 | 0% | - | 0 / 6 |
 | SceI2cForDriver | 0 / 8 | 0% | - | 0 / 3 |
 | SceIdStorageForDriver | 0 / 17 | 0% | - | 0 / 16 |
@@ -215,7 +215,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceKernelSuspendForDriver | 4 / 28 | 14.2% | - | 4 / 13 |
 | SceKernelUtilsForDriver | 1 / 57 | 1.7% | - | 0 / 33 |
 | SceLcdForDriver | 0 / 23 | 0% | - | 0 / 13 |
-| SceLedForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceLedForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceMagicGateForDriver | 0 / 48 | 0% | - | 0 / 37 |
 | SceModulemgrForDriver | 9 / 15 | 60% | - | 9 / 13 |
 | SceModulemgrForKernel | 5 / 48 | 10.4% | - | 1 / 24 |
@@ -228,7 +228,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | ScePervasiveForDriver | 121 / 156 | 77.5% | 5 | 77 / 88 |
 | ScePfsFacadeForKernel | 0 / 6 | 0% | - | 0 / 6 |
 | ScePfsMgrForKernel | 0 / 14 | 0% | - | 0 / 11 |
-| ScePmMgrForDriver | 0 / 2 | 0% | - | 0 / 1 |
+| ScePmMgrForDriver | 2 / 2 | 100% | - | 1 / 1 |
 | ScePowerForDriver | 36 / 109 | 33% | - | 16 / 52 |
 | SceProcEventForDriver | 3 / 3 | 100% | - | 3 / 3 |
 | SceProcessmgrForDriver | 10 / 46 | 21.7% | - | 7 / 32 |
@@ -248,11 +248,11 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSblAuthMgrForKernel | 0 / 9 | 0% | - | 0 / 7 |
 | SceSblFwLoaderForDriver | 0 / 3 | 0% | - | 0 / 3 |
 | SceSblGcAuthMgrDrmBBForDriver | 0 / 20 | 0% | - | 0 / 7 |
-| SceSblGcAuthMgrGcAuthForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceSblGcAuthMgrGcAuthForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceSblGcAuthMgrMlnpsnlForDriver | 0 / 2 | 0% | - | 0 / 2 |
 | SceSblGcAuthMgrMsSaveBBForDriver | 0 / 6 | 0% | - | 0 / 6 |
 | SceSblGcAuthMgrPkgForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
-| SceSblGcAuthMgrPsmactForDriver | 0 / 1 | 0% | - | 0 / 1 |
+| SceSblGcAuthMgrPsmactForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceSblGcAuthMgrSclkForDriver | 0 / 2 | 0% | - | - |
 | SceSblMgKeyMgrForDriver | 0 / 14 | 0% | - | 0 / 2 |
 | SceSblPostSsMgrForDriver | 5 / 44 | 11.3% | 5 | 0 / 25 |

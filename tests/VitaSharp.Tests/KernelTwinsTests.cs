@@ -116,7 +116,8 @@ public sealed class KernelTwinsTests(GuestMemoryFixture fixture) : IDisposable
             }
         }
 
-        Assert.True(count >= 400, $"only {count} twins");
+        // 399 since the SceDipswForDriver entries read the switches without the syscalls' checks (KernelSmallLibraries)
+        Assert.True(count >= 399, $"only {count} twins");
         Assert.True(wrong.Count == 0, string.Join("\n", wrong));
     }
 
@@ -131,7 +132,6 @@ public sealed class KernelTwinsTests(GuestMemoryFixture fixture) : IDisposable
         ("ksceBtGetConfiguration", b => [b]),
         ("ksceKernelCpuAtomicAddAndGet32", b => [b, 5]),
         ("ksceCtrlGetSamplingMode", b => [b]),
-        ("ksceKernelCheckDipsw", _ => [0x10]),
         ("ksceDisplayGetMaximumFrameBufResolution", b => [b, b + 4]),
         ("ksceDmacMemset", b => [b, 0x5A, 0x10]),
         ("ksceHidKeyboardGetIntercept", b => [b]),

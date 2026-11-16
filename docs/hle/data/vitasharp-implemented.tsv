@@ -873,6 +873,7 @@
 0xCAE5A9F3	ksceBtStopAudio	KernelTwins	SceBtForDriver	-	default
 0x6A1D9598	ksceBtStopInquiry	KernelTwins	SceBtForDriver	-	default
 0xBF72E1BE	ksceBtUnregisterCallback	KernelTwins	SceBtForDriver	-	default
+0xEBB1F135	SceBusErrorForKernel_EBB1F135	SystemServicesVsh	SceBusErrorForKernel	-	default
 0x99B5FB62	NID_99B5FB62	Camera	SceCamera	-
 0xCD6E1CFC	sceCameraClose	Camera	SceCamera	vh
 0x9FDACB99	sceCameraGetAntiFlicker	Camera	SceCamera	vh
@@ -947,6 +948,7 @@
 0x04D5F36B	_sceCodecEnginePmonStop	CodecEngine	SceCodecEngineWrapper	vh
 0x8EFF2DAA	_sceCodecEngineResetNumRpcCalled	CodecEngine	SceCodecEngineWrapper	vh
 0xDE5EF6CC	_sceCodecEngineSetClockFrequency	CodecEngine	SceCodecEngineWrapper	vh
+0x771190E7	SceCodecEngineWrapperForDebugger_771190E7	SystemServicesVsh	SceCodecEngineWrapperForDebugger	-	default
 0x075E4490	NID_075E4490	CommonDialog	SceCommonDialog	-
 0x243D6A36	NID_243D6A36	CommonDialog	SceCommonDialog	-
 0x3D3F9AD6	NID_3D3F9AD6	CommonDialog	SceCommonDialog	-
@@ -1117,6 +1119,7 @@
 0x714F7ED6	sceCompatWaitSpecialRequest	Compat	SceCompat	vh
 0x1CD51530	sceCompatWriteShared32	Compat	SceCompat	vh
 0x2306FFED	sceCompatWriteSharedCtrl	Compat	SceCompat	vh
+0x6EBD9E01	SceCompatForDriver_6EBD9E01	Compat	SceCompatForDriver	-
 0x4915DEE7	SceCompatForVsh_4915DEE7	Compat	SceCompatForVsh	-
 0x70997F92	SceCompatForVsh_70997F92	Compat	SceCompatForVsh	-	default
 0x9C107CC9	SceCompatForVsh_9C107CC9	Compat	SceCompatForVsh	-
@@ -1213,6 +1216,7 @@
 0x9CB9F0CE	ksceKernelDcacheCleanRangeForL1WBWA	SysmemKernel	SceCpuForDriver	-
 0x02796361	ksceKernelDcacheInvalidateRange	SysmemKernel	SceCpuForDriver	-
 0x8B4C26DF	ksceKernelDcacheInvalidateRangeForL1WBWA	SysmemKernel	SceCpuForDriver	-
+0x337CBDF3	ksceKernelIsUncacheAddressInTmpFsGame	SysmemKernel	SceCpuForDriver	-
 0xCAC9AE80	ksceKernelRWSpinlockLowReadLock	SysmemKernel	SceCpuForDriver	-
 0xEC53D007	ksceKernelRWSpinlockLowReadLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
 0xF5FD5676	ksceKernelRWSpinlockLowReadUnlock	SysmemKernel	SceCpuForDriver	-
@@ -1396,12 +1400,13 @@
 0x971E1C66	sceKernelDeci4pRead	DebugPerf	SceDeci4pUserp	vh
 0x73371F35	sceKernelDeci4pRegisterCallback	DebugPerf	SceDeci4pUserp	vh
 0xCDA3AAAC	sceKernelDeci4pWrite	DebugPerf	SceDeci4pUserp	vh
-0x1C783FB2	sceKernelCheckDipsw	SystemMisc	SceDipsw	vh
+0x1C783FB2	sceKernelCheckDipsw	SystemServicesVsh	SceDipsw	vh
 0x800EDCC1	sceKernelClearDipsw	SystemServicesVsh	SceDipsw	vh
 0x817053D4	sceKernelSetDipsw	SystemServicesVsh	SceDipsw	vh
-0xA98FC2FD	ksceKernelCheckDipsw	KernelTwins	SceDipswForDriver	-
-0xF1F3E9FE	ksceKernelClearDipsw	KernelTwins	SceDipswForDriver	-
-0x82E45FBF	ksceKernelSetDipsw	KernelTwins	SceDipswForDriver	-
+0xA98FC2FD	ksceKernelCheckDipsw	SystemServicesVsh	SceDipswForDriver	-
+0xF1F3E9FE	ksceKernelClearDipsw	SystemServicesVsh	SceDipswForDriver	-
+0xB2AD48BE	ksceKernelGetDipswInfo	SystemServicesVsh	SceDipswForDriver	-
+0x82E45FBF	ksceKernelSetDipsw	SystemServicesVsh	SceDipswForDriver	-
 0xA753B0CA	_sceDisplayGetFrameBuf	Display	SceDisplay	vh
 0x86A8E436	_sceDisplayGetFrameBufInternal	Display	SceDisplay	vh
 0x2EBFC7CB	_sceDisplayGetMaximumFrameBufResolution	Display	SceDisplay	vh
@@ -2170,6 +2175,8 @@
 0x90C5CB0A	sceHidMouseRegisterReadHintCallback	SystemServicesVsh	SceHid	vh
 0x3E005E5B	sceHidMouseUnregisterEnumHintCallback	SystemServicesVsh	SceHid	vh
 0xAC591B15	sceHidMouseUnregisterReadHintCallback	SystemServicesVsh	SceHid	vh
+0x0B7D27CF	SceHidForDriver_0B7D27CF	Hid	SceHidForDriver	-	default
+0xEB323EC6	SceHidForDriver_EB323EC6	Hid	SceHidForDriver	-
 0xA60E34F7	ksceHidConsumerControlEnumerate	KernelTwins	SceHidForDriver	-
 0x88F3ECF1	ksceHidConsumerControlRead	KernelTwins	SceHidForDriver	-
 0x7F444D9C	ksceHidConsumerControlRegisterEnumHintCallback	KernelTwins	SceHidForDriver	-
@@ -2482,6 +2489,7 @@
 0xD4622EA8	ksceKernelSysEventDispatch	SysmemKernel	SceKernelSuspendForDriver	-
 0xDD61D621	ksceKernelUnregisterSysEventHandler	SysmemKernel	SceKernelSuspendForDriver	-
 0x900148DB	ksceZlibDecompress	KernelTwins	SceKernelUtilsForDriver	-
+0xEA24BE03	ksceLedSetMode	SystemServicesVsh	SceLedForDriver	-	default
 0x29C2EB11	NID_29C2EB11	ProcessMgr	SceLibGcc	-
 0x6214B80C	NID_6214B80C	ProcessMgr	SceLibGcc	-
 0x83A4F46F	NID_83A4F46F	ProcessMgr	SceLibGcc	-
@@ -8389,6 +8397,8 @@
 0x84FD9FC5	scePhotoExportFromFile	MediaExport	ScePhotoExport	vh
 0xE6E6AFD5	scePhotoExportIsAvailableFromData	MediaExport	ScePhotoExport	vh
 0x5655F971	scePhotoExportIsAvailableFromFile	MediaExport	ScePhotoExport	vh
+0x2AC815A2	kscePmMgrGetProductMode	SysmemKernel	ScePmMgrForDriver	-
+0xBD1F193B	kscePmMgrIsExternalBootMode	SysmemKernel	ScePmMgrForDriver	-
 0x9901869A	NID_9901869A	FirmwareConstants	ScePngPromoter	-
 0xD09FBCAC	NID_D09FBCAC	FirmwareConstants	ScePngPromoter	-
 0x27F3292C	scePowerBatteryUpdateInfo	SystemMisc	ScePower	vh
@@ -9008,7 +9018,9 @@
 0x2B604356	_sceSblGcAuthMgrPsmactVerifyR1	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0x8A3AF1E8	_sceSblGcAuthMgrSclkGetData1	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0x837D0FB6	_sceSblGcAuthMgrSclkSetData2	SystemServicesVsh	SceSblGcAuthMgr	vh	default
+0x68781760	ksceSblGcAuthMgrGcAuthCartAuthentication	SystemServicesVsh	SceSblGcAuthMgrGcAuthForDriver	-	default
 0xE459A9A8	ksceSblGcAuthMgrPkgVry	KernelTwins	SceSblGcAuthMgrPkgForDriver	-	default
+0x39222A58	SceSblGcAuthMgrPsmactForDriver_39222A58	SystemServicesVsh	SceSblGcAuthMgrPsmactForDriver	-	default
 0xEB21DD39	sceSblLicMgrActivateDevkit	SystemServicesVsh	SceSblLicMgr	vh	default
 0x6E56EA0A	sceSblLicMgrActivateFromFs	SystemServicesVsh	SceSblLicMgr	vh	default
 0x9B749D1D	sceSblLicMgrClearActivationData	SystemServicesVsh	SceSblLicMgr	vh	default
