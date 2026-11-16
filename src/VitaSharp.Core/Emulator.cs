@@ -365,6 +365,7 @@ public sealed class Emulator : IDisposable
         if (Parent != null)
         {
             _exitStatus = status;
+            _exiting = true;
             Terminate($"exited (0x{status:X})");
             return;
         }
@@ -382,6 +383,7 @@ public sealed class Emulator : IDisposable
 
         LastProcessExitStatus = status;
         Log.Info($"Process exited (0x{status:X}): it was the last process, the session ends");
+        TellProcessEnd(ProcessEvents.Exit);
         Stop();
         ProcessExited?.Invoke(status);
     }
@@ -553,6 +555,103 @@ public sealed class Emulator : IDisposable
     private int _terminated, _exitStatus;
     private bool _background, _endedInFront;
 
+    /// <summary>The process ends by itself (sceKernelExitProcess): the handlers hear exit, not kill.</summary>
+    private bool _exiting;
+
+    /// <summary>The kernel's process event handlers were told the process was created (once per process: a LoadExec
+    /// keeps the process).</summary>
+    private bool _toldCreated;
+
+    /// <summary>
+    /// The create event (<see cref="ProcessEvents"/>): processmgr invokes it once the process's main thread exists,
+    /// before the process starts. A handler that fails refuses the process: the handlers called before it hear that it
+    /// exits, and the process does not start (<see cref="ProcessLoadException"/> with the handler's error).
+    /// </summary>
+    private void TellProcessCreated(GuestThread main)
+    {
+        if (_toldCreated || IsKernelProcess)
+        {
+            return;
+        }
+
+        int result = InvokeProcessEvent(ProcessEvents.Create, stopAtFailure: true, stopAt: 0, out int refusedBy);
+        if (refusedBy != 0)
+        {
+            InvokeProcessEvent(ProcessEvents.Exit, stopAtFailure: false, stopAt: refusedBy, out _);
+            Kernel.DeleteThread(main);
+            Log.Warn($"{Describe()}: process event handler 0x{refusedBy:X} refused the process (0x{result:X8})");
+            throw new ProcessLoadException(result, new InvalidOperationException($"a kernel process event handler refused the process (0x{result:X8})"));
+        }
+
+        _toldCreated = true;
+    }
+
+    /// <summary>The exit or kill event, for a process the handlers were told was created.</summary>
+    private void TellProcessEnd(int eventId)
+    {
+        if (!_toldCreated)
+        {
+            return;
+        }
+
+        _toldCreated = false;
+        InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _);
+    }
+
+    /// <summary>
+    /// Calls the kernel's process event handlers about this process (<see cref="ProcessEvents.Run"/>), on a kernel
+    /// thread of the kernel process, with the parameter block processmgr passes: its size word (0x14 for create, 0x10
+    /// otherwise), then fields whose meaning is not known (0 here). Returns what the last handler returned.
+    /// </summary>
+    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid)
+    {
+        failedUid = 0;
+        List<KernelData> handlers = ProcessEvents.Handlers(Vita.Objects);
+        if (handlers.Count == 0)
+        {
+            return 0;
+        }
+
+        Emulator kernel = KernelHost;
+        uint param;
+        using (ProcessScope.Enter(KernelSpace.KernelPid))
+        {
+            param = Memory.Alloc(0x20, "procevent:param", MemoryRegion.Kernel);
+        }
+
+        GuestMemory.Fill(param, 0, 0x20);
+        GuestMemory.W32(param, eventId == ProcessEvents.Create ? ProcessEvents.CreateParamSize : ProcessEvents.ParamSize);
+        int result = 0, failed = 0;
+        using (ProcessScope.Enter(kernel))
+        {
+            GuestThread thread = kernel.Kernel.CreateThread("SceProcessEvent", 0, 0x40, 0x4000, 0, 0x70000);
+            thread.KernelMode = true;
+            thread.HostBody = self =>
+            {
+                result = ProcessEvents.Run(self, handlers, Pid, eventId, 0, param, stopAtFailure, stopAt, out failed);
+            };
+            thread.Start(0, 0);
+            bool finished;
+            using (VitaSharp.Core.Kernel.Scheduler.Block())
+            {
+                finished = thread.WaitForExit(30_000);
+            }
+
+            if (finished)
+            {
+                kernel.Kernel.DeleteThread(thread);
+            }
+            else
+            {
+                Log.Warn($"{Describe()}: the process event handlers (event {eventId}) did not return in time");
+            }
+        }
+
+        Memory.Free(param);
+        failedUid = failed;
+        return result;
+    }
+
     /// <summary>The process's executable loaded and the system was told about it (a process whose load failed never was).</summary>
     private bool _announced;
 
@@ -576,6 +675,8 @@ public sealed class Emulator : IDisposable
         }
 
         Log.Info($"Process {Describe()} {why}");
+        // processmgr tells the kernel's process event handlers before the process's threads go
+        TellProcessEnd(_exiting ? ProcessEvents.Exit : ProcessEvents.Kill);
         Running = false;
         Vita.Power.Callbacks.RemoveProcess(this);
         // the screen goes back to the parent (the shell) at once, not after the threads are gone (that can take seconds)
@@ -1832,6 +1933,7 @@ public sealed class Emulator : IDisposable
 
         GuestThread main = Kernel.CreateThread(name, MainModule.StartEntry, priority, stackSize, 0, affinity);
         Kernel.MainThread = main;
+        TellProcessCreated(main);
 
         // Library module_start functions run (in load order) before the main thread.
         // (firmware dependencies of a system program first, each after the modules it imports from)

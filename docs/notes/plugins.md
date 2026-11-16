@@ -58,6 +58,10 @@ modules of a section load in file order, and one that fails does not stop the ot
   the first game when no shell runs), as the plugin loader loads them at boot on the Vita. Every process sees them: the
   shell, an application the shell opens next to it, the program a LoadExec starts. They stay until the system ends; a
   kernel module a program loads (the kernel module manager) is the kernel's too and outlives that program.
+- Kernel code's process event handlers (`ksceKernelRegisterProcEventHandler`) are called as the firmware's process
+  manager calls them, in registration order: create when a process's main thread exists and before it starts (a create
+  handler that fails refuses the process, and the handlers called before it get exit), exit when a process ends by
+  itself, kill when it is ended (closed by the shell, a crash). Stop, start and switch events are not sent yet.
 - `*ALL` and `*TITLEID` modules load into every program's process, the system's own too (the plugin loader loads them after
   the process's preloaded modules), and start before its main thread. The
   section is the process's kernel title ID: `main` for the shell, the NPXS ID for a system application.

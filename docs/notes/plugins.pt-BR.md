@@ -63,6 +63,11 @@ os outros.
   processo os vê: o shell, um app que o shell abre ao lado dele, o programa que um LoadExec inicia. Ficam até o sistema
   terminar; um módulo de kernel que um programa carrega (o gerenciador de módulos do kernel) também é do kernel e
   continua depois do programa.
+- Os handlers de eventos de processo do código de kernel (`ksceKernelRegisterProcEventHandler`) são chamados como o
+  gerenciador de processos do firmware chama, na ordem de registro: create quando a thread principal do processo existe
+  e antes de ele iniciar (um create que falha recusa o processo, e os handlers chamados antes dele recebem exit), exit
+  quando o processo termina sozinho, kill quando é encerrado (fechado pelo shell, uma queda). Os eventos stop, start e
+  switch ainda não são enviados.
 - Os módulos de `*ALL` e `*TITLEID` são carregados no processo de todo programa, também nos do próprio sistema (o carregador
   de plugins os carrega depois dos módulos pré-carregados do processo), e iniciam
   antes da thread principal. A seção é o ID de título do processo no kernel: `main` para o shell, o NPXS de um app do

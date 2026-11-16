@@ -2192,9 +2192,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
       `ksceKernelLoadModule` de qualquer processo, os módulos de kernel do firmware), com a lista de módulos, o linker
       (as importações de todo processo veem as exportações de syscall dele; um módulo carregado ou descarregado depois
       religa as importações de todos), as threads de kernel e a memória de kernel, que um LoadExec não libera; o
-      paliativo do LoadExec (recarregar os plugins) saiu. Teste: `KernelSharedProcessTests`.
-    - [ ] eventos de processo (create/exit/kill/stop/start/switch) aos handlers de `ksceKernelRegisterProcEventHandler`
-      e save states com threads do processo do kernel vivas.
+      paliativo do LoadExec (recarregar os plugins) saiu. Eventos de processo como o processmgr do FW 3.74: create
+      (depois da thread principal, antes de iniciar; um create que falha recusa o processo e os anteriores recebem
+      exit), exit e kill, na ordem de registro; `ksceKernelInvokeProcEventHandler` implementado. Testes:
+      `KernelSharedProcessTests`, `KernelProcessEventTests`.
+    - [ ] eventos stop/start/switch de processo (suspensão e troca de primeiro plano) e save states com threads do
+      processo do kernel vivas.
     - **[ ] aberto (exportações de kernel genéricas):** quando o kubridge.skprx real roda (hoje não roda: precisa do
       taiHEN), ele atende `kuKernelMemProtect`/`kuKernelMemReserve`/`kuKernelMemCommit`/`kuKernelMemDecommit` pulando para
       ponteiros internos do SceSysmem 3.60/3.65 que ele acha por deslocamento (`module_get_offset` no SceSysmem) e que não
