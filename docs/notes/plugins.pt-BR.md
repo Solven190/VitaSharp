@@ -102,8 +102,6 @@ importações que ninguém fornece. Os hooks de função são o próximo passo.
 
 ## Limites
 
-- Save states não guardam as threads do próprio processo do kernel: não dá para salvar um estado enquanto roda uma
-  thread criada por um módulo de kernel (as threads em que o module_start roda somem quando ele retorna).
 - Um plugin que corrige por deslocamento o código do próprio firmware não acha código do firmware ali (o VitaSharp
   implementa ele mesmo as bibliotecas do firmware).
 - Exceções não são entregues a handlers de kernel (a CPU emulada relata uma falha do guest como queda); o mascaramento

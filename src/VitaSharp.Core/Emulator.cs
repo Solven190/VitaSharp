@@ -288,6 +288,15 @@ public sealed class Emulator : IDisposable
         }
     }
 
+    /// <summary>Deletes a finished thread the kernel made for itself (module_start, process events) and gives back its
+    /// stack and TLS.</summary>
+    internal void DeleteFinishedKernelThread(GuestThread thread)
+    {
+        Kernel.DeleteThread(thread);
+        Memory.Free(thread.StackAddr);
+        Memory.Free(thread.TlsBase);
+    }
+
     /// <summary>The kernel that holds the kernel modules: the system's kernel process (created now when needed).</summary>
     internal Emulator KernelHost => IsKernelProcess ? this : Vita.KernelProcessFor(this);
 
@@ -667,7 +676,7 @@ public sealed class Emulator : IDisposable
 
             if (finished)
             {
-                kernel.Kernel.DeleteThread(thread);
+                kernel.DeleteFinishedKernelThread(thread);
             }
             else
             {
@@ -1619,7 +1628,7 @@ public sealed class Emulator : IDisposable
         }
 
         // the module manager deletes the thread it ran module_start on
-        Kernel.DeleteThread(t);
+        DeleteFinishedKernelThread(t);
         return t.ExitStatus;
     }
 

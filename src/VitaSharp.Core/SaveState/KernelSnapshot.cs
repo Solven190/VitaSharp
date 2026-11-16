@@ -56,11 +56,10 @@ internal static class KernelSnapshot
             switch (kernelObject)
             {
                 case GuestThread t:
-                    if (t.Process != emu)
+                    // the kernel process's threads are part of the state too (its record owner is the kernel's pid)
+                    if (t.Process != emu && !(t.Process.IsKernelProcess && ReferenceEquals(t.Process.Vita, emu.Vita)))
                     {
-                        throw new SnapshotException(t.Process.IsKernelProcess
-                            ? $"the kernel thread {t.Name} (a kernel plugin's) is running; save states do not hold the kernel's threads yet"
-                            : $"thread {t.Name} belongs to another process");
+                        throw new SnapshotException($"thread {t.Name} belongs to another process");
                     }
 
                     t.WriteSnapshot(w, kinds.TryGetValue(t, out GuestThread.SafeKind k) ? k : GuestThread.SafeKind.Dormant);
@@ -154,7 +153,9 @@ internal static class KernelSnapshot
             {
                 case Thread:
                 {
-                    var t = GuestThread.ReadSnapshot(emu, b, out GuestThread.SafeKind k, out int cm, out int cc);
+                    // a thread the kernel process owned goes back to it (states of builds before it have none)
+                    Emulator threadProcess = owner == KernelSpace.KernelPid && emu.Vita.KernelProcess is { } kernelOwner ? kernelOwner : emu;
+                    var t = GuestThread.ReadSnapshot(threadProcess, b, out GuestThread.SafeKind k, out int cm, out int cc);
                     if (k == GuestThread.SafeKind.HostBody)
                     {
                         // a module's service thread: the running session's own one carries on under the saved UID

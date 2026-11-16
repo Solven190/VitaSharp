@@ -139,6 +139,9 @@ public sealed unsafe partial class GuestThread
         w.Write(cond?.Mutex.Uid ?? 0);
         w.Write(cond != null ? _condWaitCount : 0);
         WriteCpu(w, Core.State, kind == SafeKind.Reissue);
+        // appended after the registers, read only when present: a state of a build before it has none (its threads were
+        // all user threads), and a build before it ignores the rest of the record
+        w.Write(KernelMode);
     }
 
     internal static void WriteCpu(SnapshotWriter w, CpuState* s, bool reissue)
@@ -229,6 +232,7 @@ public sealed unsafe partial class GuestThread
         Core = new CpuCore(emu.Code, emu.Space.Base);
         Hle = new HleContext { Cpu = Core.State, Thread = this, Emu = emu };
         ReadCpu(r, Core.State);
+        KernelMode = !r.AtEnd && r.ReadBool();
         Status = kind is SafeKind.Dormant ? ThreadStatus.Dormant : ThreadStatus.Ready;
         _reissuesWait = kind == SafeKind.Reissue;
     }

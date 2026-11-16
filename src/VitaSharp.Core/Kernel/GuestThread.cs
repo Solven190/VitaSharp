@@ -130,11 +130,14 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
 
         StackSize = GuestMemory.AlignUp(Math.Max(stackSize, 0x4000u), 0x1000);
         using ProcessScope.Scope scope = ProcessScope.Enter(emu); // the stack and TLS belong to the thread's process
-        StackAddr = emu.Memory.Alloc(StackSize, $"stack:{name}");
+        // a thread of the kernel process has its stack and TLS in kernel memory, as the Vita's kernel threads do: the
+        // kernel process maps no user memory of its own (and a save state holds only the first process's space)
+        MemoryRegion region = emu.IsKernelProcess ? MemoryRegion.Kernel : MemoryRegion.User;
+        StackAddr = emu.Memory.Alloc(StackSize, $"stack:{name}", region);
         GuestMemory.Fill(StackAddr, 0xCC, StackSize);
 
         uint tlsSize = KernelTlsSize + emu.Kernel.TlsAreaSize;
-        TlsBase = emu.Memory.Alloc(Math.Max(tlsSize, 0x1000u), $"tls:{name}");
+        TlsBase = emu.Memory.Alloc(Math.Max(tlsSize, 0x1000u), $"tls:{name}", region);
     }
 
     /// <summary>

@@ -15,7 +15,8 @@ namespace VitaSharp.Core.SaveState;
 public static class SaveStates
 {
     private const string SysSection = "system", FunctionsSection = "hle.functions", ObjectsSection = "kernel.objects",
-        BlocksSection = "memory.blocks", MemPrefix = "mem:", WordPagesMemPrefix = "memw:", ModulePrefix = "hle:", LayoutsSection = "layouts";
+        BlocksSection = "memory.blocks", MemPrefix = "mem:", WordPagesMemPrefix = "memw:", ModulePrefix = "hle:", LayoutsSection = "layouts",
+        KernelModulePrefix = "kernel.hle:";
 
     /// <summary>Raised after a state was loaded (front-ends refresh what they show of the game).</summary>
     public static event Action<Emulator>? Loaded;
@@ -274,10 +275,17 @@ public static class SaveStates
         }
     }
 
+    /// <summary>The threads a state holds: the process's and the kernel process's (the system's one kernel, whose
+    /// threads the kernel modules made), when it exists.</summary>
+    internal static IEnumerable<GuestThread> SessionThreads(Emulator emu)
+    {
+        return emu.Vita.KernelProcess is { } kernelProcess ? emu.Kernel.Threads.Concat(kernelProcess.Kernel.Threads) : emu.Kernel.Threads;
+    }
+
     /// <summary>Holds every guest thread of <paramref name="emu"/> at its next safe point (module service threads run on).</summary>
     private static List<GuestThread> Hold(Emulator emu)
     {
-        var held = emu.Kernel.Threads.Where(t => t.HostBody == null).ToList();
+        var held = SessionThreads(emu).Where(t => t.HostBody == null).ToList();
         foreach (GuestThread? t in held)
         {
             t.HoldForSave(true);
@@ -290,9 +298,23 @@ public static class SaveStates
     private static void CheckModules(Emulator emu)
     {
         var problems = new List<string>();
+        CheckModules(emu, problems, "");
+        if (emu.Vita.KernelProcess is { } kernelProcess)
+        {
+            CheckModules(kernelProcess, problems, "kernel ");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new SnapshotException(string.Join("; ", problems));
+        }
+    }
+
+    private static void CheckModules(Emulator emu, List<string> problems, string prefix)
+    {
         foreach (HleModule hleModule in emu.Hle.Modules)
         {
-            string name = hleModule.GetType().Name;
+            string name = prefix + hleModule.GetType().Name;
             if (hleModule is ISnapshotState s)
             {
                 if (s.CheckSnapshot() is { } problem)
@@ -304,10 +326,6 @@ public static class SaveStates
             {
                 problems.Add($"module {name}: its state is not supported by save states yet");
             }
-        }
-        if (problems.Count > 0)
-        {
-            throw new SnapshotException(string.Join("; ", problems));
         }
     }
 
@@ -334,7 +352,7 @@ public static class SaveStates
             return $"thread '{scene.Name}' is finishing a GPU scene";
         }
 
-        foreach (GuestThread t in emu.Kernel.Threads)
+        foreach (GuestThread t in SessionThreads(emu))
         {
             if (t.SafePointProblem(out GuestThread.SafeKind k) is { } why)
             {
@@ -391,6 +409,25 @@ public static class SaveStates
             var mw = new SnapshotWriter { UsedLayouts = layouts };
             s.SaveState(mw);
             list.Add((ModulePrefix + name, mw.Data.ToArray()));
+        }
+
+        // the kernel process's modules (the HLE state its kernel threads made), in sections of their own
+        if (emu.Vita.KernelProcess is { } kernelProcess)
+        {
+            using Kernel.ProcessScope.Scope scope = Kernel.ProcessScope.Enter(kernelProcess);
+            var kernelUsed = new HashSet<string>();
+            foreach (HleModule hleModule in kernelProcess.Hle.Modules)
+            {
+                if (hleModule is not ISnapshotState s)
+                {
+                    continue;
+                }
+
+                string name = ModuleKey(hleModule, kernelUsed);
+                var mw = new SnapshotWriter { UsedLayouts = layouts };
+                s.SaveState(mw);
+                list.Add((KernelModulePrefix + name, mw.Data.ToArray()));
+            }
         }
 
         // first in the file: a slot list checks it without reading the rest
@@ -708,7 +745,7 @@ public static class SaveStates
             do
             {
                 busy = null;
-                foreach (GuestThread t in emu.Kernel.Threads)
+                foreach (GuestThread t in SessionThreads(emu))
                 {
                     if (t.HostBody != null && t.IsLive && t.SafePointProblem(out _) is { } p)
                     {
@@ -769,7 +806,7 @@ public static class SaveStates
     /// next stop check) instead of failing.</summary>
     private static void StopThreads(Emulator emu, bool tolerateStuck)
     {
-        var stopping = emu.Kernel.Threads.Where(t => t.HostBody == null && t.IsLive).ToList();
+        var stopping = SessionThreads(emu).Where(t => t.HostBody == null && t.IsLive).ToList();
         foreach (GuestThread? t in stopping)
         {
             t.RequestStop();
@@ -1090,7 +1127,50 @@ public static class SaveStates
                 throw new SnapshotException($"module {key}: {mr.Remaining} bytes of its state were not read (layout mismatch)");
             }
         }
+
+        LoadKernelModules(emu, sections, layouts, positional);
         Scheduler.Reset();
         return restored;
+    }
+
+    /// <summary>The kernel process's module states (a state of a build before it has none: the kernel process keeps
+    /// what it has).</summary>
+    private static void LoadKernelModules(Emulator emu, Dictionary<string, byte[]> sections, IReadOnlyDictionary<string, SnapshotLayout> layouts, bool positional)
+    {
+        if (emu.Vita.KernelProcess is not { } kernelProcess)
+        {
+            return;
+        }
+
+        using Kernel.ProcessScope.Scope scope = Kernel.ProcessScope.Enter(kernelProcess);
+        var used = new HashSet<string>();
+        foreach (HleModule hleModule in kernelProcess.Hle.Modules)
+        {
+            if (hleModule is not ISnapshotState s)
+            {
+                continue;
+            }
+
+            string key = ModuleKey(hleModule, used);
+            if (!sections.TryGetValue(KernelModulePrefix + key, out byte[]? data))
+            {
+                continue;
+            }
+
+            var mr = new SnapshotReader(data) { Objects = kernelProcess.Kernel.Objects, Layouts = layouts, Positional = positional };
+            try
+            {
+                s.LoadState(mr);
+            }
+            catch (SnapshotException e)
+            {
+                throw new SnapshotException($"kernel module {key}: {e.Message}");
+            }
+
+            if (!mr.AtEnd)
+            {
+                throw new SnapshotException($"kernel module {key}: {mr.Remaining} bytes of its state were not read (layout mismatch)");
+            }
+        }
     }
 }

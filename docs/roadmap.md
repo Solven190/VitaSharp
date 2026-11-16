@@ -2211,8 +2211,11 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     - [x] (16/11/2026, feat/kernel-proc-stopstart) eventos stop/start na suspensão/retomada do processo, com os tipos do
       processmgr do FW 3.74 (stop 0x200, 0x800, 0x1000; start 0x20000, 0x40000). Teste:
       `KernelProcessEventTests.AHandlerHearsAProcessStoppedAndStartedAgain`.
-    - [ ] eventos switch (ids 0x10/0x11 do processmgr, significado ainda não estudado) e save states com threads do
-      processo do kernel vivas.
+    - [x] (16/11/2026, feat/kernel-savestate) save states com threads vivas do processo do kernel: as threads dele
+      entram no estado (registro com o pid do kernel, voltam para o processo do kernel; o modo kernel da thread vai
+      junto, opcional no fim do registro) e os módulos HLE dele em seções `kernel.hle:`; estados antigos carregam como
+      antes. Teste: `SaveStateKernelThreadTests`.
+    - [ ] eventos switch (ids 0x10/0x11 do processmgr).
     - **[ ] aberto (exportações de kernel genéricas):** quando o kubridge.skprx real roda (hoje não roda: precisa do
       taiHEN), ele atende `kuKernelMemProtect`/`kuKernelMemReserve`/`kuKernelMemCommit`/`kuKernelMemDecommit` pulando para
       ponteiros internos do SceSysmem 3.60/3.65 que ele acha por deslocamento (`module_get_offset` no SceSysmem) e que não
