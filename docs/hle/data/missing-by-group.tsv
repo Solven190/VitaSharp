@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=1183 general=1626 vitasdk=0
+# firmware=3.74 games=0 system=1181 general=1617 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -30,8 +30,6 @@ system	SceCommonDialog	0xEFABDD6F	NID_EFABDD6F	vs0:sys/external/libcdlg.suprx	0	
 system	SceCommonDialog	0xF2F0049E	NID_F2F0049E	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libSceNearDialogUtil.suprx
 system	SceCommonDialog	0xFA26EB30	NID_FA26EB30	vs0:sys/external/libcdlg.suprx	0	1	vs0:app/NPXS10028/eboot.bin
 system	SceCommonDialog	0xFCDA2F0D	NID_FCDA2F0D	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libcdlg_twitter.suprx
-system	SceDrmBridge	0xB81B597A	NID_B81B597A	os0:kd/bootimage.skprx/SceVshBridge	0	1	os0:us/driver_us.suprx
-system	SceDrmBridgeUser	0x6F5DC6CD	NID_6F5DC6CD	os0:us/driver_us.suprx	0	3	vs0:sys/external/libmln.suprx
 system	SceEmailEngine	0x006B1246	NID_006B1246	vs0:app/NPXS10072/email_engine.suprx	0	1	vs0:app/NPXS10072/eboot.bin
 system	SceEmailEngine	0x03569354	NID_03569354	vs0:app/NPXS10072/email_engine.suprx	0	2	vs0:app/NPXS10072/eboot.bin
 system	SceEmailEngine	0x037D0470	NID_037D0470	vs0:app/NPXS10072/email_engine.suprx	0	2	vs0:app/NPXS10072/eboot.bin
@@ -2095,13 +2093,11 @@ general	SceSystemSettingsCore	0xF14DC96D	NID_F14DC96D	vs0:app/NPXS10015/system_s
 general	SceSystemSettingsCore	0xF27ADB10	NID_F27ADB10	vs0:app/NPXS10015/system_settings_core.suprx	0	0	-
 general	SceSystemSettingsCore	0xF554C5ED	NID_F554C5ED	vs0:app/NPXS10015/system_settings_core.suprx	0	0	-
 general	SceSystemSettingsCore	0xFFE80316	NID_FFE80316	vs0:app/NPXS10015/system_settings_core.suprx	0	0	-
-general	SceThreadmgr	0xD06F2886	ksceKernelLockMutexCB_089	os0:kd/threadmgr.skprx	0	0	-
 general	SceTiffPromoter	0x1C6EAD3F	NID_1C6EAD3F	vs0:vsh/common/mms/tiff_promoter.suprx	0	0	-
 general	SceTriggerUtil	0x1B615264	NID_1B615264	vs0:sys/external/trigger_util.suprx	0	0	-
 general	SceTriggerUtil	0x2AD6A378	NID_2AD6A378	vs0:sys/external/trigger_util.suprx	0	0	-
 general	SceTriggerUtil	0x845BF533	NID_845BF533	vs0:sys/external/trigger_util.suprx	0	0	-
 general	SceTriggerUtil	0x921FF8E1	NID_921FF8E1	vs0:sys/external/trigger_util.suprx	0	0	-
-general	SceUsbAudioIn	0x198A7C33	NID_198A7C33	os0:kd/bootimage.skprx/SceUsbAudio	0	0	-
 general	SceUsbDevSerial	0x4437FF2D	NID_4437FF2D	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0x57FBB08C	NID_57FBB08C	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0x6F2B3960	NID_6F2B3960	os0:kd/usbdev_serial.skprx	0	0	-
@@ -2110,13 +2106,6 @@ general	SceUsbDevSerial	0x9F497D4E	NID_9F497D4E	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xC0FDECAF	NID_C0FDECAF	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xDAE5C362	NID_DAE5C362	os0:kd/usbdev_serial.skprx	0	0	-
 general	SceUsbDevSerial	0xF0C3F3D4	NID_F0C3F3D4	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbSerial	0x0ACC8A92	NID_0ACC8A92	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0x2C08272C	NID_2C08272C	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0x405DB744	NID_405DB744	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0x60D93778	NID_60D93778	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0x642F8F19	NID_642F8F19	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0x923535FA	NID_923535FA	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
-general	SceUsbSerial	0xA281DF87	NID_A281DF87	os0:kd/bootimage.skprx/SceUsbSerial	0	0	-
 general	SceUsbstor	0x5B3DF8DF	NID_5B3DF8DF	os0:kd/bootimage.skprx/SceUsbstorDriver	0	0	-
 general	SceWebFiltering	0x6D231FBC	NID_6D231FBC	vs0:data/external/webcore/jx_web_filtering.suprx	0	0	-
 general	SceWebKit	0x006B6505	NID_006B6505	vs0:data/external/webcore/SceWebKitModule.suprx	0	0	-

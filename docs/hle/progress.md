@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,137 | 5,911 | 226 | 0 | 7,320 | 83.8% |
-| General | 8,318 | 8,107 | 211 | 0 | 9,944 | 83.6% |
-| All firmware 3.74 exports | 16,597 | 4,821 | 443 | 11,333 | 19,406 | 85.5% |
+| System imports | 6,139 | 5,911 | 228 | 0 | 7,320 | 83.8% |
+| General | 8,327 | 8,108 | 219 | 0 | 9,944 | 83.7% |
+| All firmware 3.74 exports | 16,608 | 4,822 | 453 | 11,333 | 19,406 | 85.5% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -152,8 +152,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 1,079 | 1,017 | 62 | 3,918 | 27.5% |
-| Imported | 517 | - | - | 2,062 | 25% |
+| All | 1,081 | 1,019 | 62 | 3,918 | 27.5% |
+| Imported | 518 | - | - | 2,062 | 25.1% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -218,7 +218,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | ScePfsMgrForKernel | 0 / 14 | 0% | - | 0 / 11 |
 | ScePmMgrForDriver | 0 / 2 | 0% | - | 0 / 1 |
 | ScePowerForDriver | 36 / 109 | 33% | - | 16 / 52 |
-| SceProcEventForDriver | 2 / 3 | 66.6% | - | 2 / 3 |
+| SceProcEventForDriver | 3 / 3 | 100% | - | 3 / 3 |
 | SceProcessmgrForDriver | 10 / 46 | 21.7% | - | 7 / 32 |
 | SceProcessmgrForKernel | 3 / 60 | 5% | - | 0 / 30 |
 | ScePsmDrmForDriver | 1 / 6 | 16.6% | 1 | 1 / 3 |
@@ -256,7 +256,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSysrootForDriver | 124 / 181 | 68.5% | - | 65 / 111 |
 | SceSysrootForKernel | 48 / 143 | 33.5% | - | 16 / 67 |
 | SceSystimerForDriver | 0 / 14 | 0% | - | 0 / 8 |
-| SceThreadmgrForDriver | 106 / 248 | 42.7% | - | 80 / 135 |
+| SceThreadmgrForDriver | 107 / 248 | 43.1% | - | 80 / 135 |
 | SceThreadmgrForKernel | 0 / 64 | 0% | - | 0 / 15 |
 | SceTouchForDriver | 15 / 29 | 51.7% | - | 1 / 9 |
 | SceUartForKernel | 0 / 4 | 0% | - | 0 / 1 |
@@ -342,8 +342,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceDisplay | `os0:kd/display.skprx` | 21 / 21 | 100% | - | 12 / 12 | 8 / 8 |
 | SceDisplayUser | `os0:us/driver_us.suprx` | 7 / 7 | 100% | - | 3 / 3 | 4 / 4 |
 | SceDmacmgr | `os0:kd/dmacmgr.skprx` | 2 / 2 | 100% | - | 1 / 1 | 1 / 1 |
-| SceDrmBridge | `os0:kd/bootimage.skprx/SceVshBridge` | 4 / 5 | 80% | - | - | 4 / 5 |
-| SceDrmBridgeUser | `os0:us/driver_us.suprx` | 4 / 5 | 80% | - | - | 4 / 5 |
+| SceDrmBridge | `os0:kd/bootimage.skprx/SceVshBridge` | 5 / 5 | 100% | 1 | - | 5 / 5 |
+| SceDrmBridgeUser | `os0:us/driver_us.suprx` | 5 / 5 | 100% | 1 | - | 5 / 5 |
 | SceDrmPsmKdc | `vs0:sys/external/psmkdc.suprx` | 14 / 14 | 100% | - | 4 / 4 | 9 / 9 |
 | SceDtcpIp | `vs0:sys/external/libSceDtcpIp.suprx` | 25 / 25 | 100% | - | - | - |
 | SceEmailEngine | `vs0:app/NPXS10072/email_engine.suprx` | 99 / 325 | 30.4% | - | - | 88 / 223 |
@@ -540,7 +540,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceTelephonyUtil | `vs0:sys/external/libSceTelephonyUtil.suprx` | 3 / 3 | 100% | - | - | 2 / 2 |
 | SceTeleportClient | `vs0:sys/external/libSceTeleportClient.suprx` | 13 / 13 | 100% | - | - | 13 / 13 |
 | SceTeleportServer | `vs0:sys/external/libSceTeleportServer.suprx` | 1 / 1 | 100% | - | - | 1 / 1 |
-| SceThreadmgr | `os0:kd/threadmgr.skprx` | 183 / 184 | 99.4% | - | 54 / 54 | 102 / 102 |
+| SceThreadmgr | `os0:kd/threadmgr.skprx` | 184 / 184 | 100% | - | 54 / 54 | 102 / 102 |
 | SceTiffPromoter | `vs0:vsh/common/mms/tiff_promoter.suprx` | 2 / 3 | 66.6% | - | - | - |
 | SceTouch | `os0:kd/bootimage.skprx/SceTouch` | 27 / 27 | 100% | - | 7 / 7 | 12 / 12 |
 | SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 12 / 19 | 63.1% | - | - | 9 / 12 |
@@ -548,10 +548,10 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceUlobjDbg | `vs0:sys/external/libfiber.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceUlobjMgr | `os0:kd/bootimage.skprx/SceUlobjMgr` | 3 / 3 | 100% | - | 1 / 1 | 2 / 2 |
 | SceUlt | `vs0:sys/external/libult.suprx` | 62 / 62 | 100% | - | 34 / 34 | - |
-| SceUsbAudioIn | `os0:kd/bootimage.skprx/SceUsbAudio` | 8 / 9 | 88.8% | 8 | - | - |
+| SceUsbAudioIn | `os0:kd/bootimage.skprx/SceUsbAudio` | 9 / 9 | 100% | 9 | - | - |
 | SceUsbDevSerial | `os0:kd/usbdev_serial.skprx` | 0 / 8 | 0% | - | - | - |
 | SceUsbPspcm | `os0:kd/bootimage.skprx/SceUsbPspcm` | 12 / 12 | 100% | 12 | - | 12 / 12 |
-| SceUsbSerial | `os0:kd/bootimage.skprx/SceUsbSerial` | 7 / 14 | 50% | 7 | - | - |
+| SceUsbSerial | `os0:kd/bootimage.skprx/SceUsbSerial` | 14 / 14 | 100% | 14 | - | - |
 | SceUsbServ | `os0:kd/bootimage.skprx/SceUsbServ` | 2 / 2 | 100% | 2 | - | - |
 | SceUsbdForUser | `os0:kd/bootimage.skprx/SceUsbd` | 23 / 23 | 100% | 21 | - | 2 / 2 |
 | SceUsbstor | `os0:kd/bootimage.skprx/SceUsbstorDriver` | 0 / 1 | 0% | - | - | - |

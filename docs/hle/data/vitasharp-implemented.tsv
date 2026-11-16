@@ -6874,6 +6874,7 @@
 0xDFA8BAF8	scePowerUnregisterCallback	SystemMisc	ScePower	vh
 0xC63DACD5	kscePowerGetSysClockFrequency	ProcessmgrKernel	ScePowerForDriver	-
 0x0E333BEC	kscePowerSetSysClockFrequency	ProcessmgrKernel	ScePowerForDriver	-
+0x414CC813	ksceKernelInvokeProcEventHandler	ProcessmgrKernel	SceProcEventForDriver	-
 0x2A43912D	ksceKernelRegisterProcEventHandler	ProcessmgrKernel	SceProcEventForDriver	-
 0x3DED57CC	ksceKernelUnregisterProcEventHandler	ProcessmgrKernel	SceProcEventForDriver	-
 0xC053DC6B	_sceKernelExitProcessForUser	ProcessMgr	SceProcessmgr	vh
@@ -8118,6 +8119,7 @@
 0xAF8E1266	ksceKernelInitializeFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
 0x70627F3A	ksceKernelLockFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
 0x16AC80C5	ksceKernelLockMutex	ThreadMgr	SceThreadmgrForDriver	-
+0xD06F2886	ksceKernelLockMutexCB_089	ThreadMgr	SceThreadmgrForDriver	-
 0xC3E00919	ksceKernelNotifyCallback	KernelTwins	SceThreadmgrForDriver	-
 0x76C6555B	ksceKernelPollEventFlag	KernelTwins	SceThreadmgrForDriver	-
 0x4FDDFE24	ksceKernelPollSema	KernelTwins	SceThreadmgrForDriver	-
@@ -9128,6 +9130,7 @@
 0x0A221CBB	NID_0A221CBB	Psp2Compat	-	-
 0x0A4E17D5	NID_0A4E17D5	Dbutil	-	-
 0x0A5163BD	NID_0A5163BD	EmailEngine	-	-
+0x0ACC8A92	NID_0ACC8A92	SystemServicesVsh	-	-	default
 0x0AD3644A	NID_0AD3644A	Psp2Compat	-	-
 0x0ADD4148	NID_0ADD4148	FirmwareConstants	-	-
 0x0B066FAD	NID_0B066FAD	ShellUtil	-	-
@@ -9199,6 +9202,7 @@
 0x18E2BEDE	NID_18E2BEDE	FirmwareConstants	-	-
 0x192861D3	NID_192861D3	data	-	-
 0x19788AEF	NID_19788AEF	SqliteVsh	-	-
+0x198A7C33	NID_198A7C33	SystemServicesVsh	-	-	default
 0x199F6347	NID_199F6347	data	-	-
 0x1A6CF24B	NID_1A6CF24B	Dbutil	-	-
 0x1A984964	NID_1A984964	FirmwareConstants	-	-
@@ -9295,6 +9299,7 @@
 0x2B71045A	NID_2B71045A	data	-	-
 0x2B9FB1E5	NID_2B9FB1E5	FirmwareConstants	-	-
 0x2BEA295C	NID_2BEA295C	FirmwareConstants	-	-
+0x2C08272C	NID_2C08272C	SystemServicesVsh	-	-	default
 0x2C34D734	NID_2C34D734	SqliteVsh	-	-
 0x2C50C827	NID_2C50C827	data	-	-
 0x2CAB4860	NID_2CAB4860	EmailEngine	-	-
@@ -9418,6 +9423,7 @@
 0x401E1B1D	NID_401E1B1D	data	-	-
 0x402717E4	NID_402717E4	data	-	-
 0x40585786	NID_40585786	NpMatching2	-	-
+0x405DB744	NID_405DB744	SystemServicesVsh	-	-	default
 0x408295E9	NID_408295E9	Psp2Compat	-	-
 0x408CF7D1	NID_408CF7D1	FirmwareConstants	-	-
 0x40BC2E0E	NID_40BC2E0E	data	-	-
@@ -9604,6 +9610,7 @@
 0x60C0723E	NID_60C0723E	FirmwareConstants	-	-
 0x60D5DC3D	NID_60D5DC3D	FirmwareConstants	-	-
 0x60D7D920	NID_60D7D920	data	-	-
+0x60D93778	NID_60D93778	SystemServicesVsh	-	-	default
 0x610983B7	NID_610983B7	data	-	-
 0x6136A490	NID_6136A490	FirmwareConstants	-	-
 0x614BC98D	NID_614BC98D	Psp2Compat	-	-
@@ -9631,6 +9638,7 @@
 0x636544FB	NID_636544FB	ShellUtil	-	-	default
 0x63D5F9A1	NID_63D5F9A1	EmailEngine	-	-
 0x63E0CE97	NID_63E0CE97	data	-	-
+0x642F8F19	NID_642F8F19	SystemServicesVsh	-	-	default
 0x6430C45E	NID_6430C45E	ShellUtil	-	-
 0x6438F4A9	NID_6438F4A9	EmailEngine	-	-
 0x64649195	NID_64649195	Dbutil	-	-
@@ -9701,6 +9709,7 @@
 0x6EF1CB10	NID_6EF1CB10	Paf	-	-
 0x6F257A67	NID_6F257A67	EmailEngine	-	-
 0x6F284DD6	NID_6F284DD6	FirmwareConstants	-	-
+0x6F5DC6CD	NID_6F5DC6CD	SystemServicesVsh	-	-	default
 0x6F730976	NID_6F730976	ShellUtil	-	-	default
 0x6F81469F	NID_6F81469F	data	-	-
 0x6F827209	NID_6F827209	FirmwareConstants	-	-
@@ -9919,6 +9928,7 @@
 0x91BE71C9	NID_91BE71C9	data	-	-
 0x91CFA4F0	NID_91CFA4F0	Psp2Compat	-	-
 0x91D305C7	NID_91D305C7	FirmwareConstants	-	-
+0x923535FA	NID_923535FA	SystemServicesVsh	-	-	default
 0x925BD038	NID_925BD038	Psp2Compat	-	-
 0x926B9A3A	NID_926B9A3A	data	-	-
 0x928ECCD7	NID_928ECCD7	Psp2Compat	-	-
@@ -10031,6 +10041,7 @@
 0xA263F3D5	NID_A263F3D5	data	-	-
 0xA271BBED	NID_A271BBED	SystemServicesVsh	-	-	default
 0xA27EFBA3	NID_A27EFBA3	data	-	-
+0xA281DF87	NID_A281DF87	SystemServicesVsh	-	-	default
 0xA2B14B98	NID_A2B14B98	FirmwareConstants	-	-
 0xA2D8700D	NID_A2D8700D	Psp2Compat	-	-
 0xA377D285	NID_A377D285	EmailEngine	-	-
@@ -10161,6 +10172,7 @@
 0xB7D95FD6	NID_B7D95FD6	FirmwareConstants	-	-
 0xB7FB96EC	NID_B7FB96EC	SystemServicesVsh	-	-	default
 0xB80BFF06	NID_B80BFF06	data	-	-
+0xB81B597A	NID_B81B597A	SystemServicesVsh	-	-	default
 0xB85224E9	NID_B85224E9	NpCommonPs4	-	-
 0xB9222859	NID_B9222859	FirmwareConstants	-	-
 0xB92D1275	NID_B92D1275	FirmwareConstants	-	-

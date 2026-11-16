@@ -37,8 +37,6 @@ SceCommonDialog	0xEFABDD6F	NID_EFABDD6F	vs0-user	0	2	-
 SceCommonDialog	0xF2F0049E	NID_F2F0049E	vs0-user	0	1	-
 SceCommonDialog	0xFA26EB30	NID_FA26EB30	vs0-user	0	1	-
 SceCommonDialog	0xFCDA2F0D	NID_FCDA2F0D	vs0-user	0	1	-
-SceDrmBridge	0xB81B597A	NID_B81B597A	kernel-syscall	0	1	-
-SceDrmBridgeUser	0x6F5DC6CD	NID_6F5DC6CD	os0-user	0	3	-
 SceGpuEs4User	0x0162A405	NID_0162A405	os0-user	0	1	-
 SceGpuEs4User	0x071E62F0	NID_071E62F0	os0-user	0	1	-
 SceGpuEs4User	0x09BB98B2	NID_09BB98B2	os0-user	0	0	-
@@ -597,7 +595,6 @@ SceSslInternal	0xFB51AE89	NID_FB51AE89	vs0-user	0	0	-
 SceSslInternal	0xFBEB1FD7	NID_FBEB1FD7	vs0-user	0	4	-
 SceSslInternal	0xFEFE761C	NID_FEFE761C	vs0-user	0	0	-
 SceSslInternal	0xFFE2ED51	NID_FFE2ED51	vs0-user	0	4	-
-SceThreadmgr	0xD06F2886	ksceKernelLockMutexCB_089	kernel-syscall	0	0	-
 SceTriggerUtil	0x1B615264	NID_1B615264	vs0-user	0	0	-
 SceTriggerUtil	0x257BA954	NID_257BA954	vs0-user	0	1	-
 SceTriggerUtil	0x2AD6A378	NID_2AD6A378	vs0-user	0	0	-
@@ -605,7 +602,6 @@ SceTriggerUtil	0x2C43AC0C	NID_2C43AC0C	vs0-user	0	5	-
 SceTriggerUtil	0x845BF533	NID_845BF533	vs0-user	0	0	-
 SceTriggerUtil	0x921FF8E1	NID_921FF8E1	vs0-user	0	0	-
 SceTriggerUtil	0xDA93949A	NID_DA93949A	vs0-user	0	5	-
-SceUsbAudioIn	0x198A7C33	NID_198A7C33	kernel-syscall	0	0	-
 SceUsbDevSerial	0x4437FF2D	NID_4437FF2D	kernel-syscall	0	0	-
 SceUsbDevSerial	0x57FBB08C	NID_57FBB08C	kernel-syscall	0	0	-
 SceUsbDevSerial	0x6F2B3960	NID_6F2B3960	kernel-syscall	0	0	-
@@ -614,11 +610,4 @@ SceUsbDevSerial	0x9F497D4E	NID_9F497D4E	kernel-syscall	0	0	-
 SceUsbDevSerial	0xC0FDECAF	NID_C0FDECAF	kernel-syscall	0	0	-
 SceUsbDevSerial	0xDAE5C362	NID_DAE5C362	kernel-syscall	0	0	-
 SceUsbDevSerial	0xF0C3F3D4	NID_F0C3F3D4	kernel-syscall	0	0	-
-SceUsbSerial	0x0ACC8A92	NID_0ACC8A92	kernel-syscall	0	0	-
-SceUsbSerial	0x2C08272C	NID_2C08272C	kernel-syscall	0	0	-
-SceUsbSerial	0x405DB744	NID_405DB744	kernel-syscall	0	0	-
-SceUsbSerial	0x60D93778	NID_60D93778	kernel-syscall	0	0	-
-SceUsbSerial	0x642F8F19	NID_642F8F19	kernel-syscall	0	0	-
-SceUsbSerial	0x923535FA	NID_923535FA	kernel-syscall	0	0	-
-SceUsbSerial	0xA281DF87	NID_A281DF87	kernel-syscall	0	0	-
 SceUsbstor	0x5B3DF8DF	NID_5B3DF8DF	kernel-syscall	0	0	-

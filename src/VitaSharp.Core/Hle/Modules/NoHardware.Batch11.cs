@@ -123,21 +123,51 @@ public sealed partial class SystemServicesVsh
 
     // ------------------------------------------------------------------ SceUsbAudioIn: no USB microphone
     const int USBAUDIO_ERR_NO_DEVICE = unchecked((int)0x803E0004), USBAUDIO_ERR_NULL = unchecked((int)0x803E0001);
-    /// <summary>(int *ids, int max, int *count): the USB audio input devices: none.</summary>
+    /// <summary>(int *ids, int *count, int max): the USB audio input devices: none (count 0). A NULL list or count, or
+    /// max below 1, is 0x803E0001.</summary>
     [Hle(Default = true)]
-    int sceUsbAudioInGetDeviceIdList(uint ids, int max, uint count)
+    int sceUsbAudioInGetDeviceIdList(uint ids, uint count, int max)
     {
-        if (count == 0) return USBAUDIO_ERR_NULL;
+        if (ids == 0 || count == 0 || max < 1)
+        {
+            return USBAUDIO_ERR_NULL;
+        }
+
         GuestMemory.W32(count, 0);
         return 0;
     }
-    [Hle(Default = true)] int sceUsbAudioInOpenDevice(int id, uint param, uint a) => USBAUDIO_ERR_NO_DEVICE;
+
+    /// <summary>(int id, int bits, int rate): only 16-bit 48 kHz input exists (else 0x803E0001); then the device is
+    /// looked up: none is attached (0x803E0004).</summary>
+    [Hle(Default = true)]
+    int sceUsbAudioInOpenDevice(int id, int bits, int rate)
+    {
+        if (bits != 16 || rate != 48000)
+        {
+            return USBAUDIO_ERR_NULL;
+        }
+
+        return USBAUDIO_ERR_NO_DEVICE;
+    }
+
     [Hle(Default = true)] int sceUsbAudioInCloseDevice(int id) => USBAUDIO_ERR_NO_DEVICE;
     [Hle(Default = true)] int sceUsbAudioInInput(int id, uint buf) => USBAUDIO_ERR_NO_DEVICE;
     [Hle(Default = true)] int sceUsbAudioInGetDeviceInformation(int id, uint info) => info == 0 ? USBAUDIO_ERR_NULL : USBAUDIO_ERR_NO_DEVICE;
     [Hle(Default = true)] int sceUsbAudioInSetCurrentValueOfVolume(int id, int value) => USBAUDIO_ERR_NO_DEVICE;
-    [Hle(Default = true)] int sceUsbAudioInGetMaxValueOfVolume(int id, uint value) => value == 0 ? USBAUDIO_ERR_NULL : USBAUDIO_ERR_NO_DEVICE;
-    [Hle(Default = true)] int sceUsbAudioInGetMinValueOfVolume(int id, uint value) => value == 0 ? USBAUDIO_ERR_NULL : USBAUDIO_ERR_NO_DEVICE;
+
+    /// <summary>(int id, int *value): the device is looked up before the NULL check: none is attached (0x803E0004).</summary>
+    [Hle(Default = true)]
+    int sceUsbAudioInGetMaxValueOfVolume(int id, uint value)
+    {
+        return USBAUDIO_ERR_NO_DEVICE;
+    }
+
+    /// <summary>(int id, int *value): as sceUsbAudioInGetMaxValueOfVolume.</summary>
+    [Hle(Default = true)]
+    int sceUsbAudioInGetMinValueOfVolume(int id, uint value)
+    {
+        return USBAUDIO_ERR_NO_DEVICE;
+    }
 
     // ------------------------------------------------------------------ SceUsbSerial: the serial function, no USB host
     const int USBSERIAL_ERR_NOT_STARTED = unchecked((int)0x80244401);

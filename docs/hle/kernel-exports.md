@@ -151,7 +151,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | ScePfsMgrForKernel | ScePfsMgr (0xA067B56F) | 14 | 0 | 0 | 0 | 14 | 11 | 5 |
 | ScePmMgrForDriver | SceSysmem (0xF13F32F9) | 2 | 0 | 0 | 0 | 2 | 1 | 0 |
 | ScePowerForDriver | ScePower (0x1590166F) | 109 | 36 | 36 | 0 | 73 | 36 | 23 |
-| SceProcEventForDriver | SceSysmem (0x887F19D0) | 3 | 2 | 2 | 0 | 1 | 1 | 0 |
+| SceProcEventForDriver | SceSysmem (0x887F19D0) | 3 | 2 | 3 | 0 | 0 | 0 | 0 |
 | SceProcessmgrForDriver | SceProcessmgr (0x746EC971) | 46 | 10 | 10 | 0 | 36 | 25 | 35 |
 | SceProcessmgrForKernel | SceProcessmgr (0xEB1F8EF7) | 60 | 3 | 3 | 0 | 57 | 30 | 49 |
 | ScePsmDrmForDriver | SceNpDrm (0x9F4924F2) | 6 | 1 | 0 | 1 | 5 | 2 | 0 |
@@ -189,7 +189,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceSysrootForDriver | SceSysmem (0x2ED7F97A) | 181 | 124 | 124 | 0 | 57 | 46 | 156 |
 | SceSysrootForKernel | SceSysmem (0x3691DA45) | 143 | 48 | 48 | 0 | 95 | 51 | 105 |
 | SceSystimerForDriver | SceSystimer (0xA47EB09A) | 14 | 0 | 0 | 0 | 14 | 8 | 4 |
-| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 106 | 106 | 0 | 142 | 55 | 136 |
+| SceThreadmgrForDriver | SceKernelThreadMgr (0xE2C40624) | 248 | 106 | 107 | 0 | 141 | 55 | 136 |
 | SceThreadmgrForKernel | SceKernelThreadMgr (0x7F8593BA) | 64 | 0 | 0 | 0 | 64 | 15 | 63 |
 | SceTouchForDriver | SceTouch (0xA4A7DAFC) | 29 | 15 | 15 | 0 | 14 | 8 | 10 |
 | SceUartForKernel | SceSysmem (0x1CCD9BA3) | 4 | 0 | 0 | 0 | 4 | 1 | 0 |
@@ -204,5 +204,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **1079** | **1017** | **62** | **2839** | **1545** | **2037** |
+| **Total** | | **3918** | **1079** | **1019** | **62** | **2837** | **1544** | **2037** |
 

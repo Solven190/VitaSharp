@@ -604,6 +604,9 @@ public sealed partial class ThreadMgr : HleModule
     [Hle("sceKernelLockMutex")]
     [Hle("sceKernelLockMutexCB", CallbackWait = true)]
     [Hle("ksceKernelLockMutex")]
+    // ksceKernelLockMutexCB (FW 3.74 NID 0xD06F2886, SceThreadmgrForDriver and the SceThreadmgr syscall that turns the
+    // caller's uid into the kernel object and calls it): the CB lock
+    [Hle("ksceKernelLockMutexCB_089", Nid = 0xD06F2886, CallbackWait = true)]
     int sceKernelLockMutex(int uid, int count, Ptr<uint> timeout) => Obj<Mutex>(uid)?.Lock(Self, count, timeout) ?? SceError.UNKNOWN_MUTEX_ID;
 
     [Hle]
