@@ -114,7 +114,7 @@ public sealed class ControlNamesTests : IDisposable
         Assert.Equal("Circle", ControlNames.Describe(InputBinding.Of(PadButton.East), ControllerKind.PlayStation));
         Assert.Equal("Square", ControlNames.Describe(InputBinding.Of(PadButton.West), ControllerKind.PlayStation));
         Assert.Equal("Triangle", ControlNames.Describe(InputBinding.Of(PadButton.North), ControllerKind.PlayStation));
-        InputBinding south = InputBinding.Of(PadButton.South);
+        var south = InputBinding.Of(PadButton.South);
         Assert.Equal(south.Describe(ControllerKind.Xbox), ControlNames.Describe(south, ControllerKind.Xbox));
         Assert.NotEqual("Cross", ControlNames.Describe(south, ControllerKind.Xbox));
         Assert.Equal("D-pad →", ControlNames.Describe(InputBinding.Of(PadButton.DpadRight), ControllerKind.Xbox));
@@ -128,7 +128,7 @@ public sealed class ControlNamesTests : IDisposable
         Assert.Equal("Left stick ↓", ControlNames.Describe(InputBinding.Of(PadAxis.LeftY, 1), ControllerKind.Xbox));
         Assert.Equal("Right stick →", ControlNames.Describe(InputBinding.Of(PadAxis.RightX, 1), ControllerKind.Xbox));
         Assert.Equal("Right stick ↑", ControlNames.Describe(InputBinding.Of(PadAxis.RightY, -1), ControllerKind.Xbox));
-        InputBinding trigger = InputBinding.Of(PadAxis.RightTrigger);
+        var trigger = InputBinding.Of(PadAxis.RightTrigger);
         Assert.Equal(trigger.Describe(ControllerKind.Xbox), ControlNames.Describe(trigger, ControllerKind.Xbox));
         Assert.Equal("Button 3", ControlNames.Describe(InputBinding.JoyButton(3), ControllerKind.Generic));
         Assert.Equal("Axis 2-", ControlNames.Describe(InputBinding.JoyAxis(2, -1), ControllerKind.Generic));

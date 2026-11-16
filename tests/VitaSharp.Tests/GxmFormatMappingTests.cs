@@ -271,7 +271,7 @@ public sealed class GxmFormatMappingTests
         // component counts outside 1..4 are clamped
         Assert.Equal((Format.R8G8B8A8Unorm, 4), Formats.Attribute(4, 7, 'f'));
         Assert.Equal((Format.R8Unorm, 1), Formats.Attribute(4, 0, 'f'));
-        List<Format> all = Formats.AllAttributeFormats().ToList();
+        var all = Formats.AllAttributeFormats().ToList();
         Assert.Equal(all.Count, all.Distinct().Count());
         Assert.Contains(Format.R32G32B32A32Sfloat, all);
         Assert.Contains(Format.R16G16B16A16SNorm, all);
