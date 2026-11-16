@@ -83,6 +83,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   contrato do console que não depende da carga (nunca antes do pedido; período médio contra o tempo de guest que a
   própria porta consumiu) e reportar o atraso como medida; antes, separar se os 12,2 ms do MAIN com a máquina livre
   são do ritmo do HLE de áudio. Falta também cobrir PVRTC, YUV420 e cube no `gfx` (hoje SKIP).
+  Feito em parte (16/11/2026, rm2, fix/rm2-testgame-clock): os `delay_*` decidem por "nunca antes do pedido" (o
+  threadmgr acorda a thread da lista de timers no prazo ou depois) e os `*_block_period` por "a porta nunca leva
+  blocos mais rápido do que toca" (período médio acima de 90% do período da porta, sem erros); o atraso entra como
+  medida (`+N us late`, `+x%`). Rodada headless com a máquina livre (VPK novo, `# done ok=225 fail=0 skip=5`):
+  delays +66/+30/+34 us, MAIN 10,670 ms (quer 10,667), BGM 11,604 ms (quer 11,610): os 12,2 ms do MAIN não
+  reproduzem com a CPU livre, o ritmo do HLE de áudio está certo. Falta: PVRTC, YUV420 e cube no `gfx`; o cube
+  precisa de um fragment shader com `samplerCUBE`, e o TestGame só tem os shaders pré-compilados do vita2d (sem
+  compilador de shader no VitaSDK).
 - [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
   (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
   `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
