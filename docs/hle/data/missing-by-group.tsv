@@ -1,11 +1,7 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=321 general=260 vitasdk=0
+# firmware=3.74 games=0 system=310 general=260 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
-system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
-system	SceAppUtil	0xC0418B1C	NID_C0418B1C	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/libcdlg_savedata.suprx
-system	SceAppUtil	0xC3CB128B	NID_C3CB128B	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/libcdlg_savedata.suprx
-system	SceAppUtil	0xE8CADCA9	NID_E8CADCA9	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
 system	SceCommonDialog	0x089FB01E	NID_089FB01E	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libSceNearDialogUtil.suprx
 system	SceCommonDialog	0x35387E0C	NID_35387E0C	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libSceNearDialogUtil.suprx
 system	SceCommonDialog	0x396D7B68	NID_396D7B68	vs0:sys/external/libcdlg.suprx	0	1	vs0:app/NPXS10028/eboot.bin
@@ -71,7 +67,6 @@ system	SceGpuEs4User	0xBDE2B9E1	NID_BDE2B9E1	os0:us/libgpu_es4.suprx	0	1	os0:us/
 system	SceGpuEs4User	0xD90B0707	NID_D90B0707	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xE98914E4	NID_E98914E4	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xF0CCE9DB	NID_F0CCE9DB	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceJpegEncArm	0x4EE1BAED	NID_4EE1BAED	vs0:sys/external/libscejpegencarm.suprx	0	5	vs0:app/NPXS10004/eboot.bin
 system	SceLibLocation	0x0341758B	NID_0341758B	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
 system	SceLibLocation	0x0C0BB66A	NID_0C0BB66A	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
 system	SceLibLocation	0x2311B24A	NID_2311B24A	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
@@ -223,12 +218,6 @@ system	SceNpWebApi	0xC359A88A	NID_C359A88A	vs0:sys/external/np_webapi.suprx	0	2	
 system	SceNpWebApi	0xC42F1E67	NID_C42F1E67	vs0:sys/external/np_webapi.suprx	0	10	vs0:app/NPXS10001/eboot.bin
 system	SceNpWebApi	0xCB51F139	NID_CB51F139	vs0:sys/external/np_webapi.suprx	0	2	vs0:app/NPXS10006/eboot.bin
 system	SceNpWebApi	0xFDCBD57D	NID_FDCBD57D	vs0:sys/external/np_webapi.suprx	0	1	vs0:app/NPXS10001/eboot.bin
-system	ScePhotoExport	0x05D5A482	NID_05D5A482	vs0:sys/external/libScePhotoExport.suprx	0	1	vs0:app/NPXS10004/eboot.bin
-system	ScePhotoExport	0x16B1028E	NID_16B1028E	vs0:sys/external/libScePhotoExport.suprx	0	4	vs0:app/NPXS10004/eboot.bin
-system	ScePhotoExport	0x2EFB7250	NID_2EFB7250	vs0:sys/external/libScePhotoExport.suprx	0	4	vs0:app/NPXS10004/eboot.bin
-system	ScePhotoExport	0x719ACE85	NID_719ACE85	vs0:sys/external/libScePhotoExport.suprx	0	1	vs0:vsh/shell/shell.self
-system	ScePhotoExport	0x76640642	NID_76640642	vs0:sys/external/libScePhotoExport.suprx	0	2	vs0:app/NPXS10028/eboot.bin
-system	ScePhotoExport	0xF4E0F7FF	NID_F4E0F7FF	vs0:sys/external/libScePhotoExport.suprx	0	3	vs0:app/NPXS10004/eboot.bin
 system	SceShell	0x0025417F	NID_0025417F	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x05D6FCB0	NID_05D6FCB0	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x29A14252	NID_29A14252	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx

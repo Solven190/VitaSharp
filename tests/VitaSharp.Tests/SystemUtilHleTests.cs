@@ -461,8 +461,8 @@ public sealed class SystemUtilHleTests(GuestMemoryFixture fixture) : IDisposable
         Assert.True(File.Exists(Path.Combine(_root, "ux0", "video", "PCSA00002", "clip.mp4")));
         Assert.Equal(MediaExport.ERR_INVALID, Call(m, "sceVideoExportFromFile", inP, 0, 0u, 0u, 0u, 0u, 0, 0u));
 
-        Assert.Equal(0, Call(m, "sceMusicExportFromFile", Str("app0:song.mp3"), param, 0u, 0u, 0u, 0u, outp, 0x100u));
+        Assert.Equal(0, Call(m, "sceMusicExportFromFile", Str("app0:song.mp3"), param, 0u, 0u, 0u, 0u, outp, 0x100));
         Assert.Equal("music0:/PCSA00002/song.mp3", GuestMemory.ReadCString(outp));
-        Assert.Equal(MediaExport.ERR_NOENT, Call(m, "sceMusicExportFromFile", Str("app0:x.mp3"), param, 0u, 0u, 0u, 0u, outp, 0x100u));
+        Assert.Equal(MediaExport.MusicErrNoFile, Call(m, "sceMusicExportFromFile", Str("app0:x.mp3"), param, 0u, 0u, 0u, 0u, outp, 0x100));
     }
 }

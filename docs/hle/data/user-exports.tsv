@@ -4,12 +4,8 @@
 # libraries the HLE serves, which reach it only from games (system software that imports one gets the real module).
 # games/system: importers among the installed games / system programs and modules; vitasdk: in the VitaSDK NID list.
 library	nid	name	kind	games	system	vitasdk
-SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0-user	0	1	-
 SceAppUtil	0x1E2A6158	NID_1E2A6158	vs0-user	0	0	-
 SceAppUtil	0x7DA34311	NID_7DA34311	vs0-user	0	0	-
-SceAppUtil	0xC0418B1C	NID_C0418B1C	vs0-user	0	1	-
-SceAppUtil	0xC3CB128B	NID_C3CB128B	vs0-user	0	1	-
-SceAppUtil	0xE8CADCA9	NID_E8CADCA9	vs0-user	0	1	-
 SceCommonDialog	0x089FB01E	NID_089FB01E	vs0-user	0	1	-
 SceCommonDialog	0x2CD0649B	NID_2CD0649B	vs0-user	0	0	-
 SceCommonDialog	0x35387E0C	NID_35387E0C	vs0-user	0	1	-
@@ -116,7 +112,6 @@ SceHttp	0xC498765A	NID_C498765A	vs0-user	0	0	-
 SceHttp	0xE0825488	NID_E0825488	vs0-user	0	0	-
 SceHttp	0xF8885CFD	NID_F8885CFD	vs0-user	0	0	-
 SceHttp	0xFE60380A	NID_FE60380A	vs0-user	0	0	-
-SceJpegEncArm	0x4EE1BAED	NID_4EE1BAED	vs0-user	0	5	-
 SceKrm	0x10202EB4	NID_10202EB4	kernel-syscall	0	0	-
 SceKrm	0x18DE25C6	NID_18DE25C6	kernel-syscall	0	0	-
 SceKrm	0x2528D613	NID_2528D613	kernel-syscall	0	0	-
@@ -450,12 +445,6 @@ SceNpWebApi	0xC359A88A	NID_C359A88A	vs0-user	0	2	-
 SceNpWebApi	0xC42F1E67	NID_C42F1E67	vs0-user	0	10	-
 SceNpWebApi	0xCB51F139	NID_CB51F139	vs0-user	0	2	-
 SceNpWebApi	0xFDCBD57D	NID_FDCBD57D	vs0-user	0	1	-
-ScePhotoExport	0x05D5A482	NID_05D5A482	vs0-user	0	1	-
-ScePhotoExport	0x16B1028E	NID_16B1028E	vs0-user	0	4	-
-ScePhotoExport	0x2EFB7250	NID_2EFB7250	vs0-user	0	4	-
-ScePhotoExport	0x719ACE85	NID_719ACE85	vs0-user	0	1	-
-ScePhotoExport	0x76640642	NID_76640642	vs0-user	0	2	-
-ScePhotoExport	0xF4E0F7FF	NID_F4E0F7FF	vs0-user	0	3	-
 SceSslInternal	0x00ABEBC3	NID_00ABEBC3	vs0-user	0	0	-
 SceSslInternal	0x04BAED82	NID_04BAED82	vs0-user	0	1	-
 SceSslInternal	0x05F6A292	NID_05F6A292	vs0-user	0	0	-

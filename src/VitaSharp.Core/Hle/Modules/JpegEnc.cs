@@ -26,6 +26,9 @@ public sealed partial class JpegEnc : HleModule
     /// size of its own context struct (0x20), kept here until the hardware value is known.</summary>
     internal const int ContextSize = 0x20;
 
+    /// <summary>libscejpegencarm 3.74's context size (sceJpegArmEncoderGetContextSize).</summary>
+    internal const int ArmContextSize = 0x180;
+
     sealed partial class Ctx
     {
         public int Width, Height, PixelFormat, Ratio = DefaultRatio, HeaderMode = HEADER_JPEG, ValidWidth, ValidHeight, Option;
@@ -91,21 +94,80 @@ public sealed partial class JpegEnc : HleModule
 
     // ------------------------------------------------------------------ SceJpegEncArm
 
-    [Hle] uint sceJpegArmEncoderGetContextSize() => ContextSize;
+    [Hle] uint sceJpegArmEncoderGetContextSize() => ArmContextSize;
 
+    /// <summary>
+    /// libscejpegencarm 3.74 (0x810002CC): a NULL or unaligned context 0x80650305; formats YCbCr 4:2:0 (8) or 4:2:2
+    /// (9), with or without the CSC flag (0x10), else 0x80650303; a width that is a multiple of 16 and a height of 16
+    /// (4:2:0) or 8 (4:2:2), both 1..65535, else 0x80650300; an output buffer with less than 4 bytes 0x80650305 (no
+    /// buffer is allowed: the room is then the 0x262 bytes of the header). The CSC formats round the chroma pitch up
+    /// to 16.
+    /// </summary>
     [Hle]
     int sceJpegArmEncoderInit(uint context, ushort inWidth, ushort inHeight, int pixelFormat, uint outBuffer, uint outSize)
-        => Init(_armCtx, ArmErr, true, context, inWidth, inHeight, pixelFormat, outBuffer, outSize, 0);
+    {
+        if (context == 0 || (context & 3) != 0)
+        {
+            return ARM_ERR_INVALID_POINTER;
+        }
+
+        if (pixelFormat is not (PIXEL_YCBCR420 or PIXEL_YCBCR422 or (PIXEL_YCBCR420 | PIXEL_CSC_ARGB_YCBCR) or (PIXEL_YCBCR422 | PIXEL_CSC_ARGB_YCBCR)))
+        {
+            return ARM_ERR_INVALID_PIXELFORMAT;
+        }
+
+        int heightMask = (pixelFormat & 9) == 9 ? 7 : 15;
+        if ((inWidth & 15) != 0 || (inHeight & heightMask) != 0 || inWidth == 0 || inHeight == 0)
+        {
+            return ARM_ERR_IMAGE_SIZE;
+        }
+
+        if (outBuffer != 0 && outSize < 4)
+        {
+            return ARM_ERR_INVALID_POINTER;
+        }
+
+        var c = new Ctx
+        {
+            Width = inWidth, Height = inHeight, PixelFormat = pixelFormat, OutBuffer = outBuffer, OutSize = outSize,
+            ValidWidth = inWidth, ValidHeight = inHeight,
+            ChromaPad = (pixelFormat & PIXEL_CSC_ARGB_YCBCR) != 0 ? (inWidth & 0x1F) >> 1 : 0,
+        };
+        SetCursor(c, outBuffer, outSize);
+        lock (_lock)
+        {
+            _armCtx[context] = c;
+        }
+
+        return 0;
+    }
 
     [Hle] int sceJpegArmEncoderEnd(uint context) => End(_armCtx, context);
     [Hle] int sceJpegArmEncoderEncode(uint context, uint inBuffer) => Encode(_armCtx, ArmErr, context, inBuffer);
 
-    /// <summary>SceUInt8 ratio 1..255 (SCE_JPEGENCARM_MIN/MAX_COMP_RATIO).</summary>
+    /// <summary>libscejpegencarm 3.74 (0x810003C4): any ratio below 0x100 (0 included), else 0x80650302.</summary>
     [Hle]
-    int sceJpegArmEncoderSetCompressionRatio(uint context, byte ratio)
-        => ratio == 0 ? ARM_ERR_INVALID_COMP_RATIO : With(_armCtx, ArmErr, context, c => c.Ratio = ratio);
+    int sceJpegArmEncoderSetCompressionRatio(uint context, uint ratio)
+        => context == 0 || (context & 3) != 0 ? ARM_ERR_INVALID_POINTER
+            : ratio >= 0x100 ? ARM_ERR_INVALID_COMP_RATIO : With(_armCtx, ArmErr, context, c => c.Ratio = (int)ratio);
 
-    [Hle] int sceJpegArmEncoderSetOutputAddr(uint context, uint outBuffer, uint outSize) => SetOutput(_armCtx, ArmErr, context, outBuffer, outSize);
+    /// <summary>libscejpegencarm 3.74 (0x81000394): no buffer is allowed (the room is the header's 0x262 bytes); a
+    /// buffer of less than 4 bytes 0x80650305.</summary>
+    [Hle]
+    int sceJpegArmEncoderSetOutputAddr(uint context, uint outBuffer, uint outSize)
+    {
+        if (outBuffer != 0 && outSize < 4)
+        {
+            return ARM_ERR_INVALID_POINTER;
+        }
+
+        return With(_armCtx, ArmErr, context, c =>
+        {
+            c.OutBuffer = outBuffer;
+            c.OutSize = outSize;
+            SetCursor(c, outBuffer, outSize);
+        });
+    }
     [Hle] int sceJpegArmEncoderSetValidRegion(uint context, ushort width, ushort height) => SetRegion(_armCtx, ArmErr, context, width, height);
     [Hle] int sceJpegArmEncoderSetHeaderMode(uint context, int mode) => SetHeader(_armCtx, ArmErr, context, mode);
 
@@ -183,7 +245,7 @@ public sealed partial class JpegEnc : HleModule
                 ValidWidth = cc.ValidWidth, ValidHeight = cc.ValidHeight, OutBuffer = cc.OutBuffer, OutSize = cc.OutSize,
             };
         }
-        if (inBuffer == 0) return err.Pointer;
+        if (inBuffer == 0 || c.OutBuffer == 0) return err.Pointer;
         if (!Subsampling(c.PixelFormat, out int vdiv)) return err.PixelFormat;
         int w = c.Width, h = c.Height, cw = (w + 1) / 2, ch = (h + vdiv - 1) / vdiv;
         var src = GuestMemory.Span(inBuffer, w * h + 2 * cw * ch);

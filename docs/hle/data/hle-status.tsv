@@ -9,7 +9,7 @@ SceActivityDb	vs0:sys/external/activity_db.suprx	78	78	0	0	57	57	0	0	0	78
 SceAppMgr	os0:kd/bootimage.skprx/SceAppMgr	191	191	5	5	172	172	0	0	0	0
 SceAppMgrUser	os0:us/driver_us.suprx	128	128	10	10	99	99	0	0	0	0
 SceAppSettings	vs0:vsh/common/app_settings.suprx	24	24	0	0	15	15	0	0	0	24
-SceAppUtil	vs0:sys/external/apputil.suprx	56	50	33	33	9	5	0	0	0	0
+SceAppUtil	vs0:sys/external/apputil.suprx	56	54	33	33	9	9	0	0	0	0
 SceAppUtilAddcontForce	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	0
 SceAppUtilAppEventUserDefined	vs0:sys/external/apputil.suprx	1	1	0	0	0	0	0	0	0	1
 SceAppUtilBook	vs0:sys/external/apputil.suprx	2	2	0	0	0	0	0	0	0	0
@@ -106,7 +106,7 @@ SceIofilemgr	os0:kd/iofilemgr.skprx	59	59	6	6	40	40	0	0	0	0
 SceIpmi	vs0:sys/external/libshellsvc.suprx	83	83	2	2	40	40	0	0	0	83
 SceIpmiNonGameApp	vs0:sys/external/libipmi_nongame.suprx	26	26	0	0	0	0	0	0	0	26
 SceJpegArm	vs0:sys/external/libscejpegarm.suprx	6	6	0	0	1	1	0	0	0	0
-SceJpegEncArm	vs0:sys/external/libscejpegencarm.suprx	9	8	0	0	9	8	0	0	0	0
+SceJpegEncArm	vs0:sys/external/libscejpegencarm.suprx	9	9	0	0	9	9	0	0	0	0
 SceJpegEncUser	os0:us/avcodec_us.suprx	10	10	7	7	3	3	0	0	0	0
 SceJpegPromoter	vs0:vsh/common/mms/jpeg_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceJpegUser	os0:us/avcodec_us.suprx	11	11	8	8	0	0	0	0	0	0
@@ -211,7 +211,7 @@ ScePartyMemberListPlugin	vs0:sys/external/party_member_list.suprx	5	5	0	0	5	5	0	
 ScePerf	vs0:sys/external/libperf.suprx	26	26	1	1	2	2	0	0	0	0
 ScePerfInternal	vs0:sys/external/libperf.suprx	6	6	0	0	0	0	0	0	0	6
 ScePgf	vs0:sys/external/libpgf.suprx	23	23	0	0	0	0	0	0	0	0
-ScePhotoExport	vs0:sys/external/libScePhotoExport.suprx	10	4	4	4	6	0	0	0	0	0
+ScePhotoExport	vs0:sys/external/libScePhotoExport.suprx	10	10	4	4	6	6	4	0	4	0
 ScePngPromoter	vs0:vsh/common/mms/png_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 ScePower	os0:kd/bootimage.skprx/ScePower	42	42	17	17	13	13	0	0	0	0
 SceProcessmgr	os0:kd/processmgr.skprx	31	31	12	12	17	17	0	0	0	0

@@ -21,9 +21,13 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class NpMatching2 : HleModule
 {
-    const int ERR_NOT_INITIALIZED = unchecked((int)0x80550c01), ERR_INVALID_ARGUMENT = unchecked((int)0x80550c03),
-        ERR_CONTEXT_ALREADY_STARTED = unchecked((int)0x80550c07), ERR_CONTEXT_NOT_STARTED = unchecked((int)0x80550c08),
-        ERR_CONTEXT_NOT_FOUND = unchecked((int)0x80550c0b), ERR_ROOM_NOT_FOUND = unchecked((int)0x80550c35);
+    // np_matching2.suprx 3.74's client codes (read in its code): not initialised 0x80550C03 (Term included), already
+    // initialised 0x80550C02, a NULL or bad argument 0x80550C0A, no context with the id 0x80550C06, a start or stop in
+    // the wrong state 0x80550C07 / 0x80550C08, a start timeout below 5 s 0x80550C3B, a context in no room 0x80550C2D.
+    internal const int ERR_NOT_INITIALIZED = unchecked((int)0x80550c03), ERR_ALREADY_INITIALIZED = unchecked((int)0x80550c02),
+        ERR_INVALID_ARGUMENT = unchecked((int)0x80550c0a), ERR_CONTEXT_ALREADY_STARTED = unchecked((int)0x80550c07),
+        ERR_CONTEXT_NOT_STARTED = unchecked((int)0x80550c08), ERR_CONTEXT_NOT_FOUND = unchecked((int)0x80550c06),
+        ERR_ROOM_NOT_FOUND = unchecked((int)0x80550c2d), ERR_INVALID_TIMEOUT = unchecked((int)0x80550c3b);
     internal const int SERVER_SERVICE_UNAVAILABLE = unchecked((int)0x80550d02), SERVER_NO_SUCH_ROOM = unchecked((int)0x80550d13);
 
     internal const int CONTEXT_EVENT_START_OVER = 0x6F01, CONTEXT_EVENT_START = 0x6F02, CONTEXT_EVENT_STOP = 0x6F03;
@@ -72,6 +76,11 @@ public sealed partial class NpMatching2 : HleModule
     {
         lock (_lock)
         {
+            if (_initialized)
+            {
+                return ERR_ALREADY_INITIALIZED;
+            }
+
             _initialized = true;
             if (threadPriority is >= 64 and <= 191) _threadPriority = threadPriority;
         }
@@ -83,12 +92,13 @@ public sealed partial class NpMatching2 : HleModule
     {
         lock (_lock)
         {
-            if (_initialized)
+            if (!_initialized)
             {
-                // np_matching2.suprx 3.74 puts the signaling port back to its default when it terminates
-                _signalingPort = DefaultSignalingPort;
+                return ERR_NOT_INITIALIZED;
             }
 
+            // np_matching2.suprx 3.74 puts the signaling port back to its default when it terminates
+            _signalingPort = DefaultSignalingPort;
             _initialized = false;
             _contexts.Clear();
         }
@@ -112,7 +122,19 @@ public sealed partial class NpMatching2 : HleModule
         return 0;
     }
 
-    [Hle] int sceNpMatching2DestroyContext(ushort ctxId) { lock (_lock) return _contexts.Remove(ctxId) ? 0 : ERR_CONTEXT_NOT_FOUND; }
+    [Hle]
+    int sceNpMatching2DestroyContext(ushort ctxId)
+    {
+        lock (_lock)
+        {
+            if (!_initialized)
+            {
+                return ERR_NOT_INITIALIZED;
+            }
+
+            return _contexts.Remove(ctxId) ? 0 : ERR_CONTEXT_NOT_FOUND;
+        }
+    }
 
     bool Valid(ushort ctxId) { lock (_lock) return _contexts.ContainsKey(ctxId); }
 
@@ -127,6 +149,7 @@ public sealed partial class NpMatching2 : HleModule
         lock (_lock)
         {
             if (!_initialized) return ERR_NOT_INITIALIZED;
+            if (timeout is > 0 and < 5_000_000) return ERR_INVALID_TIMEOUT;
             if (!_contexts.TryGetValue(ctxId, out c)) return ERR_CONTEXT_NOT_FOUND;
             if (!PsnAccount.Current.SignedIn) return PsnAccount.Current.ServerError;
             if (Local)

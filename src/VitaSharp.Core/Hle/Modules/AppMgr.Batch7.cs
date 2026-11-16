@@ -661,7 +661,7 @@ public sealed partial class AppMgr
     /// <summary>(char mountPoint[16]): mounts the PSP emulator's save root (ux0:pspemu/PSP/SAVEDATA): its folder.</summary>
     [Hle("sceAppMgrPspSaveDataRootMount")]
     [Hle("_sceAppMgrPspSaveDataRootMount")]
-    int PspSaveDataRootMount(uint mountPoint)
+    internal int PspSaveDataRootMount(uint mountPoint)
     {
         if (mountPoint == 0) return ERR_NULL_POINTER;
         GuestMemory.WriteCString(mountPoint, Io.FirmwareLayout.PspEmulator.Guest(), 0x10);

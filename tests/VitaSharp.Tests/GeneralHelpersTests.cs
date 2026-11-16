@@ -108,7 +108,7 @@ public sealed class GeneralHelpersTests(GuestMemoryFixture fixture) : IDisposabl
         Assert.Equal(0, Call(matching, "NID_40585786", new Ptr<ushort>(port)));
         Assert.Equal(0x2756, GuestMemory.Read<ushort>(port));
 
-        Assert.Equal(0, Call(matching, "sceNpMatching2Term")); // not initialised: the port stays
+        Assert.Equal(unchecked((int)0x80550C03), Call(matching, "sceNpMatching2Term")); // not initialised: the port stays
         Assert.Equal(0, Call(matching, "NID_40585786", new Ptr<ushort>(port)));
         Assert.Equal(0x2756, GuestMemory.Read<ushort>(port));
         Assert.Equal(0, Call(matching, "sceNpMatching2Init", 0x10000u, 0, 0, 0u));

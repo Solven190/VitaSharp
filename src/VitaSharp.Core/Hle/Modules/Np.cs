@@ -761,12 +761,18 @@ public static class NpIdUtil
 
 /// <summary>
 /// SceNpBasic additions, SceNpMessage, SceNpActivity and the party state (SceNpPartyGameUtil): offline there are no
-/// friends, messages or parties. (The older SceNpBasic/SceNpParty functions live in Online.cs, class Np.)
+/// friends, messages or parties. (The older SceNpBasic functions live in Online.cs, class Np.)
 /// </summary>
 public sealed partial class NpSocial : HleModule
 {
     const int BASIC_INVALID_ARGUMENT = unchecked((int)0x80551D02),
         ERR_NOT_IN_PARTY = unchecked((int)0x80553402);
+
+    /// <summary>np_party.suprx 3.74's codes: not initialised 0x80552503, initialised twice 0x80552502, a NULL or bad
+    /// argument 0x80552504, no voice handler 0x80552507, no session handler 0x80552509.</summary>
+    internal const int PARTY_NOT_INITIALIZED = unchecked((int)0x80552503), PARTY_ALREADY_INITIALIZED = unchecked((int)0x80552502),
+        PARTY_INVALID_ARGUMENT = unchecked((int)0x80552504), PARTY_NO_VOICE_HANDLER = unchecked((int)0x80552507),
+        PARTY_NO_SESSION_HANDLER = unchecked((int)0x80552509);
 
     // ---------------------------------------------------------------- SceNpBasic: no friends, nothing blocked
 
@@ -845,20 +851,155 @@ public sealed partial class NpSocial : HleModule
 
     // ---------------------------------------------------------------- SceNpPartyGameUtil: never in a party
 
+    /// <summary>The library's state (np_party.suprx 3.74 keeps it in its data): initialised, the SDK version of the
+    /// init param and the handlers (+4 events, +8 voice, +0xC session; the session handler only from SDK 3.30).</summary>
+    [SnapshotMissing]
+    bool _partyInitialized;
+
+    [SnapshotMissing]
+    uint _partySdk, _partyEventHandler, _partyVoiceHandler, _partySessionHandler, _partyHandlerArg;
+
+    /// <summary>
+    /// (const SceNpPartyInitParam *param): param +0 is the SDK version; from SDK 3.50 the 12 bytes after it must be
+    /// zero (0x80552504); a second init 0x80552502. Then the library connects to the shell's party service.
+    /// </summary>
+    [Hle]
+    int sceNpPartyInit(uint param)
+    {
+        if (param == 0)
+        {
+            return PARTY_INVALID_ARGUMENT;
+        }
+
+        uint sdk = GuestMemory.R32(param);
+        if (sdk > 0x034FFFFF && GuestMemory.Span(param + 4, 12).ContainsAnyExcept((byte)0))
+        {
+            return PARTY_INVALID_ARGUMENT;
+        }
+
+        if (_partyInitialized)
+        {
+            return PARTY_ALREADY_INITIALIZED;
+        }
+
+        _partyInitialized = true;
+        _partySdk = sdk;
+        _partyEventHandler = _partyVoiceHandler = _partySessionHandler = _partyHandlerArg = 0;
+        return 0;
+    }
+
+    [Hle]
+    int sceNpPartyTerm()
+    {
+        if (!_partyInitialized)
+        {
+            return PARTY_NOT_INITIALIZED;
+        }
+
+        _partyInitialized = false;
+        return 0;
+    }
+
+    /// <summary>Delivers the party service's events to the handlers: never in a party, there are none.</summary>
+    [Hle]
+    int sceNpPartyCheckCallback() => _partyInitialized ? 0 : PARTY_NOT_INITIALIZED;
+
+    /// <summary>(const SceNpPartyEventHandlers *handlers, void *arg): keeps the event and voice handlers, and the
+    /// session handler for SDK 3.30 or later.</summary>
+    [Hle]
+    int sceNpPartyRegisterHandler(uint handlers, uint arg)
+    {
+        if (!_partyInitialized)
+        {
+            return PARTY_NOT_INITIALIZED;
+        }
+
+        if (handlers == 0)
+        {
+            return PARTY_INVALID_ARGUMENT;
+        }
+
+        _partyEventHandler = GuestMemory.R32(handlers + 4);
+        _partyVoiceHandler = GuestMemory.R32(handlers + 8);
+        _partySessionHandler = _partySdk > 0x032FFFFF ? GuestMemory.R32(handlers + 0xC) : 0;
+        _partyHandlerArg = arg;
+        return 0;
+    }
+
+    /// <summary>The checks np_party runs before asking the party service: initialised, then the handler the call
+    /// needs, then the output pointers.</summary>
+    int PartyCall(bool argumentsValid, int missingHandler = 0)
+    {
+        if (!_partyInitialized)
+        {
+            return PARTY_NOT_INITIALIZED;
+        }
+
+        if (missingHandler != 0)
+        {
+            return missingHandler;
+        }
+
+        return argumentsValid ? 0 : PARTY_INVALID_ARGUMENT;
+    }
+
+    [Hle]
+    int sceNpPartyGetMembers(uint members)
+    {
+        int result = PartyCall(members != 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
+
+    [Hle]
+    int sceNpPartyGetMemberInfo(uint memberId, uint info)
+    {
+        int result = PartyCall(memberId != 0 && info != 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
+
+    [Hle]
+    int sceNpPartyGetMemberVoiceInfo(ushort memberId, uint info)
+    {
+        int result = PartyCall(info != 0, _partyVoiceHandler == 0 ? PARTY_NO_VOICE_HANDLER : 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
+
     /// <summary>Writes the "not in a party" state. Its numeric value is unconfirmed (no header, Vita3K
     /// unimplemented); 0 is used and the call is logged once.</summary>
     [Hle]
     int sceNpPartyGetState(uint state)
     {
-        if (state == 0) return NpManager.ERR_INVALID_ARGUMENT;
+        int result = PartyCall(state != 0);
+        if (result != 0)
+        {
+            return result;
+        }
+
         GuestMemory.W32(state, 0);
         Log.DebugOnce("party-state", "sceNpPartyGetState: not in a party (state 0)");
         return 0;
     }
 
-    [Hle] int sceNpPartyGetId(uint id) => ERR_NOT_IN_PARTY;
-    [Hle] int sceNpPartyGetMemberSessionInfo(uint memberId, uint info) => ERR_NOT_IN_PARTY;
-    [Hle] int sceNpPartyGetGameSessionReadyState(uint state) => ERR_NOT_IN_PARTY;
+    [Hle]
+    int sceNpPartyGetId(uint id)
+    {
+        int result = PartyCall(id != 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
+
+    [Hle]
+    int sceNpPartyGetMemberSessionInfo(ushort memberId, uint info)
+    {
+        int result = PartyCall(info != 0, _partySessionHandler == 0 ? PARTY_NO_SESSION_HANDLER : 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
+
+    [Hle]
+    int sceNpPartyGetGameSessionReadyState(uint state)
+    {
+        int result = PartyCall(state != 0, _partySessionHandler == 0 ? PARTY_NO_SESSION_HANDLER : 0);
+        return result != 0 ? result : ERR_NOT_IN_PARTY;
+    }
 
     /// <summary>NID_6370CEB6 / NID_089134D1 (): np_party.suprx 3.74 sends the party service the argument-less requests
     /// 0x110018 / 0x110019 and answers the service's result. The party service has no party here (nothing to join
@@ -866,6 +1007,11 @@ public sealed partial class NpSocial : HleModule
     [Hle("NID_6370CEB6", Nid = 0x6370CEB6, Library = "SceNpPartyGameUtil", Default = true)]
     int NpPartyRequest110018()
     {
+        if (!_partyInitialized)
+        {
+            return PARTY_NOT_INITIALIZED;
+        }
+
         Log.InfoOnce("party-110018", "SceNpPartyGameUtil NID_6370CEB6: no party service party: not in a party");
         return ERR_NOT_IN_PARTY;
     }
@@ -873,6 +1019,11 @@ public sealed partial class NpSocial : HleModule
     [Hle("NID_089134D1", Nid = 0x089134D1, Library = "SceNpPartyGameUtil", Default = true)]
     int NpPartyRequest110019()
     {
+        if (!_partyInitialized)
+        {
+            return PARTY_NOT_INITIALIZED;
+        }
+
         Log.InfoOnce("party-110019", "SceNpPartyGameUtil NID_089134D1: no party service party: not in a party");
         return ERR_NOT_IN_PARTY;
     }

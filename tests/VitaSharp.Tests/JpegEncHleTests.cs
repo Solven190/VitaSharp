@@ -267,17 +267,17 @@ public sealed class JpegEncHleTests(GuestMemoryFixture fixture)
     public void ArmEncoder()
     {
         var e = new JpegEnc();
-        Assert.Equal(0x20, Call(e, "sceJpegArmEncoderGetContextSize"));
+        Assert.Equal(0x180, Call(e, "sceJpegArmEncoderGetContextSize"));
         JpegHleTests.Planes src = JpegHleTests.Synthetic(64, 32, 2, 1);
         uint input = PutPlanes(src, "arm-in");
         uint ctx = Alloc(0x20, "arm-ctx"), outp = Alloc(0x4000, "arm-out");
         Assert.Equal(JpegEnc.ARM_ERR_INVALID_PIXELFORMAT, Call(e, "sceJpegArmEncoderInit", ctx, (ushort)64, (ushort)32, 0, outp, 0x4000u));
-        Assert.Equal(JpegEnc.ARM_ERR_INVALID_PIXELFORMAT, Call(e, "sceJpegArmEncoderInit", ctx, (ushort)64, (ushort)32, 8 | 16, outp, 0x4000u));
+        Assert.Equal(JpegEnc.ARM_ERR_INVALID_PIXELFORMAT, Call(e, "sceJpegArmEncoderInit", ctx, (ushort)64, (ushort)32, 10, outp, 0x4000u));
         Assert.Equal(JpegEnc.ARM_ERR_INVALID_POINTER, Call(e, "sceJpegArmEncoderInit", 0u, (ushort)64, (ushort)32, 9, outp, 0x4000u));
         Assert.Equal(JpegEnc.ARM_ERR_IMAGE_SIZE, Call(e, "sceJpegArmEncoderInit", ctx, (ushort)0, (ushort)32, 9, outp, 0x4000u));
         Assert.Equal(0, Call(e, "sceJpegArmEncoderInit", ctx, (ushort)64, (ushort)32, 9, outp, 0x4000u));
-        Assert.Equal(JpegEnc.ARM_ERR_INVALID_COMP_RATIO, Call(e, "sceJpegArmEncoderSetCompressionRatio", ctx, (byte)0));
-        Assert.Equal(0, Call(e, "sceJpegArmEncoderSetCompressionRatio", ctx, (byte)1));
+        Assert.Equal(JpegEnc.ARM_ERR_INVALID_COMP_RATIO, Call(e, "sceJpegArmEncoderSetCompressionRatio", ctx, 0x100u));
+        Assert.Equal(0, Call(e, "sceJpegArmEncoderSetCompressionRatio", ctx, 1u));
         Assert.Equal(JpegEnc.ARM_ERR_INVALID_HEADER_MODE, Call(e, "sceJpegArmEncoderSetHeaderMode", ctx, 3));
         Assert.Equal(JpegEnc.ARM_ERR_IMAGE_SIZE, Call(e, "sceJpegArmEncoderSetValidRegion", ctx, (ushort)64, (ushort)33));
         Assert.Equal(0, Call(e, "sceJpegArmEncoderSetValidRegion", ctx, (ushort)64, (ushort)32));
@@ -287,7 +287,7 @@ public sealed class JpegEncHleTests(GuestMemoryFixture fixture)
         Assert.True(PlanePsnr(img, 0, src.Y, 64, 32) > 40);
         Assert.Equal(0, Call(e, "sceJpegArmEncoderSetOutputAddr", ctx, outp, 64u));
         Assert.Equal(JpegEnc.ARM_ERR_INSUFFICIENT_BUFFER, Call(e, "sceJpegArmEncoderEncode", ctx, input));
-        Assert.Equal(JpegEnc.ARM_ERR_INVALID_POINTER, Call(e, "sceJpegArmEncoderSetOutputAddr", ctx, 0u, 64u));
+        Assert.Equal(JpegEnc.ARM_ERR_INVALID_POINTER, Call(e, "sceJpegArmEncoderSetOutputAddr", ctx, outp, 3u));
         Assert.Equal(0, Call(e, "sceJpegArmEncoderEnd", ctx));
         Assert.Equal(JpegEnc.ARM_ERR_INVALID_POINTER, Call(e, "sceJpegArmEncoderEncode", ctx, input));
         // user and Arm contexts are separate namespaces

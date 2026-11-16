@@ -356,9 +356,13 @@
 0xB3935DD3	NID_B3935DD3	FirmwareConstants	SceAppSettings	-
 0xD58DE5C7	NID_D58DE5C7	FirmwareConstants	SceAppSettings	-
 0xED46CAFD	NID_ED46CAFD	FirmwareConstants	SceAppSettings	-
+0x1CFFE892	NID_1CFFE892	AppUtil	SceAppUtil	-
 0xA3E0694F	NID_A3E0694F	AppUtil	SceAppUtil	-
 0xB2FE3BB1	NID_B2FE3BB1	AppUtil	SceAppUtil	-
+0xC0418B1C	NID_C0418B1C	AppUtil	SceAppUtil	-
+0xC3CB128B	NID_C3CB128B	AppUtil	SceAppUtil	-
 0xCD0E5C59	NID_CD0E5C59	AppUtil	SceAppUtil	-
+0xE8CADCA9	NID_E8CADCA9	AppUtil	SceAppUtil	-
 0xF93C691C	NID_F93C691C	AppUtil	SceAppUtil	-
 0xC97D5D9E	sceAppUtilAddCookieWebBrowser	AppUtil	SceAppUtil	vh
 0x53B2C020	sceAppUtilAddcontMount	AppUtil	SceAppUtil	vh
@@ -2446,6 +2450,7 @@
 0xE9CB3DFD	sceJpegArmDeleteSplitDecoder	Jpeg	SceJpegArm	vh
 0x23AE3BEA	sceJpegArmGetOutputInfo	Jpeg	SceJpegArm	vh
 0x5D83C606	sceJpegArmSplitDecodeMJpeg	Jpeg	SceJpegArm	vh
+0x4EE1BAED	NID_4EE1BAED	JpegEnc	SceJpegEncArm	-
 0x648FFAA3	sceJpegArmEncoderEncode	JpegEnc	SceJpegEncArm	vh
 0x8A42D6EC	sceJpegArmEncoderEnd	JpegEnc	SceJpegEncArm	vh
 0x8D15B36D	sceJpegArmEncoderGetContextSize	JpegEnc	SceJpegEncArm	vh
@@ -6634,17 +6639,17 @@
 0x62ED2200	NID_62ED2200	FirmwareConstants	SceNpMessageDialogPlugin	-
 0x089134D1	NID_089134D1	NpSocial	SceNpPartyGameUtil	-	default
 0x6370CEB6	NID_6370CEB6	NpSocial	SceNpPartyGameUtil	-	default
-0xB6132502	sceNpPartyCheckCallback	Np	SceNpPartyGameUtil	vh
+0xB6132502	sceNpPartyCheckCallback	NpSocial	SceNpPartyGameUtil	vh
 0xE9173FE6	sceNpPartyGetGameSessionReadyState	NpSocial	SceNpPartyGameUtil	vh
 0x27AFCE24	sceNpPartyGetId	NpSocial	SceNpPartyGameUtil	vh
-0x0560D9A1	sceNpPartyGetMemberInfo	Np	SceNpPartyGameUtil	vh
+0x0560D9A1	sceNpPartyGetMemberInfo	NpSocial	SceNpPartyGameUtil	vh
 0xF01585A3	sceNpPartyGetMemberSessionInfo	NpSocial	SceNpPartyGameUtil	vh
-0xFB200A6D	sceNpPartyGetMemberVoiceInfo	Np	SceNpPartyGameUtil	vh
-0x420C30E9	sceNpPartyGetMembers	Np	SceNpPartyGameUtil	vh
+0xFB200A6D	sceNpPartyGetMemberVoiceInfo	NpSocial	SceNpPartyGameUtil	vh
+0x420C30E9	sceNpPartyGetMembers	NpSocial	SceNpPartyGameUtil	vh
 0x9F99ADF7	sceNpPartyGetState	NpSocial	SceNpPartyGameUtil	vh
-0xB304962C	sceNpPartyInit	Np	SceNpPartyGameUtil	vh
-0x324C76F0	sceNpPartyRegisterHandler	Np	SceNpPartyGameUtil	vh
-0xF524AD2B	sceNpPartyTerm	Np	SceNpPartyGameUtil	vh
+0xB304962C	sceNpPartyInit	NpSocial	SceNpPartyGameUtil	vh
+0x324C76F0	sceNpPartyRegisterHandler	NpSocial	SceNpPartyGameUtil	vh
+0xF524AD2B	sceNpPartyTerm	NpSocial	SceNpPartyGameUtil	vh
 0xA7E93CE1	sceNpScoreAbortRequest	NpScore	SceNpScore	vh
 0xA0C94D46	sceNpScoreCensorComment	NpScore	SceNpScore	vh
 0xAA0BBF8E	sceNpScoreCensorCommentAsync	NpScore	SceNpScore	vh
@@ -8418,6 +8423,12 @@
 0x03F10EC8	sceFontPointToPixelV	Pgf	ScePgf	vh
 0x8D5B44DF	sceFontSetAltCharacterCode	Pgf	ScePgf	vh
 0xDE47674C	sceFontSetResolution	Pgf	ScePgf	vh
+0x05D5A482	NID_05D5A482	MediaExport	ScePhotoExport	-	default
+0x16B1028E	NID_16B1028E	MediaExport	ScePhotoExport	-	default
+0x2EFB7250	NID_2EFB7250	MediaExport	ScePhotoExport	-	default
+0x719ACE85	NID_719ACE85	MediaExport	ScePhotoExport	-
+0x76640642	NID_76640642	MediaExport	ScePhotoExport	-
+0xF4E0F7FF	NID_F4E0F7FF	MediaExport	ScePhotoExport	-	default
 0x70512321	scePhotoExportFromData	MediaExport	ScePhotoExport	vh
 0x84FD9FC5	scePhotoExportFromFile	MediaExport	ScePhotoExport	vh
 0xE6E6AFD5	scePhotoExportIsAvailableFromData	MediaExport	ScePhotoExport	vh

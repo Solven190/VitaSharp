@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,999 | 6,762 | 237 | 0 | 7,320 | 95.6% |
+| System imports | 7,010 | 6,769 | 241 | 0 | 7,320 | 95.7% |
 | General | 9,684 | 9,449 | 235 | 0 | 9,944 | 97.3% |
-| All firmware 3.74 exports | 18,825 | 4,856 | 478 | 13,491 | 19,406 | 97% |
+| All firmware 3.74 exports | 18,836 | 4,863 | 482 | 13,491 | 19,406 | 97% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -296,7 +296,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceAppMgr | `os0:kd/bootimage.skprx/SceAppMgr` | 191 / 191 | 100% | - | 5 / 5 | 172 / 172 |
 | SceAppMgrUser | `os0:us/driver_us.suprx` | 128 / 128 | 100% | - | 10 / 10 | 99 / 99 |
 | SceAppSettings | `vs0:vsh/common/app_settings.suprx` | 24 / 24 | 100% | - | - | 15 / 15 |
-| SceAppUtil | `vs0:sys/external/apputil.suprx` | 50 / 56 | 89.2% | - | 33 / 33 | 5 / 9 |
+| SceAppUtil | `vs0:sys/external/apputil.suprx` | 54 / 56 | 96.4% | - | 33 / 33 | 9 / 9 |
 | SceAppUtilAddcontForce | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilAppEventUserDefined | `vs0:sys/external/apputil.suprx` | 1 / 1 | 100% | - | - | - |
 | SceAppUtilBook | `vs0:sys/external/apputil.suprx` | 2 / 2 | 100% | - | - | - |
@@ -393,7 +393,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceIpmi | `vs0:sys/external/libshellsvc.suprx` | 83 / 83 | 100% | - | 2 / 2 | 40 / 40 |
 | SceIpmiNonGameApp | `vs0:sys/external/libipmi_nongame.suprx` | 26 / 26 | 100% | - | - | - |
 | SceJpegArm | `vs0:sys/external/libscejpegarm.suprx` | 6 / 6 | 100% | - | - | 1 / 1 |
-| SceJpegEncArm | `vs0:sys/external/libscejpegencarm.suprx` | 8 / 9 | 88.8% | - | - | 8 / 9 |
+| SceJpegEncArm | `vs0:sys/external/libscejpegencarm.suprx` | 9 / 9 | 100% | - | - | 9 / 9 |
 | SceJpegEncUser | `os0:us/avcodec_us.suprx` | 10 / 10 | 100% | - | 7 / 7 | 3 / 3 |
 | SceJpegPromoter | `vs0:vsh/common/mms/jpeg_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | SceJpegUser | `os0:us/avcodec_us.suprx` | 11 / 11 | 100% | - | 8 / 8 | - |
@@ -498,7 +498,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | ScePerf | `vs0:sys/external/libperf.suprx` | 26 / 26 | 100% | - | 1 / 1 | 2 / 2 |
 | ScePerfInternal | `vs0:sys/external/libperf.suprx` | 6 / 6 | 100% | - | - | - |
 | ScePgf | `vs0:sys/external/libpgf.suprx` | 23 / 23 | 100% | - | - | - |
-| ScePhotoExport | `vs0:sys/external/libScePhotoExport.suprx` | 4 / 10 | 40% | - | 4 / 4 | 0 / 6 |
+| ScePhotoExport | `vs0:sys/external/libScePhotoExport.suprx` | 10 / 10 | 100% | 4 | 4 / 4 | 6 / 6 |
 | ScePngPromoter | `vs0:vsh/common/mms/png_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | ScePower | `os0:kd/bootimage.skprx/ScePower` | 42 / 42 | 100% | - | 17 / 17 | 13 / 13 |
 | SceProcessmgr | `os0:kd/processmgr.skprx` | 31 / 31 | 100% | - | 12 / 12 | 17 / 17 |

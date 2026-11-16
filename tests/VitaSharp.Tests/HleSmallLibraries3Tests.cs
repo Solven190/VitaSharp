@@ -95,6 +95,7 @@ public sealed class HleSmallLibraries3Tests(GuestMemoryFixture fixture) : IDispo
     public void NpPartyServiceRequestsAnswerNotInAParty()
     {
         NpSocial social = _harness.Module<NpSocial>();
+        Assert.Equal(0, Call(social, "sceNpPartyInit", _harness.Alloc(16)));
         Assert.Equal(NotInParty, Call(social, "NpPartyRequest110018"));
         Assert.Equal(NotInParty, Call(social, "NpPartyRequest110019"));
     }

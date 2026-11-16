@@ -173,20 +173,94 @@ public sealed partial class MediaExport : HleModule
         return r;
     }
 
-    /// <summary>MusicExportParam (0x80) is reserved.</summary>
+    /// <summary>
+    /// libSceMusicExport 3.74 (0x81000718): the registry's restrictions first (0x154A2C = 1: 0x80105307, 0x7D12C4 = 1:
+    /// 0x80105303, 0x9623D0 = 1: 0x8010530C); a NULL path or output path or a negative output size 0x80105301; a path
+    /// of 0x400 bytes or more, or on music0:, vs0: or vd0: 0x8010530E; for titles built with SDK 2.00 or later a
+    /// MusicExportParam (0x80) with a byte set 0x80105301; a missing file 0x80105302; 2 GiB or more, or not .mp3 .m4a
+    /// .3gp .wav, 0x80105309. Then the file is copied into music0:.
+    /// </summary>
     [Hle]
-    int sceMusicExportFromFile(uint pathPtr, uint param, uint workingMemory, uint cancelCb, uint progress, uint user, uint outPath, uint outPathSize)
+    int sceMusicExportFromFile(uint pathPtr, uint param, uint workingMemory, uint cancelCb, uint progress, uint user, uint outPath, int outPathSize)
     {
-        if (pathPtr == 0) return ERR_INVALID;
-        string path = GuestMemory.ReadCString(pathPtr, PathMax);
-        if (path.Length == 0) return ERR_INVALID;
-        int r = CopyFile(nameof(sceMusicExportFromFile), "music0", path, outPath, outPathSize, out _);
+        int r = CheckMusicSource(pathPtr, param, outPath, outPathSize, out string path);
+        if (r != 0)
+        {
+            return r;
+        }
+
+        r = CopyFile(nameof(sceMusicExportFromFile), "music0", path, outPath, (uint)outPathSize, out _);
         if (r == 0) Progress(progress, user);
         return r;
     }
 
-    /// <summary>libSceMusicExport 3.74's error for a bad argument of the batch export.</summary>
-    internal const int MusicErrInvalid = unchecked((int)0x80105301);
+    /// <summary>libSceMusicExport 3.74's errors.</summary>
+    internal const int MusicErrInvalid = unchecked((int)0x80105301), MusicErrNoFile = unchecked((int)0x80105302),
+        MusicErrRestricted = unchecked((int)0x80105303), MusicErrRestrictedKey1 = unchecked((int)0x80105307),
+        MusicErrUnsupported = unchecked((int)0x80105309), MusicErrRestrictedKey3 = unchecked((int)0x8010530C),
+        MusicErrPath = unchecked((int)0x8010530E);
+
+    int CheckMusicSource(uint pathPtr, uint param, uint outPath, int outPathSize, out string path)
+    {
+        path = "";
+        if (RegistryFlag(0x00154A2C))
+        {
+            return MusicErrRestrictedKey1;
+        }
+
+        if (RegistryFlag(0x007D12C4))
+        {
+            return MusicErrRestricted;
+        }
+
+        if (RegistryFlag(0x009623D0))
+        {
+            return MusicErrRestrictedKey3;
+        }
+
+        if (pathPtr == 0 || outPathSize < 0 || outPath == 0)
+        {
+            return MusicErrInvalid;
+        }
+
+        path = GuestMemory.ReadCString(pathPtr, PathMax);
+        if (path.Length >= PathMax - 1 || path.StartsWith("music0:", StringComparison.Ordinal) || path.StartsWith("vs0:", StringComparison.Ordinal)
+            || path.StartsWith("vd0:", StringComparison.Ordinal))
+        {
+            return MusicErrPath;
+        }
+
+        if (MainModuleSdkVersion() > 0x01FFFFFF && param != 0 && GuestMemory.Span(param, 0x80).ContainsAnyExcept((byte)0))
+        {
+            return MusicErrInvalid;
+        }
+
+        int file = SourceFile(path, MusicErrNoFile, MusicErrUnsupported);
+        if (file != 0)
+        {
+            return file;
+        }
+
+        return LastExtension(path) is ".mp3" or ".m4a" or ".3gp" or ".wav" ? 0 : MusicErrUnsupported;
+    }
+
+    /// <summary>A registry key of the system's restrictions set to 1 (none without the registry module).</summary>
+    bool RegistryFlag(uint key)
+    {
+        return Emu?.Hle.Modules.OfType<RegMgr>().FirstOrDefault()?.Value(key, out _) is int flag && flag == 1;
+    }
+
+    /// <summary>SDK version the main module was built with (0 without one).</summary>
+    uint MainModuleSdkVersion()
+    {
+        uint processParam = Emu?.Linker.ProcessParam ?? 0;
+        if (processParam == 0 || GuestMemory.R32(processParam + 4) != 0x32505350 || GuestMemory.R32(processParam + 8) == 0)
+        {
+            return 0;
+        }
+
+        return GuestMemory.R32(processParam + 0xC);
+    }
 
     /// <summary>Most files one batch export takes, and the sizes of its input (path[0x400] first) and result
     /// entries (path[0x400], then two words the module sets to -1 before the export).</summary>

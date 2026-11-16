@@ -1,4 +1,4 @@
-﻿using VitaSharp.Core.Memory;
+using VitaSharp.Core.Memory;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -231,14 +231,6 @@ public sealed partial class Np : HleModule
     [Hle] int sceNpManagerGetChatRestrictionFlag(Ptr<int> flag) { flag.TrySet(0); return 0; }
     [Hle] int sceNpBasicGetBlockListEntryCount(Ptr<uint> count) { count.TrySet(0); return 0; }
     [Hle] int sceNpBasicGetBlockListEntries(uint start, uint entries, uint num, Ptr<uint> retrieved) { retrieved.TrySet(0); return 0; }
-
-    [Hle] int sceNpPartyInit(uint p) => 0;
-    [Hle] int sceNpPartyTerm() => 0;
-    [Hle] int sceNpPartyCheckCallback() => 0;
-    [Hle] int sceNpPartyRegisterHandler(uint h, uint arg) => 0;
-    [Hle] int sceNpPartyGetMembers(uint members) => unchecked((int)0x80553402);
-    [Hle] int sceNpPartyGetMemberInfo(uint id, uint info) => unchecked((int)0x80553402);
-    [Hle] int sceNpPartyGetMemberVoiceInfo(uint id, uint info) => unchecked((int)0x80553402);
 
     [Hle] int sceNpBasicRegisterInGameDataMessageHandler(uint handler, uint arg) => 0; // messages only arrive from PSN
     [Hle] int sceNpBasicUnregisterInGameDataMessageHandler() => 0;
