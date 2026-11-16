@@ -567,6 +567,11 @@ public sealed partial class SysmemKernel : HleModule
             body = KernelAlloc(0x40, $"kobject:{o.Name}");
             GuestMemory.W32(body, body);
             GuestMemory.W32(body + 4, RootClass());
+            if (o is MemBlock block)
+            {
+                FillMemBlockObject(body, block, block.OwnerPid);
+            }
+
             _objectBodies[o.Uid] = body;
             return body;
         }
@@ -950,23 +955,15 @@ public sealed partial class SysmemKernel : HleModule
         return 0;
     }
 
-    /// <summary>ksceKernelSysrootGetCurrentAddressSpaceCB(): the address space object of the calling process. Its
-    /// firmware layout (page tables, memory block trees) is not reproduced: VitaSharp's address spaces are host
-    /// mappings, so the record is a zeroed 0x100-byte block per process, stable for the process.</summary>
+    /// <summary>ksceKernelSysrootGetCurrentAddressSpaceCB(): the address space object of the calling process, stable
+    /// for the process, in the FW 3.74 layout (flag, pid, its partition, magic; see SysmemKernel.FirmwareInternals):
+    /// the firmware's internal block lookup takes it. The page tables are not reproduced (VitaSharp's address spaces
+    /// are host mappings).</summary>
     [Hle(ReturnsValue = true, CallbackWait = true)]
     uint ksceKernelSysrootGetCurrentAddressSpaceCB()
     {
         int key = ProcessScope.CurrentPid == KernelSpace.KernelPid ? KernelSpace.KernelPid : Emu.Pid;
-        lock (_addressSpaces)
-        {
-            if (!_addressSpaces.TryGetValue(key, out uint space))
-            {
-                space = KernelAlloc(0x100, $"kernel:addressspace:{key:X}");
-                _addressSpaces[key] = space;
-            }
-
-            return space;
-        }
+        return AddressSpaceOf(key);
     }
 
     /// <summary>ksceDebugPrintKernelPanic(regs, lr): kernel code found a fatal error; the system stops (the calling

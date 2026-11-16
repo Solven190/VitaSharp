@@ -22,6 +22,14 @@ public sealed class SceModuleBuilder(string name)
     private int _startFunction = -1;
     private uint _codeMemSize = Size;
     private uint _dataMemSize;
+    private uint _moduleNid = 0x12345678;
+
+    /// <summary>module_info's module NID (+0x34; a firmware module's names its firmware build).</summary>
+    public SceModuleBuilder ModuleNid(uint nid)
+    {
+        _moduleNid = nid;
+        return this;
+    }
 
     /// <summary>The module's segments as a firmware module has them: the code segment <paramref name="codeMemSize"/>
     /// bytes in memory (its file part stays the builder's), then a data segment of <paramref name="dataMemSize"/>
@@ -217,7 +225,7 @@ public sealed class SceModuleBuilder(string name)
         W32(InfoAt + 0x28, (uint)exp);
         W32(InfoAt + 0x2C, ImportsAt);
         W32(InfoAt + 0x30, (uint)imp0);
-        W32(InfoAt + 0x34, 0x12345678);
+        W32(InfoAt + 0x34, _moduleNid);
         W32(InfoAt + 0x44, _startFunction >= 0 ? entryOf[_startFunction] : 0);
         W32(InfoAt + 0x48, 0xFFFFFFFF);
 

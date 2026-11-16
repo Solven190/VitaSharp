@@ -215,6 +215,14 @@ public sealed class FirmwareKernelModules(Emulator emu)
                 _imports[import.Key] = (import.Value.Stub, GuestMemory.Span<uint>(import.Value.Stub, StubWords).ToArray());
             }
 
+            foreach (HleModule module in emu.Hle.Modules)
+            {
+                if (module is IFirmwareInternalFunctions internals)
+                {
+                    internals.RegisterInternalFunctions(this);
+                }
+            }
+
             if (loaded > 0)
             {
                 Log.Info($"Firmware kernel modules: {loaded} shown to kernel code ({_entries.Count} exported functions, {_imports.Count} imports)");
