@@ -1,5 +1,6 @@
 using System.Text;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -80,6 +81,7 @@ public sealed partial class ScreenShot : HleModule
     }
 
     /// <summary>The flag byte of the last SetParam request (NID_0757A17F sends 1, sceScreenShotSetParam 0).</summary>
+    [SnapshotMissing(false)] // states of builds before it: the call did not exist, so the flag was never set
     public bool ParamFlag { get; private set; }
 
     int SetParam(uint param, bool persistent)
