@@ -130,6 +130,12 @@ public sealed class GxmContext
     public bool VertexDefaultReserved, FragmentDefaultReserved;
 
     public bool InScene;
+
+    /// <summary>The context words libgxm 3.74's SceGxmInternalForTest entries set (+0x530, the halves at +0x536 /
+    /// +0x534, +0x538, +0x53C / +0x540 of its context), with sceGxmCreateContext's values. No HLE path reads them.</summary>
+    public uint TestControl = 0x80, TestBytePair = 0xE9, TestMode = 1, TestModeValue;
+    public ushort TestRangeLow, TestRangeHigh = 1000;
+
     public GxmRenderTarget? RenderTarget;
     public uint FragmentSyncObject;
 

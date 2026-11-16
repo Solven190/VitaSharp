@@ -157,7 +157,7 @@ public sealed partial class SysMem : HleModule
     }
 
     [Hle]
-    int sceKernelFreeMemBlock(int uid)
+    internal int sceKernelFreeMemBlock(int uid)
     {
         var b = K.Objects.Get<MemBlock>(uid);
         if (b == null) return SceError.INVALID_UID;
