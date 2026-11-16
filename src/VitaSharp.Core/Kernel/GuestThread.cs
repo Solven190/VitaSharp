@@ -337,6 +337,12 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
                 case ExitReason.Breakpoint:
                     throw new GuestFaultException($"BKPT #{s->SvcImm} at 0x{s->SvcPc:X8}");
                 case ExitReason.Undefined:
+                    if (s->SvcPc >= GuestMemory.KernelStart && s->SvcPc < GuestMemory.KernelEnd && _emu.FirmwareKernel.HandleTrap(this, s, s->SvcPc))
+                    {
+                        // a call into a firmware module's code VitaSharp does not run: it returned to the caller
+                        break;
+                    }
+
                     if (!GuestMemory.IsMapped(s->SvcPc))
                     {
                         throw new GuestFaultException($"Prefetch abort: jump to unmapped address 0x{s->SvcPc:X8} (lr=0x{s->R[14]:X8})");

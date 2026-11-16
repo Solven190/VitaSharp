@@ -3,6 +3,7 @@ using VitaSharp.Core.Hle.Modules;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Loader;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.Util;
 using Xunit;
 using static VitaSharp.Tests.HleHarness;
 
@@ -25,12 +26,19 @@ public sealed class FirmwareKernelModulesTests : IDisposable
     private const uint CpuForDriver = 0x40ECDB0E, AtomicAddAndGet32 = 0x5F6A8743;
     private const uint LdrPcMinus4 = 0xE51FF004;
 
+    /// <summary>The synthetic SceSysmem's segment sizes (the firmware's own are 0x2F280 and 0x7604 on FW 3.74).</summary>
+    private const uint FirmwareCodeSize = 0x3000, FirmwareDataSize = 0x604;
+
+    /// <summary>What fills a firmware code segment VitaSharp does not run: UDF in A32, UDF and a branch back to it in
+    /// Thumb.</summary>
+    private const uint TrapFillWord = 0xE7FDDEFE;
+
     private readonly HleHarness _harness;
 
     public FirmwareKernelModulesTests(GuestMemoryFixture fixture)
     {
-        _harness = new HleHarness(fixture, "fwkmod");
-        var sysmem = new SceModuleBuilder("SceSysmem");
+        _harness = new HleHarness(fixture, "fwkmod", kernelPlugins: true);
+        SceModuleBuilder sysmem = new SceModuleBuilder("SceSysmem").SegmentSizes(FirmwareCodeSize, FirmwareDataSize);
         int body = sysmem.ReturnConstant(0);
         sysmem.Export("SceCpuForDriver", CpuForDriver, 0x0001, (AtomicAddAndGet32, body));
         string kd = Path.Combine(_harness.Root, "os0", "kd");
@@ -290,8 +298,117 @@ public sealed class FirmwareKernelModulesTests : IDisposable
         Assert.False(_harness.Emu.FirmwareKernel.IsPatched(CpuForDriver, AtomicAddAndGet32));
     }
 
+    /// <summary>
+    /// Kernel code that reaches a firmware module's code or data by segment offset (module_get_offset on its module
+    /// id, what a kernel plugin does to find a function the firmware does not export) gets the address the console
+    /// gives: the module's segments have the firmware's sizes and order, the export tables come after them.
+    /// </summary>
+    [Fact]
+    public void AFirmwareModulesSegmentsHaveTheFirmwaresSizesSoModuleGetOffsetAcceptsItsOffsets()
+    {
+        LoadKernelPlugins(("empty.skprx", new SceModuleBuilder("EmptyPlugin").Start(0)));
+        LoadedModule shell = _harness.Emu.FirmwareKernel.Modules.Single(m => m.Name == "SceSysmem");
+        Assert.Equal(FirmwareCodeSize, shell.Segments[0].Size);
+        Assert.Equal(FirmwareDataSize, shell.Segments[1].Size);
+        uint entry = FindExport("SceSysmem", CpuForDriver, AtomicAddAndGet32);
+        Assert.InRange(entry, shell.Segments[2].Address, shell.Segments[2].Address + shell.Segments[2].Size - 1);
+
+        PluginFramework framework = _harness.Module<PluginFramework>();
+        uint address = _harness.Alloc(4);
+        Assert.Equal(0, Call(framework, "ModuleGetOffset", KernelSpace.KernelPid, shell.Uid, 0, FirmwareCodeSize - 0x31Fu, address));
+        Assert.Equal(shell.Segments[0].Address + FirmwareCodeSize - 0x31F, GuestMemory.R32(address));
+        Assert.Equal(0, Call(framework, "ModuleGetOffset", KernelSpace.KernelPid, shell.Uid, 1, 0x48u, address));
+        Assert.Equal(shell.Segments[1].Address + 0x48, GuestMemory.R32(address));
+        // the code the firmware has there is not copied: the segment traps whatever way it is entered
+        Assert.Equal(TrapFillWord, GuestMemory.R32(shell.Segments[0].Address + FirmwareCodeSize - 0x320));
+        Assert.NotEqual(0, Call(framework, "ModuleGetOffset", KernelSpace.KernelPid, shell.Uid, 0, FirmwareCodeSize + 1, address));
+    }
+
+    private sealed class CollectingSink : ILogSink
+    {
+        public readonly List<string> Messages = [];
+
+        public void Write(LogLevel level, string thread, string message)
+        {
+            lock (Messages)
+            {
+                Messages.Add(message);
+            }
+        }
+    }
+
+    /// <summary>The address module_get_offset gives for <paramref name="offset"/> of the firmware SceSysmem's code
+    /// segment, as a kernel module asks for it.</summary>
+    private uint FirmwareCodeAddress(uint offset)
+    {
+        LoadedModule shell = _harness.Emu.FirmwareKernel.Modules.Single(m => m.Name == "SceSysmem");
+        uint address = _harness.Alloc(4);
+        Assert.Equal(0, Call(_harness.Module<PluginFramework>(), "ModuleGetOffset", KernelSpace.KernelPid, shell.Uid, 0, offset, address));
+        return GuestMemory.R32(address);
+    }
+
+    /// <summary>Calls <paramref name="function"/> as kernel code with <paramref name="args"/>; returns r0.</summary>
+    private uint CallKernelFunction(uint function, params uint[] args)
+    {
+        uint result = 0;
+        _harness.OnGuest(t =>
+        {
+            t.KernelMode = true;
+            result = t.CallGuest(function, args);
+        });
+        return result;
+    }
+
+    /// <summary>
+    /// A kernel module that calls a function the firmware module has at an offset of its code segment, which VitaSharp
+    /// has no HLE for, gets an error back at its return address (Thumb or A32 entry, either halfword of a word), and
+    /// the log names the module and offset, instead of the thread dying on code that is not there.
+    /// </summary>
+    [Theory]
+    [InlineData(0x1CE1u)]
+    [InlineData(0x1CE3u)]
+    [InlineData(0x1CE0u)]
+    public void ACallOfAFirmwareInternalFunctionWithoutHleReturnsAnErrorAndNamesIt(uint offset)
+    {
+        LoadKernelPlugins(("empty.skprx", new SceModuleBuilder("EmptyPlugin").Start(0)));
+        var sink = new CollectingSink();
+        ILogSink? saved = Log.Sink;
+        Log.Sink = sink;
+        uint result;
+        try
+        {
+            result = CallKernelFunction(FirmwareCodeAddress(offset), 1, 2, 3);
+        }
+        finally
+        {
+            Log.Sink = saved;
+        }
+
+        Assert.Equal(0x80020002u, result);
+        uint named = (offset & 1) != 0 ? (offset & ~3u) | 1 : offset;
+        lock (sink.Messages)
+        {
+            Assert.Contains(sink.Messages, m => m.StartsWith($"SceSysmem+0x{named:X}: internal firmware function not emulated", StringComparison.Ordinal));
+        }
+    }
+
+    /// <summary>A firmware internal function with an HLE runs it with the call's arguments (the fifth on the stack)
+    /// and returns its result to the caller; the next firmware build's module NID does not reach it.</summary>
+    [Fact]
+    public void ACallOfAFirmwareInternalFunctionWithHleRunsItWithTheCallsArguments()
+    {
+        LoadKernelPlugins(("empty.skprx", new SceModuleBuilder("EmptyPlugin").Start(0)));
+        const uint ModuleNid = 0x12345678; // the synthetic module's
+        _harness.Emu.FirmwareKernel.RegisterInternal(ModuleNid, 0x1A15, (_, a) => a[0] + a[1] * 2 + a[4] * 100);
+        _harness.Emu.FirmwareKernel.RegisterInternal(ModuleNid + 1, 0x1B15, (_, _) => 7);
+        Assert.Equal(1u + 4u + 500u, CallKernelFunction(FirmwareCodeAddress(0x1A15), 1, 2, 3, 4, 5));
+        Assert.Equal(0x80020002u, CallKernelFunction(FirmwareCodeAddress(0x1B15)));
+    }
+
     [Fact]
     public void WithoutAFirmwareInstalledNoFirmwareModuleIsShown()
+
+
     {
         Directory.Delete(Path.Combine(_harness.Root, "os0", "kd"), true);
         FirmwareKernelImage.Forget(_harness.Root);

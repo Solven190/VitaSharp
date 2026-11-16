@@ -1,5 +1,7 @@
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using System.Text;
+using VitaSharp.Core.Cpu;
 using VitaSharp.Core.Firmware;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Loader;
@@ -35,6 +37,20 @@ public sealed class FirmwareKernelModules(Emulator emu)
 {
     private const uint BxLr = 0xE12FFF1E, SvcOpcode = 0xEF000000;
 
+    /// <summary>
+    /// What fills the firmware module's code segments, whose functions VitaSharp does not run (no firmware code is
+    /// copied): a word that stops the CPU whatever way code enters it. As A32 it is UDF (cccc 0111 1111 iiii iiii
+    /// iiii 1111 iiii); as Thumb its low half is UDF #0xFE and its high half a B back to that UDF, so a Thumb entry
+    /// at either halfword stops there too.
+    /// </summary>
+    public const uint TrapFillWord = 0xE7FDDEFE;
+
+    /// <summary>module_info's segment is two bits of e_entry: the tables segment follows at most three.</summary>
+    private const int MaxRealSegments = 3;
+
+    private const uint ExecutableFlag = 1;
+
+
     /// <summary>(library NID, function NID) -> the entry's address and its unpatched first word.</summary>
     private readonly Dictionary<(uint LibNid, uint Nid), (uint Entry, uint Svc)> _entries = new();
 
@@ -44,6 +60,114 @@ public sealed class FirmwareKernelModules(Emulator emu)
     private const int StubWords = 4;
     private readonly object _lock = new();
     private bool _loaded;
+
+    /// <summary>The firmware modules' code segments (trap-filled), sorted by address: written once by <see cref="Load"/>.</summary>
+    private (uint Start, uint End, string Module, uint ModuleNid)[] _codeSegments = [];
+
+    /// <summary>(module NID, offset in its code segment with the Thumb bit) -> the HLE of a function the firmware module
+    /// has there without exporting it.</summary>
+    private readonly Dictionary<(uint ModuleNid, uint Offset), InternalFunction> _internalFunctions = new();
+
+    /// <summary>The internal functions a caller reached that have no HLE (each one logged once).</summary>
+    private readonly HashSet<(string Module, uint Offset)> _reportedTraps = new();
+
+    /// <summary>The HLE of a firmware module's internal function: gets the call's arguments, returns its r0.</summary>
+    public delegate uint InternalFunction(GuestThread thread, FirmwareCallArguments arguments);
+
+    /// <summary>The AAPCS arguments of a call that reached a firmware code segment: r0-r3, then the stack.</summary>
+    public readonly unsafe struct FirmwareCallArguments
+    {
+        private readonly CpuState* _state;
+
+        internal FirmwareCallArguments(CpuState* state)
+        {
+            _state = state;
+        }
+
+        /// <summary>Argument <paramref name="index"/> (0-based).</summary>
+        public uint this[int index] => index < 4 ? _state->R[index] : GuestMemory.R32(_state->R[13] + (uint)(index - 4) * 4);
+    }
+
+    /// <summary>
+    /// Declares the HLE of a function firmware module <paramref name="moduleNid"/> (the module NID names the firmware
+    /// build, whose layout the offsets are of) has at <paramref name="offset"/> of its code segment (Thumb bit set for
+    /// Thumb code) without exporting it: kernel code that reaches it by offset (module_get_offset) runs
+    /// <paramref name="function"/>.
+    /// </summary>
+    public void RegisterInternal(uint moduleNid, uint offset, InternalFunction function)
+    {
+        lock (_lock)
+        {
+            _internalFunctions[(moduleNid, offset)] = function;
+        }
+    }
+
+    /// <summary>
+    /// The CPU stopped on the trap fill of a firmware module's code segment at <paramref name="pc"/>: code called a
+    /// function of the module that VitaSharp has no code for there (an internal one, found by offset). Runs its HLE
+    /// when one is declared (<see cref="RegisterInternal"/>), otherwise logs the module and offset once and returns
+    /// SCE_KERNEL_ERROR_NOT_IMPLEMENTED; either way the call returns to the caller's lr, as the function would.
+    /// Returns false when <paramref name="pc"/> is not in a firmware code segment.
+    /// </summary>
+    internal unsafe bool HandleTrap(GuestThread thread, CpuState* state, uint pc)
+    {
+        (uint Start, uint End, string Module, uint ModuleNid)[] segments = Volatile.Read(ref _codeSegments);
+        int found = -1;
+        for (int i = 0; i < segments.Length; i++)
+        {
+            if (pc >= segments[i].Start && pc < segments[i].End)
+            {
+                found = i;
+                break;
+            }
+        }
+
+        if (found < 0 || GuestMemory.R32(pc & ~3u) != TrapFillWord)
+        {
+            return false;
+        }
+
+        (uint start, _, string module, uint moduleNid) = segments[found];
+        uint word = (pc & ~3u) - start;
+        bool thumb = state->Thumb != 0;
+        // a Thumb entry at the word's high half branches to the UDF in its low half
+        uint offset = thumb ? word | 1 : word;
+        InternalFunction? function;
+        lock (_lock)
+        {
+            if (!_internalFunctions.TryGetValue((moduleNid, offset), out function) && thumb)
+            {
+                _internalFunctions.TryGetValue((moduleNid, (word + 2) | 1), out function);
+            }
+        }
+
+        uint lr = state->R[14];
+        uint result;
+        if (function != null)
+        {
+            result = function(thread, new FirmwareCallArguments(state));
+        }
+        else
+        {
+            bool first;
+            lock (_lock)
+            {
+                first = _reportedTraps.Add((module, offset));
+            }
+
+            if (first)
+            {
+                Log.Warn($"{module}+0x{offset:X}: internal firmware function not emulated (called from {emu.Kernel.Symbolize(lr & ~1u)}); it returns SCE_KERNEL_ERROR_NOT_IMPLEMENTED");
+            }
+
+            result = unchecked((uint)SceError.NOT_IMPLEMENTED);
+        }
+
+        state->R[0] = result;
+        state->R[15] = lr & ~1u;
+        state->Thumb = lr & 1;
+        return true;
+    }
 
     /// <summary>The kernel modules loaded for the firmware's modules (empty until <see cref="Load"/>).</summary>
     public List<LoadedModule> Modules { get; } = new();
@@ -104,8 +228,8 @@ public sealed class FirmwareKernelModules(Emulator emu)
     private LoadedModule LoadShell(string path, ModuleImage image, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
         List<(string Library, uint LibNid, uint[] FuncNids)> imports)
     {
-        (byte[] elf, List<(int Library, int Function, uint Offset)> stubs, List<(int Library, int Function, uint Offset)> importStubs) =
-            BuildShell(image.Name, image.ModuleNid, image.Attributes, libraries, imports);
+        (byte[] elf, List<(int Library, int Function, uint Offset)> stubs, List<(int Library, int Function, uint Offset)> importStubs, int tablesSegment) =
+            BuildShell(image.Name, image.ModuleNid, image.Attributes, libraries, imports, image.Segments);
         LoadedModule loadedModule;
         using (ProcessScope.Enter(KernelSpace.KernelPid))
         {
@@ -113,9 +237,22 @@ public sealed class FirmwareKernelModules(Emulator emu)
             loadedModule.Uid = emu.Kernel.Objects.Register(new ModuleObject(loadedModule));
         }
 
+        var codeSegments = new List<(uint Start, uint End, string Module, uint ModuleNid)>(_codeSegments);
+        for (int i = 0; i < tablesSegment; i++)
+        {
+            if ((image.Segments[i].Flags & ExecutableFlag) != 0 && loadedModule.Segments.TryGetValue(i, out SegmentInfo code))
+            {
+                codeSegments.Add((code.Address, code.Address + code.Size, image.Name, image.ModuleNid));
+            }
+        }
+
+        codeSegments.Sort((a, b) => a.Start.CompareTo(b.Start));
+        Volatile.Write(ref _codeSegments, codeSegments.ToArray());
+
+
         loadedModule.Started = true;
         emu.Kernel.Modules[loadedModule.Uid] = loadedModule;
-        uint segment = loadedModule.Segments[0].Address;
+        uint segment = loadedModule.Segments[tablesSegment].Address;
         foreach ((int library, int function, uint offset) in stubs)
         {
             (string libName, uint libNid, _, uint[] nids) = libraries[library];
@@ -231,16 +368,23 @@ public sealed class FirmwareKernelModules(Emulator emu)
     }
 
     /// <summary>
-    /// A relocatable SCE module (ET_SCE_RELEXEC, one read/write/execute segment) with the firmware module's
-    /// module_info and export tables and a 16-byte entry per exported function; the pointers in the tables carry
-    /// R_ARM_ABS32 relocations so the loader places it anywhere in the kernel region; the module's imports are
-    /// 0x34-byte import entries with a 16-byte stub per function, which the loader links. Returns the ELF, where each
-    /// exported function's entry is in the segment, and where each import stub is.
+    /// A relocatable SCE module (ET_SCE_RELEXEC) laid out as the firmware module is: its loadable segments with the
+    /// firmware's sizes, in the same order (so module_get_offset, ksceKernelGetModuleInfo and code that reaches the
+    /// module by segment offset see the console's addresses), the executable ones filled with
+    /// <see cref="TrapFillWord"/>, then one read/write/execute segment with the firmware module's module_info and
+    /// export tables and a 16-byte entry per exported function; the pointers in the tables carry R_ARM_ABS32
+    /// relocations so the loader places it anywhere in the kernel region; the module's imports are 0x34-byte import
+    /// entries with a 16-byte stub per function, which the loader links. A module with more loadable segments than the
+    /// tables segment can follow (module_info's segment is two bits of e_entry) is shown with the tables segment only.
+    /// Returns the ELF, where each exported function's entry is in the tables segment, where each import stub is, and
+    /// the tables segment's number.
     /// </summary>
-    private static (byte[] Elf, List<(int Library, int Function, uint Offset)> Stubs, List<(int Library, int Function, uint Offset)> ImportStubs) BuildShell(
+    private static (byte[] Elf, List<(int Library, int Function, uint Offset)> Stubs, List<(int Library, int Function, uint Offset)> ImportStubs, int TablesSegment) BuildShell(
         string name, uint moduleNid, ushort attributes, List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids)> libraries,
-        List<(string Library, uint LibNid, uint[] FuncNids)> imports)
+        List<(string Library, uint LibNid, uint[] FuncNids)> imports, IReadOnlyList<(uint MemSize, uint Flags)> firmwareSegments)
     {
+        IReadOnlyList<(uint MemSize, uint Flags)> realSegments = firmwareSegments.Count <= MaxRealSegments ? firmwareSegments : [];
+        int tablesSegment = realSegments.Count;
         const int InfoSize = 0x5C, ExportSize = 0x20, ImportSize = 0x34, StubSize = 0x10;
         int functions = libraries.Sum(l => l.FuncNids.Length);
         int importedFunctions = imports.Sum(i => i.FuncNids.Length);
@@ -326,18 +470,28 @@ public sealed class FirmwareKernelModules(Emulator emu)
             }
         }
 
-        // the ELF: header, PT_LOAD and PT_SCE_RELA (format 0 entries: R_ARM_ABS32 within segment 0), the segment, the
-        // relocations
+        // the ELF: header, the firmware's PT_LOADs, the tables' PT_LOAD and PT_SCE_RELA (format 0 entries: R_ARM_ABS32
+        // within the tables segment), the segments, the relocations
         const int HeaderSize = 0x100;
         byte[] rela = new byte[relocations.Count * 12];
+        uint relocationInfo = (uint)tablesSegment << 4 | 2u << 8 | (uint)tablesSegment << 16;
         for (int i = 0; i < relocations.Count; i++)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12), 2u << 8);
+            BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12), relocationInfo);
             BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12 + 4), relocations[i].Value);
             BinaryPrimitives.WriteUInt32LittleEndian(rela.AsSpan(i * 12 + 8), relocations[i].Offset);
         }
 
-        byte[] elf = new byte[HeaderSize + size + rela.Length];
+        long realBytes = 0;
+        foreach ((uint memSize, uint flags) in realSegments)
+        {
+            if ((flags & ExecutableFlag) != 0)
+            {
+                realBytes += memSize;
+            }
+        }
+
+        byte[] elf = new byte[HeaderSize + realBytes + size + rela.Length];
         Span<byte> header = elf;
         header[0] = 0x7F;
         header[1] = (byte)'E';
@@ -349,24 +503,35 @@ public sealed class FirmwareKernelModules(Emulator emu)
         BinaryPrimitives.WriteUInt16LittleEndian(header[16..], 0xFE04);
         BinaryPrimitives.WriteUInt16LittleEndian(header[18..], 0x28);
         BinaryPrimitives.WriteUInt32LittleEndian(header[20..], 1);
-        BinaryPrimitives.WriteUInt32LittleEndian(header[24..], 0);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[24..], (uint)tablesSegment << 30);
         BinaryPrimitives.WriteUInt32LittleEndian(header[28..], 0x34);
         BinaryPrimitives.WriteUInt16LittleEndian(header[40..], 0x34);
         BinaryPrimitives.WriteUInt16LittleEndian(header[42..], 0x20);
-        BinaryPrimitives.WriteUInt16LittleEndian(header[44..], 2);
-        ProgramHeader(header, 0x34, 1, HeaderSize, (uint)size, 7);
-        ProgramHeader(header, 0x54, 0x60000000, (uint)(HeaderSize + size), (uint)rela.Length, 0);
-        segment.CopyTo(elf, HeaderSize);
-        rela.CopyTo(elf, HeaderSize + size);
-        return (elf, stubs, importStubs);
+        BinaryPrimitives.WriteUInt16LittleEndian(header[44..], (ushort)(realSegments.Count + 2));
+        int at = HeaderSize;
+        for (int i = 0; i < realSegments.Count; i++)
+        {
+            (uint memSize, uint flags) = realSegments[i];
+            uint fileSize = (flags & ExecutableFlag) != 0 ? memSize : 0;
+            ProgramHeader(header, 0x34 + i * 0x20, 1, (uint)at, fileSize, memSize, flags);
+            MemoryMarshal.Cast<byte, uint>(elf.AsSpan(at, (int)fileSize & ~3)).Fill(TrapFillWord);
+            at += (int)fileSize;
+        }
+
+        int tablesHeader = 0x34 + realSegments.Count * 0x20;
+        ProgramHeader(header, tablesHeader, 1, (uint)at, (uint)size, (uint)size, 7);
+        ProgramHeader(header, tablesHeader + 0x20, 0x60000000, (uint)(at + size), (uint)rela.Length, (uint)rela.Length, 0);
+        segment.CopyTo(elf, at);
+        rela.CopyTo(elf, at + size);
+        return (elf, stubs, importStubs, tablesSegment);
     }
 
-    private static void ProgramHeader(Span<byte> header, int at, uint type, uint offset, uint size, uint flags)
+    private static void ProgramHeader(Span<byte> header, int at, uint type, uint offset, uint fileSize, uint memSize, uint flags)
     {
         BinaryPrimitives.WriteUInt32LittleEndian(header[at..], type);
         BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 4)..], offset);
-        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 16)..], size);
-        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 20)..], size);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 16)..], fileSize);
+        BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 20)..], memSize);
         BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 24)..], flags);
         BinaryPrimitives.WriteUInt32LittleEndian(header[(at + 28)..], 0x10);
     }

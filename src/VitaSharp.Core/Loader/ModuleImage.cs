@@ -19,6 +19,10 @@ public sealed class ModuleImage
     public List<(string Library, uint LibNid, ushort Attributes, uint[] FuncNids, uint[] VarNids)> Exports { get; } = new();
     public List<(string Library, uint LibNid, uint[] FuncNids)> Imports { get; } = new();
 
+    /// <summary>The module's loadable segments in program header order (the segment numbers module_get_offset and
+    /// ksceKernelGetModuleInfo use): each one's size in memory and its p_flags (1 = executable).</summary>
+    public List<(uint MemSize, uint Flags)> Segments { get; } = new();
+
     private const uint PT_LOAD = 1, PT_SCE_RELA = 0x60000000;
     private const ushort ET_SCE_EXEC = 0xFE00;
 
@@ -90,6 +94,11 @@ public sealed class ModuleImage
         uint infoBase = segs[infoSeg].Address;
         int mi = (int)(infoBase + (entry & 0x3FFFFFFF));
         var result = new ModuleImage { Name = CString(m.Slice(mi + 4, 27)), Attributes = U16LE(m, mi), ModuleNid = U32LE(m, mi + 0x34) };
+        foreach ((int Index, uint Off, uint Vaddr, uint FileSz, uint MemSz) l in loads)
+        {
+            result.Segments.Add((l.MemSz, U32LE(e.Slice((int)phoff + l.Index * 32, 32), 24)));
+        }
+
         uint exportTop = U32LE(m, mi + 0x24), exportEnd = U32LE(m, mi + 0x28);
         uint importTop = U32LE(m, mi + 0x2C), importEnd = U32LE(m, mi + 0x30);
 

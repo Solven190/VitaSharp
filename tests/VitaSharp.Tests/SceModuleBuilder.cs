@@ -20,6 +20,18 @@ public sealed class SceModuleBuilder(string name)
     private readonly Dictionary<int, (int Offset, uint[] Words)> _arm = [];
     private int _armUsed;
     private int _startFunction = -1;
+    private uint _codeMemSize = Size;
+    private uint _dataMemSize;
+
+    /// <summary>The module's segments as a firmware module has them: the code segment <paramref name="codeMemSize"/>
+    /// bytes in memory (its file part stays the builder's), then a data segment of <paramref name="dataMemSize"/>
+    /// zeroed bytes (none: 0).</summary>
+    public SceModuleBuilder SegmentSizes(uint codeMemSize, uint dataMemSize)
+    {
+        _codeMemSize = Math.Max(codeMemSize, Size);
+        _dataMemSize = dataMemSize;
+        return this;
+    }
 
     /// <summary>A Thumb function returning <paramref name="value"/> (0..255); returns its index.</summary>
     public int ReturnConstant(byte value)
@@ -235,19 +247,27 @@ public sealed class SceModuleBuilder(string name)
         BinaryPrimitives.WriteUInt32LittleEndian(h[28..], 0x34);
         BinaryPrimitives.WriteUInt16LittleEndian(h[40..], 0x34);
         BinaryPrimitives.WriteUInt16LittleEndian(h[42..], 0x20);
-        BinaryPrimitives.WriteUInt16LittleEndian(h[44..], 2);
-        static void Ph(Span<byte> h, int at, uint type, uint offset, uint size, uint flags)
+        BinaryPrimitives.WriteUInt16LittleEndian(h[44..], (ushort)(_dataMemSize != 0 ? 3 : 2));
+        static void Ph(Span<byte> h, int at, uint type, uint offset, uint fileSize, uint memSize, uint flags)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(h[at..], type);
             BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 4)..], offset);
-            BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 16)..], size);
-            BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 20)..], size);
+            BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 16)..], fileSize);
+            BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 20)..], memSize);
             BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 24)..], flags);
             BinaryPrimitives.WriteUInt32LittleEndian(h[(at + 28)..], 0x10);
         }
 
-        Ph(h, 0x34, 1, SegOffset, Size, 7);
-        Ph(h, 0x54, 0x60000000, (uint)(SegOffset + Size), (uint)rela.Length, 0);
+        Ph(h, 0x34, 1, SegOffset, Size, _codeMemSize, 7);
+        int relaHeader = 0x54;
+        if (_dataMemSize != 0)
+        {
+            Ph(h, 0x54, 1, (uint)(SegOffset + Size), 0, _dataMemSize, 6);
+            relaHeader = 0x74;
+        }
+
+        Ph(h, relaHeader, 0x60000000, (uint)(SegOffset + Size), (uint)rela.Length, (uint)rela.Length, 0);
+
         seg.CopyTo(elf, SegOffset);
         rela.CopyTo(elf, SegOffset + Size);
         return elf;
