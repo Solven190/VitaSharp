@@ -12,7 +12,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// without it: the shell's network service is not up (its 0x80412181 after the argument checks), there is no game
 /// card installer object (0x80AF0001), and the online storage hooks do nothing.
 /// </summary>
-public sealed class Shell : HleModule
+public sealed partial class Shell : HleModule
 {
     internal const int SHELL_NOT_READY = unchecked((int)0x80412181), SHELL_NULL = unchecked((int)0x80412184),
         SHELL_INVALID = unchecked((int)0x8041219E), INSTALLER_NONE = unchecked((int)0x80AF0001);

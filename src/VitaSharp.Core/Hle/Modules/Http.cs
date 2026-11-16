@@ -197,16 +197,17 @@ public sealed partial class Http : HleModule
         }
     }
 
-    /// <summary>(int id, bool enable): sets the one-byte option 0xE of a template, connection or request (Sign Up).
-    /// Nothing in the offline model depends on it.</summary>
+    /// <summary>(int id, bool enable): sets the one-byte option 0xE of a template, connection or request (Sign Up),
+    /// read back by NID_30F5D11F. Nothing in the offline model depends on it.</summary>
     [Hle("sceHttp_F30073EC", Nid = 0xF30073EC, Library = "SceHttp")]
     int sceHttpSetOptionE(int id, int enable)
     {
         lock (_lock)
         {
             if (!_inited) return ERR_BEFORE_INIT;
-            return _objs.ContainsKey(id) ? 0 : ERR_INVALID_ID;
         }
+
+        return SetSetting(id, s => s.OptionE = enable & 0xFF);
     }
 
     /// <summary>SceHttpMemoryPoolStats: +0 poolSize, +4 maxInuseSize, +8 currentInuseSize, +C reserved.</summary>
