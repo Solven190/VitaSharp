@@ -150,6 +150,10 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         Divider(),
                         ToggleRow(Loc.Get("FastLoading"), eff.FastLoading, v => Save(x => x.FastLoading = v == app.FastLoading ? null : v),
                             detail: Loc.Get("FastLoadingDetail")),
+                        Divider(),
+                        Row(Loc.Get("SystemLanguage"), ValueText(SettingsChoices.SystemLanguages, s.SystemLanguage, SettingsChoices.LabelOf(SettingsChoices.SystemLanguages, eff.SystemLanguage)),
+                            () => Pick(Loc.Get("SystemLanguage"), SettingsChoices.SystemLanguages, "", v => s.SystemLanguage = string.IsNullOrEmpty(v) ? null : v),
+                            detail: Loc.Get("SystemLanguageDetail")),
                         s.HasOverrides ? Divider() : null,
                         s.HasOverrides ? Row(Loc.Get("MResetToDefaults"), null, () => Save(x =>
                         {
@@ -162,6 +166,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
                             x.Msaa = null;
                             x.FastLoading = null;
                             x.FrameRate = null;
+                            x.SystemLanguage = null;
                         })) : null
                     ),
                     SectionTitle(Loc.Get("MSaves")),

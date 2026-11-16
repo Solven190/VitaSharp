@@ -11,6 +11,20 @@ public static class SystemLanguage
 {
     public const int EnglishUs = 1;
 
+    /// <summary>How many system languages the firmware has (SceSystemParamLang 0..19).</summary>
+    public const int Count = 20;
+
+    /// <summary>Each SceSystemParamLang's name in its own language, as the Vita's Settings lists them (index = the value).</summary>
+    public static IReadOnlyList<string> Names { get; } =
+    [
+        "日本語", "English (United States)", "Français", "Español", "Deutsch", "Italiano", "Nederlands",
+        "Português (Portugal)", "Русский", "한국어", "繁體中文", "简体中文",
+        "Suomi", "Svenska", "Dansk", "Norsk", "Polski", "Português (Brasil)", "English (United Kingdom)", "Türkçe",
+    ];
+
+    /// <summary>A SceSystemParamLang the firmware has.</summary>
+    public static bool IsValid(int language) => language is >= 0 and < Count;
+
     /// <summary>SceSystemParamLang of the host's UI language, read once.</summary>
     public static int Host { get; } = FromCulture(CultureInfo.CurrentUICulture);
 

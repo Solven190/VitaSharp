@@ -32,6 +32,19 @@ public static class Runner
         return i >= 0 && i + 1 < options.Length && !options[i + 1].StartsWith("--", StringComparison.Ordinal) ? options[i + 1] : null;
     }
 
+    /// <summary>--system-language=&lt;0-19&gt;: a SceSystemParamLang, null when absent or not one.</summary>
+    internal static int? SystemLanguageOpt(string[] options)
+    {
+        if (int.TryParse(Opt(options, "--system-language"), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out int language)
+            && VitaSharp.Core.Firmware.SystemLanguage.IsValid(language))
+        {
+            return language;
+        }
+
+        return null;
+    }
+
     /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
     internal static bool? OnOff(string[] options, string name)
     {
@@ -224,6 +237,16 @@ public static class Runner
         {
             VitaSharp.Core.Cpu.CpuCore.InstructionsPerSecond = cpuMhz * 1_000_000; // 0 = unpaced
         }
+        // --system-language=<0-19>: the SceSystemParamLang the game reads (the launcher's "Idioma do sistema" per game)
+        if (SystemLanguageOpt(options) is int systemLanguage)
+        {
+            Log.Info($"System language: {systemLanguage} (--system-language; the game reads it instead of the system's)");
+        }
+        else if (Opt(options, "--system-language") is { } badLanguage)
+        {
+            Log.Warn($"--system-language={badLanguage} not recognised (use 0-19): the system's language");
+        }
+
         // --frame-rate=native|30|60|unlimited: vblanks per flip (the launcher's "Taxa de quadros" per game)
         if (Opt(options, "--frame-rate") is { } frameRate)
         {
@@ -275,6 +298,8 @@ public static class Runner
             // --kernel-plugins=on|off: the emulator option "Enable Kernel Plugins" (launcher: Configuracoes > Avancado;
             // default VITASHARP_KERNEL_PLUGINS, else off = the pure firmware, no plugin)
             KernelPlugins = OnOff(options, "--kernel-plugins"),
+            // --system-language=<0-19>: the launcher's "Idioma do sistema" per game (SceSystemParamLang the game reads)
+            SystemLanguage = SystemLanguageOpt(options),
         });
         var fatal = new ManualResetEventSlim();
         emu.Fatal += (t, e) => fatal.Set();

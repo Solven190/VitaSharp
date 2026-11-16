@@ -105,7 +105,7 @@ public sealed partial class NpTrophy : HleModule
             return null;
         }
         // texts in the system language when the set has that translation (TROP_<lang>.SFM)
-        int lang = AppUtil.SystemParamInt(1, AppUtil.SystemRegistry(Emu));
+        int lang = AppUtil.ProcessSystemParamInt(1, Emu);
         var pkg = TrophyPackage.Load(trp, commId, lang);
         if (pkg == null) return null;
         var set = new TrophySet(pkg) { SavePath = TrophyUnlocks.PathFor(Emu.Options.FsRoot, commId) };

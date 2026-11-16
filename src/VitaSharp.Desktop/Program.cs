@@ -999,6 +999,7 @@ public static class Program
         Console.WriteLine("               --env=KEY=VALUE  set an environment switch for this run (repeatable; e.g. --env=VITASHARP_RES_SCALE=2)");
         Console.WriteLine("               --msaa=native|ss|off  MSAA scenes: real multisampling (default), 2x supersampling or off (F3 cycles them in game)");
         Console.WriteLine("               --frame-rate=native|30|60|unlimited  vblanks per flip: the game's own (default), fixed 30/60, or no display waits");
+        Console.WriteLine("               --system-language=<0-19>  the system language the game reads (SceSystemParamLang: 0 ja, 1 en-US, 17 pt-BR...; default: the system's)");
         Console.WriteLine("               --fast-loading[=on|off]  no storage read speed limit (default off: the Vita memory card's 7 MB/s; some games need the real timing)");
         Console.WriteLine("               --io-speed=<MB/s>|vita|fast  storage read speed (default VITASHARP_IO_SPEED, else vita = 7 MB/s; 0 or fast = no limit)");
         Console.WriteLine("               --psn=on|off  emulated PSN account signed in (default off: no network, NP signed out)");

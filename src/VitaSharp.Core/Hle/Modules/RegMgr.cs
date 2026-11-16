@@ -18,6 +18,9 @@ public sealed partial class RegMgr : HleModule
 
     internal enum KeyType { Int, Str, Bin }
 
+    /// <summary>SceRegMgrSystemParam id of /CONFIG/SYSTEM/language.</summary>
+    internal const uint LanguageId = 0x00037502;
+
     /// <summary>A registry key: path (for logs and the JSON file), type, writability and default value
     /// (int, or byte[] for strings and binaries).</summary>
     internal sealed record Key(uint Id, string Path, KeyType Type, bool Writable, Func<object> Default);
@@ -150,6 +153,12 @@ public sealed partial class RegMgr : HleModule
     internal object? Value(uint id, out Key? key)
     {
         if (!Table.TryGetValue(id, out key)) return null;
+        // an application started with the emulator's per-game system language reads that one
+        if (id == LanguageId && AppUtil.LanguageOverride(Emu) is int language)
+        {
+            return language;
+        }
+
         // the keys that follow the system settings: what the system software wrote to the system registry
         if (key.Type == KeyType.Int && !key.Writable && Firmware.Registry.For(FsRoot).TryGetWrittenInt(key.Path, out int sys)) return sys;
         lock (_lock) return Written().TryGetValue(id, out var v) ? v : key.Default();

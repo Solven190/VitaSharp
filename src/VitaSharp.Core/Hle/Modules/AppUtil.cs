@@ -93,7 +93,7 @@ public sealed partial class AppUtil : HleModule
     internal int sceAppUtilSystemParamGetInt(uint id, Ptr<int> value)
     {
         if (value.Address == 0) return ERR_PARAMETER;
-        value.Value = SystemParamInt(id, AppUtil.SystemRegistry(Emu));
+        value.Value = ProcessSystemParamInt(id, Emu);
         return id is >= 1 and <= 7 ? 0 : ERR_PARAMETER;
     }
 
@@ -105,6 +105,33 @@ public sealed partial class AppUtil : HleModule
         if (reg != null && SystemParamKey(id) is { } path && reg.TryGetWrittenInt(path, out int v))
             return id == 6 ? Firmware.SystemTimeZone.OffsetMinutes(v) ?? DefaultSystemParamInt(6) : v;
         return DefaultSystemParamInt(id);
+    }
+
+    /// <summary>An integer system parameter as the process of <paramref name="emu"/> reads it: the system's
+    /// (<see cref="SystemParamInt"/>), except the language of an application started with the emulator's per-game
+    /// system language (<see cref="LanguageOverride"/>).</summary>
+    internal static int ProcessSystemParamInt(uint id, Emulator? emu)
+    {
+        if (id == 1 && LanguageOverride(emu) is int language)
+        {
+            return language;
+        }
+
+        return SystemParamInt(id, SystemRegistry(emu));
+    }
+
+    /// <summary>The per-game system language (<see cref="EmulatorOptions.SystemLanguage"/>) the process of
+    /// <paramref name="emu"/> reads instead of /CONFIG/SYSTEM/language, or null when it reads the system's: no option,
+    /// an invalid one, or the system software (a program from vs0:), which always runs in the system's language.</summary>
+    internal static int? LanguageOverride(Emulator? emu)
+    {
+        if (emu == null || emu.IsSystemProgram || emu.Options.SystemLanguage is not int language
+            || !Firmware.SystemLanguage.IsValid(language))
+        {
+            return null;
+        }
+
+        return language;
     }
 
     /// <summary>The system registry of the emulator's file-system root (null without an emulator: unit tests).</summary>

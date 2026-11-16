@@ -204,6 +204,11 @@ public sealed class Registry
         }
     }
 
+    /// <summary>The key <paramref name="category"/> + <paramref name="name"/> is <paramref name="path"/> (a category is
+    /// matched with or without its slashes, as every lookup does).</summary>
+    public static bool IsPath(string category, string name, string path) =>
+        string.Equals(Normalize(category, name), path, StringComparison.OrdinalIgnoreCase);
+
     private static string Normalize(string category, string name)
     {
         if (!category.StartsWith('/'))
