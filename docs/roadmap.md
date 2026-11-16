@@ -92,9 +92,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   NpCommerce2Firmware (cada parser do firmware rodava 2x, corrigido), NativeJit 46 s, Ngs 25 s, ThreadMgr 21 s,
   CpuFuzz 21 s (um Unicorn novo por iteração, como o NEON).
   Fechado 15/11/2026 (217eb288): as duas metas batidas (pico 1,59 GB, suíte 6 m 09 s); o < 5 min fica como melhoria
-- [ ] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
+- [x] [P3][M] **Ponto de teste de atraso de thread:** atrasar a execução de host de uma thread do guest num ponto escolhido
   (depois de um retorno de HLE, antes da próxima chamada), para reproduzir corridas do escalonador de forma
   determinística.
+  Feito (12/11/2026, b082645a; conferido 15/11/2026, kill1): `GuestThread.HleReturned` para a thread do guest logo depois
+  do retorno de uma chamada HLE escolhida (antes da próxima) e `GuestThread.DispatchForTest` faz a chamada pelo caminho
+  real do SVC; usados em `ThreadMgrHleTests` (`WokenThreadDoesNotRunAheadOfAStoppedWaker` e vizinhos).
 - [ ] [P3][G] **Sincronização sob intercalações adversas:** event flag, semáforo, mutex, lwmutex, cond, msgpipe, eventos e
   callbacks testados contra a semântica do firmware 3.74 com o ponto de atraso entre cada par de chamadas (quem é
   acordado, em que ordem, o que sobra no padrão, cancelamento, delete, timeout), não só o caminho feliz.
@@ -2594,6 +2597,9 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   (perf/desktop-24, não medido) deixaria ele como a única chamada bloqueante fora da classe. O que falta é calibrar a
   classe inteira (no Wipeout, `avPlayer VideoDec` paga ~4,7 M ciclos por quadro em `DelayThread(30)`) contra uma
   referência de hardware, com A/B em gameplay, sem quebrar o tempo que o Havok do Killzone mede.
+  Pesquisa (15/11/2026, kill1): o tamanho da classe não sai do firmware decompilado (o custo é tempo de hardware: entrada
+  no kernel + troca de contexto do threadmgr 3.74, sem contador de ciclos no código); a referência teria de ser uma
+  medida num Vita (homebrew que cronometra DelayThread(0)/WaitSema com timeout) ou um A/B em gameplay pelo usuário.
 - [x] Trocar entre o modo claro e o modo escuro demora muito (relato do usuário, 11/11/2026). Medir quanto leva a
   troca e onde o tempo vai (recriar a interface inteira, recarregar recursos/ícones/capas, refazer o layout da
   biblioteca) e fazer a troca só reaplicar as cores. Conferir no launcher do Desktop e no app Android.
