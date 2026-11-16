@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=330 general=287 vitasdk=0
+# firmware=3.74 games=0 system=321 general=287 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -71,8 +71,6 @@ system	SceGpuEs4User	0xBDE2B9E1	NID_BDE2B9E1	os0:us/libgpu_es4.suprx	0	1	os0:us/
 system	SceGpuEs4User	0xD90B0707	NID_D90B0707	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xE98914E4	NID_E98914E4	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xF0CCE9DB	NID_F0CCE9DB	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceHttp	0x43A7CC70	NID_43A7CC70	vs0:sys/external/libhttp.suprx	0	2	os0:ue/safemode.self
-system	SceHttp	0xA9A39BA1	NID_A9A39BA1	vs0:sys/external/libhttp.suprx	0	3	vs0:app/NPXS10072/email_engine.suprx
 system	SceJpegEncArm	0x4EE1BAED	NID_4EE1BAED	vs0:sys/external/libscejpegencarm.suprx	0	5	vs0:app/NPXS10004/eboot.bin
 system	SceLibLocation	0x0341758B	NID_0341758B	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
 system	SceLibLocation	0x0C0BB66A	NID_0C0BB66A	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
@@ -122,8 +120,6 @@ system	SceNetInternal	0xEE94BF52	NID_EE94BF52	vs0:sys/external/libnet.suprx	0	1	
 system	SceNetInternal	0xEF421A65	NID_EF421A65	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0xF3917021	NID_F3917021	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10028/eboot.bin
 system	SceNetInternal	0xF6291476	NID_F6291476	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpBasic	0x7F13243D	NID_7F13243D	vs0:sys/external/np_basic.suprx	0	1	vs0:app/NPXS10001/eboot.bin
-system	SceNpBasic	0xFB1B7762	NID_FB1B7762	vs0:sys/external/np_basic.suprx	0	1	vs0:app/NPXS10001/eboot.bin
 system	SceNpCommon	0x38B88BA3	NID_38B88BA3	vs0:sys/external/np_common.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNpCommon	0x40724BEA	NID_40724BEA	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
 system	SceNpCommon	0x40CC4D15	NID_40CC4D15	vs0:sys/external/np_common.suprx	0	29	vs0:app/NPXS10000/eboot.bin
@@ -139,8 +135,6 @@ system	SceNpCommon	0xA7EC5CDB	NID_A7EC5CDB	vs0:sys/external/np_common.suprx	0	1	
 system	SceNpCommon	0xBDCD318E	NID_BDCD318E	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
 system	SceNpCommon	0xD2B9BCA8	NID_D2B9BCA8	vs0:sys/external/np_common.suprx	0	27	vs0:app/NPXS10000/eboot.bin
 system	SceNpCommon	0xE2743C07	NID_E2743C07	vs0:sys/external/np_common.suprx	0	2	vs0:sys/external/np_manager.suprx
-system	SceNpManager	0x44DF26F5	NID_44DF26F5	vs0:sys/external/np_manager.suprx	0	4	vs0:app/NPXS10002/eboot.bin
-system	SceNpManager	0xBF8921C8	NID_BF8921C8	vs0:sys/external/np_manager.suprx	0	10	vs0:app/NPXS10002/eboot.bin
 system	SceNpSnsFacebook	0x06A167FC	NID_06A167FC	vs0:sys/external/np_sns_facebook.suprx	0	2	vs0:app/NPXS10002/eboot.bin
 system	SceNpSnsFacebook	0x18041141	NID_18041141	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
 system	SceNpSnsFacebook	0x3574800C	NID_3574800C	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
@@ -329,9 +323,6 @@ system	SceSslInternal	0xF2C9B744	NID_F2C9B744	vs0:sys/external/libssl.suprx	0	4	
 system	SceSslInternal	0xF71DB06F	NID_F71DB06F	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
 system	SceSslInternal	0xFBEB1FD7	NID_FBEB1FD7	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
 system	SceSslInternal	0xFFE2ED51	NID_FFE2ED51	vs0:sys/external/libssl.suprx	0	4	vs0:app/NPXS10072/email_engine.suprx
-system	SceTriggerUtil	0x257BA954	NID_257BA954	vs0:sys/external/trigger_util.suprx	0	1	vs0:app/NPXS10015/eboot.bin
-system	SceTriggerUtil	0x2C43AC0C	NID_2C43AC0C	vs0:sys/external/trigger_util.suprx	0	5	vs0:app/NPXS10000/eboot.bin
-system	SceTriggerUtil	0xDA93949A	NID_DA93949A	vs0:sys/external/trigger_util.suprx	0	5	vs0:app/NPXS10000/eboot.bin
 general	SceAppUtil	0x1E2A6158	NID_1E2A6158	vs0:sys/external/apputil.suprx	0	0	-
 general	SceAppUtil	0x7DA34311	NID_7DA34311	vs0:sys/external/apputil.suprx	0	0	-
 general	SceCommonDialog	0x2CD0649B	NID_2CD0649B	vs0:sys/external/libcdlg.suprx	0	0	-

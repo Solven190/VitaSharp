@@ -2214,8 +2214,10 @@
 0x6AE09257	NID_6AE09257	FirmwareConstants	SceHostAvch	-
 0xA9FEACD7	NID_A9FEACD7	FirmwareConstants	SceHostAvch	-
 0xDB232E28	NID_DB232E28	FirmwareConstants	SceHostAvch	-
+0x43A7CC70	NID_43A7CC70	Http	SceHttp	-
 0x5B6A0ACE	NID_5B6A0ACE	FirmwareConstants	SceHttp	-
 0xA4CF892E	NID_A4CF892E	FirmwareConstants	SceHttp	-
+0xA9A39BA1	NID_A9A39BA1	Http	SceHttp	-
 0xEA61662F	sceHttpAbortRequest	Http	SceHttp	vh
 0x3D44A6E5	sceHttpAbortRequestForce	Http	SceHttp	vh
 0x42E7DFF1	sceHttpAbortWaitRequest	Http	SceHttp	vh
@@ -5788,6 +5790,8 @@
 0x6BE90416	sceNpActivityPostAppStartupStatus	NpSocial	SceNpActivity	vh
 0xBC7FDC77	sceNpActivityPostStatus	NpSocial	SceNpActivity	vh
 0x9EA4901F	sceNpActivityTerm	NpSocial	SceNpActivity	vh
+0x7F13243D	NID_7F13243D	NpSocial	SceNpBasic	-
+0xFB1B7762	NID_FB1B7762	NpSocial	SceNpBasic	-
 0x20146AEC	sceNpBasicCheckCallback	Np	SceNpBasic	vh
 0xF51545D8	sceNpBasicCheckIfPlayerIsBlocked	NpSocial	SceNpBasic	vh
 0x1211AE8E	sceNpBasicGetBlockListEntries	Np	SceNpBasic	vh
@@ -6456,6 +6460,8 @@
 0x200D2DE4	sceNpDrmSaveDataFormatOngoing	SystemServicesVsh	SceNpDrmPackage	vh
 0xA5E0F38C	sceNpDrmSaveDataInstallOngoing	SystemServicesVsh	SceNpDrmPackage	vh
 0x2D2D1B9B	NID_2D2D1B9B	FirmwareConstants	SceNpGriefReport	-
+0x44DF26F5	NID_44DF26F5	NpManager	SceNpManager	-
+0xBF8921C8	NID_BF8921C8	NpManager	SceNpManager	-
 0xECBC7614	sceNpAuthAbortOAuthRequest	NpManager	SceNpManager	vh
 0x555EB58C	sceNpAuthCreateOAuthRequest	NpManager	SceNpManager	vh
 0x8C94C7A5	sceNpAuthDeleteOAuthRequest	NpManager	SceNpManager	vh
@@ -10131,6 +10137,9 @@
 0x7985B164	ksceTouchSetRegion	KernelTwins	SceTouchForDriver	-
 0x10A998DE	ksceTouchSetRegionAttr	KernelTwins	SceTouchForDriver	-
 0x1247257A	ksceTouchSetSamplingState	KernelTwins	SceTouchForDriver	-
+0x257BA954	NID_257BA954	TriggerUtil	SceTriggerUtil	-	default
+0x2C43AC0C	NID_2C43AC0C	TriggerUtil	SceTriggerUtil	-	default
+0xDA93949A	NID_DA93949A	TriggerUtil	SceTriggerUtil	-	default
 0xDD2CA8BB	sceTriggerUtilGetAutoStartStatus	TriggerUtil	SceTriggerUtil	vh
 0xDF3ED08E	sceTriggerUtilGetDailyEventInfo	TriggerUtil	SceTriggerUtil	vh
 0x912434E0	sceTriggerUtilGetOneTimeEventInfo	TriggerUtil	SceTriggerUtil	vh

@@ -97,7 +97,7 @@ SceGxmInternalForVsh	os0:us/libgxm_es4.suprx	5	5	1	1	4	4	0	0	0	0
 SceHandwriting	vs0:sys/external/libhandwriting.suprx	11	11	0	0	0	0	0	0	0	0
 SceHid	os0:kd/bootimage.skprx/SceHid	28	28	4	4	7	7	0	0	0	0
 SceHostAvch	vs0:vsh/common/av_content_handler.suprx	155	155	0	0	96	96	0	0	0	155
-SceHttp	vs0:sys/external/libhttp.suprx	116	98	46	46	20	18	0	0	0	2
+SceHttp	vs0:sys/external/libhttp.suprx	116	100	46	46	20	20	0	0	0	2
 SceIme	vs0:sys/external/libime.suprx	6	6	6	6	0	0	0	0	0	0
 SceImeVsh	vs0:sys/external/libime.suprx	17	17	0	0	0	0	0	0	0	17
 SceIncomingDialog	vs0:sys/external/incoming_dialog.suprx	6	6	0	0	2	2	0	0	0	0
@@ -169,7 +169,7 @@ SceNotificationUtilBgApp	vs0:sys/external/notification_util.suprx	1	1	0	0	0	0	0	
 SceNotificationUtilProgress	vs0:sys/external/notification_util.suprx	3	3	0	0	0	0	0	0	0	0
 SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
-SceNpBasic	vs0:sys/external/np_basic.suprx	41	32	25	25	4	2	0	0	0	0
+SceNpBasic	vs0:sys/external/np_basic.suprx	41	34	25	25	4	4	0	0	0	0
 SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	489	41	41	391	391	0	0	0	0
 SceNpCommon	vs0:sys/external/np_common.suprx	71	54	14	14	50	35	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
@@ -178,7 +178,7 @@ SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
 SceNpFriendPrivacyLevel	vs0:sys/external/np_friend_privacylevel.suprx	16	16	0	0	8	8	0	0	0	16
 SceNpGriefReport	vs0:vsh/common/np_grief_report.suprx	18	18	0	0	14	14	0	0	0	18
 SceNpKdc	vs0:sys/external/np_kdc.suprx	7	7	0	0	7	7	0	0	0	7
-SceNpManager	vs0:sys/external/np_manager.suprx	91	82	15	15	65	63	0	0	0	0
+SceNpManager	vs0:sys/external/np_manager.suprx	91	84	15	15	65	65	0	0	0	0
 SceNpManagerOAuth	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerSP	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerTicket	vs0:sys/external/np_manager.suprx	5	5	0	0	0	0	0	0	0	5
@@ -268,7 +268,7 @@ SceTeleportServer	vs0:sys/external/libSceTeleportServer.suprx	1	1	0	0	1	1	0	0	0	
 SceThreadmgr	os0:kd/threadmgr.skprx	184	184	54	54	102	102	0	0	0	1
 SceTiffPromoter	vs0:vsh/common/mms/tiff_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceTouch	os0:kd/bootimage.skprx/SceTouch	27	27	7	7	12	12	0	0	0	0
-SceTriggerUtil	vs0:sys/external/trigger_util.suprx	19	12	0	0	12	9	0	0	0	0
+SceTriggerUtil	vs0:sys/external/trigger_util.suprx	19	15	0	0	12	12	3	0	3	0
 SceUdcd	os0:kd/bootimage.skprx/SceUdcd	8	8	0	0	7	7	0	0	0	0
 SceUlobjDbg	vs0:sys/external/libfiber.suprx	2	2	2	2	0	0	0	0	0	0
 SceUlobjMgr	os0:kd/bootimage.skprx/SceUlobjMgr	3	3	1	1	2	2	0	0	0	0

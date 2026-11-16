@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,990 | 6,756 | 234 | 0 | 7,320 | 95.4% |
+| System imports | 6,999 | 6,762 | 237 | 0 | 7,320 | 95.6% |
 | General | 9,657 | 9,434 | 223 | 0 | 9,944 | 97.1% |
-| All firmware 3.74 exports | 18,789 | 4,835 | 463 | 13,491 | 19,406 | 96.8% |
+| All firmware 3.74 exports | 18,798 | 4,841 | 466 | 13,491 | 19,406 | 96.8% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -384,7 +384,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceHandwriting | `vs0:sys/external/libhandwriting.suprx` | 11 / 11 | 100% | - | - | - |
 | SceHid | `os0:kd/bootimage.skprx/SceHid` | 28 / 28 | 100% | - | 4 / 4 | 7 / 7 |
 | SceHostAvch | `vs0:vsh/common/av_content_handler.suprx` | 155 / 155 | 100% | - | - | 96 / 96 |
-| SceHttp | `vs0:sys/external/libhttp.suprx` | 98 / 116 | 84.4% | - | 46 / 46 | 18 / 20 |
+| SceHttp | `vs0:sys/external/libhttp.suprx` | 100 / 116 | 86.2% | - | 46 / 46 | 20 / 20 |
 | SceIme | `vs0:sys/external/libime.suprx` | 6 / 6 | 100% | - | 6 / 6 | - |
 | SceImeVsh | `vs0:sys/external/libime.suprx` | 17 / 17 | 100% | - | - | - |
 | SceIncomingDialog | `vs0:sys/external/incoming_dialog.suprx` | 6 / 6 | 100% | - | - | 2 / 2 |
@@ -456,7 +456,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNotificationUtilProgress | `vs0:sys/external/notification_util.suprx` | 3 / 3 | 100% | - | - | - |
 | SceNpActivity | `vs0:sys/external/np_activity_sdk.suprx` | 4 / 4 | 100% | - | 3 / 3 | - |
 | SceNpActivityNet | `vs0:sys/external/np_activity.suprx` | 30 / 30 | 100% | - | - | 26 / 26 |
-| SceNpBasic | `vs0:sys/external/np_basic.suprx` | 32 / 41 | 78% | - | 25 / 25 | 2 / 4 |
+| SceNpBasic | `vs0:sys/external/np_basic.suprx` | 34 / 41 | 82.9% | - | 25 / 25 | 4 / 4 |
 | SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 489 / 502 | 97.4% | - | 41 / 41 | 391 / 391 |
 | SceNpCommon | `vs0:sys/external/np_common.suprx` | 54 / 71 | 76% | - | 14 / 14 | 35 / 50 |
 | SceNpCommonPs4 | `vs0:sys/external/np_common_ps4.suprx` | 713 / 713 | 100% | - | - | 246 / 246 |
@@ -465,7 +465,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpFriendPrivacyLevel | `vs0:sys/external/np_friend_privacylevel.suprx` | 16 / 16 | 100% | - | - | 8 / 8 |
 | SceNpGriefReport | `vs0:vsh/common/np_grief_report.suprx` | 18 / 18 | 100% | - | - | 14 / 14 |
 | SceNpKdc | `vs0:sys/external/np_kdc.suprx` | 7 / 7 | 100% | - | - | 7 / 7 |
-| SceNpManager | `vs0:sys/external/np_manager.suprx` | 82 / 91 | 90.1% | - | 15 / 15 | 63 / 65 |
+| SceNpManager | `vs0:sys/external/np_manager.suprx` | 84 / 91 | 92.3% | - | 15 / 15 | 65 / 65 |
 | SceNpManagerOAuth | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerSP | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerTicket | `vs0:sys/external/np_manager.suprx` | 5 / 5 | 100% | - | - | - |
@@ -555,7 +555,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceThreadmgr | `os0:kd/threadmgr.skprx` | 184 / 184 | 100% | - | 54 / 54 | 102 / 102 |
 | SceTiffPromoter | `vs0:vsh/common/mms/tiff_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | SceTouch | `os0:kd/bootimage.skprx/SceTouch` | 27 / 27 | 100% | - | 7 / 7 | 12 / 12 |
-| SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 12 / 19 | 63.1% | - | - | 9 / 12 |
+| SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 15 / 19 | 78.9% | 3 | - | 12 / 12 |
 | SceUdcd | `os0:kd/bootimage.skprx/SceUdcd` | 8 / 8 | 100% | - | - | 7 / 7 |
 | SceUlobjDbg | `vs0:sys/external/libfiber.suprx` | 2 / 2 | 100% | - | 2 / 2 | - |
 | SceUlobjMgr | `os0:kd/bootimage.skprx/SceUlobjMgr` | 3 / 3 | 100% | - | 1 / 1 | 2 / 2 |
