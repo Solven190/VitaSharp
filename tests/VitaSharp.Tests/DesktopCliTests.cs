@@ -102,6 +102,45 @@ public sealed class DesktopCliTests : IDisposable
         Assert.Equal(3, rows.Length);
     }
 
+    /// <summary>hle-implemented writes only the table: the log of the emulator it makes (Info lines such as the CPU
+    /// backend) goes to stderr, so a refresh that redirects stdout into docs/hle/data/vitasharp-implemented.tsv, or
+    /// the --out file, gets no log lines on top of the data.</summary>
+    [Fact]
+    public void HleImplementedWritesOnlyTheTable()
+    {
+        string tsv = Path.Combine(_root, "implemented.tsv");
+        DesktopProcess.Result r = Run("hle-implemented", $"--out={tsv}");
+        Assert.True(r.ExitCode == 0, Tail(r.Output));
+        string[] rows = File.ReadAllLines(tsv);
+        Assert.Contains(rows, l => l.StartsWith("0xA9C3CED6\tsceCtrlPeekBufferPositive\t", StringComparison.Ordinal));
+        Assert.All(rows, l => Assert.StartsWith("0x", l));
+
+        DesktopProcess.Result stdout = DesktopProcess.Run(_root, ["hle-implemented"], softwareVulkan: false, withStandardError: false);
+        Assert.True(stdout.ExitCode == 0, Tail(stdout.Output));
+        Assert.Equal(rows, stdout.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray());
+    }
+
+    /// <summary>hle-coverage --status also writes, from the same census, the missing functions of every group
+    /// (docs/hle/data/missing-by-group.tsv: here the VitaSDK list row the HLE does not have), the user-side holes and
+    /// the implemented NIDs, each with data lines only.</summary>
+    [Fact]
+    public void HleCoverageStatusWritesTheMissingFunctionsOfEachGroup()
+    {
+        SyntheticTitle.Install(Path.Combine(_root, "fs"));
+        string sdk = Path.Combine(_root, "vitasdk.tsv");
+        File.WriteAllLines(sdk, ["0xA9C3CED6\tSceCtrl\tSceCtrl\tsceCtrlPeekBufferPositive\tdone", "0x0BADF00D\tSceTest\tSceTestLib\tsceTestMissing\tmissing"]);
+        string repo = Path.Combine(_root, "repo");
+        DesktopProcess.Result r = Run("hle-coverage", $"--vitasdk={sdk}", $"--status={repo}");
+        Assert.True(r.ExitCode == 0, Tail(r.Output));
+
+        string missing = File.ReadAllText(Path.Combine(repo, "docs", "hle", "data", "missing-by-group.tsv"));
+        string[] rows = missing.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => !l.StartsWith('#')).ToArray();
+        Assert.Equal(["group\tlibrary\tnid\tname\tmodule\tgames\tsystem\timporter", "vitasdk\tSceTestLib\t0x0BADF00D\tsceTestMissing\tSceTest\t0\t0\t-"], rows);
+        Assert.Equal(1, VitaSharp.Core.Firmware.HleCensusTables.ParseMissingCounts(missing)["vitasdk"]);
+        Assert.All(File.ReadAllLines(Path.Combine(repo, "docs", "hle", "data", "vitasharp-implemented.tsv")), l => Assert.StartsWith("0x", l));
+        Assert.Contains("library\tnid\tname\tkind\tgames\tsystem\tvitasdk", File.ReadAllLines(Path.Combine(repo, "docs", "hle", "data", "user-exports.tsv")));
+    }
+
     [Fact]
     public void PreviewsRegistryVersionAndPngDiff()
     {

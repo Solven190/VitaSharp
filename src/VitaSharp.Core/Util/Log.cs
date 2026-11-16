@@ -27,6 +27,10 @@ public static class Log
     /// <summary>False stops the console copy (Android, where the sink already reaches logcat and stdout would
     /// duplicate every line under another tag).</summary>
     public static bool ConsoleEnabled { get; set; } = true;
+
+    /// <summary>True sends the console copy to stderr: commands whose stdout is data (a table redirected to a file)
+    /// keep the log out of it.</summary>
+    public static bool ConsoleToStandardError { get; set; }
     private static StreamWriter? s_file;
     private static readonly object s_lock = new();
     private static readonly ConcurrentDictionary<string, int> s_once = new();
@@ -115,7 +119,15 @@ public static class Log
                     Console.ForegroundColor = level == LogLevel.Error ? ConsoleColor.Red : ConsoleColor.Yellow;
                 }
 
-                Console.WriteLine(line);
+                if (ConsoleToStandardError)
+                {
+                    Console.Error.WriteLine(line);
+                }
+                else
+                {
+                    Console.WriteLine(line);
+                }
+
                 if (level >= LogLevel.Warn)
                 {
                     Console.ResetColor();

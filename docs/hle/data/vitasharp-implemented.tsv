@@ -1,6 +1,3 @@
-[14:38:11.737] [Info ] [2] CPU backend: interpreter only (JIT disabled)
-[14:38:11.747] [Info ] [2] PSN: signed out, offline
-[14:38:12.517] [Info ] [2] registry: no firmware template (os0:kd/registry.db0); only the keys VitaSharp knows exist
 0xD0595CE4	sceAVConfigChangeReg	VshBridge	SceAVConfig	vh
 0xBD9C52B1	sceAVConfigClearAutoSuspend2	VshBridge	SceAVConfig	vh
 0x28AAF909	sceAVConfigDisplayOn	VshBridge	SceAVConfig	vh
@@ -177,6 +174,7 @@
 0xDC70C5F7	sceAppMgrDestroyOtherAppByAppIdForShell	AppMgrShell	SceAppMgr	vh
 0x5420D23C	sceAppMgrDestroyOtherAppByPidForShell	AppMgrShell	SceAppMgr	vh
 0x527795E8	sceAppMgrDump	AppMgr	SceAppMgr	vh
+0x32FD0B99	sceAppMgrEnableCoredumpForTest	AppMgr	SceAppMgr	vh
 0x5AB230DE	sceAppMgrEnableDuckingOnSystemChat	AppMgr	SceAppMgr	vh
 0x3E1FAB92	sceAppMgrEnablePrioritizingSystemChat	AppMgrShell	SceAppMgr	vh
 0x89D1DA55	sceAppMgrExitToLiveboardForGameApp	AppMgrShell	SceAppMgr	vh
@@ -224,6 +222,7 @@
 0xD16B91B5	sceAppMgrSetSystemImposeState	AppMgrShell	SceAppMgr	vh
 0x2163759A	sceAppMgrSetSystemImposeState2	AppMgrShell	SceAppMgr	vh
 0x5BCF6927	sceAppMgrSuspendBgAppByShell	AppMgrShell	SceAppMgr	vh
+0xECEC7F90	sceAppMgrSuspendUntilActivated	AppMgr	SceAppMgr	vh
 0x5E86319A	_sceAppMgrGetAppState	SystemMisc	SceAppMgrUser	vh
 0x31EFA73A	sceAppMgrAcidDirSet	AppMgr	SceAppMgrUser	vh
 0xD97AC34E	sceAppMgrAcquireSoundOutExclusive3	AppMgrShell	SceAppMgrUser	vh
@@ -446,6 +445,9 @@
 0xB41FACCE	sceAudioOutSetEffectType	Audio	SceAudio	vh
 0x65840F3D	sceAudioOutSetPortVolume_forUser	Audio	SceAudio	vh
 0x64167F11	sceAudioOutSetVolume	Audio	SceAudio	vh
+0xDB1C4A83	ksceAudioOutSetAdoptMode	KernelTwins	SceAudioForDriver	-
+0x216D8A91	ksceAudioOutSetAlcMode	KernelTwins	SceAudioForDriver	-
+0x8D0AE24F	ksceAudioOutSetEffectType	KernelTwins	SceAudioForDriver	-
 0x566AC433	sceAudioInGetAdopt	Audio	SceAudioIn	vh
 0x08105392	sceAudioInGetInput	Audio	SceAudioIn	vh
 0x86118097	sceAudioInGetMicGain	Audio	SceAudioIn	vh
@@ -458,6 +460,10 @@
 0xA0EB852F	sceAudioInSelectInput	Audio	SceAudioIn	vh
 0x0F34DD73	sceAudioInSetMicGain	Audio	SceAudioIn	vh
 0x1DFE7698	sceAudioInSetMute	Audio	SceAudioIn	vh
+0x0AB2743C	ksceAudioInInput	KernelTwins	SceAudioInForDriver	-
+0x9C7404BF	ksceAudioInOpenPort	KernelTwins	SceAudioInForDriver	-
+0x313C969A	ksceAudioInReleasePort	KernelTwins	SceAudioInForDriver	-
+0x44A497F8	ksceAudioInSelectInput	KernelTwins	SceAudioInForDriver	-
 0xF72F9B64	sceAudiodecClearContext	Audiodec	SceAudiodecUser	vh
 0x4DFD3AAA	sceAudiodecCreateDecoder	Audiodec	SceAudiodecUser	vh
 0x56085DFB	sceAudiodecCreateDecoderExternal	Audiodec	SceAudiodecUser	vh
@@ -642,7 +648,31 @@
 0xC4EBFDF5	_sceVideoencQueryMemSize	Videoenc	SceAvcodec	vh
 0xEE5B74B7	_sceVideoencQueryMemSizeInternal	Videoenc	SceAvcodec	vh
 0xFF652EAE	_sceVideoencTermLibrary	Videoenc	SceAvcodec	vh
+0xB2A51EB0	ksceAvcencCreateEncoder	KernelTwins	SceAvcodecForDriver	-
+0xC5E720E2	ksceAvcencCreateEncoderBasic	KernelTwins	SceAvcodecForDriver	-
+0x71C37694	ksceAvcencCreateEncoderInternal	KernelTwins	SceAvcodecForDriver	-
+0x4F11F915	ksceAvcencCsc	KernelTwins	SceAvcodecForDriver	-
+0x2895CB6D	ksceAvcencDeleteEncoder	KernelTwins	SceAvcodecForDriver	-
+0xA0E63278	ksceAvcencEncode	KernelTwins	SceAvcodecForDriver	-
+0x229AB2CF	ksceAvcencEncodeFlush	KernelTwins	SceAvcodecForDriver	-
+0xDE515BFF	ksceAvcencEncodeStop	KernelTwins	SceAvcodecForDriver	-
+0x1A584DB7	ksceAvcencGetNalUnit	KernelTwins	SceAvcodecForDriver	-
+0x5C3434FB	ksceAvcencQueryEncoderMemSize	KernelTwins	SceAvcodecForDriver	-
+0x7385FB51	ksceAvcencQueryEncoderMemSizeBasic	KernelTwins	SceAvcodecForDriver	-
+0xBF3835E2	ksceAvcencQueryEncoderMemSizeInternal	KernelTwins	SceAvcodecForDriver	-
+0x7DC13C29	ksceAvcencSetAvailablePreset	KernelTwins	SceAvcodecForDriver	-
+0xE0232BFE	ksceAvcencSetEncoderParameter	KernelTwins	SceAvcodecForDriver	-
+0xB77B5BFC	ksceJpegEncoderCsc	KernelTwins	SceAvcodecForDriver	-
+0x468949D7	ksceJpegEncoderEncode	KernelTwins	SceAvcodecForDriver	-
+0x86AD5A4F	ksceJpegEncoderEnd	KernelTwins	SceAvcodecForDriver	-
+0x4DB66E3A	ksceJpegEncoderGetContextSize	KernelTwins	SceAvcodecForDriver	-
+0x1BE9F5A4	ksceJpegEncoderInit	KernelTwins	SceAvcodecForDriver	-
+0x91B27CF3	ksceJpegEncoderSetCompressionRatio	KernelTwins	SceAvcodecForDriver	-
+0x58835DCB	ksceJpegEncoderSetHeaderMode	KernelTwins	SceAvcodecForDriver	-
+0x2C8271BA	ksceJpegEncoderSetOutputAddr	KernelTwins	SceAvcodecForDriver	-
+0xD0647B74	ksceJpegEncoderSetValidRegion	KernelTwins	SceAvcodecForDriver	-
 0xBF371A98	_sceKernelBacktrace	ProcessMgr	SceBacktrace	vh
+0x166B9C8C	ksceKernelBacktrace	KernelTwins	SceBacktraceForDriver	-
 0x8A586895	sceBbmcClearEvent	SystemServicesVsh	SceBbmc	vh	default
 0xCF5593A1	sceBbmcDLGetSwdlError	SystemServicesVsh	SceBbmc	vh	default
 0xFD1B5B45	sceBbmcDLQAbort	SystemServicesVsh	SceBbmc	vh	default
@@ -775,6 +805,58 @@
 0xE423D1CC	sceBtStopAudio	SystemServicesVsh	SceBt	vh	default
 0xF1C4D466	sceBtStopInquiry	SystemServicesVsh	SceBt	vh	default
 0x605EF71F	sceBtUnregisterCallback	SystemServicesVsh	SceBt	vh	default
+0xC9C70056	ksceBtAvrcpReadVolume	KernelTwins	SceBtForDriver	-	default
+0xEC5F8519	ksceBtAvrcpSendButton	KernelTwins	SceBtForDriver	-	default
+0x7689DA3D	ksceBtAvrcpSendVolume	KernelTwins	SceBtForDriver	-	default
+0xC5E7349C	ksceBtAvrcpSetPlayStatus	KernelTwins	SceBtForDriver	-	default
+0x91EF55AD	ksceBtAvrcpSetTitle	KernelTwins	SceBtForDriver	-	default
+0xE6F659E0	ksceBtDeleteRegisteredInfo	KernelTwins	SceBtForDriver	-	default
+0xDA20DCC8	ksceBtFreqAudio	KernelTwins	SceBtForDriver	-	default
+0x94C66A3B	ksceBtGetConfiguration	KernelTwins	SceBtForDriver	-	default
+0xE9936446	ksceBtGetConnectingInfo	KernelTwins	SceBtForDriver	-	default
+0x633F784C	ksceBtGetDeviceName	KernelTwins	SceBtForDriver	-	default
+0x2C9DD7BB	ksceBtGetInfoForTest	KernelTwins	SceBtForDriver	-	default
+0xAD31A43E	ksceBtGetLastError	KernelTwins	SceBtForDriver	-	default
+0xF86D25E2	ksceBtGetRegisteredInfo	KernelTwins	SceBtForDriver	-	default
+0x83781649	ksceBtGetStatusForTest	KernelTwins	SceBtForDriver	-	default
+0x7BC66D6D	ksceBtHfpGetCurrentPhoneNumber	KernelTwins	SceBtForDriver	-
+0x6E49D11D	ksceBtHfpRequest	KernelTwins	SceBtForDriver	-
+0x06CB4ABA	ksceBtHidGetReportDescriptor	KernelTwins	SceBtForDriver	-
+0xF9DCEC77	ksceBtHidTransfer	KernelTwins	SceBtForDriver	-
+0xCA9B885C	ksceBtHidVuGetReportFeature	KernelTwins	SceBtForDriver	-	default
+0x3BBC1EE1	ksceBtHidVuGetReportInput	KernelTwins	SceBtForDriver	-	default
+0x3333A878	ksceBtHidVuReadEvent	KernelTwins	SceBtForDriver	-	default
+0xAB57F8C1	ksceBtHidVuRegisterCallback	KernelTwins	SceBtForDriver	-	default
+0xD2449052	ksceBtHidVuSetInterruptOutput	KernelTwins	SceBtForDriver	-	default
+0x014A1D28	ksceBtHidVuSetReportFeature	KernelTwins	SceBtForDriver	-	default
+0xAB2032A3	ksceBtHidVuSetReportOutput	KernelTwins	SceBtForDriver	-	default
+0x1AB31C7D	ksceBtHidVuUnregisterCallback	KernelTwins	SceBtForDriver	-	default
+0x7FF77792	ksceBtPushBip	KernelTwins	SceBtForDriver	-	default
+0x21C788E2	ksceBtPushOpp	KernelTwins	SceBtForDriver	-
+0x5ABB9A9D	ksceBtReadEvent	KernelTwins	SceBtForDriver	-	default
+0xCD7C0492	ksceBtRecvAudio	KernelTwins	SceBtForDriver	-	default
+0xE8E95977	ksceBtRecvBip	KernelTwins	SceBtForDriver	-	default
+0x8008AA2C	ksceBtRecvOpp	KernelTwins	SceBtForDriver	-
+0xC09D9E7C	ksceBtRecvSpp	KernelTwins	SceBtForDriver	-	default
+0x120AC1F7	ksceBtRegisterCallback	KernelTwins	SceBtForDriver	-	default
+0xBB69A62A	ksceBtReplyPinCode	KernelTwins	SceBtForDriver	-	default
+0xB5FA291C	ksceBtReplyUserConfirmation	KernelTwins	SceBtForDriver	-	default
+0x47F19727	ksceBtSendAudio	KernelTwins	SceBtForDriver	-	default
+0xE3A66814	ksceBtSendL2capEchoRequestForTest	KernelTwins	SceBtForDriver	-	default
+0x92241DFB	ksceBtSendSpp	KernelTwins	SceBtForDriver	-	default
+0xEBDCC992	ksceBtSetConfiguration	KernelTwins	SceBtForDriver	-	default
+0x08632086	ksceBtSetContentProtection	KernelTwins	SceBtForDriver	-
+0x1C26F878	ksceBtSetInquiryResultForTest	KernelTwins	SceBtForDriver	-	default
+0x4F5A852E	ksceBtSetInquiryScan	KernelTwins	SceBtForDriver	-	default
+0x0B7D8E0E	ksceBtSetL2capEchoResponseBufferForTest	KernelTwins	SceBtForDriver	-	default
+0x9C195411	ksceBtSetStatusForTest	KernelTwins	SceBtForDriver	-	default
+0x8D47CABD	ksceBtStartAudio	KernelTwins	SceBtForDriver	-	default
+0x6059113A	ksceBtStartConnect	KernelTwins	SceBtForDriver	-	default
+0x50710281	ksceBtStartDisconnect	KernelTwins	SceBtForDriver	-	default
+0x9DC7E7E5	ksceBtStartInquiry	KernelTwins	SceBtForDriver	-	default
+0xCAE5A9F3	ksceBtStopAudio	KernelTwins	SceBtForDriver	-	default
+0x6A1D9598	ksceBtStopInquiry	KernelTwins	SceBtForDriver	-	default
+0xBF72E1BE	ksceBtUnregisterCallback	KernelTwins	SceBtForDriver	-	default
 0xCD6E1CFC	sceCameraClose	Camera	SceCamera	vh
 0x9FDACB99	sceCameraGetAntiFlicker	Camera	SceCamera	vh
 0x06A21BBB	sceCameraGetAutoControlHold	Camera	SceCamera	vh
@@ -1004,6 +1086,152 @@
 0x6037A2C3	sceCoredumpUnregisterCoredumpHandler	SystemSoftware	SceCoredump	vh
 0xDF335DCF	sceCoredumpWriteUserData	SystemSoftware	SceCoredumpNounlink	vh
 0x2704CFEE	sceKernelGetCpuId	SysMem	SceCpu	vh
+0xE813EBB2	SceCpuForDriver_E813EBB2	SysmemKernel	SceCpuForDriver	-
+0x59F74E94	ksceKernelCpuAtomicAddAndGet16	KernelTwins	SceCpuForDriver	-
+0x5F6A8743	ksceKernelCpuAtomicAddAndGet32	KernelTwins	SceCpuForDriver	-
+0x4E459A03	ksceKernelCpuAtomicAddAndGet64	KernelTwins	SceCpuForDriver	-
+0x1E850481	ksceKernelCpuAtomicAddAndGet8	KernelTwins	SceCpuForDriver	-
+0x0F84AFE9	ksceKernelCpuAtomicAddUnless16	KernelTwins	SceCpuForDriver	-
+0x1F157DC3	ksceKernelCpuAtomicAddUnless32	KernelTwins	SceCpuForDriver	-
+0x06CCFA4B	ksceKernelCpuAtomicAddUnless64	KernelTwins	SceCpuForDriver	-
+0x5CC62CEC	ksceKernelCpuAtomicAddUnless8	KernelTwins	SceCpuForDriver	-
+0xB281D52A	ksceKernelCpuAtomicAndAndGet16	KernelTwins	SceCpuForDriver	-
+0xDF899E4B	ksceKernelCpuAtomicAndAndGet32	KernelTwins	SceCpuForDriver	-
+0xD18E7B54	ksceKernelCpuAtomicAndAndGet64	KernelTwins	SceCpuForDriver	-
+0x32B62B1A	ksceKernelCpuAtomicAndAndGet8	KernelTwins	SceCpuForDriver	-
+0x6B050D7C	ksceKernelCpuAtomicClearAndGet16	KernelTwins	SceCpuForDriver	-
+0x78C1F148	ksceKernelCpuAtomicClearAndGet32	KernelTwins	SceCpuForDriver	-
+0x2149CD4C	ksceKernelCpuAtomicClearAndGet64	KernelTwins	SceCpuForDriver	-
+0x8E538AB5	ksceKernelCpuAtomicClearAndGet8	KernelTwins	SceCpuForDriver	-
+0x1BE58599	ksceKernelCpuAtomicClearMask16	KernelTwins	SceCpuForDriver	-
+0x4AE1BCC0	ksceKernelCpuAtomicClearMask32	KernelTwins	SceCpuForDriver	-
+0x55760309	ksceKernelCpuAtomicClearMask64	KernelTwins	SceCpuForDriver	-
+0x1B3336B0	ksceKernelCpuAtomicClearMask8	KernelTwins	SceCpuForDriver	-
+0x6F63F56D	ksceKernelCpuAtomicCompareAndSet16	KernelTwins	SceCpuForDriver	-
+0xCDA96E81	ksceKernelCpuAtomicCompareAndSet32	KernelTwins	SceCpuForDriver	-
+0x4B527009	ksceKernelCpuAtomicCompareAndSet64	KernelTwins	SceCpuForDriver	-
+0x3627F4E0	ksceKernelCpuAtomicCompareAndSet8	KernelTwins	SceCpuForDriver	-
+0x9A693F5B	ksceKernelCpuAtomicDecIfPositive16	KernelTwins	SceCpuForDriver	-
+0x2A71B03C	ksceKernelCpuAtomicDecIfPositive32	KernelTwins	SceCpuForDriver	-
+0x267D0B33	ksceKernelCpuAtomicDecIfPositive64	KernelTwins	SceCpuForDriver	-
+0x45153D4E	ksceKernelCpuAtomicDecIfPositive8	KernelTwins	SceCpuForDriver	-
+0x225DF91A	ksceKernelCpuAtomicGetAndAdd16	KernelTwins	SceCpuForDriver	-
+0x341B6E81	ksceKernelCpuAtomicGetAndAdd32	KernelTwins	SceCpuForDriver	-
+0x043FD446	ksceKernelCpuAtomicGetAndAdd64	KernelTwins	SceCpuForDriver	-
+0xFCDCD4DE	ksceKernelCpuAtomicGetAndAdd8	KernelTwins	SceCpuForDriver	-
+0x4A820BC5	ksceKernelCpuAtomicGetAndAnd16	KernelTwins	SceCpuForDriver	-
+0x10EB35EB	ksceKernelCpuAtomicGetAndAnd32	KernelTwins	SceCpuForDriver	-
+0x18A17E07	ksceKernelCpuAtomicGetAndAnd64	KernelTwins	SceCpuForDriver	-
+0xD8E675C0	ksceKernelCpuAtomicGetAndAnd8	KernelTwins	SceCpuForDriver	-
+0x8E9C086D	ksceKernelCpuAtomicGetAndClear16	KernelTwins	SceCpuForDriver	-
+0xE36F3A46	ksceKernelCpuAtomicGetAndClear32	KernelTwins	SceCpuForDriver	-
+0x88BA6002	ksceKernelCpuAtomicGetAndClear64	KernelTwins	SceCpuForDriver	-
+0x382D1466	ksceKernelCpuAtomicGetAndClear8	KernelTwins	SceCpuForDriver	-
+0x004F09D1	ksceKernelCpuAtomicGetAndOr16	KernelTwins	SceCpuForDriver	-
+0x2A40BB93	ksceKernelCpuAtomicGetAndOr32	KernelTwins	SceCpuForDriver	-
+0xCB73D6D5	ksceKernelCpuAtomicGetAndOr64	KernelTwins	SceCpuForDriver	-
+0xBDF6F8E4	ksceKernelCpuAtomicGetAndOr8	KernelTwins	SceCpuForDriver	-
+0x085532C8	ksceKernelCpuAtomicGetAndSet16	KernelTwins	SceCpuForDriver	-
+0x0EE04C03	ksceKernelCpuAtomicGetAndSet32	KernelTwins	SceCpuForDriver	-
+0xD2DEE625	ksceKernelCpuAtomicGetAndSet64	KernelTwins	SceCpuForDriver	-
+0x29599FC8	ksceKernelCpuAtomicGetAndSet8	KernelTwins	SceCpuForDriver	-
+0x3EE9B5B8	ksceKernelCpuAtomicGetAndSub16	KernelTwins	SceCpuForDriver	-
+0xF891CF2A	ksceKernelCpuAtomicGetAndSub32	KernelTwins	SceCpuForDriver	-
+0xA7585370	ksceKernelCpuAtomicGetAndSub64	KernelTwins	SceCpuForDriver	-
+0x7B43D0D7	ksceKernelCpuAtomicGetAndSub8	KernelTwins	SceCpuForDriver	-
+0x711801E6	ksceKernelCpuAtomicGetAndXor16	KernelTwins	SceCpuForDriver	-
+0x77E34309	ksceKernelCpuAtomicGetAndXor32	KernelTwins	SceCpuForDriver	-
+0xE212ECAD	ksceKernelCpuAtomicGetAndXor64	KernelTwins	SceCpuForDriver	-
+0xBAF47F7B	ksceKernelCpuAtomicGetAndXor8	KernelTwins	SceCpuForDriver	-
+0xADD39B84	ksceKernelCpuAtomicOrAndGet16	KernelTwins	SceCpuForDriver	-
+0xBC248C30	ksceKernelCpuAtomicOrAndGet32	KernelTwins	SceCpuForDriver	-
+0x3E218AF7	ksceKernelCpuAtomicOrAndGet64	KernelTwins	SceCpuForDriver	-
+0x5D515F1B	ksceKernelCpuAtomicOrAndGet8	KernelTwins	SceCpuForDriver	-
+0x532CA3E8	ksceKernelCpuAtomicSet16	KernelTwins	SceCpuForDriver	-
+0x3168BC57	ksceKernelCpuAtomicSet32	KernelTwins	SceCpuForDriver	-
+0xC381CE8C	ksceKernelCpuAtomicSet64	KernelTwins	SceCpuForDriver	-
+0x0836537E	ksceKernelCpuAtomicSet8	KernelTwins	SceCpuForDriver	-
+0x875B094D	ksceKernelCpuAtomicSetIfGreaterGet16	SysmemKernel	SceCpuForDriver	-
+0x26F71995	ksceKernelCpuAtomicSetIfGreaterGet32	SysmemKernel	SceCpuForDriver	-
+0xC3868071	ksceKernelCpuAtomicSetIfGreaterGet8	SysmemKernel	SceCpuForDriver	-
+0x515682C9	ksceKernelCpuAtomicSubAndGet16	KernelTwins	SceCpuForDriver	-
+0xA4884C4E	ksceKernelCpuAtomicSubAndGet32	KernelTwins	SceCpuForDriver	-
+0xB5F8919C	ksceKernelCpuAtomicSubAndGet64	KernelTwins	SceCpuForDriver	-
+0xEB085370	ksceKernelCpuAtomicSubAndGet8	KernelTwins	SceCpuForDriver	-
+0x646003D6	ksceKernelCpuAtomicXorAndGet16	KernelTwins	SceCpuForDriver	-
+0x4244BE65	ksceKernelCpuAtomicXorAndGet32	KernelTwins	SceCpuForDriver	-
+0x692C51B3	ksceKernelCpuAtomicXorAndGet64	KernelTwins	SceCpuForDriver	-
+0x03887992	ksceKernelCpuAtomicXorAndGet8	KernelTwins	SceCpuForDriver	-
+0x6BA2E51C	ksceKernelCpuDcacheWritebackInvalidateRange	SysmemKernel	SceCpuForDriver	-
+0x19F17BD0	ksceKernelCpuIcacheAndL2WritebackInvalidateRange	SysmemKernel	SceCpuForDriver	-
+0xF4C7F578	ksceKernelCpuIcacheInvalidateRange	SysmemKernel	SceCpuForDriver	-
+0x5E4D5DE1	ksceKernelCpuId	KernelTwins	SceCpuForDriver	-
+0xF5BAD43B	ksceKernelCpuResumeIntr	SysmemKernel	SceCpuForDriver	-
+0x821FC0EE	ksceKernelCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0x8C683DEC	ksceKernelCpuUnrestrictedMemcpy	SysmemKernel	SceCpuForDriver	-
+0x364E68A4	ksceKernelDcacheCleanInvalidateRange	SysmemKernel	SceCpuForDriver	-
+0xE551F99B	ksceKernelDcacheCleanInvalidateRangeForL1WBWA	SysmemKernel	SceCpuForDriver	-
+0x103872A5	ksceKernelDcacheCleanRange	SysmemKernel	SceCpuForDriver	-
+0x9CB9F0CE	ksceKernelDcacheCleanRangeForL1WBWA	SysmemKernel	SceCpuForDriver	-
+0x02796361	ksceKernelDcacheInvalidateRange	SysmemKernel	SceCpuForDriver	-
+0x8B4C26DF	ksceKernelDcacheInvalidateRangeForL1WBWA	SysmemKernel	SceCpuForDriver	-
+0xCAC9AE80	ksceKernelRWSpinlockLowReadLock	SysmemKernel	SceCpuForDriver	-
+0xEC53D007	ksceKernelRWSpinlockLowReadLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0xF5FD5676	ksceKernelRWSpinlockLowReadUnlock	SysmemKernel	SceCpuForDriver	-
+0x740A0750	ksceKernelRWSpinlockLowReadUnlockCpuResumeIntr	SysmemKernel	SceCpuForDriver	-
+0x093925BD	ksceKernelRWSpinlockLowTryReadLock	SysmemKernel	SceCpuForDriver	-
+0xF02467D1	ksceKernelRWSpinlockLowTryReadLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0x4F7790B4	ksceKernelRWSpinlockLowTryWriteLock	SysmemKernel	SceCpuForDriver	-
+0xDE6482C6	ksceKernelRWSpinlockLowTryWriteLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0x3F42B434	ksceKernelRWSpinlockLowWriteLock	SysmemKernel	SceCpuForDriver	-
+0x4C38CE4D	ksceKernelRWSpinlockLowWriteLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0xCB8ABDF0	ksceKernelRWSpinlockLowWriteUnlock	SysmemKernel	SceCpuForDriver	-
+0x9EC91017	ksceKernelRWSpinlockLowWriteUnlockCpuResumeIntr	SysmemKernel	SceCpuForDriver	-
+0xBF82DEB2	ksceKernelSpinlockLowLock	SysmemKernel	SceCpuForDriver	-
+0xD32ACE9E	ksceKernelSpinlockLowLockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0x5AC9D394	ksceKernelSpinlockLowTrylock	SysmemKernel	SceCpuForDriver	-
+0x27C0B340	ksceKernelSpinlockLowTrylockCpuSuspendIntr	SysmemKernel	SceCpuForDriver	-
+0xD6ED0C46	ksceKernelSpinlockLowUnlock	SysmemKernel	SceCpuForDriver	-
+0x7BB9D5DF	ksceKernelSpinlockLowUnlockCpuResumeIntr	SysmemKernel	SceCpuForDriver	-
+0x75A85059	SceCpuForKernel_75A85059	SysmemKernel	SceCpuForKernel	-
+0x9818A20B	SceCpuForKernel_9818A20B	SysmemKernel	SceCpuForKernel	-
+0x9B071FD3	SceCpuForKernel_9B071FD3	SysmemKernel	SceCpuForKernel	-
+0xB331AB16	SceCpuForKernel_B331AB16	SysmemKernel	SceCpuForKernel	-
+0xFE9ED689	SceCpuForKernel_FE9ED689	SysmemKernel	SceCpuForKernel	-
+0x61DDA758	ksceKernelAtomicAdd32AndGet64InHiLoRange	SysmemKernel	SceCpuForKernel	-
+0xA12D4388	ksceKernelAtomicAdd32AndGet64InRange	SysmemKernel	SceCpuForKernel	-
+0x8F40D0FD	ksceKernelAtomicAddAndGetPositive32InRange	SysmemKernel	SceCpuForKernel	-
+0x0E04BD2E	ksceKernelAtomicDecIfLowPositive32	SysmemKernel	SceCpuForKernel	-
+0x59448055	ksceKernelAtomicGet32AndSet64	SysmemKernel	SceCpuForKernel	-
+0x1A62AD6A	ksceKernelAtomicGet32AndSet64_2	SysmemKernel	SceCpuForKernel	-
+0x9DA58A9E	ksceKernelAtomicIncrementHighwaterCounter	SysmemKernel	SceCpuForKernel	-
+0xA3D7140F	ksceKernelAtomicLimit64	SysmemKernel	SceCpuForKernel	-
+0x3D4FBB32	ksceKernelAtomicSubIfGreater64	SysmemKernel	SceCpuForKernel	-
+0xA65F6F14	ksceKernelCorelockInitialize	SysmemKernel	SceCpuForKernel	-
+0x2FF54320	ksceKernelCorelockLock	SysmemKernel	SceCpuForKernel	-
+0xFE2B77A3	ksceKernelCorelockUnlock	SysmemKernel	SceCpuForKernel	-
+0x050B8EF6	ksceKernelCpuBranchPredictorInvalidateAll	SysmemKernel	SceCpuForKernel	-
+0x7B0643E2	ksceKernelCpuBranchPredictorInvalidateAllIS	SysmemKernel	SceCpuForKernel	-
+0xFD54A91D	ksceKernelCpuGetCONTEXTIDR	SysmemKernel	SceCpuForKernel	-
+0xC6426313	ksceKernelCpuUpdateSCTLR	SysmemKernel	SceCpuForKernel	-
+0xC32687D0	ksceKernelGetVmaccessRange	SysmemKernel	SceCpuForKernel	-
+0x73E895EA	ksceKernelIcacheInvalidateRange	SysmemKernel	SceCpuForKernel	-
+0x74B7F445	ksceKernelL1DcacheClean	SysmemKernel	SceCpuForKernel	-
+0x49180814	ksceKernelL1DcacheCleanAll	SysmemKernel	SceCpuForKernel	-
+0x597426D2	ksceKernelL1DcacheCleanInvalidate	SysmemKernel	SceCpuForKernel	-
+0x4BBA5C82	ksceKernelL1DcacheCleanInvalidateAll	SysmemKernel	SceCpuForKernel	-
+0x4F442396	ksceKernelL1DcacheCleanInvalidateRange	SysmemKernel	SceCpuForKernel	-
+0x70350360	ksceKernelL1DcacheCleanRange	SysmemKernel	SceCpuForKernel	-
+0x7ED856FE	ksceKernelL1DcacheInvalidate	SysmemKernel	SceCpuForKernel	-
+0xF9B0B171	ksceKernelL1DcacheInvalidateAll	SysmemKernel	SceCpuForKernel	-
+0x4236E06A	ksceKernelL1DcacheInvalidateRange	SysmemKernel	SceCpuForKernel	-
+0x15A48AB4	ksceKernelL1IcacheInvalidateEntire	SysmemKernel	SceCpuForKernel	-
+0x803C84BF	ksceKernelL1IcacheInvalidateEntireAllCore	SysmemKernel	SceCpuForKernel	-
+0x2E637B1D	ksceKernelL1IcacheInvalidateRange	SysmemKernel	SceCpuForKernel	-
+0x87F7631D	ksceKernelMMUGetMemoryType	SysmemKernel	SceCpuForKernel	-
+0x14E0B0C4	ksceKernelMMUVAtoPA	SysmemKernel	SceCpuForKernel	-
+0x1BD23326	ksceKernelMMUVAtoPAWithMode	SysmemKernel	SceCpuForKernel	-
+0xA0A70166	ksceKernelPleFlushRequest	SysmemKernel	SceCpuForKernel	-
 0xD8294C9C	sceCtrlClearRapidFire	Ctrl	SceCtrl	vh
 0x16D26DC7	sceCtrlDisconnect	SystemServicesVsh	SceCtrl	vh
 0x35BCD3BB	sceCtrlGetAnalogStickCheckMode	Ctrl	SceCtrl	vh
@@ -1041,6 +1269,17 @@
 0xB1DC4378	sceCtrlSetSamplingModeExt	Ctrl	SceCtrl	vh
 0x031BE396	sceCtrlSingleControllerMode	Ctrl	SceCtrl	vh
 0x103EB2B0	sceCtrlUnregisterBdRMCCallback	SystemServicesVsh	SceCtrl	vh
+0xED138A26	ksceCtrlClearRapidFire	KernelTwins	SceCtrlForDriver	-
+0x6BEB1CD7	ksceCtrlGetButtonIntercept	KernelTwins	SceCtrlForDriver	-
+0xF11D0D30	ksceCtrlGetControllerPortInfo	KernelTwins	SceCtrlForDriver	-
+0x145B13BC	ksceCtrlGetSamplingMode	KernelTwins	SceCtrlForDriver	-
+0x19895843	ksceCtrlPeekBufferNegative	KernelTwins	SceCtrlForDriver	-
+0xEA1D3A34	ksceCtrlPeekBufferPositive	Ctrl	SceCtrlForDriver	-
+0x8D4E0DD1	ksceCtrlReadBufferNegative	KernelTwins	SceCtrlForDriver	-
+0x9B96A1AA	ksceCtrlReadBufferPositive	KernelTwins	SceCtrlForDriver	-
+0x06AA5E1A	ksceCtrlSetButtonIntercept	KernelTwins	SceCtrlForDriver	-
+0xA248CDAE	ksceCtrlSetRapidFire	KernelTwins	SceCtrlForDriver	-
+0x80F5E418	ksceCtrlSetSamplingMode	KernelTwins	SceCtrlForDriver	-
 0xA47807D7	sceDTraceAddHelperDof	DebugPerf	SceDTrace	vh	default
 0xB8232491	sceDTraceClientClose	DebugPerf	SceDTrace	vh	default
 0x63F0C4F5	sceDTraceClientIoctl	DebugPerf	SceDTrace	vh	default
@@ -1052,6 +1291,26 @@
 0xED4A00BA	sceDbgSetBreakOnErrorState	ProcessMgr	SceDbg	vh
 0x3DEAECD3	sceDbgSetBreakOnWarningState	ProcessMgr	SceDbg	vh
 0x941622FA	sceDbgSetMinimumLogLevel	ProcessMgr	SceDbg	vh
+0x35A35322	ksceDebugPrintKernelAssertion	SysmemKernel	SceDebugForDriver	-
+0x391B5B74	ksceDebugPrintKernelPanic	SysmemKernel	SceDebugForDriver	-
+0x391B74B7	ksceDebugPrintf	SysmemKernel	SceDebugForDriver	-
+0x02B04343	ksceDebugPrintf2	SysmemKernel	SceDebugForDriver	-
+0x821A2D59	ksceDebugPrintfKernelAssertion	SysmemKernel	SceDebugForDriver	-
+0x00CCE39C	ksceDebugPrintfKernelPanic	SysmemKernel	SceDebugForDriver	-
+0xFD753E7A	ksceKernelAssertLevel	SysmemKernel	SceDebugForDriver	-
+0x374B7868	ksceKernelGetMinimumAssertionLevel	SysmemKernel	SceDebugForDriver	-
+0x62466B0A	ksceKernelGetTtyInfo	SysmemKernel	SceDebugForDriver	-
+0x1A3F2AA4	ksceKernelPrintfLevel	SysmemKernel	SceDebugForDriver	-
+0xD9703808	ksceKernelPrintfLevelWithInfo	SysmemKernel	SceDebugForDriver	-
+0x411C0733	ksceKernelVprintf	SysmemKernel	SceDebugForDriver	-
+0x611A158B	ksceKernelVprintfLevel	SysmemKernel	SceDebugForDriver	-
+0xC5889385	SceDebugForKernel_C5889385	SysmemKernel	SceDebugForKernel	-
+0x2AABAEDA	ksceKernelDebugPutchar	SysmemKernel	SceDebugForKernel	-
+0xA465A31A	ksceKernelEnableCrashDump	SysmemKernel	SceDebugForKernel	-
+0x8D474850	ksceKernelGetDebugPutcharHandler	SysmemKernel	SceDebugForKernel	-
+0x22546577	ksceKernelRegisterDebugPutcharHandler	SysmemKernel	SceDebugForKernel	-
+0x88AD6D0C	ksceKernelRegisterKprintfHandler	SysmemKernel	SceDebugForKernel	-
+0xA0CE3287	ksceKernelSetAssertLevel	SysmemKernel	SceDebugForKernel	-
 0x2B6EABAD	sceDebugLedInvokeHandle0	SystemServicesVsh	SceDebugLed	vh
 0x0E6B9890	sceDebugLedInvokeHandle1	SystemServicesVsh	SceDebugLed	vh
 0x14F582CF	sceKernelGetGPI	SysMem	SceDebugLed	vh
@@ -1069,6 +1328,9 @@
 0x1C783FB2	sceKernelCheckDipsw	SystemMisc	SceDipsw	vh
 0x800EDCC1	sceKernelClearDipsw	SystemServicesVsh	SceDipsw	vh
 0x817053D4	sceKernelSetDipsw	SystemServicesVsh	SceDipsw	vh
+0xA98FC2FD	ksceKernelCheckDipsw	KernelTwins	SceDipswForDriver	-
+0xF1F3E9FE	ksceKernelClearDipsw	KernelTwins	SceDipswForDriver	-
+0x82E45FBF	ksceKernelSetDipsw	KernelTwins	SceDipswForDriver	-
 0xA753B0CA	_sceDisplayGetFrameBuf	Display	SceDisplay	vh
 0x86A8E436	_sceDisplayGetFrameBufInternal	Display	SceDisplay	vh
 0x2EBFC7CB	_sceDisplayGetMaximumFrameBufResolution	Display	SceDisplay	vh
@@ -1090,6 +1352,24 @@
 0x78B41B92	sceDisplayWaitVblankStartCB	Display	SceDisplay	vh
 0xDD0A13B8	sceDisplayWaitVblankStartMulti	Display	SceDisplay	vh
 0x05F27764	sceDisplayWaitVblankStartMultiCB	Display	SceDisplay	vh
+0xEEDA2E54	ksceDisplayGetFrameBuf	KernelTwins	SceDisplayForDriver	-
+0x19F94C63	ksceDisplayGetFrameBufInternal	KernelTwins	SceDisplayForDriver	-
+0x5AFE6CD3	ksceDisplayGetMaximumFrameBufResolution	KernelTwins	SceDisplayForDriver	-
+0xC8E554C5	ksceDisplayGetPrimaryHead	KernelTwins	SceDisplayForDriver	-
+0xB3C6D647	ksceDisplayGetResolutionInfoInternal	KernelTwins	SceDisplayForDriver	-
+0x8B5DA27B	ksceDisplayGetVcountInternal	KernelTwins	SceDisplayForDriver	-
+0x7FB0BD28	ksceDisplayRegisterVblankStartCallback	KernelTwins	SceDisplayForDriver	-
+0x289D82FE	ksceDisplaySetFrameBuf	KernelTwins	SceDisplayForDriver	-
+0x16466675	ksceDisplaySetFrameBufInternal	KernelTwins	SceDisplayForDriver	-
+0x4B27191F	ksceDisplayUnregisterVblankStartCallback	KernelTwins	SceDisplayForDriver	-
+0x1C0C9C4A	ksceDisplayWaitSetFrameBuf	KernelTwins	SceDisplayForDriver	-
+0x9D7F203C	ksceDisplayWaitSetFrameBufCB	KernelTwins	SceDisplayForDriver	-
+0xE6D27E0A	ksceDisplayWaitSetFrameBufMulti	KernelTwins	SceDisplayForDriver	-
+0x863EACBE	ksceDisplayWaitSetFrameBufMultiCB	KernelTwins	SceDisplayForDriver	-
+0x984C27E7	ksceDisplayWaitVblankStart	KernelTwins	SceDisplayForDriver	-
+0x46F186C3	ksceDisplayWaitVblankStartCB	KernelTwins	SceDisplayForDriver	-
+0x40F1469C	ksceDisplayWaitVblankStartMulti	KernelTwins	SceDisplayForDriver	-
+0x77ED8B3A	ksceDisplayWaitVblankStartMultiCB	KernelTwins	SceDisplayForDriver	-
 0x42AE6BBC	sceDisplayGetFrameBuf	Display	SceDisplayUser	vh
 0x5213F74B	sceDisplayGetFrameBufInternal	Display	SceDisplayUser	vh
 0x8848ADDD	sceDisplayGetMaximumFrameBufResolution	Display	SceDisplayUser	vh
@@ -1099,6 +1379,8 @@
 0x89F86A1E	sceDisplaySetFrameBufInternal	Display	SceDisplayUser	vh
 0x9B2FF739	sceDmacMemcpy	ProcessMgr	SceDmacmgr	vh
 0xA4C33F11	sceDmacMemset	ProcessMgr	SceDmacmgr	vh
+0x00896B11	ksceDmacMemcpy	KernelTwins	SceDmacmgrForDriver	-
+0x4BAC049B	ksceDmacMemset	KernelTwins	SceDmacmgrForDriver	-
 0xFFB164E2	sceDrmBridgeGetCurrentSecureTick	SystemServicesVsh	SceDrmBridge	vh
 0x1BBB62E9	sceDrmBridgeIsAllowRemotePlayDebug	SystemServicesVsh	SceDrmBridge	vh
 0xE04F767B	sceDrmBridgeMlnpsnlAuth1	SystemServicesVsh	SceDrmBridge	vh
@@ -1119,6 +1401,8 @@
 0xBC416CFA	sceErrorHistoryPostError	SystemServicesVsh	SceErrorUser	vh
 0x395240A1	sceErrorHistorySetDefaultFormat	SystemServicesVsh	SceErrorUser	vh
 0x1AA2E39E	sceErrorHistoryUpdateSequenceInfo	SystemServicesVsh	SceErrorUser	vh
+0x00063675	sceKernelRegisterExceptionHandler	ProcessmgrKernel	SceExcpmgrForKernel	-
+0x03499636	sceKernelRegisterExceptionHandler	ProcessmgrKernel	SceExcpmgrForKernel	-
 0x7D0C7DDB	_sceFiberAttachContextAndRun	Fiber	SceFiber	vh
 0xE00B9AFE	_sceFiberAttachContextAndSwitch	Fiber	SceFiber	vh
 0xF24A298C	_sceFiberInitializeImpl	Fiber	SceFiber	vh
@@ -1366,6 +1650,9 @@
 0x2D4D8788	_sceGpsSelectDevice	Gps	SceGps	vh
 0x2914F243	_sceGpsStart	Gps	SceGps	vh
 0xE1ABB52D	_sceGpsStop	Gps	SceGps	vh
+0x5E943288	PVRSRVOpen	GpuEs4	SceGpuEs4ForUser	vh
+0x85C328DF	PVRSRVRelease	GpuEs4	SceGpuEs4ForUser	vh
+0xCA19ABCD	PVRSRV_BridgeDispatchKM	GpuEs4	SceGpuEs4ForUser	vh	default
 0x8E0D9D40	sceGpuRegisterSalvage	GpuEs4	SceGpuEs4ForUser	vh
 0x05BCE11C	sceGpuSignalWait	GpuEs4	SceGpuEs4ForUser	vh
 0xE0DECA6E	sceGpuSignalWaitLockup	GpuEs4	SceGpuEs4ForUser	vh
@@ -1641,6 +1928,7 @@
 0xC8A0F04E	sceGxmCreateRenderTargetInternal	Gxm	SceGxmInternal	vh
 0xAB1D9466	sceGxmGetDisplayQueueThreadIdInternal	Gxm	SceGxmInternal	vh
 0x4DD98588	sceGxmGetRenderTargetMemSizeInternal	Gxm	SceGxmInternal	vh
+0x90EE6A28	sceGxmGetTopContextInternal	Gxm	SceGxmInternal	vh
 0xC8E9F108	sceGxmInitializedInternal	Gxm	SceGxmInternal	vh
 0xEC82DB20	sceGxmIsInitializationInternal	Gxm	SceGxmInternal	vh
 0xB9391D22	sceGxmMapFragmentUsseMemoryInternal	Gxm	SceGxmInternal	vh
@@ -1650,6 +1938,7 @@
 0x3FC5E110	sceGxmSetInitializeParamInternal	Gxm	SceGxmInternal	vh
 0xC29B9B82	sceGxmUnmapFragmentUsseMemoryInternal	Gxm	SceGxmInternal	vh
 0xD7506735	sceGxmUnmapVertexUsseMemoryInternal	Gxm	SceGxmInternal	vh
+0x83149CAD	sceGxmShaderPatcherCreateFragmentProgramForGles	Gxm	SceGxmInternalForGles	vh
 0xEFA222AF	sceGxmGetReplayRenderTargetMemSize	Gxm	SceGxmInternalForReplay	vh
 0xA04F5FAC	sceGxmVshInitialize	Gxm	SceGxmInternalForVsh	vh
 0xBEB4F93D	sceGxmVshSyncObjectClose	Gxm	SceGxmInternalForVsh	vh
@@ -1695,6 +1984,34 @@
 0x90C5CB0A	sceHidMouseRegisterReadHintCallback	SystemServicesVsh	SceHid	vh
 0x3E005E5B	sceHidMouseUnregisterEnumHintCallback	SystemServicesVsh	SceHid	vh
 0xAC591B15	sceHidMouseUnregisterReadHintCallback	SystemServicesVsh	SceHid	vh
+0xA60E34F7	ksceHidConsumerControlEnumerate	KernelTwins	SceHidForDriver	-
+0x88F3ECF1	ksceHidConsumerControlRead	KernelTwins	SceHidForDriver	-
+0x7F444D9C	ksceHidConsumerControlRegisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x710B353C	ksceHidConsumerControlRegisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0x6FFC9302	ksceHidConsumerControlUnregisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x3EC4E469	ksceHidConsumerControlUnregisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0x480D225F	ksceHidControllerEnumerate	KernelTwins	SceHidForDriver	-
+0xF7470359	ksceHidControllerRead	KernelTwins	SceHidForDriver	-
+0x8DE66028	ksceHidControllerRegisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0xD658B068	ksceHidControllerRegisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0xFC1C743A	ksceHidControllerUnregisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x42B43C21	ksceHidControllerUnregisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0x8CB405AE	ksceHidKeyboardClear	KernelTwins	SceHidForDriver	-
+0x270FAB21	ksceHidKeyboardEnumerate	KernelTwins	SceHidForDriver	-
+0x18DE9BB0	ksceHidKeyboardGetIntercept	KernelTwins	SceHidForDriver	-
+0x1BE424FE	ksceHidKeyboardPeek	KernelTwins	SceHidForDriver	-
+0x4BC07107	ksceHidKeyboardRead	KernelTwins	SceHidForDriver	-
+0x21A23FCD	ksceHidKeyboardRegisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0xB0B22694	ksceHidKeyboardRegisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0x754E48DF	ksceHidKeyboardSetIntercept	KernelTwins	SceHidForDriver	-
+0x69DEE02F	ksceHidKeyboardUnregisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x050351F2	ksceHidKeyboardUnregisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0xA26B1E1C	ksceHidMouseEnumerate	KernelTwins	SceHidForDriver	-
+0xF655462B	ksceHidMouseRead	KernelTwins	SceHidForDriver	-
+0x141CA100	ksceHidMouseRegisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x41690428	ksceHidMouseRegisterReadHintCallback	KernelTwins	SceHidForDriver	-
+0x9AFBB275	ksceHidMouseUnregisterEnumHintCallback	KernelTwins	SceHidForDriver	-
+0x63776265	ksceHidMouseUnregisterReadHintCallback	KernelTwins	SceHidForDriver	-
 0xEA61662F	sceHttpAbortRequest	Http	SceHttp	vh
 0x3D44A6E5	sceHttpAbortRequestForce	Http	SceHttp	vh
 0x42E7DFF1	sceHttpAbortWaitRequest	Http	SceHttp	vh
@@ -1859,6 +2176,60 @@
 0x7E1367CB	sceIoSyncByFdAsync	IoFileMgr	SceIofilemgr	vh
 0x34EFD876	sceIoWrite	IoFileMgr	SceIofilemgr	vh
 0xE0D63D2A	sceIoWriteAsync	IoFileMgr	SceIofilemgr	vh
+0x6D59658D	ksceIoCancel	KernelTwins	SceIofilemgrForDriver	-
+0x7D42B8DC	ksceIoChstat	KernelTwins	SceIofilemgrForDriver	-
+0x7EC442BF	ksceIoChstatAsync	KernelTwins	SceIofilemgrForDriver	-
+0xDF57A75F	ksceIoChstatByFd	KernelTwins	SceIofilemgrForDriver	-
+0xEC974400	ksceIoChstatByFdAsync	KernelTwins	SceIofilemgrForDriver	-
+0x1F98BD50	ksceIoChstatForVshbridge	IoFileMgr	SceIofilemgrForDriver	-
+0xF99DD8A3	ksceIoClose	IoFileMgr	SceIofilemgrForDriver	-
+0x11C57CC6	ksceIoCloseAsync	KernelTwins	SceIofilemgrForDriver	-
+0x19C81DD6	ksceIoDclose	KernelTwins	SceIofilemgrForDriver	-
+0xC08F199F	ksceIoDcloseAsync	KernelTwins	SceIofilemgrForDriver	-
+0x16882FC4	ksceIoDevctl	KernelTwins	SceIofilemgrForDriver	-
+0xA9302946	ksceIoDevctlAsync	KernelTwins	SceIofilemgrForDriver	-
+0x463B25CC	ksceIoDopen	KernelTwins	SceIofilemgrForDriver	-
+0x72F06BDE	ksceIoDopenAsync	KernelTwins	SceIofilemgrForDriver	-
+0x20CF5FC7	ksceIoDread	KernelTwins	SceIofilemgrForDriver	-
+0x5982B0E3	ksceIoDreadAsync	KernelTwins	SceIofilemgrForDriver	-
+0x03051B02	ksceIoDreadForVshbridge	IoFileMgr	SceIofilemgrForDriver	-
+0x16336A0D	ksceIoFlock	IoFileMgr	SceIofilemgrForDriver	-
+0x6D0FEDB6	ksceIoGetThreadDefaultPriorityForSystem	KernelTwins	SceIofilemgrForDriver	-
+0x75C96D25	ksceIoGetstat	KernelTwins	SceIofilemgrForDriver	-
+0x94A5304A	ksceIoGetstatAsync	KernelTwins	SceIofilemgrForDriver	-
+0x462F059B	ksceIoGetstatByFd	KernelTwins	SceIofilemgrForDriver	-
+0x0FEE1238	ksceIoGetstatByFdAsync	KernelTwins	SceIofilemgrForDriver	-
+0xD6503624	ksceIoGetstatForVshbridge	IoFileMgr	SceIofilemgrForDriver	-
+0x161CD33F	ksceIoIoctl	KernelTwins	SceIofilemgrForDriver	-
+0xB761E91B	ksceIoIoctlAsync	KernelTwins	SceIofilemgrForDriver	-
+0x62090481	ksceIoLseek	IoFileMgr	SceIofilemgrForDriver	-
+0x541BAABD	ksceIoLseekAsync	KernelTwins	SceIofilemgrForDriver	-
+0x7F710B25	ksceIoMkdir	KernelTwins	SceIofilemgrForDriver	-
+0x27003443	ksceIoMkdirAsync	KernelTwins	SceIofilemgrForDriver	-
+0x75192972	ksceIoOpen	IoFileMgr	SceIofilemgrForDriver	-
+0x451001DE	ksceIoOpenAsync	KernelTwins	SceIofilemgrForDriver	-
+0xC3D34965	ksceIoOpenForPid	IoFileMgr	SceIofilemgrForDriver	-
+0x2A17515D	ksceIoPread	KernelTwins	SceIofilemgrForDriver	-
+0x64A46A2C	ksceIoPreadAsync	KernelTwins	SceIofilemgrForDriver	-
+0x5F1512C8	ksceIoPwrite	KernelTwins	SceIofilemgrForDriver	-
+0x202CDDE3	ksceIoPwriteAsync	KernelTwins	SceIofilemgrForDriver	-
+0xE17EFC03	ksceIoRead	IoFileMgr	SceIofilemgrForDriver	-
+0x69047C81	ksceIoReadAsync	KernelTwins	SceIofilemgrForDriver	-
+0x0D7BB3E1	ksceIoRemove	KernelTwins	SceIofilemgrForDriver	-
+0xF9D6507D	ksceIoRemoveAsync	KernelTwins	SceIofilemgrForDriver	-
+0xDC0C4997	ksceIoRename	KernelTwins	SceIofilemgrForDriver	-
+0xAACBC47A	ksceIoRenameAsync	KernelTwins	SceIofilemgrForDriver	-
+0x1CC9C634	ksceIoRmdir	KernelTwins	SceIofilemgrForDriver	-
+0xF5B0B36C	ksceIoRmdirAsync	KernelTwins	SceIofilemgrForDriver	-
+0xCFAECF18	ksceIoSetPathMappingFunction	IoFileMgr	SceIofilemgrForDriver	-
+0x3F0FF9D5	ksceIoSetThreadDefaultPriorityForSystem	KernelTwins	SceIofilemgrForDriver	-
+0xDDF78594	ksceIoSync	KernelTwins	SceIofilemgrForDriver	-
+0x4F9EA8B0	ksceIoSyncAsync	KernelTwins	SceIofilemgrForDriver	-
+0x338DCD68	ksceIoSyncByFd	KernelTwins	SceIofilemgrForDriver	-
+0x43170575	ksceIoSyncByFd2	IoFileMgr	SceIofilemgrForDriver	-
+0x041209CF	ksceIoSyncByFdAsync	KernelTwins	SceIofilemgrForDriver	-
+0x21EE91F0	ksceIoWrite	KernelTwins	SceIofilemgrForDriver	-
+0xA1BD13D0	ksceIoWriteAsync	KernelTwins	SceIofilemgrForDriver	-
 0x4E255C31	_ZN4IPMI6Client6Config24estimateClientMemorySizeEv	ShellUtil	SceIpmi	-
 0x9DA48DB6	sceJpegArmCreateSplitDecoder	Jpeg	SceJpegArm	vh
 0xA4ABFCE3	sceJpegArmDecodeMJpeg	Jpeg	SceJpegArm	vh
@@ -1904,19 +2275,11 @@
 0x010BB885	__sceKernelGetThreadContextForVM	VmThreads	SceKernelForVM	-
 0x70F3F49D	_sceKernelResumeThreadForVM	VmThreads	SceKernelForVM	-
 0xF5F8F795	_sceKernelSuspendThreadForVM	VmThreads	SceKernelForVM	-
-0x2EF7C290	kuKernelAllocMemBlock	Kubridge	SceKubridge	-
-0x91D9CABC	kuKernelCpuUnrestrictedMemcpy	Kubridge	SceKubridge	-
-0x38B70744	kuKernelFlushCaches	Kubridge	SceKubridge	-
-0x9C0CD758	kuKernelMemCommit	Kubridge	SceKubridge	-
-0x9BDF5881	kuKernelMemDecommit	Kubridge	SceKubridge	-
-0x566D2AF1	kuKernelMemProtect	Kubridge	SceKubridge	-
-0xCED3608C	kuKernelMemReserve	Kubridge	SceKubridge	-
-0x799F5648	kuKernelRegisterAbortHandler	Kubridge	SceKubridge	-
-0xF9025D19	kuKernelRegisterExceptionHandler	Kubridge	SceKubridge	-
-0xB188292D	kuKernelReleaseAbortHandler	Kubridge	SceKubridge	-
-0xDF9F3BED	kuKernelReleaseExceptionHandler	Kubridge	SceKubridge	-
-0x13371337	kuPowerGetSysClockFrequency	Kubridge	SceKubridge	-
-0x13371338	kuPowerSetSysClockFrequency	Kubridge	SceKubridge	-
+0xE0489831	ksceKernelPowerTick	KernelTwins	SceKernelSuspendForDriver	-
+0x04C05D10	ksceKernelRegisterSysEventHandler	SysmemKernel	SceKernelSuspendForDriver	-
+0xD4622EA8	ksceKernelSysEventDispatch	SysmemKernel	SceKernelSuspendForDriver	-
+0xDD61D621	ksceKernelUnregisterSysEventHandler	SysmemKernel	SceKernelSuspendForDriver	-
+0x900148DB	ksceZlibDecompress	KernelTwins	SceKernelUtilsForDriver	-
 0xA22B2436	_Unwind_Backtrace	LibGcc	SceLibGcc	-
 0x8A5F29D8	_Unwind_Complete	FirmwareConstants	SceLibGcc	-
 0x4BB45B70	_Unwind_DeleteException	LibGcc	SceLibGcc	-
@@ -4203,16 +4566,37 @@
 0x5182E212	sceKernelGetSystemSwVersion	SystemMisc	SceModulemgr	vh
 0x6CED1F63	sceKernelInhibitLoadingModule	SystemServicesVsh	SceModulemgr	vh
 0x85E6D2BB	sceKernelIsCalledFromSysModule	SystemMisc	SceModulemgr	vh
+0x86D8D634	ksceKernelLoadModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x189BFBBB	ksceKernelLoadStartModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x9D953C22	ksceKernelLoadStartModuleForPid	ModulemgrKernel	SceModulemgrForDriver	-
+0x0675B682	ksceKernelStartModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x100DAEB9	ksceKernelStopModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x03B30B7E	ksceKernelStopUnloadModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x49A3EDC7	ksceKernelStopUnloadModuleForPid	ModulemgrKernel	SceModulemgrForDriver	-
+0x728E72A6	ksceKernelUnloadModule	ModulemgrKernel	SceModulemgrForDriver	-
+0x37512E29	ksceKernelGetModuleCB	ModulemgrKernel	SceModulemgrForKernel	-
+0xFE303863	ksceKernelGetModuleCB	ModulemgrKernel	SceModulemgrForKernel	-
+0xD269F915	ksceKernelGetModuleInfo	ModulemgrKernel	SceModulemgrForKernel	-
+0xDAA90093	ksceKernelGetModuleInfo	ModulemgrKernel	SceModulemgrForKernel	-
+0x97CF7B4E	ksceKernelGetModuleList	ModulemgrKernel	SceModulemgrForKernel	-
+0xB72C75A4	ksceKernelGetModuleList	ModulemgrKernel	SceModulemgrForKernel	-
+0x7BB4CE54	ksceKernelStopModuleForPid	ModulemgrKernel	SceModulemgrForKernel	-
+0xBDBD391D	ksceKernelStopModuleForPid	ModulemgrKernel	SceModulemgrForKernel	-
+0x5972E2CC	ksceKernelUnloadModuleForPid	ModulemgrKernel	SceModulemgrForKernel	-
+0xFCA9FDB1	ksceKernelUnloadModuleForPid	ModulemgrKernel	SceModulemgrForKernel	-
 0x499B6C87	sceMotionGetAngleThreshold	Sensors	SceMotion	vh
 0x4F28BFE0	sceMotionGetBasicOrientation	Sensors	SceMotion	vh
 0x112E0EAE	sceMotionGetDeadband	Sensors	SceMotion	vh
+0xC0586367	sceMotionGetDeadbandExt	Sensors	SceMotion	-
 0x047F060A	sceMotionGetDeviceLocation	Sensors	SceMotion	vh
 0xE8A28DA5	sceMotionGetGyroBiasCorrection	Sensors	SceMotion	vh
 0x3D4813AE	sceMotionGetMagnetometerState	Sensors	SceMotion	vh
 0x47D679EA	sceMotionGetSensorState	Sensors	SceMotion	vh
 0xBDB32767	sceMotionGetState	Sensors	SceMotion	vh
+0x340BFBE6	sceMotionGetStateExt	Sensors	SceMotion	-
 0xAD0B62B7	sceMotionGetStateInternal	Sensors	SceMotion	-
 0xC1652201	sceMotionGetTiltCorrection	Sensors	SceMotion	vh
+0xCBD9CA97	sceMotionGetTiltCorrectionExt	Sensors	SceMotion	-
 0x3C970E36	sceMotionInitLibraryExt	Sensors	SceMotion	-
 0xC1A7395A	sceMotionMagnetometerOff	Sensors	SceMotion	vh
 0x122A79F8	sceMotionMagnetometerOn	Sensors	SceMotion	vh
@@ -4262,6 +4646,15 @@
 0x3EAA8A4F	sceMotionDevSetSamplingMode	Sensors	SceMotionDev	vh
 0x787384FA	sceMotionDevUpdateMagnCalibData	Sensors	SceMotionDev	vh
 0xEC94F683	sceMotionDevUpdateMagnStabilityLevel	Sensors	SceMotionDev	vh
+0xF0251700	ksceMotionDevGetCalibrationData	KernelTwins	SceMotionDevForDriver	-	default
+0x3B23DF55	ksceMotionDevGetCalibrationHeader	KernelTwins	SceMotionDevForDriver	-	default
+0x3E4BCBC0	ksceMotionDevGetDeviceInfo	KernelTwins	SceMotionDevForDriver	-
+0x5B53AC26	ksceMotionDevGetEvaInfo	KernelTwins	SceMotionDevForDriver	-	default
+0x10AAC8EA	ksceMotionDevIsReady	KernelTwins	SceMotionDevForDriver	-
+0x3A3407B5	ksceMotionDevRead	KernelTwins	SceMotionDevForDriver	-
+0xC02C85AB	ksceMotionDevSamplingStart	KernelTwins	SceMotionDevForDriver	-
+0xFD0B0785	ksceMotionDevSamplingStop	KernelTwins	SceMotionDevForDriver	-
+0xDBAF611A	ksceMotionDevSetSamplingMode	KernelTwins	SceMotionDevForDriver	-
 0x920623C8	sceMp4CloseFile	Mp4	SceMp4	-
 0x609E57AD	sceMp4EnableStream	Mp4	SceMp4	-
 0x20A01112	sceMp4GetNextUnit	Mp4	SceMp4	-
@@ -4446,6 +4839,18 @@
 0xCD188648	sceNetCtlTerm	Net	SceNetCtl	vh
 0x93F2FF08	sceNetInternalIcmConnect	Net	SceNetInternal	-
 0x916EA798	sceNetInternalInetPton	Net	SceNetInternal	-
+0x880A5423	ksceNetAccept	KernelTwins	SceNetPsForDriver	-
+0x84AB650F	ksceNetBind	KernelTwins	SceNetPsForDriver	-
+0x13491DA1	ksceNetConnect	KernelTwins	SceNetPsForDriver	-
+0xB949AFD5	ksceNetGetpeername	KernelTwins	SceNetPsForDriver	-
+0x8F1BB0E7	ksceNetGetsockname	KernelTwins	SceNetPsForDriver	-
+0x92EE24A6	ksceNetGetsockopt	KernelTwins	SceNetPsForDriver	-
+0x080C7992	ksceNetListen	KernelTwins	SceNetPsForDriver	-
+0x49B1669C	ksceNetRecvfrom	KernelTwins	SceNetPsForDriver	-
+0xAB746734	ksceNetSendto	KernelTwins	SceNetPsForDriver	-
+0x4BF5FAB4	ksceNetSetsockopt	KernelTwins	SceNetPsForDriver	-
+0xEEB19FB6	ksceNetShutdown	KernelTwins	SceNetPsForDriver	-
+0xEB95B024	ksceNetSocket	KernelTwins	SceNetPsForDriver	-
 0x45EAAD89	sceNetSyscallAccept	Net	SceNetPsForSyscalls	vh
 0x267F1EF9	sceNetSyscallBind	Net	SceNetPsForSyscalls	vh
 0x1EBC2E28	sceNetSyscallClose	Net	SceNetPsForSyscalls	vh
@@ -6277,6 +6682,127 @@
 0x9C2C05C2	sceRazorCpuStopCapture	DebugPerf	ScePerf	vh
 0x4B47E144	sceRazorCpuStopUserMarkerTrace	DebugPerf	ScePerf	vh
 0x4F1385E3	sceRazorCpuSync	DebugPerf	ScePerf	vh
+0x03E1FAA6	ScePervasiveForDriver_03E1FAA6	PervasiveKernel	ScePervasiveForDriver	-
+0x03EA9418	ScePervasiveForDriver_03EA9418	PervasiveKernel	ScePervasiveForDriver	-
+0x043B33F5	ScePervasiveForDriver_043B33F5	PervasiveKernel	ScePervasiveForDriver	-
+0x04D145C7	ScePervasiveForDriver_04D145C7	PervasiveKernel	ScePervasiveForDriver	-
+0x07F2A738	ScePervasiveForDriver_07F2A738	PervasiveKernel	ScePervasiveForDriver	-
+0x0C1A7FFA	ScePervasiveForDriver_0C1A7FFA	PervasiveKernel	ScePervasiveForDriver	-
+0x1068C067	ScePervasiveForDriver_1068C067	PervasiveKernel	ScePervasiveForDriver	-
+0x12D17D47	ScePervasiveForDriver_12D17D47	PervasiveKernel	ScePervasiveForDriver	-
+0x132E514A	ScePervasiveForDriver_132E514A	PervasiveKernel	ScePervasiveForDriver	-
+0x13CC07C9	ScePervasiveForDriver_13CC07C9	PervasiveKernel	ScePervasiveForDriver	-
+0x146108D4	ScePervasiveForDriver_146108D4	PervasiveKernel	ScePervasiveForDriver	-
+0x17109C28	ScePervasiveForDriver_17109C28	PervasiveKernel	ScePervasiveForDriver	-
+0x26B51075	ScePervasiveForDriver_26B51075	PervasiveKernel	ScePervasiveForDriver	-
+0x270BE98A	ScePervasiveForDriver_270BE98A	PervasiveKernel	ScePervasiveForDriver	-
+0x28731EC5	ScePervasiveForDriver_28731EC5	PervasiveKernel	ScePervasiveForDriver	-
+0x29E65AE1	ScePervasiveForDriver_29E65AE1	PervasiveKernel	ScePervasiveForDriver	-
+0x2A563E35	ScePervasiveForDriver_2A563E35	PervasiveKernel	ScePervasiveForDriver	-
+0x2EEBE9AE	ScePervasiveForDriver_2EEBE9AE	PervasiveKernel	ScePervasiveForDriver	-
+0x2FB5F88F	ScePervasiveForDriver_2FB5F88F	PervasiveKernel	ScePervasiveForDriver	-
+0x31C0A98B	ScePervasiveForDriver_31C0A98B	PervasiveKernel	ScePervasiveForDriver	-
+0x34537B12	ScePervasiveForDriver_34537B12	PervasiveKernel	ScePervasiveForDriver	-
+0x350BF570	ScePervasiveForDriver_350BF570	PervasiveKernel	ScePervasiveForDriver	-
+0x39E51AE2	ScePervasiveForDriver_39E51AE2	PervasiveKernel	ScePervasiveForDriver	-
+0x3CF7A012	ScePervasiveForDriver_3CF7A012	PervasiveKernel	ScePervasiveForDriver	-
+0x3D8A8712	ScePervasiveForDriver_3D8A8712	PervasiveKernel	ScePervasiveForDriver	-
+0x3E79D3D3	ScePervasiveForDriver_3E79D3D3	PervasiveKernel	ScePervasiveForDriver	-
+0x3F3E1AEA	ScePervasiveForDriver_3F3E1AEA	PervasiveKernel	ScePervasiveForDriver	-
+0x41C3C299	ScePervasiveForDriver_41C3C299	PervasiveKernel	ScePervasiveForDriver	-	default
+0x41F9E1C3	ScePervasiveForDriver_41F9E1C3	PervasiveKernel	ScePervasiveForDriver	-
+0x4235EB7D	ScePervasiveForDriver_4235EB7D	PervasiveKernel	ScePervasiveForDriver	-
+0x443E2A3F	ScePervasiveForDriver_443E2A3F	PervasiveKernel	ScePervasiveForDriver	-	default
+0x453BD2EC	ScePervasiveForDriver_453BD2EC	PervasiveKernel	ScePervasiveForDriver	-
+0x47708C03	ScePervasiveForDriver_47708C03	PervasiveKernel	ScePervasiveForDriver	-
+0x47F2C35C	ScePervasiveForDriver_47F2C35C	PervasiveKernel	ScePervasiveForDriver	-
+0x4AF7A01E	ScePervasiveForDriver_4AF7A01E	PervasiveKernel	ScePervasiveForDriver	-
+0x4B223AF5	ScePervasiveForDriver_4B223AF5	PervasiveKernel	ScePervasiveForDriver	-
+0x4B99558F	ScePervasiveForDriver_4B99558F	PervasiveKernel	ScePervasiveForDriver	-
+0x4E43299D	ScePervasiveForDriver_4E43299D	PervasiveKernel	ScePervasiveForDriver	-
+0x4F64DEF6	ScePervasiveForDriver_4F64DEF6	PervasiveKernel	ScePervasiveForDriver	-
+0x51981FEE	ScePervasiveForDriver_51981FEE	PervasiveKernel	ScePervasiveForDriver	-
+0x589D0291	ScePervasiveForDriver_589D0291	PervasiveKernel	ScePervasiveForDriver	-
+0x59B7CA34	ScePervasiveForDriver_59B7CA34	PervasiveKernel	ScePervasiveForDriver	-
+0x5AFE0AF0	ScePervasiveForDriver_5AFE0AF0	PervasiveKernel	ScePervasiveForDriver	-
+0x5B4EF352	ScePervasiveForDriver_5B4EF352	PervasiveKernel	ScePervasiveForDriver	-
+0x5BAFA0DC	ScePervasiveForDriver_5BAFA0DC	PervasiveKernel	ScePervasiveForDriver	-
+0x5E20D7D5	ScePervasiveForDriver_5E20D7D5	PervasiveKernel	ScePervasiveForDriver	-
+0x66BF2885	ScePervasiveForDriver_66BF2885	PervasiveKernel	ScePervasiveForDriver	-
+0x6A2FB697	ScePervasiveForDriver_6A2FB697	PervasiveKernel	ScePervasiveForDriver	-
+0x6AF0196F	ScePervasiveForDriver_6AF0196F	PervasiveKernel	ScePervasiveForDriver	-
+0x6B2BE37E	ScePervasiveForDriver_6B2BE37E	PervasiveKernel	ScePervasiveForDriver	-
+0x6B5DEDA2	ScePervasiveForDriver_6B5DEDA2	PervasiveKernel	ScePervasiveForDriver	-
+0x725B4F59	ScePervasiveForDriver_725B4F59	PervasiveKernel	ScePervasiveForDriver	-
+0x7AE2F8E8	ScePervasiveForDriver_7AE2F8E8	PervasiveKernel	ScePervasiveForDriver	-
+0x81A155F1	ScePervasiveForDriver_81A155F1	PervasiveKernel	ScePervasiveForDriver	-
+0x821AE6C7	ScePervasiveForDriver_821AE6C7	PervasiveKernel	ScePervasiveForDriver	-
+0x86BEA9A4	ScePervasiveForDriver_86BEA9A4	PervasiveKernel	ScePervasiveForDriver	-
+0x8847825F	ScePervasiveForDriver_8847825F	PervasiveKernel	ScePervasiveForDriver	-
+0x8A85E36B	ScePervasiveForDriver_8A85E36B	PervasiveKernel	ScePervasiveForDriver	-
+0x925D9D24	ScePervasiveForDriver_925D9D24	PervasiveKernel	ScePervasiveForDriver	-
+0x98D8914A	ScePervasiveForDriver_98D8914A	PervasiveKernel	ScePervasiveForDriver	-
+0x9BB7B932	ScePervasiveForDriver_9BB7B932	PervasiveKernel	ScePervasiveForDriver	-
+0x9E81E057	ScePervasiveForDriver_9E81E057	PervasiveKernel	ScePervasiveForDriver	-
+0x9F8E589C	ScePervasiveForDriver_9F8E589C	PervasiveKernel	ScePervasiveForDriver	-
+0xA1D2E440	ScePervasiveForDriver_A1D2E440	PervasiveKernel	ScePervasiveForDriver	-
+0xA2EFD7AF	ScePervasiveForDriver_A2EFD7AF	PervasiveKernel	ScePervasiveForDriver	-
+0xA3CF9844	ScePervasiveForDriver_A3CF9844	PervasiveKernel	ScePervasiveForDriver	-
+0xA6832B33	ScePervasiveForDriver_A6832B33	PervasiveKernel	ScePervasiveForDriver	-
+0xA7E64C6F	ScePervasiveForDriver_A7E64C6F	PervasiveKernel	ScePervasiveForDriver	-
+0xA96642E3	ScePervasiveForDriver_A96642E3	PervasiveKernel	ScePervasiveForDriver	-
+0xAC475961	ScePervasiveForDriver_AC475961	PervasiveKernel	ScePervasiveForDriver	-
+0xAD1E81EB	ScePervasiveForDriver_AD1E81EB	PervasiveKernel	ScePervasiveForDriver	-
+0xB1CFA18F	ScePervasiveForDriver_B1CFA18F	PervasiveKernel	ScePervasiveForDriver	-
+0xB68254AD	ScePervasiveForDriver_B68254AD	PervasiveKernel	ScePervasiveForDriver	-
+0xB8AF1249	ScePervasiveForDriver_B8AF1249	PervasiveKernel	ScePervasiveForDriver	-
+0xB9904983	ScePervasiveForDriver_B9904983	PervasiveKernel	ScePervasiveForDriver	-
+0xBB67EF58	ScePervasiveForDriver_BB67EF58	PervasiveKernel	ScePervasiveForDriver	-
+0xBD868E6E	ScePervasiveForDriver_BD868E6E	PervasiveKernel	ScePervasiveForDriver	-
+0xC0C842FE	ScePervasiveForDriver_C0C842FE	PervasiveKernel	ScePervasiveForDriver	-
+0xC37CFDFC	ScePervasiveForDriver_C37CFDFC	PervasiveKernel	ScePervasiveForDriver	-
+0xCA0ACFC5	ScePervasiveForDriver_CA0ACFC5	PervasiveKernel	ScePervasiveForDriver	-
+0xD185D235	ScePervasiveForDriver_D185D235	PervasiveKernel	ScePervasiveForDriver	-
+0xD326E15F	ScePervasiveForDriver_D326E15F	PervasiveKernel	ScePervasiveForDriver	-
+0xD3B59C33	ScePervasiveForDriver_D3B59C33	PervasiveKernel	ScePervasiveForDriver	-
+0xE2D8F6C3	ScePervasiveForDriver_E2D8F6C3	PervasiveKernel	ScePervasiveForDriver	-
+0xE3A735B9	ScePervasiveForDriver_E3A735B9	PervasiveKernel	ScePervasiveForDriver	-
+0xE6728E30	ScePervasiveForDriver_E6728E30	PervasiveKernel	ScePervasiveForDriver	-
+0xE92E28FF	ScePervasiveForDriver_E92E28FF	PervasiveKernel	ScePervasiveForDriver	-
+0xEEE340ED	ScePervasiveForDriver_EEE340ED	PervasiveKernel	ScePervasiveForDriver	-
+0xF1908D3C	ScePervasiveForDriver_F1908D3C	PervasiveKernel	ScePervasiveForDriver	-
+0xF58EF3A5	ScePervasiveForDriver_F58EF3A5	PervasiveKernel	ScePervasiveForDriver	-	default
+0xF861FEE4	ScePervasiveForDriver_F861FEE4	PervasiveKernel	ScePervasiveForDriver	-
+0xF9E7B023	ScePervasiveForDriver_F9E7B023	PervasiveKernel	ScePervasiveForDriver	-
+0xFB01A2DD	ScePervasiveForDriver_FB01A2DD	PervasiveKernel	ScePervasiveForDriver	-
+0xFB0EF8C7	ScePervasiveForDriver_FB0EF8C7	PervasiveKernel	ScePervasiveForDriver	-	default
+0xFBE5AA2F	ScePervasiveForDriver_FBE5AA2F	PervasiveKernel	ScePervasiveForDriver	-
+0xFDD445C3	ScePervasiveForDriver_FDD445C3	PervasiveKernel	ScePervasiveForDriver	-
+0xFF4B3CA6	ScePervasiveForDriver_FF4B3CA6	PervasiveKernel	ScePervasiveForDriver	-
+0x25AE181E	kscePervasiveDsiClockDisable	PervasiveKernel	ScePervasiveForDriver	-
+0xBC42C72F	kscePervasiveDsiClockEnable	PervasiveKernel	ScePervasiveForDriver	-
+0xFFB43AC2	kscePervasiveDsiResetDisable	PervasiveKernel	ScePervasiveForDriver	-
+0xE3FC1C8D	kscePervasiveDsiResetEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x714EEFB7	kscePervasiveGetSoCRevision	PervasiveKernel	ScePervasiveForDriver	-	default
+0xEB176898	kscePervasiveGpioClockDisable	PervasiveKernel	ScePervasiveForDriver	-
+0x2F195C97	kscePervasiveGpioClockEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x78C34032	kscePervasiveGpioResetDisable	PervasiveKernel	ScePervasiveForDriver	-
+0x731A097D	kscePervasiveGpioResetEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x2A9778CD	kscePervasiveMsifClockDisable	PervasiveKernel	ScePervasiveForDriver	-
+0x7704C013	kscePervasiveMsifClockEnable	PervasiveKernel	ScePervasiveForDriver	-
+0xCB0F15CD	kscePervasiveMsifResetDisable	PervasiveKernel	ScePervasiveForDriver	-
+0xA3569FF1	kscePervasiveMsifResetEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x64ABE589	kscePervasiveMsifSetClock	PervasiveKernel	ScePervasiveForDriver	-
+0x551EEE82	kscePervasiveRemovableMemoryGetCardInsertState	PervasiveKernel	ScePervasiveForDriver	-
+0xA85BF98A	kscePervasiveSpiClockDisable	PervasiveKernel	ScePervasiveForDriver	-
+0xDFD96BFC	kscePervasiveSpiClockEnable	PervasiveKernel	ScePervasiveForDriver	-
+0xE4B145AE	kscePervasiveSpiResetDisable	PervasiveKernel	ScePervasiveForDriver	-
+0x7B16F900	kscePervasiveSpiResetEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x18DD8043	kscePervasiveUartClockDisable	PervasiveKernel	ScePervasiveForDriver	-
+0xEFD084D8	kscePervasiveUartClockEnable	PervasiveKernel	ScePervasiveForDriver	-
+0xA7CE7DCC	kscePervasiveUartResetDisable	PervasiveKernel	ScePervasiveForDriver	-
+0x788B6C61	kscePervasiveUartResetEnable	PervasiveKernel	ScePervasiveForDriver	-
+0x8BAB45F8	kscePervasiveUartSetBaudrate	PervasiveKernel	ScePervasiveForDriver	-
 0x4A7293E9	sceFontClose	Pgf	ScePgf	vh
 0x07EE1733	sceFontDoneLib	Pgf	ScePgf	vh
 0x51061D87	sceFontFindFont	Pgf	ScePgf	vh
@@ -6346,6 +6872,10 @@
 0xB11EF149	scePowerSetIdleTimerCount	SystemMisc	ScePower	vh
 0x4D695C1F	scePowerSetUsingWireless	SystemMisc	ScePower	vh
 0xDFA8BAF8	scePowerUnregisterCallback	SystemMisc	ScePower	vh
+0xC63DACD5	kscePowerGetSysClockFrequency	ProcessmgrKernel	ScePowerForDriver	-
+0x0E333BEC	kscePowerSetSysClockFrequency	ProcessmgrKernel	ScePowerForDriver	-
+0x2A43912D	ksceKernelRegisterProcEventHandler	ProcessmgrKernel	SceProcEventForDriver	-
+0x3DED57CC	ksceKernelUnregisterProcEventHandler	ProcessmgrKernel	SceProcEventForDriver	-
 0xC053DC6B	_sceKernelExitProcessForUser	ProcessMgr	SceProcessmgr	vh
 0x2F73D72F	_sceKernelGetTimer5Reg	ProcessMgr	SceProcessmgr	vh
 0x56C2E8FF	_sceKernelRegisterLibkernelAddresses	SystemServicesVsh	SceProcessmgr	vh
@@ -6377,6 +6907,19 @@
 0x466C0CBD	sceKernelPowerUnlock	ProcessMgr	SceProcessmgr	vh
 0x5EC77870	sceKernelRegisterProcessTerminationCallback	SystemServicesVsh	SceProcessmgr	vh
 0x973A4527	sceKernelUnregisterProcessTerminationCallback	SystemServicesVsh	SceProcessmgr	vh
+0x00B1CA0F	ksceKernelAllocRemoteProcessHeap	ProcessmgrKernel	SceProcessmgrForDriver	-
+0x3801D7D6	ksceKernelCreateProcessLocalStorage	ProcessmgrKernel	SceProcessmgrForDriver	-
+0x9C28EA9A	ksceKernelFreeRemoteProcessHeap	ProcessmgrKernel	SceProcessmgrForDriver	-
+0xAF80F39C	ksceKernelGetProcessLocalStorageAddrForPid	ProcessmgrKernel	SceProcessmgrForDriver	-
+0xEC283166	ksceKernelGetProcessTimeCore	KernelTwins	SceProcessmgrForDriver	-
+0x02179E12	ksceKernelGetProcessTimeLowCore	KernelTwins	SceProcessmgrForDriver	-
+0x82D94BE9	ksceKernelGetProcessTimeWideCore	KernelTwins	SceProcessmgrForDriver	-
+0xC074EB31	ksceKernelGetRemoteProcessTime	KernelTwins	SceProcessmgrForDriver	-
+0x2F6020B7	ksceKernelIsCDialogAvailable	KernelTwins	SceProcessmgrForDriver	-
+0xF7A8BB25	ksceKernelIsGameBudget	KernelTwins	SceProcessmgrForDriver	-
+0x905621F9	ksceKernelExitProcess	KernelTwins	SceProcessmgrForKernel	-
+0x014F5113	ksceKernelLibcGettimeofday	KernelTwins	SceProcessmgrForKernel	-
+0xB0E076D6	ksceKernelLibcTime	KernelTwins	SceProcessmgrForKernel	-
 0xBA9871E5	scePromoterUtilityCheckExist	SystemFallback	ScePromoterUtil	vh
 0x7D46752F	scePromoterUtilityDeletePkg	SystemFallback	ScePromoterUtil	vh
 0xC95D24A6	scePromoterUtilityExit	SystemFallback	ScePromoterUtil	vh
@@ -6396,6 +6939,7 @@
 0x3E881391	scePsmDrmGetRifName	SystemServicesVsh	ScePsmDrm	vh	default
 0x0D6470DA	scePsmDrmGetRifNameForInstall	SystemServicesVsh	ScePsmDrm	vh	default
 0x0E193CBB	scePsmDrmRemoveActData	SystemServicesVsh	ScePsmDrm	vh	default
+0x4CD5375C	kscePsmDrmRemoveActData	KernelTwins	ScePsmDrmForDriver	-	default
 0x02098B69	sceNetAdhocGetPdpStat	NetAdhoc	ScePspnetAdhoc	vh
 0xE45F0801	sceNetAdhocGetPtpStat	NetAdhoc	ScePspnetAdhoc	vh
 0xCA249F53	sceNetAdhocGetSocketAlert	NetAdhoc	ScePspnetAdhoc	vh
@@ -6495,15 +7039,19 @@
 0x77F2F606	sceRazorHudSetDisplayEnabled	DebugPerf	SceRazorHud	vh
 0xCC390860	sceRazorHudSetDisplayFrameCount	DebugPerf	SceRazorHud	vh
 0xA86F0A71	sceRegMgrAddRegistryCallback	RegMgrSystem	SceRegMgr	vh
+0xB68B5422	sceRegMgrDbBackup	RegMgrSystem	SceRegMgr	vh
+0xA87D2562	sceRegMgrDbRestore	RegMgrSystem	SceRegMgr	vh
 0x3A9DE7C5	sceRegMgrGetInitVals	RegMgrSystem	SceRegMgr	vh
 0x0B98D646	sceRegMgrGetKeyBin	RegMgrSystem	SceRegMgr	vh
 0x16DDF3DC	sceRegMgrGetKeyInt	RegMgrSystem	SceRegMgr	vh
 0xE188382F	sceRegMgrGetKeyStr	RegMgrSystem	SceRegMgr	vh
 0x5B161504	sceRegMgrGetKeys	RegMgrSystem	SceRegMgr	vh
 0x58421DD1	sceRegMgrGetKeysInfo	RegMgrSystem	SceRegMgr	vh
+0x74A0FB10	sceRegMgrGetRegVersion	RegMgrSystem	SceRegMgr	vh
 0x282027B7	sceRegMgrIsBlueScreen	RegMgrSystem	SceRegMgr	vh
 0x82A4464D	sceRegMgrRegisterCallback	RegMgrSystem	SceRegMgr	vh
 0xDDB02D7F	sceRegMgrRegisterDrvErrCallback	RegMgrSystem	SceRegMgr	vh
+0x2B5F3E20	sceRegMgrResetRegistryLv	RegMgrSystem	SceRegMgr	vh
 0x566A1793	sceRegMgrSetKeyBin	RegMgrSystem	SceRegMgr	vh
 0xD72EA399	sceRegMgrSetKeyInt	RegMgrSystem	SceRegMgr	vh
 0x41D320C5	sceRegMgrSetKeyStr	RegMgrSystem	SceRegMgr	vh
@@ -6563,6 +7111,22 @@
 0xEA157EC5	_sceRtcGetLastAdjustedTick	Rtc	SceRtc	vh
 0xE13D0FE5	_sceRtcGetLastReincarnatedTick	Rtc	SceRtc	vh
 0x258BE8EC	sceRtcGetAccumulativeTime	Rtc	SceRtc	vh
+0xAD2F3544	ksceRtcConvertLocalTimeToUtc	KernelTwins	SceRtcForDriver	-
+0xBA3415F8	ksceRtcFormatRFC2822	KernelTwins	SceRtcForDriver	-
+0x1F7FC209	ksceRtcFormatRFC2822LocalTime	KernelTwins	SceRtcForDriver	-
+0xD32AC698	ksceRtcFormatRFC3339	KernelTwins	SceRtcForDriver	-
+0x35925318	ksceRtcFormatRFC3339LocalTime	KernelTwins	SceRtcForDriver	-
+0x0A86FB04	ksceRtcGetAccumulativeTime	KernelTwins	SceRtcForDriver	-
+0x3E3C09A0	ksceRtcGetCurrentAdNetworkTick	KernelTwins	SceRtcForDriver	-
+0xA930CD1A	ksceRtcGetCurrentClock	KernelTwins	SceRtcForDriver	-
+0x7DC0DF93	ksceRtcGetCurrentClockLocalTime	KernelTwins	SceRtcForDriver	-
+0xC141632A	ksceRtcGetCurrentDebugNetworkTick	KernelTwins	SceRtcForDriver	-
+0xF69B610F	ksceRtcGetCurrentGpsTick	KernelTwins	SceRtcForDriver	-
+0xF1517B38	ksceRtcGetCurrentNetworkTick	KernelTwins	SceRtcForDriver	-
+0x40B4BCFF	ksceRtcGetCurrentRetainedNetworkTick	KernelTwins	SceRtcForDriver	-
+0xDEC408D4	ksceRtcGetCurrentTick	KernelTwins	SceRtcForDriver	-
+0x8A987573	ksceRtcGetLastAdjustedTick	KernelTwins	SceRtcForDriver	-
+0x3D614A9A	ksceRtcGetLastReincarnatedTick	KernelTwins	SceRtcForDriver	-
 0xD7622935	sceRtcCheckValid	Rtc	SceRtcUser	vh
 0xC7385158	sceRtcCompareTick	Rtc	SceRtcUser	vh
 0x0A05E201	sceRtcConvertLocalTimeToUtc	Rtc	SceRtcUser	vh
@@ -6641,6 +7205,7 @@
 0xB1756EFC	sceSasSetVoicePCM	Sas	SceSas	vh
 0x0BE8204D	sceSasSetVolume	Sas	SceSas	vh
 0x3C17A7F7	_sceSblACMgrIsGameProgram	SystemMisc	SceSblACMgr	vh
+0x8612B243	ksceSblACMgrIsSystemProgram	ProcessmgrKernel	SceSblACMgrForDriver	-
 0x6E283E2E	_sceKernelGetOpenPsId	ProcessMgr	SceSblAimgr	vh
 0xD0B1F759	sceSblDmac5EncDec	SystemServicesVsh	SceSblDmac5Mgr	vh	default
 0x5BF4F924	sceSblDmac5EncDecKeyGen	SystemServicesVsh	SceSblDmac5Mgr	vh	default
@@ -6680,6 +7245,7 @@
 0x2B604356	_sceSblGcAuthMgrPsmactVerifyR1	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0x8A3AF1E8	_sceSblGcAuthMgrSclkGetData1	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0x837D0FB6	_sceSblGcAuthMgrSclkSetData2	SystemServicesVsh	SceSblGcAuthMgr	vh	default
+0xE459A9A8	ksceSblGcAuthMgrPkgVry	KernelTwins	SceSblGcAuthMgrPkgForDriver	-	default
 0xEB21DD39	sceSblLicMgrActivateDevkit	SystemServicesVsh	SceSblLicMgr	vh	default
 0x6E56EA0A	sceSblLicMgrActivateFromFs	SystemServicesVsh	SceSblLicMgr	vh	default
 0x9B749D1D	sceSblLicMgrClearActivationData	SystemServicesVsh	SceSblLicMgr	vh	default
@@ -6693,6 +7259,11 @@
 0x46EA9FDB	sceSblPmMgrGetProductModeForUser	SystemServicesVsh	SceSblPmMgr	vh	default
 0x49CE0DDF	sceSblPmMgrGetProductModeFromNVS	SystemServicesVsh	SceSblPmMgr	vh	default
 0x41FE8A37	sceSblPmMgrSetProductModeOffForUser	SystemServicesVsh	SceSblPmMgr	vh	default
+0xF7F1015B	ksceSblLicMgrGetActivationKey	KernelTwins	SceSblPostSsMgrForDriver	-	default
+0x15F37282	ksceSblLicMgrGetLicenseStatus	KernelTwins	SceSblPostSsMgrForDriver	-	default
+0xDE5150FE	ksceSblRtcMgrGetCpRtcLogical	KernelTwins	SceSblPostSsMgrForDriver	-	default
+0xDC68EE5C	ksceSblRtcMgrSetCpRtcLogical	KernelTwins	SceSblPostSsMgrForDriver	-	default
+0x1FF699DD	ksceSblUtMgrResetUtokenFile	KernelTwins	SceSblPostSsMgrForDriver	-	default
 0xD542583F	sceSblQafManagerDeleteQafTokenForUser	FirmwareConstants	SceSblQafMgr	vh
 0x0F7EA8C2	sceSblQafManagerGetQafNameForUser	SystemServicesVsh	SceSblQafMgr	vh	default
 0x11D30766	sceSblQafManagerIsAllowKernelDebugForUser	SystemServicesVsh	SceSblQafMgr	vh	default
@@ -6985,8 +7556,95 @@
 0x5E15E164	sceSulphaSetBookmark	SystemFallback	SceSulpha	vh	default
 0x10770BA7	sceSulphaShutdown	SystemFallback	SceSulpha	vh
 0x920EC7BF	sceSulphaUpdate	SystemFallback	SceSulpha	vh
+0x2518CD9E	__aeabi_idiv	SysmemKernel	SceSysclibForDriver	-
+0x709077A1	__aeabi_lcmp	SysmemKernel	SceSysclibForDriver	-
+0x7554AB04	__aeabi_ldivmod	SysmemKernel	SceSysclibForDriver	-
+0xFEE5E751	__aeabi_lmul	SysmemKernel	SceSysclibForDriver	-
+0xA9FF1205	__aeabi_uidiv	SysmemKernel	SceSysclibForDriver	-
+0xA46CB7DE	__aeabi_uidivmod	SysmemKernel	SceSysclibForDriver	-
+0xFE900DE8	__aeabi_ulcmp	SysmemKernel	SceSysclibForDriver	-
+0xB997493D	__kstack_chk_fail	SysmemKernel	SceSysclibForDriver	-
+0x8A0B0815	__memcpy_chk	SysmemKernel	SceSysclibForDriver	-
+0x35DBB110	__memmove_chk	SysmemKernel	SceSysclibForDriver	-
+0x1A30BB28	__memset_chk	SysmemKernel	SceSysclibForDriver	-
+0x33EE298B	__strncat_chk	SysmemKernel	SceSysclibForDriver	-
+0x96268C53	__strncpy_chk	SysmemKernel	SceSysclibForDriver	-
+0xAC86B4BA	k__aeabi_idivmod	SysmemKernel	SceSysclibForDriver	-
+0x72D31F9D	k__aeabi_llsl	SysmemKernel	SceSysclibForDriver	-
+0xE46C47E6	k__aeabi_llsr	SysmemKernel	SceSysclibForDriver	-
+0x9D148CDE	k__aeabi_uldivmod	SysmemKernel	SceSysclibForDriver	-
+0xE38E7605	k__prnt	SysmemKernel	SceSysclibForDriver	-
+0x7DBE7007	k__snprintf_chk	SysmemKernel	SceSysclibForDriver	-
+0x224BE33F	k__strlcat_chk	SysmemKernel	SceSysclibForDriver	-
+0xCF86EA38	k__strlcpy_chk	SysmemKernel	SceSysclibForDriver	-
+0xDE4666F0	k__strncat_chk2	SysmemKernel	SceSysclibForDriver	-
+0x545DA5FD	k__strncpy_chk2	SysmemKernel	SceSysclibForDriver	-
+0xCBF64DF6	k__vsnprintf_chk	SysmemKernel	SceSysclibForDriver	-
+0x60DAEA30	kmemchr	SysmemKernel	SceSysclibForDriver	-
+0xF939E83D	kmemcmp	SysmemKernel	SceSysclibForDriver	-
+0x40C88316	kmemcpy	ProcessMgr	SceSysclibForDriver	-
+0x6CC9C1A1	kmemmove	SysmemKernel	SceSysclibForDriver	-
+0x0AB9BF5C	kmemset	ProcessMgr	SceSysclibForDriver	-
+0xAE7A8981	ksnprintf	SysmemKernel	SceSysclibForDriver	-
+0x38463759	kstrchr	SysmemKernel	SceSysclibForDriver	-
+0x0B33BC43	kstrcmp	SysmemKernel	SceSysclibForDriver	-
+0xCFC6A9AC	kstrlen	SysmemKernel	SceSysclibForDriver	-
+0xA1D1C32C	kstrncat	SysmemKernel	SceSysclibForDriver	-
+0x12CEE649	kstrncmp	ProcessMgr	SceSysclibForDriver	-
+0x6D286146	kstrncpy	SysmemKernel	SceSysclibForDriver	-
+0xFE39AEAC	kstrncpy_s	SysmemKernel	SceSysclibForDriver	-
+0x7F0E0835	kstrrchr	SysmemKernel	SceSysclibForDriver	-
+0x1304A69D	kstrstr	SysmemKernel	SceSysclibForDriver	-
+0xAB77C5AA	kstrtol	SysmemKernel	SceSysclibForDriver	-
+0x87AAAFA2	kstrtoll	SysmemKernel	SceSysclibForDriver	-
+0x4E5042DA	kstrtoul	SysmemKernel	SceSysclibForDriver	-
+0xB5A4D745	ktimingsafe_memcmp	SysmemKernel	SceSysclibForDriver	-
+0x0021DAF9	ktolower	SysmemKernel	SceSysclibForDriver	-
+0xA685DCB1	ktoupper	SysmemKernel	SceSysclibForDriver	-
+0x3DDBE2E1	kvsnprintf	SysmemKernel	SceSysclibForDriver	-
+0xCDF7F155	look_ctype_table	SysmemKernel	SceSysclibForDriver	-
+0x1D89F6C0	rshift	SysmemKernel	SceSysclibForDriver	-
+0x12504E09	strlcat	SysmemKernel	SceSysclibForDriver	-
+0x7FB4EBEC	strlcpy	SysmemKernel	SceSysclibForDriver	-
+0xCD4BD884	strnlen	SysmemKernel	SceSysclibForDriver	-
+0x0D58E297	SceSysconForDriver_0D58E297	SysconKernel	SceSysconForDriver	-
+0x129EA022	SceSysconForDriver_129EA022	SysconKernel	SceSysconForDriver	-
+0x14730196	SceSysconForDriver_14730196	SysconKernel	SceSysconForDriver	-
+0x154676F1	SceSysconForDriver_154676F1	SysconKernel	SceSysconForDriver	-
+0x18A6F4D9	SceSysconForDriver_18A6F4D9	SysconKernel	SceSysconForDriver	-
+0x229A07C2	SceSysconForDriver_229A07C2	SysconKernel	SceSysconForDriver	-
+0x2D471528	SceSysconForDriver_2D471528	SysconKernel	SceSysconForDriver	-
+0x2E4BA4B8	SceSysconForDriver_2E4BA4B8	SysconKernel	SceSysconForDriver	-
+0x35E1689F	SceSysconForDriver_35E1689F	SysconKernel	SceSysconForDriver	-
+0x376CCCB8	SceSysconForDriver_376CCCB8	SysconKernel	SceSysconForDriver	-
+0x3BAAC8A9	SceSysconForDriver_3BAAC8A9	SysconKernel	SceSysconForDriver	-
+0x423D0C58	SceSysconForDriver_423D0C58	SysconKernel	SceSysconForDriver	-
+0x474A9EA7	SceSysconForDriver_474A9EA7	SysconKernel	SceSysconForDriver	-
+0x4A42712F	SceSysconForDriver_4A42712F	SysconKernel	SceSysconForDriver	-
+0x4E88B4D9	SceSysconForDriver_4E88B4D9	SysconKernel	SceSysconForDriver	-
+0x61AE3970	SceSysconForDriver_61AE3970	SysconKernel	SceSysconForDriver	-
+0x63352A39	SceSysconForDriver_63352A39	SysconKernel	SceSysconForDriver	-
+0x67A4CB9F	SceSysconForDriver_67A4CB9F	SysconKernel	SceSysconForDriver	-
+0x7682FE69	SceSysconForDriver_7682FE69	SysconKernel	SceSysconForDriver	-
+0x7AA00C01	SceSysconForDriver_7AA00C01	SysconKernel	SceSysconForDriver	-
+0x80D6E061	SceSysconForDriver_80D6E061	SysconKernel	SceSysconForDriver	-
+0x8351526D	SceSysconForDriver_8351526D	SysconKernel	SceSysconForDriver	-
+0x85E5DEBF	SceSysconForDriver_85E5DEBF	SysconKernel	SceSysconForDriver	-
+0x901D6CD4	SceSysconForDriver_901D6CD4	SysconKernel	SceSysconForDriver	-
+0x94678881	SceSysconForDriver_94678881	SysconKernel	SceSysconForDriver	-
+0x9F8340FF	SceSysconForDriver_9F8340FF	SysconKernel	SceSysconForDriver	-
+0xA26586B2	SceSysconForDriver_A26586B2	SysconKernel	SceSysconForDriver	-
+0xC442D0BE	SceSysconForDriver_C442D0BE	SysconKernel	SceSysconForDriver	-
+0xDE613081	SceSysconForDriver_DE613081	SysconKernel	SceSysconForDriver	-
+0xE0D52DF0	SceSysconForDriver_E0D52DF0	SysconKernel	SceSysconForDriver	-
+0x32418370	ksceSysconSetAlarmCallback	SysconKernel	SceSysconForDriver	-
+0xF245CD6F	ksceSysconSetDebugHandlers	SysconKernel	SceSysconForDriver	-
+0x3F0DB7C0	ksceSysconSetLowBatteryCallback	SysconKernel	SceSysconForDriver	-
+0x773B8126	ksceSysconSetThermalAlertCallback	SysconKernel	SceSysconForDriver	-
+0x55DF1C9B	ksceSysconWaitInitialized	SysconKernel	SceSysconForDriver	-
 0xB9D5EBDE	sceKernelAllocMemBlock	SysMem	SceSysmem	vh
 0xE2D7E137	sceKernelAllocMemBlockForVM	SysMem	SceSysmem	vh
+0xEC636BCB	sceKernelAllocUnmapMemBlock	SysMem	SceSysmem	vh
 0x0144FBD9	sceKernelCheckModelCapability	VshBridge	SceSysmem	vh
 0xB680E3A0	sceKernelCloseMemBlock	SysMem	SceSysmem	vh
 0xD6CA56CA	sceKernelCloseVMDomain	SysMem	SceSysmem	vh
@@ -7004,6 +7662,68 @@
 0x8EB8DFBB	sceKernelOpenMemBlock	SysMem	SceSysmem	vh
 0x9CA3EB2B	sceKernelOpenVMDomain	SysMem	SceSysmem	vh
 0x19D2A81A	sceKernelSyncVMDomain	SysMem	SceSysmem	vh
+0x047D32F2	ksceGUIDClose	SysmemKernel	SceSysmemForDriver	-
+0x0F5C84B7	ksceGUIDReferObject	SysmemKernel	SceSysmemForDriver	-
+0x00ED6C14	ksceGUIDReferObjectWithClass	SysmemKernel	SceSysmemForDriver	-
+0x77066FD1	ksceGUIDReferObjectWithClassLevel	SysmemKernel	SceSysmemForDriver	-
+0x149885C4	ksceGUIDReleaseObject	SysmemKernel	SceSysmemForDriver	-
+0x7B4CB60A	ksceKernelAllocHeapMemory	SysmemKernel	SceSysmemForDriver	-
+0xC94850C9	ksceKernelAllocMemBlock	SysmemKernel	SceSysmemForDriver	-
+0x61317102	ksceKernelCreateClass	SysmemKernel	SceSysmemForDriver	-
+0x9328E0E8	ksceKernelCreateHeap	SysmemKernel	SceSysmemForDriver	-
+0x56A13E90	ksceKernelCreateUidObj2	SysmemKernel	SceSysmemForDriver	-
+0xCED1547B	ksceKernelCreateUserUidForClass	SysmemKernel	SceSysmemForDriver	-
+0xD6437637	ksceKernelDeleteHeap	SysmemKernel	SceSysmemForDriver	-
+0x9C78064C	ksceKernelFindMemBlock	SysmemKernel	SceSysmemForDriver	-
+0x8A1742F6	ksceKernelFindMemBlockByAddr	SysmemKernel	SceSysmemForDriver	-
+0x857F1D5A	ksceKernelFindMemBlockByAddrForPid	SysmemKernel	SceSysmemForDriver	-
+0x9F6E45E3	ksceKernelFindMemBlockForPid	SysmemKernel	SceSysmemForDriver	-
+0x8334454F	ksceKernelFirstDifferentIntUserForPid	SysmemKernel	SceSysmemForDriver	-
+0x3EBCE343	ksceKernelFreeHeapMemory	SysmemKernel	SceSysmemForDriver	-
+0x009E1C61	ksceKernelFreeMemBlock	SysmemKernel	SceSysmemForDriver	-
+0x0FC24464	ksceKernelGUIDGetObject	SysmemKernel	SceSysmemForDriver	-
+0xE9728A12	ksceKernelGetClassForPidForUid	SysmemKernel	SceSysmemForDriver	-
+0xC74B0152	ksceKernelGetClassForUid	SysmemKernel	SceSysmemForDriver	-
+0xA841EDDA	ksceKernelGetMemBlockBase	SysmemKernel	SceSysmemForDriver	-
+0x0B1FD5C3	ksceKernelGetMemBlockMappedBase	SysmemKernel	SceSysmemForDriver	-
+0xB81CF0A3	ksceKernelGetMemBlockVBase	SysmemKernel	SceSysmemForDriver	-
+0xA78755EB	ksceKernelGetNameForUid	SysmemKernel	SceSysmemForDriver	-
+0xE655852F	ksceKernelGetNameForUid2	SysmemKernel	SceSysmemForDriver	-
+0xFE6D7FAE	ksceKernelGetObjectForPidForUid	SysmemKernel	SceSysmemForDriver	-
+0x72A98D17	ksceKernelGetObjectForUidForClassTree	SysmemKernel	SceSysmemForDriver	-
+0xAE36C775	ksceKernelGetPaddrPair	SysmemKernel	SceSysmemForDriver	-
+0x2ECF7944	ksceKernelGetPidContext	SysmemKernel	SceSysmemForDriver	-
+0x85336A1C	ksceKernelGetUidClass	SysmemKernel	SceSysmemForDriver	-
+0x58D21746	ksceKernelMapBlockUserVisible	SysmemKernel	SceSysmemForDriver	-
+0xF50BDC0C	ksceKernelMemBlockDecRefCounterAndReleaseUid	SysmemKernel	SceSysmemForDriver	-
+0xEAF3849B	ksceKernelMemBlockIncRefCounterAndReleaseUid	SysmemKernel	SceSysmemForDriver	-
+0x6D88EF8A	ksceKernelMemcpyKernelToUser	SysmemKernel	SceSysmemForDriver	-
+0x6B825479	ksceKernelMemcpyKernelToUserForPid	SysmemKernel	SceSysmemForDriver	-
+0xBC996A7A	ksceKernelMemcpyUserToKernel	SysmemKernel	SceSysmemForDriver	-
+0x605275F8	ksceKernelMemcpyUserToKernelForPid	SysmemKernel	SceSysmemForDriver	-
+0x1BD44DD5	ksceKernelMemcpyUserToUser	SysmemKernel	SceSysmemForDriver	-
+0xD76E7452	ksceKernelOpenUidForName	SysmemKernel	SceSysmemForDriver	-
+0x61A67D32	ksceKernelProcModeVAtoPA	SysmemKernel	SceSysmemForDriver	-
+0x4CFA4100	ksceKernelSetObjectForUid	SysmemKernel	SceSysmemForDriver	-
+0x80BD6FEB	ksceKernelStrncpyKernelToUser	SysmemKernel	SceSysmemForDriver	-
+0x75AAF178	ksceKernelStrncpyUserForPid	SysmemKernel	SceSysmemForDriver	-
+0xDB3EC244	ksceKernelStrncpyUserToKernel	SysmemKernel	SceSysmemForDriver	-
+0xB429D419	ksceKernelStrnlenUser	SysmemKernel	SceSysmemForDriver	-
+0xE68BEEBD	ksceKernelVARangeToPAVector	SysmemKernel	SceSysmemForDriver	-
+0x8D160E65	ksceKernelVAtoPA	SysmemKernel	SceSysmemForDriver	-
+0x84A4AF5E	kscePUIDClose	SysmemKernel	SceSysmemForDriver	-
+0xBF209859	kscePUIDOpenByGUID	SysmemKernel	SceSysmemForDriver	-
+0x45D22597	kscePUIDtoGUID	SysmemKernel	SceSysmemForDriver	-
+0x368F1C36	SceSysmemForKernel_368F1C36	SysmemKernel	SceSysmemForKernel	-
+0xFA6C098C	SceSysmemForKernel_FA6C098C	SysmemKernel	SceSysmemForKernel	-
+0xDF0288D7	ksceGUIDKernelCreateWithOpt	SysmemKernel	SceSysmemForKernel	-
+0xFB6390CE	ksceGUIDKernelCreateWithOpt	SysmemKernel	SceSysmemForKernel	-
+0x85571907	ksceKernelAlloc	SysmemKernel	SceSysmemForKernel	-
+0x499A9FFF	ksceKernelCopyToUserDomain	SysmemKernel	SceSysmemForKernel	-
+0x5EF1DAAF	ksceKernelCopyToUserTextDomain	SysmemKernel	SceSysmemForKernel	-
+0x4233C16D	ksceKernelFree	SysmemKernel	SceSysmemForKernel	-
+0x2995558D	ksceKernelProcCopyToUserRx	SysmemKernel	SceSysmemForKernel	-
+0x30931572	ksceKernelProcCopyToUserRx	SysmemKernel	SceSysmemForKernel	-
 0x53099B7A	sceSysmoduleIsLoaded	SystemMisc	SceSysmodule	vh
 0x09A4AF1D	sceSysmoduleIsLoadedInternal	SystemMisc	SceSysmodule	vh
 0x79A0160A	sceSysmoduleLoadModule	SystemMisc	SceSysmodule	vh
@@ -7012,6 +7732,133 @@
 0x31D87805	sceSysmoduleUnloadModule	SystemMisc	SceSysmodule	vh
 0xFF206B19	sceSysmoduleUnloadModuleInternal	SystemMisc	SceSysmodule	vh
 0xA2F40C4C	sceSysmoduleUnloadModuleInternalWithArg	SystemMisc	SceSysmodule	vh
+0x05CD0DD9	SceSysrootForDriver_05CD0DD9	SysmemKernel	SceSysrootForDriver	-
+0x06436EF0	SceSysrootForDriver_06436EF0	SysmemKernel	SceSysrootForDriver	-
+0x0A52A59C	SceSysrootForDriver_0A52A59C	SysmemKernel	SceSysrootForDriver	-
+0x0ECD711E	SceSysrootForDriver_0ECD711E	SysmemKernel	SceSysrootForDriver	-
+0x10788257	SceSysrootForDriver_10788257	SysmemKernel	SceSysrootForDriver	-
+0x1160FCA1	SceSysrootForDriver_1160FCA1	SysmemKernel	SceSysrootForDriver	-
+0x1434D90E	SceSysrootForDriver_1434D90E	SysmemKernel	SceSysrootForDriver	-
+0x17DD213C	SceSysrootForDriver_17DD213C	SysmemKernel	SceSysrootForDriver	-
+0x1834D482	SceSysrootForDriver_1834D482	SysmemKernel	SceSysrootForDriver	-
+0x1B3FA457	SceSysrootForDriver_1B3FA457	SysmemKernel	SceSysrootForDriver	-
+0x1D61C837	SceSysrootForDriver_1D61C837	SysmemKernel	SceSysrootForDriver	-
+0x1FFD2AFA	SceSysrootForDriver_1FFD2AFA	SysmemKernel	SceSysrootForDriver	-
+0x20D2A0DF	SceSysrootForDriver_20D2A0DF	SysmemKernel	SceSysrootForDriver	-
+0x246AAAB3	SceSysrootForDriver_246AAAB3	SysmemKernel	SceSysrootForDriver	-
+0x273EAE53	SceSysrootForDriver_273EAE53	SysmemKernel	SceSysrootForDriver	-
+0x27D30DB2	SceSysrootForDriver_27D30DB2	SysmemKernel	SceSysrootForDriver	-
+0x2816A813	SceSysrootForDriver_2816A813	SysmemKernel	SceSysrootForDriver	-
+0x2BE874EF	SceSysrootForDriver_2BE874EF	SysmemKernel	SceSysrootForDriver	-
+0x2C9E7797	SceSysrootForDriver_2C9E7797	SysmemKernel	SceSysrootForDriver	-
+0x2D6B2A79	SceSysrootForDriver_2D6B2A79	SysmemKernel	SceSysrootForDriver	-
+0x34281746	SceSysrootForDriver_34281746	SysmemKernel	SceSysrootForDriver	-
+0x38751FB7	SceSysrootForDriver_38751FB7	SysmemKernel	SceSysrootForDriver	-
+0x39F1FD07	SceSysrootForDriver_39F1FD07	SysmemKernel	SceSysrootForDriver	-
+0x39F9C968	SceSysrootForDriver_39F9C968	SysmemKernel	SceSysrootForDriver	-
+0x3AE319DA	SceSysrootForDriver_3AE319DA	SysmemKernel	SceSysrootForDriver	-
+0x3B19B06B	SceSysrootForDriver_3B19B06B	SysmemKernel	SceSysrootForDriver	-
+0x3F76D531	SceSysrootForDriver_3F76D531	SysmemKernel	SceSysrootForDriver	-
+0x400B9793	SceSysrootForDriver_400B9793	SysmemKernel	SceSysrootForDriver	-
+0x40F28DC6	SceSysrootForDriver_40F28DC6	SysmemKernel	SceSysrootForDriver	-
+0x421EFC96	SceSysrootForDriver_421EFC96	SysmemKernel	SceSysrootForDriver	-
+0x42FC9FFF	SceSysrootForDriver_42FC9FFF	SysmemKernel	SceSysrootForDriver	-
+0x47724459	SceSysrootForDriver_47724459	SysmemKernel	SceSysrootForDriver	-
+0x47F19DD3	SceSysrootForDriver_47F19DD3	SysmemKernel	SceSysrootForDriver	-
+0x483EF108	SceSysrootForDriver_483EF108	SysmemKernel	SceSysrootForDriver	-
+0x49843C16	SceSysrootForDriver_49843C16	SysmemKernel	SceSysrootForDriver	-
+0x51F9C118	SceSysrootForDriver_51F9C118	SysmemKernel	SceSysrootForDriver	-
+0x525B24C5	SceSysrootForDriver_525B24C5	SysmemKernel	SceSysrootForDriver	-
+0x5458BF6D	SceSysrootForDriver_5458BF6D	SysmemKernel	SceSysrootForDriver	-
+0x571E5B79	SceSysrootForDriver_571E5B79	SysmemKernel	SceSysrootForDriver	-
+0x582616EC	SceSysrootForDriver_582616EC	SysmemKernel	SceSysrootForDriver	-
+0x591BB490	SceSysrootForDriver_591BB490	SysmemKernel	SceSysrootForDriver	-
+0x5A4A7F7E	SceSysrootForDriver_5A4A7F7E	SysmemKernel	SceSysrootForDriver	-
+0x5A7FFDC1	SceSysrootForDriver_5A7FFDC1	SysmemKernel	SceSysrootForDriver	-
+0x5B106EB3	SceSysrootForDriver_5B106EB3	SysmemKernel	SceSysrootForDriver	-
+0x5C86E49B	SceSysrootForDriver_5C86E49B	SysmemKernel	SceSysrootForDriver	-
+0x6050A467	SceSysrootForDriver_6050A467	SysmemKernel	SceSysrootForDriver	-
+0x6219CC14	SceSysrootForDriver_6219CC14	SysmemKernel	SceSysrootForDriver	-
+0x631141E2	SceSysrootForDriver_631141E2	SysmemKernel	SceSysrootForDriver	-
+0x65F3D598	SceSysrootForDriver_65F3D598	SysmemKernel	SceSysrootForDriver	-
+0x6655F48C	SceSysrootForDriver_6655F48C	SysmemKernel	SceSysrootForDriver	-
+0x6C036B53	SceSysrootForDriver_6C036B53	SysmemKernel	SceSysrootForDriver	-
+0x6D44F190	SceSysrootForDriver_6D44F190	SysmemKernel	SceSysrootForDriver	-
+0x709799BB	SceSysrootForDriver_709799BB	SysmemKernel	SceSysrootForDriver	-
+0x70AD47A9	SceSysrootForDriver_70AD47A9	SysmemKernel	SceSysrootForDriver	-
+0x73522F65	SceSysrootForDriver_73522F65	SysmemKernel	SceSysrootForDriver	-
+0x77CF3FBD	SceSysrootForDriver_77CF3FBD	SysmemKernel	SceSysrootForDriver	-
+0x7AAC4EE7	SceSysrootForDriver_7AAC4EE7	SysmemKernel	SceSysrootForDriver	-
+0x7B4A377C	SceSysrootForDriver_7B4A377C	SysmemKernel	SceSysrootForDriver	-
+0x7C0BE393	SceSysrootForDriver_7C0BE393	SysmemKernel	SceSysrootForDriver	-
+0x82FC6405	SceSysrootForDriver_82FC6405	SysmemKernel	SceSysrootForDriver	-
+0x8498E23F	SceSysrootForDriver_8498E23F	SysmemKernel	SceSysrootForDriver	-
+0x84C0BE05	SceSysrootForDriver_84C0BE05	SysmemKernel	SceSysrootForDriver	-
+0x8747D415	SceSysrootForDriver_8747D415	SysmemKernel	SceSysrootForDriver	-
+0x89532E2F	SceSysrootForDriver_89532E2F	SysmemKernel	SceSysrootForDriver	-
+0x9421B223	SceSysrootForDriver_9421B223	SysmemKernel	SceSysrootForDriver	-
+0x951C7943	SceSysrootForDriver_951C7943	SysmemKernel	SceSysrootForDriver	-
+0x9A8871F1	SceSysrootForDriver_9A8871F1	SysmemKernel	SceSysrootForDriver	-
+0x9AF075D4	SceSysrootForDriver_9AF075D4	SysmemKernel	SceSysrootForDriver	-
+0x9BF782CA	SceSysrootForDriver_9BF782CA	SysmemKernel	SceSysrootForDriver	-
+0x9CDE3623	SceSysrootForDriver_9CDE3623	SysmemKernel	SceSysrootForDriver	-
+0x9CFF80F9	SceSysrootForDriver_9CFF80F9	SysmemKernel	SceSysrootForDriver	-
+0x9D058A32	SceSysrootForDriver_9D058A32	SysmemKernel	SceSysrootForDriver	-
+0x9DCD0894	SceSysrootForDriver_9DCD0894	SysmemKernel	SceSysrootForDriver	-
+0x9E96D990	SceSysrootForDriver_9E96D990	SysmemKernel	SceSysrootForDriver	-
+0xA6A0A038	SceSysrootForDriver_A6A0A038	SysmemKernel	SceSysrootForDriver	-
+0xA799F22A	SceSysrootForDriver_A799F22A	SysmemKernel	SceSysrootForDriver	-
+0xA7A01DF0	SceSysrootForDriver_A7A01DF0	SysmemKernel	SceSysrootForDriver	-
+0xA85FF3B2	SceSysrootForDriver_A85FF3B2	SysmemKernel	SceSysrootForDriver	-
+0xA9510EFE	SceSysrootForDriver_A9510EFE	SysmemKernel	SceSysrootForDriver	-
+0xAA770EF7	SceSysrootForDriver_AA770EF7	SysmemKernel	SceSysrootForDriver	-
+0xAA8D34EE	SceSysrootForDriver_AA8D34EE	SysmemKernel	SceSysrootForDriver	-
+0xB0E3E791	SceSysrootForDriver_B0E3E791	SysmemKernel	SceSysrootForDriver	-
+0xB27B7530	SceSysrootForDriver_B27B7530	SysmemKernel	SceSysrootForDriver	-
+0xB501E861	SceSysrootForDriver_B501E861	SysmemKernel	SceSysrootForDriver	-
+0xBFD8F2A2	SceSysrootForDriver_BFD8F2A2	SysmemKernel	SceSysrootForDriver	-
+0xC5EAF5F7	SceSysrootForDriver_C5EAF5F7	SysmemKernel	SceSysrootForDriver	-
+0xC67A1FA9	SceSysrootForDriver_C67A1FA9	SysmemKernel	SceSysrootForDriver	-
+0xC728BC61	SceSysrootForDriver_C728BC61	SysmemKernel	SceSysrootForDriver	-
+0xC81B7E2B	SceSysrootForDriver_C81B7E2B	SysmemKernel	SceSysrootForDriver	-
+0xC94C76FA	SceSysrootForDriver_C94C76FA	SysmemKernel	SceSysrootForDriver	-
+0xCA497324	SceSysrootForDriver_CA497324	SysmemKernel	SceSysrootForDriver	-
+0xCAE820B2	SceSysrootForDriver_CAE820B2	SysmemKernel	SceSysrootForDriver	-
+0xCC7A0E63	SceSysrootForDriver_CC7A0E63	SysmemKernel	SceSysrootForDriver	-
+0xCCB8BB5E	SceSysrootForDriver_CCB8BB5E	SysmemKernel	SceSysrootForDriver	-
+0xCD4B84F7	SceSysrootForDriver_CD4B84F7	SysmemKernel	SceSysrootForDriver	-
+0xD02281A8	SceSysrootForDriver_D02281A8	SysmemKernel	SceSysrootForDriver	-
+0xD1E54BF4	SceSysrootForDriver_D1E54BF4	SysmemKernel	SceSysrootForDriver	-
+0xD2423D6B	SceSysrootForDriver_D2423D6B	SysmemKernel	SceSysrootForDriver	-
+0xD4457D4F	SceSysrootForDriver_D4457D4F	SysmemKernel	SceSysrootForDriver	-
+0xD56A2F3E	SceSysrootForDriver_D56A2F3E	SysmemKernel	SceSysrootForDriver	-
+0xD7207203	SceSysrootForDriver_D7207203	SysmemKernel	SceSysrootForDriver	-
+0xDABD4A47	SceSysrootForDriver_DABD4A47	SysmemKernel	SceSysrootForDriver	-
+0xDC651D22	SceSysrootForDriver_DC651D22	SysmemKernel	SceSysrootForDriver	-
+0xE06C14FD	SceSysrootForDriver_E06C14FD	SysmemKernel	SceSysrootForDriver	-
+0xE541959B	SceSysrootForDriver_E541959B	SysmemKernel	SceSysrootForDriver	-
+0xE9B4221F	SceSysrootForDriver_E9B4221F	SysmemKernel	SceSysrootForDriver	-
+0xEB19AAF6	SceSysrootForDriver_EB19AAF6	SysmemKernel	SceSysrootForDriver	-
+0xECADF8C3	SceSysrootForDriver_ECADF8C3	SysmemKernel	SceSysrootForDriver	-
+0xED22CF8F	SceSysrootForDriver_ED22CF8F	SysmemKernel	SceSysrootForDriver	-
+0xED688AEE	SceSysrootForDriver_ED688AEE	SysmemKernel	SceSysrootForDriver	-
+0xF2BC9E1D	SceSysrootForDriver_F2BC9E1D	SysmemKernel	SceSysrootForDriver	-
+0xF404026C	SceSysrootForDriver_F404026C	SysmemKernel	SceSysrootForDriver	-
+0xF4340469	SceSysrootForDriver_F4340469	SysmemKernel	SceSysrootForDriver	-
+0xF804F761	SceSysrootForDriver_F804F761	SysmemKernel	SceSysrootForDriver	-
+0xFF2DD7AB	SceSysrootForDriver_FF2DD7AB	SysmemKernel	SceSysrootForDriver	-
+0x8AA268D6	ksceKernelSysrootCheckModelCapability	SysmemKernel	SceSysrootForDriver	-
+0x256B2394	ksceKernelSysrootDbgpSuspendProcessAndWaitResume	SysmemKernel	SceSysrootForDriver	-
+0x05093E7B	ksceKernelSysrootGetShellPid	SysmemKernel	SceSysrootForDriver	-
+0x67AAB627	ksceKernelSysrootGetSystemSwVersion	SysmemKernel	SceSysrootForDriver	-
+0xDD473B05	ksceKernelSysrootRegisterCoredumpTrigger	SysmemKernel	SceSysrootForDriver	-
+0x3999F917	ksceKernelSysrootRegisterDbgpHandler	SysmemKernel	SceSysrootForDriver	-
+0x3276086B	ksceKernelSysrootSetGetSystemSwVersionFunc	SysmemKernel	SceSysrootForDriver	-
+0x0F07C3FC	ksceKernelSysrootSetProcessHandler	SysmemKernel	SceSysrootForDriver	-
+0x7B7ED1E9	ksceKernelSysrootUnregisterDbgpHandler	SysmemKernel	SceSysrootForDriver	-
+0xD29BCA77	SceSysrootForKernel_D29BCA77	SysmemKernel	SceSysrootForKernel	-
+0x63EBB05B	ksceKernelSysrootGetCurrentAddressSpaceCB	SysmemKernel	SceSysrootForKernel	-
+0xEC3124A3	ksceKernelSysrootGetProcessTitleId	SysmemKernel	SceSysrootForKernel	-
 0xC3367370	sceSystemGestureCreateTouchRecognizer	SystemGesture	SceSystemGesture	vh
 0xB3875104	sceSystemGestureFinalizePrimitiveTouchRecognizer	SystemGesture	SceSystemGesture	vh
 0xE0577765	sceSystemGestureGetPrimitiveTouchEventByIndex	SystemGesture	SceSystemGesture	vh
@@ -7064,6 +7911,7 @@
 0x79BA0A6D	_sceKernelCreateTimer	ThreadMgr	SceThreadmgr	vh
 0x75FCF058	_sceKernelDeleteLwCond	ThreadMgr	SceThreadmgr	vh
 0x91262C5F	_sceKernelDeleteLwMutex	ThreadMgr	SceThreadmgr	vh
+0x2682E6ED	_sceKernelExitCallback	ThreadMgr	SceThreadmgr	vh
 0x86761234	_sceKernelGetCallbackInfo	ThreadMgr	SceThreadmgr	vh
 0x05C51CE1	_sceKernelGetCondInfo	ThreadMgr	SceThreadmgr	vh
 0x106C216F	_sceKernelGetEventFlagInfo	ThreadMgr	SceThreadmgr	vh
@@ -7216,9 +8064,102 @@
 0x0373C5E3	sceKernelWaitThreadEndCB_089	ThreadMgr	SceThreadmgr	vh
 0xF3489EF4	sceKernelWaitThreadEnd_089	ThreadMgr	SceThreadmgr	vh
 0x0C8A38E1	sceKernelExitThread	ThreadMgr	SceThreadmgrCoredumpTime	vh
+0x1096042E	SceThreadmgrForDriver_1096042E	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x332E127C	SceThreadmgrForDriver_332E127C	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x56C18B11	SceThreadmgrForDriver_56C18B11	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x91382762	SceThreadmgrForDriver_91382762	ThreadmgrKernel	SceThreadmgrForDriver	-
+0xC040EC1C	ksceKernelCancelCallback	KernelTwins	SceThreadmgrForDriver	-
+0x9D6A2311	ksceKernelCancelMsgPipe	KernelTwins	SceThreadmgrForDriver	-
+0x7204B846	ksceKernelCancelMutex	KernelTwins	SceThreadmgrForDriver	-
+0x751C9B7A	ksceKernelChangeCurrentThreadAttr	KernelTwins	SceThreadmgrForDriver	-
+0x6D0733A8	ksceKernelChangeThreadCpuAffinityMask	KernelTwins	SceThreadmgrForDriver	-
+0x63DAB420	ksceKernelChangeThreadPriority	KernelTwins	SceThreadmgrForDriver	-
+0xF4C81683	ksceKernelChangeThreadVfpException	KernelTwins	SceThreadmgrForDriver	-
+0x9C335818	ksceKernelClearEvent	KernelTwins	SceThreadmgrForDriver	-
+0x4F1DA3BE	ksceKernelClearEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0x1C41614C	ksceKernelCreateCallback	KernelTwins	SceThreadmgrForDriver	-
+0xDB6CD34A	ksceKernelCreateCond	KernelTwins	SceThreadmgrForDriver	-
+0x4336BAA4	ksceKernelCreateEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0xBF631145	ksceKernelCreateMsgPipe	KernelTwins	SceThreadmgrForDriver	-
+0xFBAA026E	ksceKernelCreateMutex	ThreadMgr	SceThreadmgrForDriver	-
+0x30E93C31	ksceKernelCreateSema	KernelTwins	SceThreadmgrForDriver	-
+0x357A8177	ksceKernelCreateSimpleEvent	KernelTwins	SceThreadmgrForDriver	-
+0xC6674E7D	ksceKernelCreateThread	ProcessmgrKernel	SceThreadmgrForDriver	-
+0x3A7E17F6	ksceKernelDeleteCallback	KernelTwins	SceThreadmgrForDriver	-
+0xAEE0D27C	ksceKernelDeleteCond	KernelTwins	SceThreadmgrForDriver	-
+0x71ECB352	ksceKernelDeleteEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0x11FE84A1	ksceKernelDeleteFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
+0xB3453F88	ksceKernelDeleteMsgPipe	KernelTwins	SceThreadmgrForDriver	-
+0x0A912340	ksceKernelDeleteMutex	ThreadMgr	SceThreadmgrForDriver	-
+0x16A35E58	ksceKernelDeleteSema	KernelTwins	SceThreadmgrForDriver	-
+0xAC834F3F	ksceKernelDeleteThread	KernelTwins	SceThreadmgrForDriver	-
+0x0892D8DF	ksceKernelGetCallbackCount	KernelTwins	SceThreadmgrForDriver	-
+0x612277C9	ksceKernelGetEventFlagInfo	KernelTwins	SceThreadmgrForDriver	-
+0xD7AF2E58	ksceKernelGetFastMutexInfo	ThreadmgrKernel	SceThreadmgrForDriver	-
+0xC2AFFBD0	ksceKernelGetLwCondInfo	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x15287EF6	ksceKernelGetLwMutexInfo	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x207E0E18	ksceKernelGetMsgPipeInfo	KernelTwins	SceThreadmgrForDriver	-
 0x69B78A12	ksceKernelGetMutexInfo	FirmwareConstants	SceThreadmgrForDriver	-
+0xFA54D49A	ksceKernelGetProcessIdFromTLS	ThreadmgrKernel	SceThreadmgrForDriver	-
+0xC99DCF0D	ksceKernelGetSemaInfo	KernelTwins	SceThreadmgrForDriver	-
 0x47F6DE49	ksceKernelGetSystemTimeLow	SystemServicesVsh	SceThreadmgrForDriver	-
+0xE938FB20	ksceKernelGetTLSAddr	KernelTwins	SceThreadmgrForDriver	-
+0x83DC703D	ksceKernelGetThreadCpuAffinityMask	KernelTwins	SceThreadmgrForDriver	-
 0x01414F0B	ksceKernelGetThreadCurrentPriority	ThreadMgr	SceThreadmgrForDriver	-
+0x59D06540	ksceKernelGetThreadId	KernelTwins	SceThreadmgrForDriver	-
+0xEA7B8AEF	ksceKernelGetThreadIdList	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x283807E2	ksceKernelGetThreadInfo	KernelTwins	SceThreadmgrForDriver	-
+0x7B278A0B	ksceKernelGetThreadStackFreeSize	KernelTwins	SceThreadmgrForDriver	-
+0x66EEA46A	ksceKernelGetThreadTLSAddr	KernelTwins	SceThreadmgrForDriver	-
+0x0A20775A	ksceKernelGetThreadmgrUIDClass	KernelTwins	SceThreadmgrForDriver	-
+0xA6D11DD3	ksceKernelGetTimerBaseWide	KernelTwins	SceThreadmgrForDriver	-
+0xC1286004	ksceKernelGetTimerTimeWide	KernelTwins	SceThreadmgrForDriver	-
+0xF311808F	ksceKernelGetUserThreadId	ThreadmgrKernel	SceThreadmgrForDriver	-
+0xAF8E1266	ksceKernelInitializeFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x70627F3A	ksceKernelLockFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x16AC80C5	ksceKernelLockMutex	ThreadMgr	SceThreadmgrForDriver	-
+0xC3E00919	ksceKernelNotifyCallback	KernelTwins	SceThreadmgrForDriver	-
+0x76C6555B	ksceKernelPollEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0x4FDDFE24	ksceKernelPollSema	KernelTwins	SceThreadmgrForDriver	-
+0x2427C81B	ksceKernelPulseEvent	KernelTwins	SceThreadmgrForDriver	-
+0x714A107A	ksceKernelPulseEventWithNotifyCallback	KernelTwins	SceThreadmgrForDriver	-
+0xDA1F256B	ksceKernelReceiveMsgPipeVector	KernelTwins	SceThreadmgrForDriver	-
+0xDA5C9AC6	ksceKernelReceiveMsgPipeVectorCB	KernelTwins	SceThreadmgrForDriver	-
+0x832A7E0C	ksceKernelRegisterCallbackToEvent	KernelTwins	SceThreadmgrForDriver	-
+0xE54FD746	ksceKernelRunWithStack	ProcessmgrKernel	SceThreadmgrForDriver	-
+0x67DD3BAD	ksceKernelSendMsgPipeVector	KernelTwins	SceThreadmgrForDriver	-
+0x9EA3A45C	ksceKernelSetEvent	KernelTwins	SceThreadmgrForDriver	-
+0xD4780C3E	ksceKernelSetEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0x02EEDF17	ksceKernelSetPermission	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x0486F239	ksceKernelSetProcessId	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x85195A16	ksceKernelSetTimerTimeWide	KernelTwins	SceThreadmgrForDriver	-
+0xAC616150	ksceKernelSignalCond	KernelTwins	SceThreadmgrForDriver	-
+0x6EC78CD0	ksceKernelSignalCondAll	KernelTwins	SceThreadmgrForDriver	-
+0x61533DA9	ksceKernelSignalCondTo	KernelTwins	SceThreadmgrForDriver	-
+0xD270498B	ksceKernelSignalSema	KernelTwins	SceThreadmgrForDriver	-
+0x21F5419B	ksceKernelStartThread	ThreadMgr	SceThreadmgrForDriver	-
+0x84C4CE4D	ksceKernelStartTimer	KernelTwins	SceThreadmgrForDriver	-
+0x474F214B	ksceKernelStopTimer	KernelTwins	SceThreadmgrForDriver	-
+0x741F4707	ksceKernelTryLockFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x270993A6	ksceKernelTryLockMutex	ThreadMgr	SceThreadmgrForDriver	-
+0xFC2B5A50	ksceKernelTryLockReadRWLock	KernelTwins	SceThreadmgrForDriver	-
+0xA96F2E5A	ksceKernelTryLockWriteRWLock	KernelTwins	SceThreadmgrForDriver	-
+0xCE09221A	ksceKernelTryReceiveMsgPipeVector	KernelTwins	SceThreadmgrForDriver	-
+0x4CF1BE58	ksceKernelTrySendMsgPipeVector	KernelTwins	SceThreadmgrForDriver	-
+0xDB395782	ksceKernelUnlockFastMutex	ThreadmgrKernel	SceThreadmgrForDriver	-
+0x1E82E5D0	ksceKernelUnlockMutex	ThreadMgr	SceThreadmgrForDriver	-
+0xDE1B9EEE	ksceKernelUnlockReadRWLock	KernelTwins	SceThreadmgrForDriver	-
+0x94A73797	ksceKernelUnlockWriteRWLock	KernelTwins	SceThreadmgrForDriver	-
+0x2E48D81C	ksceKernelUnregisterCallbackFromEvent	KernelTwins	SceThreadmgrForDriver	-
+0x8DADBD16	ksceKernelUnregisterCallbackFromEventAll	KernelTwins	SceThreadmgrForDriver	-
+0xCC7E027D	ksceKernelWaitCond	KernelTwins	SceThreadmgrForDriver	-
+0xC529EA32	ksceKernelWaitEvent	KernelTwins	SceThreadmgrForDriver	-
+0x360C655C	ksceKernelWaitEventCB	KernelTwins	SceThreadmgrForDriver	-
+0x0C1D3F20	ksceKernelWaitEventFlag	KernelTwins	SceThreadmgrForDriver	-
+0x8A35F714	ksceKernelWaitEventFlagCB	KernelTwins	SceThreadmgrForDriver	-
+0x3C8B55A9	ksceKernelWaitSema	KernelTwins	SceThreadmgrForDriver	-
+0x3E20216F	ksceKernelWaitThreadEnd	ThreadMgr	SceThreadmgrForDriver	-
+0x9EF4F62C	ksceKernelWaitThreadEndCB	KernelTwins	SceThreadmgrForDriver	-
 0xBD59D652	sceTouchActivateRegion	Touch	SceTouch	vh
 0x2D94EAEA	sceTouchClearRegion	Touch	SceTouch	vh
 0x41194411	sceTouchDisableTouchForce	Touch	SceTouch	vh
@@ -7246,6 +8187,21 @@
 0x08DD4C7C	sceTouchSetRegionAttr	Touch	SceTouch	vh
 0x1B9C5D14	sceTouchSetSamplingState	Touch	SceTouch	vh
 0x13CDFC43	sceTouchSetSamplingStateExt	Touch	SceTouch	vh
+0xC7F0DAA0	ksceTouchActivateRegion	KernelTwins	SceTouchForDriver	-
+0xCDE79889	ksceTouchDisableTouchForce	KernelTwins	SceTouchForDriver	-
+0xEBF4C86A	ksceTouchEnableIdleTimerCancelSetting	KernelTwins	SceTouchForDriver	-
+0xE41B4BF8	ksceTouchEnableTouchForce	KernelTwins	SceTouchForDriver	-
+0xFD2E0278	ksceTouchGetDeviceInfo	KernelTwins	SceTouchForDriver	-
+0x937DB4C0	ksceTouchGetPanelInfo	KernelTwins	SceTouchForDriver	-
+0x4DF3A37C	ksceTouchGetProcessInfo	KernelTwins	SceTouchForDriver	-
+0x174D0333	ksceTouchGetSamplingState	KernelTwins	SceTouchForDriver	-
+0xBAD1960B	ksceTouchPeek	KernelTwins	SceTouchForDriver	-
+0x9B3F7207	ksceTouchPeekRegion	KernelTwins	SceTouchForDriver	-
+0x70C8AACE	ksceTouchRead	KernelTwins	SceTouchForDriver	-
+0x9A91F624	ksceTouchReadRegion	KernelTwins	SceTouchForDriver	-
+0x7985B164	ksceTouchSetRegion	KernelTwins	SceTouchForDriver	-
+0x10A998DE	ksceTouchSetRegionAttr	KernelTwins	SceTouchForDriver	-
+0x1247257A	ksceTouchSetSamplingState	KernelTwins	SceTouchForDriver	-
 0xDD2CA8BB	sceTriggerUtilGetAutoStartStatus	TriggerUtil	SceTriggerUtil	vh
 0xDF3ED08E	sceTriggerUtilGetDailyEventInfo	TriggerUtil	SceTriggerUtil	vh
 0x912434E0	sceTriggerUtilGetOneTimeEventInfo	TriggerUtil	SceTriggerUtil	vh
@@ -7263,6 +8219,9 @@
 0xA7070093	sceUdcdRegisterCallback	MtpIf	SceUdcd	vh
 0xC3FBA889	sceUdcdUnregisterCallback	MtpIf	SceUdcd	vh
 0x59EFFAF1	sceUdcdWaitState	MtpIf	SceUdcd	vh
+0xFBEA3703	ksceUdcdGetDeviceInfo	KernelTwins	SceUdcdForDriver	-
+0xC0CA5DDB	ksceUdcdGetDrvState	KernelTwins	SceUdcdForDriver	-
+0xD03017C0	ksceUdcdWaitState	KernelTwins	SceUdcdForDriver	-
 0xD7F0F610	SceUlobjDbg_D7F0F610	DebugPerf	SceUlobjDbg	-
 0xF9C0F5DA	SceUlobjDbg_F9C0F5DA	DebugPerf	SceUlobjDbg	-
 0x50F2F2AA	_sceUlobjMgrRegisterLibultProtocolRevision	DebugPerf	SceUlobjMgr	vh
@@ -7359,6 +8318,8 @@
 0xA6A2F5DE	sceUsbSerialStatus	SystemServicesVsh	SceUsbSerial	vh	default
 0xB33AA2EB	sceUsbServAccessoryActivate	SystemServicesVsh	SceUsbServ	vh	default
 0x154246A9	sceUsbServAccessoryDeactivate	SystemServicesVsh	SceUsbServ	vh	default
+0xAA6D4409	ksceUsbServAccessoryActivate	KernelTwins	SceUsbServForDriver	-	default
+0x853CB8E4	ksceUsbServAccessoryDeactivate	KernelTwins	SceUsbServForDriver	-	default
 0xEACEAE86	sceUsbdAttach	SystemServicesVsh	SceUsbdForUser	vh	default
 0xCA8F2F59	sceUsbdAttachCompositeLdd	SystemServicesVsh	SceUsbdForUser	vh	default
 0xAA3AF5D5	sceUsbdClosePipe	SystemServicesVsh	SceUsbdForUser	vh	default
@@ -7910,25 +8871,28 @@
 0x38EE2459	glVertexAttribDivisorEXT	Piglet	libScePiglet	vh
 0x6D4FAFD2	glVertexAttribPointer	Piglet	libScePiglet	vh
 0x5D13E22B	glViewport	Piglet	libScePiglet	vh
-0x6231AAD1	taiGetModuleExportFunc	Taihen	taihen	-
-0xA5899384	taiGetModuleInfo	Taihen	taihen	-
-0x8746A1CE	taiHookFunctionExportForUser	Taihen	taihen	-
-0x53636E5D	taiHookFunctionImportForUser	Taihen	taihen	-
-0x0535225A	taiHookFunctionOffsetForUser	Taihen	taihen	-
-0x1C30E799	taiHookRelease	Taihen	taihen	-
-0x4A588904	taiInjectAbs	Taihen	taihen	-
-0xCE25B9BC	taiInjectDataForUser	Taihen	taihen	-
-0x21A4C8A6	taiInjectRelease	Taihen	taihen	-
-0xD6D086E4	taiLoadKernelModule	Taihen	taihenUnsafe	-
-0x9890A8D3	taiLoadStartKernelModuleForUser	Taihen	taihenUnsafe	-
-0xE853ABCB	taiLoadStartModuleForPidForUser	Taihen	taihenUnsafe	-
-0x89BB6025	taiMemcpyKernelToUser	Taihen	taihenUnsafe	-
-0xF6B202EE	taiMemcpyUserToKernel	Taihen	taihenUnsafe	-
-0x1873C71B	taiReloadConfig	Taihen	taihenUnsafe	-
-0xA9EB128E	taiStartKernelModuleForUser	Taihen	taihenUnsafe	-
-0x1CB59A88	taiStopKernelModuleForUser	Taihen	taihenUnsafe	-
-0x4C1DF0F8	taiStopUnloadKernelModuleForUser	Taihen	taihenUnsafe	-
-0x4C099402	taiUnloadKernelModule	Taihen	taihenUnsafe	-
+0x6231AAD1	taiGetModuleExportFunc	PluginFramework	taihen	-
+0xA5899384	taiGetModuleInfo	PluginFramework	taihen	-
+0x8746A1CE	taiHookFunctionExportForUser	PluginFramework	taihen	-
+0x53636E5D	taiHookFunctionImportForUser	PluginFramework	taihen	-
+0x0535225A	taiHookFunctionOffsetForUser	PluginFramework	taihen	-
+0x1C30E799	taiHookRelease	PluginFramework	taihen	-
+0x4A588904	taiInjectAbs	PluginFramework	taihen	-
+0xCE25B9BC	taiInjectDataForUser	PluginFramework	taihen	-
+0x21A4C8A6	taiInjectRelease	PluginFramework	taihen	-
+0x6E931197	taiGetModuleInfoForKernel	PluginFramework	taihenForKernel	-
+0xD6E4F68F	taiHookFunctionAbs	PluginFramework	taihenForKernel	-
+0x45CCFFC0	taiHookFunctionExportForKernel	PluginFramework	taihenForKernel	-
+0x4519D882	taiHookFunctionImportForKernel	PluginFramework	taihenForKernel	-
+0x8F319D77	taiHookFunctionOffsetForKernel	PluginFramework	taihenForKernel	-
+0xD22678CA	taiHookReleaseForKernel	PluginFramework	taihenForKernel	-
+0xFC2F926F	taiInjectAbsForKernel	PluginFramework	taihenForKernel	-
+0x9FA50038	taiInjectDataForKernel	PluginFramework	taihenForKernel	-
+0x51BB3EC9	taiInjectReleaseForKernel	PluginFramework	taihenForKernel	-
+0x87E73973	module_get_by_name_nid	PluginFramework	taihenModuleUtils	-
+0xF28E9A36	module_get_export_func	PluginFramework	taihenModuleUtils	-
+0xF2AA3654	module_get_import_func	PluginFramework	taihenModuleUtils	-
+0x85FDDCB0	module_get_offset	PluginFramework	taihenModuleUtils	-
 0x94E1305D	Mp4_94E1305D	Mp4	-	-
 0xA870587F	Mp4_A870587F	Mp4	-	-
 0xC05DFF01	Mp4_C05DFF01	Mp4	-	-
@@ -8105,6 +9069,7 @@
 0x00B3BFD9	NID_00B3BFD9	SqliteVsh	-	-
 0x00C9EE85	NID_00C9EE85	FirmwareConstants	-	-
 0x00EB5866	NID_00EB5866	EmailEngine	-	-
+0x00F544DF	NID_00F544DF	SystemServicesVsh	-	-	default
 0x00F74689	NID_00F74689	NpCommonPs4	-	-
 0x01141995	NID_01141995	ShellUtil	-	-
 0x013FFCB4	NID_013FFCB4	FirmwareConstants	-	-
@@ -8117,11 +9082,14 @@
 0x021E3DD1	NID_021E3DD1	data	-	-
 0x023EAA62	NID_023EAA62	ProcessMgr	-	-
 0x0288AD47	NID_0288AD47	FirmwareConstants	-	-
+0x02AC0F4B	NID_02AC0F4B	Sensors	-	-
+0x02E5F373	NID_02E5F373	SystemServicesVsh	-	-	default
 0x03200DDB	NID_03200DDB	data	-	-
 0x03201F4B	NID_03201F4B	ShellUtil	-	-
 0x03241952	NID_03241952	data	-	-
 0x038A631F	NID_038A631F	FirmwareConstants	-	-
 0x03DC363A	NID_03DC363A	FirmwareConstants	-	-
+0x03F7BC67	NID_03F7BC67	SystemServicesVsh	-	-	default
 0x040997D6	NID_040997D6	ShellUtil	-	-
 0x045552A1	NID_045552A1	data	-	-
 0x046C84C1	NID_046C84C1	Psp2Compat	-	-
@@ -8135,6 +9103,8 @@
 0x0640AE51	NID_0640AE51	FirmwareConstants	-	-
 0x0643E157	NID_0643E157	FirmwareConstants	-	-
 0x064ADA35	NID_064ADA35	data	-	-
+0x06F699FF	NID_06F699FF	SystemServicesVsh	-	-
+0x075E4490	NID_075E4490	CommonDialog	-	-
 0x07717EE3	NID_07717EE3	FirmwareConstants	-	-
 0x07AD8710	NID_07AD8710	SqliteVsh	-	-
 0x07E6CC17	NID_07E6CC17	data	-	-
@@ -8173,6 +9143,7 @@
 0x0D9FA7EA	NID_0D9FA7EA	Sensors	-	-
 0x0DCB8EA5	NID_0DCB8EA5	Paf	-	-
 0x0E17E4D6	NID_0E17E4D6	data	-	-
+0x0E46FA73	NID_0E46FA73	SystemServicesVsh	-	-	default
 0x0E7EAD89	NID_0E7EAD89	ShellUtil	-	-
 0x0E846E5C	NID_0E846E5C	Paf	-	-
 0x0E98ECFC	NID_0E98ECFC	FirmwareConstants	-	-
@@ -8180,6 +9151,8 @@
 0x0EF04E45	NID_0EF04E45	SqliteVsh	-	-
 0x0F17C2BA	NID_0F17C2BA	FirmwareConstants	-	-
 0x0F2BD671	NID_0F2BD671	data	-	-
+0x0F3F58E3	NID_0F3F58E3	SystemServicesVsh	-	-	default
+0x0F6359B1	NID_0F6359B1	SystemServicesVsh	-	-	default
 0x0FC9D21B	NID_0FC9D21B	data	-	-
 0x104D7544	NID_104D7544	EmailEngine	-	-
 0x1083A5FA	NID_1083A5FA	data	-	-
@@ -8189,6 +9162,8 @@
 0x111C68BE	NID_111C68BE	Paf	-	-
 0x11AD1CD1	NID_11AD1CD1	SqliteVsh	-	-
 0x11B2781A	NID_11B2781A	data	-	-
+0x11EBD107	NID_11EBD107	DebugPerf	-	-	default
+0x11FF1A1B	NID_11FF1A1B	SystemServicesVsh	-	-	default
 0x121374D2	NID_121374D2	EmailEngine	-	-
 0x12416EBE	NID_12416EBE	data	-	-
 0x124A751E	NID_124A751E	FirmwareConstants	-	-
@@ -8219,6 +9194,7 @@
 0x17D538BC	NID_17D538BC	EmailEngine	-	-
 0x182802C3	NID_182802C3	FirmwareConstants	-	-
 0x187E3B47	NID_187E3B47	data	-	-
+0x18D553EB	NID_18D553EB	SystemServicesVsh	-	-	default
 0x18D86F12	NID_18D86F12	SqliteVsh	-	-
 0x18E2BEDE	NID_18E2BEDE	FirmwareConstants	-	-
 0x192861D3	NID_192861D3	data	-	-
@@ -8227,6 +9203,8 @@
 0x1A6CF24B	NID_1A6CF24B	Dbutil	-	-
 0x1A984964	NID_1A984964	FirmwareConstants	-	-
 0x1AC7666C	NID_1AC7666C	Psp2Compat	-	-
+0x1ACDD25B	NID_1ACDD25B	SystemServicesVsh	-	-
+0x1AD7239E	NID_1AD7239E	DebugPerf	-	-	default
 0x1B186905	NID_1B186905	ShellUtil	-	-
 0x1B8E7108	NID_1B8E7108	data	-	-
 0x1BC277F5	NID_1BC277F5	data	-	-
@@ -8247,6 +9225,7 @@
 0x1E8C6100	NID_1E8C6100	data	-	-
 0x1EA375E6	NID_1EA375E6	data	-	-
 0x1F29019A	NID_1F29019A	EmailEngine	-	-
+0x1F9409D1	NID_1F9409D1	SystemServicesVsh	-	-	default
 0x1FAB9A1E	NID_1FAB9A1E	ShellUtil	-	-
 0x1FD46F4E	NID_1FD46F4E	Dbutil	-	-
 0x1FD93E3A	NID_1FD93E3A	data	-	-
@@ -8270,6 +9249,7 @@
 0x2221BD7C	NID_2221BD7C	NpCommonPs4	-	-
 0x2266A675	NID_2266A675	Paf	-	-
 0x227B4568	NID_227B4568	data	-	-
+0x22D74C37	NID_22D74C37	SystemServicesVsh	-	-	default
 0x22D7B1C0	NID_22D7B1C0	Paf	-	-
 0x23182D99	NID_23182D99	FirmwareConstants	-	-
 0x23191C2F	NID_23191C2F	FirmwareConstants	-	-
@@ -8278,13 +9258,16 @@
 0x24072F3E	NID_24072F3E	data	-	-
 0x240BA578	NID_240BA578	FirmwareConstants	-	-
 0x2434A5DD	NID_2434A5DD	data	-	-
+0x243D6A36	NID_243D6A36	CommonDialog	-	-
 0x244C742C	NID_244C742C	data	-	-
 0x2451AF0A	NID_2451AF0A	data	-	-
 0x246C1BD5	NID_246C1BD5	EmailEngine	-	-
 0x249F737D	NID_249F737D	FirmwareConstants	-	-
+0x24D94277	NID_24D94277	SystemServicesVsh	-	-	default
 0x24FA3DA2	NID_24FA3DA2	FirmwareConstants	-	-
 0x253DB37C	NID_253DB37C	FirmwareConstants	-	-
 0x257023B3	NID_257023B3	FirmwareConstants	-	-
+0x258C55B6	NID_258C55B6	SystemServicesVsh	-	-
 0x25E5CDFA	NID_25E5CDFA	FirmwareConstants	-	-
 0x25EC8CE5	NID_25EC8CE5	data	-	-
 0x264B0978	NID_264B0978	data	-	-
@@ -8297,6 +9280,7 @@
 0x2796C952	NID_2796C952	data	-	-
 0x2856DCD6	NID_2856DCD6	data	-	-
 0x28B06314	NID_28B06314	SqliteVsh	-	-
+0x28CF3F83	NID_28CF3F83	NpMatching2	-	-
 0x28EEA5A0	NID_28EEA5A0	FirmwareConstants	-	-
 0x29895EBB	NID_29895EBB	NpCommonPs4	-	-
 0x299ADFC3	NID_299ADFC3	NpCommonPs4	-	-
@@ -8307,6 +9291,7 @@
 0x2A607C9A	NID_2A607C9A	NpCommonPs4	-	-
 0x2AA39086	NID_2AA39086	SqliteVsh	-	-
 0x2B017F22	NID_2B017F22	data	-	-
+0x2B5434C9	NID_2B5434C9	SystemServicesVsh	-	-	default
 0x2B71045A	NID_2B71045A	data	-	-
 0x2B9FB1E5	NID_2B9FB1E5	FirmwareConstants	-	-
 0x2BEA295C	NID_2BEA295C	FirmwareConstants	-	-
@@ -8337,6 +9322,7 @@
 0x2FACB1EF	NID_2FACB1EF	data	-	-
 0x2FD19011	NID_2FD19011	FirmwareConstants	-	-
 0x2FD4CCFE	NID_2FD4CCFE	FirmwareConstants	-	-
+0x30135081	NID_30135081	SystemServicesVsh	-	-	default
 0x301DD0E4	NID_301DD0E4	FirmwareConstants	-	-
 0x305068B1	NID_305068B1	data	-	-
 0x3081D959	NID_3081D959	data	-	-
@@ -8371,6 +9357,7 @@
 0x35384D44	NID_35384D44	data	-	-
 0x3546C104	NID_3546C104	Paf	-	-
 0x35684F1D	NID_35684F1D	FirmwareConstants	-	-
+0x35D20E49	NID_35D20E49	ThreadMgr	-	-
 0x35E135A0	NID_35E135A0	data	-	-
 0x36275BEA	NID_36275BEA	FirmwareConstants	-	-
 0x3685EDC7	NID_3685EDC7	Psp2Compat	-	-
@@ -8397,6 +9384,7 @@
 0x3AAA7DF7	NID_3AAA7DF7	NpCommonPs4	-	-
 0x3B25B961	NID_3B25B961	FirmwareConstants	-	-
 0x3B57AFEF	NID_3B57AFEF	data	-	-
+0x3B79F57F	NID_3B79F57F	SystemServicesVsh	-	-	default
 0x3B89D1F3	NID_3B89D1F3	EmailEngine	-	-
 0x3BCCE98B	NID_3BCCE98B	Paf	-	-
 0x3C06E3D4	NID_3C06E3D4	Paf	-	-
@@ -8410,6 +9398,7 @@
 0x3CE6109D	NID_3CE6109D	data	-	-
 0x3CF19248	NID_3CF19248	Paf	-	-
 0x3D21E902	NID_3D21E902	Paf	-	-
+0x3D3F9AD6	NID_3D3F9AD6	CommonDialog	-	-
 0x3D73D77E	NID_3D73D77E	NpCommonPs4	-	-
 0x3D8A69EC	NID_3D8A69EC	data	-	-
 0x3DE060FC	NID_3DE060FC	FirmwareConstants	-	-
@@ -8418,17 +9407,21 @@
 0x3E5BEB88	NID_3E5BEB88	SqliteVsh	-	-
 0x3E7EF391	NID_3E7EF391	SqliteVsh	-	-
 0x3EB376F2	NID_3EB376F2	Paf	-	-
+0x3EBD4502	NID_3EBD4502	SystemServicesVsh	-	-	default
 0x3EE22853	NID_3EE22853	data	-	-
 0x3F03AC6F	NID_3F03AC6F	FirmwareConstants	-	-
+0x3F3E3A8E	NID_3F3E3A8E	SystemServicesVsh	-	-	default
 0x3F81DEAE	NID_3F81DEAE	FirmwareConstants	-	-
 0x3F8ACA70	NID_3F8ACA70	FirmwareConstants	-	-
 0x3FD78B17	NID_3FD78B17	data	-	-
 0x401BAD20	NID_401BAD20	FirmwareConstants	-	-
 0x401E1B1D	NID_401E1B1D	data	-	-
 0x402717E4	NID_402717E4	data	-	-
+0x40585786	NID_40585786	NpMatching2	-	-
 0x408295E9	NID_408295E9	Psp2Compat	-	-
 0x408CF7D1	NID_408CF7D1	FirmwareConstants	-	-
 0x40BC2E0E	NID_40BC2E0E	data	-	-
+0x40CD30CD	NID_40CD30CD	CommonDialog	-	-
 0x40DFAC6B	NID_40DFAC6B	ShellUtil	-	-
 0x4106109E	NID_4106109E	data	-	-
 0x4117508A	NID_4117508A	NpCommonPs4	-	-
@@ -8445,11 +9438,15 @@
 0x43ABEA68	NID_43ABEA68	FirmwareConstants	-	-
 0x43E6D761	NID_43E6D761	EmailEngine	-	-
 0x43EFFE97	NID_43EFFE97	EmailEngine	-	-
+0x4406594F	NID_4406594F	SystemServicesVsh	-	-
 0x441606E6	NID_441606E6	FirmwareConstants	-	-
 0x4429D098	NID_4429D098	EmailEngine	-	-
+0x44390C58	NID_44390C58	SystemServicesVsh	-	-	default
 0x4458BCF3	NID_4458BCF3	data	-	-
 0x44888F5E	NID_44888F5E	Psp2Compat	-	-
+0x452DA757	NID_452DA757	CommonDialog	-	-
 0x4574AB4A	NID_4574AB4A	SqliteVsh	-	-
+0x457F6683	NID_457F6683	SystemServicesVsh	-	-
 0x45B246B7	NID_45B246B7	FirmwareConstants	-	-
 0x45E8C34D	NID_45E8C34D	SqliteVsh	-	-
 0x45F97ED8	NID_45F97ED8	EmailEngine	-	-
@@ -8494,14 +9491,17 @@
 0x4B9F21DF	NID_4B9F21DF	data	-	-
 0x4BCEC20A	NID_4BCEC20A	Dbutil	-	-
 0x4BF9C80B	NID_4BF9C80B	FirmwareConstants	-	-
+0x4C014C4D	NID_4C014C4D	SystemServicesVsh	-	-	default
 0x4C2D1984	NID_4C2D1984	data	-	-
 0x4C46682A	NID_4C46682A	SqliteVsh	-	-
 0x4C50F26D	NID_4C50F26D	data	-	-
 0x4C6395BB	NID_4C6395BB	FirmwareConstants	-	-
 0x4C7C24FA	NID_4C7C24FA	FirmwareConstants	-	-
 0x4CEF2E57	NID_4CEF2E57	FirmwareConstants	-	-
+0x4CF1664B	NID_4CF1664B	DebugPerf	-	-	default
 0x4D15688B	NID_4D15688B	data	-	-
 0x4D7B2329	NID_4D7B2329	FirmwareConstants	-	-
+0x4DADE2FD	NID_4DADE2FD	SystemServicesVsh	-	-	default
 0x4E62EF1C	NID_4E62EF1C	EmailEngine	-	-
 0x4ED17152	NID_4ED17152	FirmwareConstants	-	-
 0x4EFBBFC6	NID_4EFBBFC6	FirmwareConstants	-	-
@@ -8509,6 +9509,7 @@
 0x4F4F2193	NID_4F4F2193	EmailEngine	-	-
 0x4F5A3726	NID_4F5A3726	Psp2Compat	-	-
 0x4F5C24A6	NID_4F5C24A6	data	-	-
+0x4F644C0F	NID_4F644C0F	DebugPerf	-	-	default
 0x4F726424	NID_4F726424	data	-	-
 0x4F80F6EE	NID_4F80F6EE	FirmwareConstants	-	-
 0x4FCC3411	NID_4FCC3411	FirmwareConstants	-	-
@@ -8526,7 +9527,9 @@
 0x5246E71E	NID_5246E71E	data	-	-
 0x525557F3	NID_525557F3	data	-	-
 0x5272681C	NID_5272681C	EmailEngine	-	-
+0x527EB697	NID_527EB697	SystemServicesVsh	-	-	default
 0x5281B074	NID_5281B074	Psp2Compat	-	-
+0x52985887	NID_52985887	SystemServicesVsh	-	-	default
 0x529FB877	NID_529FB877	Paf	-	-
 0x52A04C47	NID_52A04C47	data	-	-
 0x52ACB7FD	NID_52ACB7FD	data	-	-
@@ -8544,7 +9547,9 @@
 0x54E92110	NID_54E92110	Psp2Compat	-	-
 0x54F5F245	NID_54F5F245	Psp2Compat	-	-
 0x5524F04F	NID_5524F04F	Psp2Compat	-	-
+0x553C65CB	NID_553C65CB	SystemServicesVsh	-	-	default
 0x554B7625	NID_554B7625	data	-	-
+0x55682EDD	NID_55682EDD	SystemServicesVsh	-	-
 0x557AA841	NID_557AA841	FirmwareConstants	-	-
 0x56AEA165	NID_56AEA165	Psp2Compat	-	-
 0x56C70B77	NID_56C70B77	EmailEngine	-	-
@@ -8562,10 +9567,13 @@
 0x59C58A43	NID_59C58A43	EmailEngine	-	-
 0x59DCDE85	NID_59DCDE85	Dbutil	-	-
 0x5A2D6AF5	NID_5A2D6AF5	SqliteVsh	-	-
+0x5A62101E	NID_5A62101E	SystemServicesVsh	-	-	default
 0x5A95E808	NID_5A95E808	FirmwareConstants	-	-
+0x5ADD5F9B	NID_5ADD5F9B	SystemServicesVsh	-	-	default
 0x5B3DCA2C	NID_5B3DCA2C	Psp2Compat	-	-
 0x5B3E1BF2	NID_5B3E1BF2	Psp2Compat	-	-
 0x5B55E8F8	NID_5B55E8F8	Psp2Compat	-	-
+0x5B57B197	NID_5B57B197	SystemServicesVsh	-	-	default
 0x5B6231F9	NID_5B6231F9	Psp2Compat	-	-
 0x5B6A0ACE	NID_5B6A0ACE	FirmwareConstants	-	-
 0x5B904477	NID_5B904477	NpCommonPs4	-	-
@@ -8578,6 +9586,7 @@
 0x5C61F109	NID_5C61F109	data	-	-
 0x5C69903D	NID_5C69903D	data	-	-
 0x5C6D9EDD	NID_5C6D9EDD	data	-	-
+0x5C9C7045	NID_5C9C7045	SystemServicesVsh	-	-	default
 0x5CD273F5	NID_5CD273F5	Dbutil	-	-
 0x5CF817B0	NID_5CF817B0	data	-	-
 0x5D8C1282	NID_5D8C1282	data	-	-
@@ -8600,16 +9609,19 @@
 0x614BC98D	NID_614BC98D	Psp2Compat	-	-
 0x6163181E	NID_6163181E	Psp2Compat	-	-
 0x6195F016	NID_6195F016	data	-	-
+0x619FB198	NID_619FB198	NpManager	-	-
 0x61BFA3AB	NID_61BFA3AB	SqliteVsh	-	-
 0x61C67156	NID_61C67156	FirmwareConstants	-	-
 0x61DAB7E5	NID_61DAB7E5	NpCommonPs4	-	-
 0x6214B80C	NID_6214B80C	ProcessMgr	-	-
 0x621D8498	NID_621D8498	EmailEngine	-	-
+0x622F004B	NID_622F004B	NpManager	-	-
 0x624A1907	NID_624A1907	Psp2Compat	-	-
 0x6273AF23	NID_6273AF23	Net	-	-
 0x62941235	NID_62941235	data	-	-
 0x62A77FA7	NID_62A77FA7	NpCommonPs4	-	-
 0x62A7DDC7	NID_62A7DDC7	FirmwareConstants	-	-
+0x62B60B87	NID_62B60B87	CommonDialog	-	-
 0x62BB1463	NID_62BB1463	EmailEngine	-	-
 0x62E64447	NID_62E64447	FirmwareConstants	-	-
 0x62E8B59F	NID_62E8B59F	data	-	-
@@ -8627,8 +9639,10 @@
 0x64B2D1E4	NID_64B2D1E4	FirmwareConstants	-	-
 0x64D0F044	NID_64D0F044	EmailEngine	-	-
 0x64F462B0	NID_64F462B0	data	-	-
+0x650D111B	NID_650D111B	NpManager	-	-
 0x65131EF1	NID_65131EF1	FirmwareConstants	-	-
 0x651D020E	NID_651D020E	data	-	-
+0x653809E0	NID_653809E0	SystemServicesVsh	-	-	default
 0x65BACB67	NID_65BACB67	FirmwareConstants	-	-
 0x66236E89	NID_66236E89	FirmwareConstants	-	-
 0x66805192	NID_66805192	EmailEngine	-	-
@@ -8647,9 +9661,11 @@
 0x67FFAAFD	NID_67FFAAFD	FirmwareConstants	-	-
 0x6811A0CF	NID_6811A0CF	Paf	-	-
 0x6825FFE6	NID_6825FFE6	data	-	-
+0x68315912	NID_68315912	SystemServicesVsh	-	-	default
 0x684DBF22	NID_684DBF22	Psp2Compat	-	-
 0x685BA1E8	NID_685BA1E8	data	-	-
 0x6867D2AA	NID_6867D2AA	FirmwareConstants	-	-
+0x68A5C796	NID_68A5C796	SystemServicesVsh	-	-
 0x68B777E3	NID_68B777E3	data	-	-
 0x69544951	NID_69544951	FirmwareConstants	-	-
 0x69B5CF08	NID_69B5CF08	EmailEngine	-	-
@@ -8673,6 +9689,7 @@
 0x6CB2F5A4	NID_6CB2F5A4	data	-	-
 0x6D662F64	NID_6D662F64	EmailEngine	-	-
 0x6D85F826	NID_6D85F826	data	-	-
+0x6D915D7B	NID_6D915D7B	SystemServicesVsh	-	-
 0x6E26DE8B	NID_6E26DE8B	FirmwareConstants	-	-
 0x6E2F219E	NID_6E2F219E	FirmwareConstants	-	-
 0x6E4D412D	NID_6E4D412D	data	-	-
@@ -8687,6 +9704,7 @@
 0x6F730976	NID_6F730976	ShellUtil	-	-	default
 0x6F81469F	NID_6F81469F	data	-	-
 0x6F827209	NID_6F827209	FirmwareConstants	-	-
+0x6FD54616	NID_6FD54616	SystemServicesVsh	-	-	default
 0x6FD7F728	NID_6FD7F728	Paf	-	-
 0x6FF905F9	NID_6FF905F9	Dbutil	-	-
 0x70073BD1	NID_70073BD1	NpCommonPs4	-	-
@@ -8721,6 +9739,7 @@
 0x7373F517	NID_7373F517	data	-	-
 0x7376ACB6	NID_7376ACB6	data	-	-
 0x73874089	NID_73874089	data	-	-
+0x73BDFF32	NID_73BDFF32	NpManager	-	-
 0x73DDFB32	NID_73DDFB32	Psp2Compat	-	-
 0x73FF92B9	NID_73FF92B9	FirmwareConstants	-	-
 0x741238E3	NID_741238E3	SqliteVsh	-	-
@@ -8728,6 +9747,7 @@
 0x743D15AD	NID_743D15AD	FirmwareConstants	-	-
 0x745297FF	NID_745297FF	FirmwareConstants	-	-
 0x74813D4D	NID_74813D4D	data	-	-
+0x74907E1E	NID_74907E1E	SystemServicesVsh	-	-	default
 0x74C6733A	NID_74C6733A	FirmwareConstants	-	-
 0x74D6828B	NID_74D6828B	EmailEngine	-	-
 0x74F19FF2	NID_74F19FF2	data	-	-
@@ -8735,6 +9755,7 @@
 0x75307546	NID_75307546	EmailEngine	-	-
 0x756ACC35	NID_756ACC35	SqliteVsh	-	-
 0x758B452B	NID_758B452B	data	-	-
+0x75D04A51	NID_75D04A51	SystemServicesVsh	-	-	default
 0x75D16BD0	NID_75D16BD0	data	-	-
 0x75F6F874	NID_75F6F874	FirmwareConstants	-	-
 0x768F2944	NID_768F2944	data	-	-
@@ -8742,11 +9763,13 @@
 0x76C6BDCE	NID_76C6BDCE	data	-	-
 0x76D75AAD	NID_76D75AAD	FirmwareConstants	-	-
 0x76DACFF9	NID_76DACFF9	FirmwareConstants	-	-
+0x77693C89	NID_77693C89	SystemServicesVsh	-	-	default
 0x77828937	NID_77828937	FirmwareConstants	-	-
 0x78050A6E	NID_78050A6E	Psp2Compat	-	-
 0x783317C7	NID_783317C7	Psp2Compat	-	-
 0x7842B5FD	NID_7842B5FD	Psp2Compat	-	-
 0x7847DBC4	NID_7847DBC4	FirmwareConstants	-	-
+0x785095D9	NID_785095D9	NpCommerce2	-	-
 0x78804CEF	NID_78804CEF	FirmwareConstants	-	-
 0x78B80574	NID_78B80574	FirmwareConstants	-	-
 0x78E14E3A	NID_78E14E3A	FirmwareConstants	-	-
@@ -8851,6 +9874,7 @@
 0x8A132DF7	NID_8A132DF7	FirmwareConstants	-	-
 0x8A133578	NID_8A133578	FirmwareConstants	-	-
 0x8A13BDF2	NID_8A13BDF2	Paf	-	-
+0x8A803FB4	NID_8A803FB4	SystemServicesVsh	-	-	default
 0x8AA97D29	NID_8AA97D29	FirmwareConstants	-	-
 0x8AB8866F	NID_8AB8866F	FirmwareConstants	-	-
 0x8ACA04A4	NID_8ACA04A4	FirmwareConstants	-	-
@@ -8864,6 +9888,7 @@
 0x8C9CDB9C	NID_8C9CDB9C	data	-	-
 0x8CAAB23B	NID_8CAAB23B	ShellUtil	-	-
 0x8CBF4614	NID_8CBF4614	NpCommonPs4	-	-
+0x8CDC8D33	NID_8CDC8D33	SystemServicesVsh	-	-	default
 0x8D1AE4A7	NID_8D1AE4A7	data	-	-
 0x8D23E9F3	NID_8D23E9F3	SqliteVsh	-	-
 0x8D487027	NID_8D487027	data	-	-
@@ -8887,6 +9912,7 @@
 0x905DD120	NID_905DD120	FirmwareConstants	-	-
 0x90B0194C	NID_90B0194C	data	-	-
 0x90E815D2	NID_90E815D2	FirmwareConstants	-	-
+0x910566BD	NID_910566BD	SystemServicesVsh	-	-	default
 0x91136DA1	NID_91136DA1	FirmwareConstants	-	-
 0x917FFD0B	NID_917FFD0B	data	-	-
 0x918FE198	NID_918FE198	data	-	-
@@ -8928,6 +9954,7 @@
 0x976C0D13	NID_976C0D13	FirmwareConstants	-	-
 0x97971596	NID_97971596	SqliteVsh	-	-
 0x97B7F328	NID_97B7F328	SqliteVsh	-	-
+0x9800F871	NID_9800F871	CommonDialog	-	-
 0x982D9703	NID_982D9703	data	-	-
 0x98649AF3	NID_98649AF3	FirmwareConstants	-	-
 0x987DE0C9	NID_987DE0C9	Dbutil	-	-
@@ -8938,6 +9965,7 @@
 0x998F8F48	NID_998F8F48	FirmwareConstants	-	-
 0x999300E0	NID_999300E0	data	-	-
 0x99998D1F	NID_99998D1F	SqliteVsh	-	-
+0x99B5FB62	NID_99B5FB62	Camera	-	-
 0x9A44F009	NID_9A44F009	Psp2Compat	-	-
 0x9A5052AB	NID_9A5052AB	EmailEngine	-	-
 0x9A72EBFE	NID_9A72EBFE	data	-	-
@@ -8964,6 +9992,8 @@
 0x9CAF5E5A	NID_9CAF5E5A	data	-	-
 0x9D0DBB1A	NID_9D0DBB1A	data	-	-
 0x9D1CBC1D	NID_9D1CBC1D	data	-	-
+0x9D3FC23C	NID_9D3FC23C	DebugPerf	-	-	default
+0x9D6D8058	NID_9D6D8058	AppMgr	-	-	default
 0x9D865FA3	NID_9D865FA3	Psp2Compat	-	-
 0x9DB5A146	NID_9DB5A146	Psp2Compat	-	-
 0x9E03B649	NID_9E03B649	SqliteVsh	-	-
@@ -8972,6 +10002,7 @@
 0x9E3DB33A	NID_9E3DB33A	FirmwareConstants	-	-
 0x9E4B7B93	NID_9E4B7B93	FirmwareConstants	-	-
 0x9E528DF5	NID_9E528DF5	FirmwareConstants	-	-
+0x9EA124CA	NID_9EA124CA	SystemServicesVsh	-	-	default
 0x9EA70062	NID_9EA70062	SqliteVsh	-	-
 0x9EF87FDA	NID_9EF87FDA	SqliteVsh	-	-
 0x9F17589B	NID_9F17589B	data	-	-
@@ -8983,6 +10014,7 @@
 0x9FE5F94A	NID_9FE5F94A	FirmwareConstants	-	-
 0xA0027D75	NID_A0027D75	SqliteVsh	-	-
 0xA029C8D0	NID_A029C8D0	FirmwareConstants	-	-
+0xA04C77A1	NID_A04C77A1	NpManager	-	-
 0xA0C8CCE9	NID_A0C8CCE9	data	-	-
 0xA0CA95FC	NID_A0CA95FC	data	-	-
 0xA0DA0E0E	NID_A0DA0E0E	Dbutil	-	-
@@ -8997,16 +10029,19 @@
 0xA21B1185	NID_A21B1185	data	-	-
 0xA25DA29A	NID_A25DA29A	NpCommonPs4	-	-
 0xA263F3D5	NID_A263F3D5	data	-	-
+0xA271BBED	NID_A271BBED	SystemServicesVsh	-	-	default
 0xA27EFBA3	NID_A27EFBA3	data	-	-
 0xA2B14B98	NID_A2B14B98	FirmwareConstants	-	-
 0xA2D8700D	NID_A2D8700D	Psp2Compat	-	-
 0xA377D285	NID_A377D285	EmailEngine	-	-
 0xA37CE123	NID_A37CE123	NpCommonPs4	-	-
 0xA39F7F61	NID_A39F7F61	FirmwareConstants	-	-
+0xA3E0694F	NID_A3E0694F	AppUtil	-	-
 0xA4018B84	NID_A4018B84	data	-	-
 0xA404DED6	NID_A404DED6	Psp2Compat	-	-
 0xA43ABF14	NID_A43ABF14	data	-	-
 0xA486D855	NID_A486D855	NpCommonPs4	-	-
+0xA4B68884	NID_A4B68884	SystemServicesVsh	-	-	default
 0xA4B6F40D	NID_A4B6F40D	FirmwareConstants	-	-
 0xA4CF892E	NID_A4CF892E	FirmwareConstants	-	-
 0xA4E53390	NID_A4E53390	Paf	-	-
@@ -9017,6 +10052,7 @@
 0xA58E84A3	NID_A58E84A3	data	-	-
 0xA5EFDC17	NID_A5EFDC17	FirmwareConstants	-	-
 0xA5FFD987	NID_A5FFD987	FirmwareConstants	-	-
+0xA626EBBC	NID_A626EBBC	SystemServicesVsh	-	-	default
 0xA65319F4	NID_A65319F4	FirmwareConstants	-	-
 0xA65DACDF	NID_A65DACDF	data	-	-
 0xA696AC3E	NID_A696AC3E	data	-	-
@@ -9045,6 +10081,7 @@
 0xAA09FD32	NID_AA09FD32	data	-	-
 0xAA2A76AF	NID_AA2A76AF	FirmwareConstants	-	-
 0xAA57484D	NID_AA57484D	data	-	-
+0xAA624C1F	NID_AA624C1F	CommonDialog	-	-
 0xAA7C9DA8	NID_AA7C9DA8	FirmwareConstants	-	-
 0xAA980113	NID_AA980113	NpCommonPs4	-	-
 0xAAB36B4D	NID_AAB36B4D	SqliteVsh	-	-
@@ -9054,12 +10091,15 @@
 0xAB702BAD	NID_AB702BAD	FirmwareConstants	-	-
 0xAB8D33C2	NID_AB8D33C2	FirmwareConstants	-	-
 0xAC116166	NID_AC116166	data	-	-
+0xAC20DAF9	NID_AC20DAF9	CommonDialog	-	-
 0xAC2657ED	NID_AC2657ED	FirmwareConstants	-	-
+0xACD50568	NID_ACD50568	SystemServicesVsh	-	-	default
 0xACEFA121	NID_ACEFA121	Sensors	-	-
 0xAD3999B5	NID_AD3999B5	FirmwareConstants	-	-
 0xAD80877A	NID_AD80877A	FirmwareConstants	-	-
 0xAD912141	NID_AD912141	data	-	-
 0xADB1FDA4	NID_ADB1FDA4	Psp2Compat	-	-
+0xAE0FBC3F	NID_AE0FBC3F	SystemServicesVsh	-	-	default
 0xAE157872	NID_AE157872	FirmwareConstants	-	-
 0xAEBC68E5	NID_AEBC68E5	Paf	-	-
 0xAEE8496E	NID_AEE8496E	Paf	-	-
@@ -9075,6 +10115,7 @@
 0xB05104FC	NID_B05104FC	FirmwareConstants	-	-
 0xB07DF922	NID_B07DF922	data	-	-
 0xB08951EC	NID_B08951EC	FirmwareConstants	-	-
+0xB096B7A9	NID_B096B7A9	NpMatching2	-	-
 0xB0BF2396	NID_B0BF2396	Dbutil	-	-
 0xB17A54D9	NID_B17A54D9	Psp2Compat	-	-
 0xB1CD7AC2	NID_B1CD7AC2	ProcessMgr	-	-
@@ -9084,6 +10125,7 @@
 0xB235147F	NID_B235147F	FirmwareConstants	-	-
 0xB2EBD24A	NID_B2EBD24A	EmailEngine	-	-
 0xB2F60098	NID_B2F60098	EmailEngine	-	-
+0xB2FE3BB1	NID_B2FE3BB1	AppUtil	-	-
 0xB30AB3B5	NID_B30AB3B5	data	-	-
 0xB315CE7A	NID_B315CE7A	data	-	-
 0xB31C3F2C	NID_B31C3F2C	Psp2Compat	-	-
@@ -9117,6 +10159,7 @@
 0xB67A0C68	NID_B67A0C68	ShellUtil	-	-	default
 0xB6DF3309	NID_B6DF3309	FirmwareConstants	-	-
 0xB7D95FD6	NID_B7D95FD6	FirmwareConstants	-	-
+0xB7FB96EC	NID_B7FB96EC	SystemServicesVsh	-	-	default
 0xB80BFF06	NID_B80BFF06	data	-	-
 0xB85224E9	NID_B85224E9	NpCommonPs4	-	-
 0xB9222859	NID_B9222859	FirmwareConstants	-	-
@@ -9142,6 +10185,7 @@
 0xBC5C86C5	NID_BC5C86C5	Sensors	-	-
 0xBC736EE9	NID_BC736EE9	FirmwareConstants	-	-
 0xBC97F7D6	NID_BC97F7D6	data	-	-
+0xBCC6E991	NID_BCC6E991	SystemServicesVsh	-	-	default
 0xBD00A9F1	NID_BD00A9F1	EmailEngine	-	-
 0xBD4161B0	NID_BD4161B0	ShellUtil	-	-
 0xBD784977	NID_BD784977	FirmwareConstants	-	-
@@ -9156,6 +10200,7 @@
 0xBF050563	NID_BF050563	FirmwareConstants	-	-
 0xBF31B508	NID_BF31B508	FirmwareConstants	-	-
 0xBF6BD784	NID_BF6BD784	FirmwareConstants	-	-
+0xBFBA3A79	NID_BFBA3A79	SystemServicesVsh	-	-	default
 0xC089FED3	NID_C089FED3	data	-	-
 0xC0A37F8F	NID_C0A37F8F	data	-	-
 0xC0AE8035	NID_C0AE8035	FirmwareConstants	-	-
@@ -9178,6 +10223,7 @@
 0xC398E016	NID_C398E016	Paf	-	-
 0xC3CD5E06	NID_C3CD5E06	data	-	-
 0xC3D53C98	NID_C3D53C98	Paf	-	-
+0xC3E201D5	NID_C3E201D5	SystemServicesVsh	-	-	default
 0xC3F0A31F	NID_C3F0A31F	EmailEngine	-	-
 0xC3FA8530	NID_C3FA8530	data	-	-
 0xC4096952	NID_C4096952	data	-	-
@@ -9186,6 +10232,8 @@
 0xC543F323	NID_C543F323	FirmwareConstants	-	-
 0xC5504119	NID_C5504119	FirmwareConstants	-	-
 0xC5AC688C	NID_C5AC688C	data	-	-
+0xC62CA5A7	NID_C62CA5A7	SystemServicesVsh	-	-	default
+0xC6901BC8	NID_C6901BC8	SystemServicesVsh	-	-	default
 0xC6A17ECD	NID_C6A17ECD	NpCommonPs4	-	-
 0xC6BD1713	NID_C6BD1713	NpCommonPs4	-	-
 0xC6DA3459	NID_C6DA3459	FirmwareConstants	-	-
@@ -9198,6 +10246,7 @@
 0xC82D4AE5	NID_C82D4AE5	SqliteVsh	-	-
 0xC835A169	NID_C835A169	FirmwareConstants	-	-
 0xC8721E86	NID_C8721E86	data	-	-
+0xC889F85B	NID_C889F85B	SystemServicesVsh	-	-	default
 0xC88EF069	NID_C88EF069	Psp2Compat	-	-
 0xC8C679BB	NID_C8C679BB	FirmwareConstants	-	-
 0xC8CB72B0	NID_C8CB72B0	FirmwareConstants	-	-
@@ -9208,6 +10257,7 @@
 0xC98F6B4A	NID_C98F6B4A	EmailEngine	-	-
 0xC9A5E0B8	NID_C9A5E0B8	FirmwareConstants	-	-
 0xC9B9F8C7	NID_C9B9F8C7	FirmwareConstants	-	-
+0xCA0A798B	NID_CA0A798B	Sensors	-	-
 0xCA0C5B79	NID_CA0C5B79	FirmwareConstants	-	-
 0xCA19AEA0	NID_CA19AEA0	data	-	-
 0xCA22B00A	NID_CA22B00A	FirmwareConstants	-	-
@@ -9222,11 +10272,16 @@
 0xCB4B2DDC	NID_CB4B2DDC	EmailEngine	-	-
 0xCB5063F1	NID_CB5063F1	data	-	-
 0xCB7A933A	NID_CB7A933A	SqliteVsh	-	-
+0xCB99E399	NID_CB99E399	SystemServicesVsh	-	-	default
 0xCBA54017	NID_CBA54017	FirmwareConstants	-	-
 0xCC03F184	NID_CC03F184	data	-	-
 0xCC081D58	NID_CC081D58	data	-	-
+0xCC2BA3B5	NID_CC2BA3B5	SystemServicesVsh	-	-	default
+0xCC8E6AC6	NID_CC8E6AC6	NpManager	-	-
 0xCCF9B562	NID_CCF9B562	FirmwareConstants	-	-
 0xCD0A98ED	NID_CD0A98ED	data	-	-
+0xCD0E5C59	NID_CD0E5C59	AppUtil	-	-
+0xCD12E1AC	NID_CD12E1AC	SystemServicesVsh	-	-	default
 0xCD1805C0	NID_CD1805C0	SqliteVsh	-	-
 0xCD2802B5	NID_CD2802B5	data	-	-
 0xCD43FEDC	NID_CD43FEDC	FirmwareConstants	-	-
@@ -9242,10 +10297,12 @@
 0xCE85DEFB	NID_CE85DEFB	FirmwareConstants	-	-
 0xCEBDCDB3	NID_CEBDCDB3	Paf	-	-
 0xCED4C61B	NID_CED4C61B	Psp2Compat	-	-
+0xCF0D2A06	NID_CF0D2A06	SystemServicesVsh	-	-	default
 0xCF3B8D09	NID_CF3B8D09	FirmwareConstants	-	-
 0xCF3FCF07	NID_CF3FCF07	Psp2Compat	-	-
 0xCF6DA2BF	NID_CF6DA2BF	Psp2Compat	-	-
 0xCFA1EB7A	NID_CFA1EB7A	Paf	-	-
+0xCFB18A73	NID_CFB18A73	SystemServicesVsh	-	-
 0xCFB4B23B	NID_CFB4B23B	Dbutil	-	-
 0xCFDBDC8B	NID_CFDBDC8B	FirmwareConstants	-	-
 0xCFE5ACC9	NID_CFE5ACC9	FirmwareConstants	-	-
@@ -9263,6 +10320,7 @@
 0xD206CA6D	NID_D206CA6D	FirmwareConstants	-	-
 0xD2108D91	NID_D2108D91	Psp2Compat	-	-
 0xD234CF18	NID_D234CF18	data	-	-
+0xD23686B0	NID_D23686B0	Sensors	-	-
 0xD24E80F2	NID_D24E80F2	FirmwareConstants	-	-
 0xD255293A	NID_D255293A	data	-	-
 0xD29BD59F	NID_D29BD59F	FirmwareConstants	-	-
@@ -9276,6 +10334,7 @@
 0xD4411D62	NID_D4411D62	EmailEngine	-	-
 0xD4417B11	NID_D4417B11	FirmwareConstants	-	-
 0xD4476660	NID_D4476660	EmailEngine	-	-
+0xD45C74BE	NID_D45C74BE	DebugPerf	-	-	default
 0xD4744378	NID_D4744378	data	-	-
 0xD48BBE90	NID_D48BBE90	Dbutil	-	-
 0xD4A8FF9E	NID_D4A8FF9E	Psp2Compat	-	-
@@ -9294,6 +10353,8 @@
 0xD657B5A0	NID_D657B5A0	data	-	-
 0xD662E07C	NID_D662E07C	data	-	-
 0xD666D46D	NID_D666D46D	SqliteVsh	-	-
+0xD66D5192	NID_D66D5192	Sensors	-	-
+0xD6EE7B53	NID_D6EE7B53	SystemServicesVsh	-	-	default
 0xD6F2AC68	NID_D6F2AC68	FirmwareConstants	-	-
 0xD6FEE706	NID_D6FEE706	FirmwareConstants	-	-
 0xD71D8245	NID_D71D8245	ShellUtil	-	-
@@ -9327,8 +10388,10 @@
 0xDB8FA6E8	NID_DB8FA6E8	SqliteVsh	-	-
 0xDBC3E8D9	NID_DBC3E8D9	FirmwareConstants	-	-
 0xDBC6D867	NID_DBC6D867	FirmwareConstants	-	-
+0xDBF7A9E2	NID_DBF7A9E2	SystemServicesVsh	-	-	default
 0xDBF8E0D1	NID_DBF8E0D1	data	-	-
 0xDC18EF42	NID_DC18EF42	data	-	-
+0xDC277B4D	NID_DC277B4D	ThreadMgr	-	-
 0xDC2C85B0	NID_DC2C85B0	data	-	-
 0xDC3037F3	NID_DC3037F3	FirmwareConstants	-	-
 0xDC36F2C5	NID_DC36F2C5	SqliteVsh	-	-
@@ -9343,6 +10406,7 @@
 0xDE6A4555	NID_DE6A4555	data	-	-
 0xDE793774	NID_DE793774	SqliteVsh	-	-
 0xDEAEDDB3	NID_DEAEDDB3	NpCommonPs4	-	-
+0xDEB51A38	NID_DEB51A38	AppUtil	-	-
 0xDEC19B7A	NID_DEC19B7A	FirmwareConstants	-	-
 0xDEC45734	NID_DEC45734	FirmwareConstants	-	-
 0xDED66A48	NID_DED66A48	SqliteVsh	-	-
@@ -9365,6 +10429,7 @@
 0xE1DC4A2F	NID_E1DC4A2F	EmailEngine	-	-
 0xE1EE8D06	NID_E1EE8D06	FirmwareConstants	-	-
 0xE1F6AE0F	NID_E1F6AE0F	NpCommonPs4	-	-
+0xE20887CB	NID_E20887CB	SystemServicesVsh	-	-	default
 0xE21639B7	NID_E21639B7	FirmwareConstants	-	-
 0xE242CC59	NID_E242CC59	data	-	-
 0xE258CDE3	NID_E258CDE3	FirmwareConstants	-	-
@@ -9402,21 +10467,27 @@
 0xE8098F5A	NID_E8098F5A	SqliteVsh	-	-
 0xE82698EA	NID_E82698EA	FirmwareConstants	-	-
 0xE86136A0	NID_E86136A0	Psp2Compat	-	-
+0xE8617A7F	NID_E8617A7F	SystemServicesVsh	-	-	default
+0xE8A352C2	NID_E8A352C2	SystemServicesVsh	-	-
 0xE8A9F32E	NID_E8A9F32E	data	-	-
 0xE8BCD74C	NID_E8BCD74C	FirmwareConstants	-	-
 0xE8D92F5E	NID_E8D92F5E	FirmwareConstants	-	-
 0xE904B4E0	NID_E904B4E0	Paf	-	-
 0xE91AEAD4	NID_E91AEAD4	ShellUtil	-	-
+0xE9367823	NID_E9367823	SystemServicesVsh	-	-	default
+0xE9460764	NID_E9460764	SystemServicesVsh	-	-	default
 0xE9532FEB	NID_E9532FEB	data	-	-
 0xE9593EDF	NID_E9593EDF	FirmwareConstants	-	-
 0xE961736D	NID_E961736D	FirmwareConstants	-	-
 0xE9BE7976	NID_E9BE7976	Psp2Compat	-	-
 0xE9C7617A	NID_E9C7617A	Paf	-	-
 0xEA35A125	NID_EA35A125	SqliteVsh	-	-
+0xEA3A897A	NID_EA3A897A	SystemServicesVsh	-	-	default
 0xEA3FB57B	NID_EA3FB57B	data	-	-
 0xEA651C7A	NID_EA651C7A	Psp2Compat	-	-
 0xEA97EFEB	NID_EA97EFEB	FirmwareConstants	-	-
 0xEAC164EC	NID_EAC164EC	data	-	-
+0xEAD075E3	NID_EAD075E3	SystemServicesVsh	-	-	default
 0xEB50ABA7	NID_EB50ABA7	data	-	-
 0xEB65E393	NID_EB65E393	SqliteVsh	-	-
 0xEB6E37A8	NID_EB6E37A8	NpCommonPs4	-	-
@@ -9429,6 +10500,7 @@
 0xEC6175D6	NID_EC6175D6	Paf	-	-
 0xEC7F8BEE	NID_EC7F8BEE	FirmwareConstants	-	-
 0xECA6E27A	NID_ECA6E27A	FirmwareConstants	-	-
+0xECB4B61C	NID_ECB4B61C	SystemServicesVsh	-	-	default
 0xECCBBB02	NID_ECCBBB02	EmailEngine	-	-
 0xECDB6B05	NID_ECDB6B05	data	-	-
 0xED10F261	NID_ED10F261	SqliteVsh	-	-
@@ -9444,6 +10516,7 @@
 0xEE862280	NID_EE862280	data	-	-
 0xEEA6F5DD	NID_EEA6F5DD	FirmwareConstants	-	-
 0xEEDA84E1	NID_EEDA84E1	FirmwareConstants	-	-
+0xEEE9D87E	NID_EEE9D87E	SystemServicesVsh	-	-	default
 0xEF3976BF	NID_EF3976BF	data	-	-
 0xEF53FE1F	NID_EF53FE1F	data	-	-
 0xEF60709C	NID_EF60709C	NpCommonPs4	-	-
@@ -9469,12 +10542,15 @@
 0xF4062B77	NID_F4062B77	data	-	-
 0xF4085A57	NID_F4085A57	data	-	-
 0xF4528464	NID_F4528464	SqliteVsh	-	-
+0xF46B72E6	NID_F46B72E6	SystemServicesVsh	-	-	default
 0xF4735A47	NID_F4735A47	FirmwareConstants	-	-
 0xF4977EF2	NID_F4977EF2	FirmwareConstants	-	-
 0xF4A5A537	NID_F4A5A537	data	-	-
 0xF4B098DD	NID_F4B098DD	data	-	-
 0xF4B43968	NID_F4B43968	Psp2Compat	-	-
 0xF4BCCEFA	NID_F4BCCEFA	data	-	-
+0xF4E9D62E	NID_F4E9D62E	Sensors	-	-
+0xF4FD13ED	NID_F4FD13ED	SystemServicesVsh	-	-	default
 0xF56B0EAB	NID_F56B0EAB	NpCommonPs4	-	-
 0xF5840D6E	NID_F5840D6E	NpCommonPs4	-	-
 0xF5842A6B	NID_F5842A6B	Paf	-	-
@@ -9485,6 +10561,7 @@
 0xF6AF041A	NID_F6AF041A	FirmwareConstants	-	-
 0xF6DF5725	NID_F6DF5725	FirmwareConstants	-	-
 0xF71A1118	NID_F71A1118	FirmwareConstants	-	-
+0xF7303D28	NID_F7303D28	SystemServicesVsh	-	-	default
 0xF75C684D	NID_F75C684D	ShellUtil	-	-
 0xF797AC06	NID_F797AC06	FirmwareConstants	-	-
 0xF79AE8E1	NID_F79AE8E1	data	-	-
@@ -9497,8 +10574,10 @@
 0xF86F5756	NID_F86F5756	data	-	-
 0xF88BA3DC	NID_F88BA3DC	FirmwareConstants	-	-
 0xF89545AE	NID_F89545AE	FirmwareConstants	-	-
+0xF93C691C	NID_F93C691C	AppUtil	-	-
 0xF9426257	NID_F9426257	data	-	-
 0xF9495204	NID_F9495204	FirmwareConstants	-	-
+0xF955CEA4	NID_F955CEA4	SystemServicesVsh	-	-	default
 0xF979148A	NID_F979148A	ShellUtil	-	-
 0xF98AAA03	NID_F98AAA03	data	-	-
 0xF9F1F23D	NID_F9F1F23D	Dbutil	-	-
@@ -9515,12 +10594,15 @@
 0xFB84796C	NID_FB84796C	data	-	-
 0xFB8956D8	NID_FB8956D8	data	-	-
 0xFBD3FF64	NID_FBD3FF64	FirmwareConstants	-	-
+0xFBE52F6D	NID_FBE52F6D	CommonDialog	-	-
+0xFBF16BC5	NID_FBF16BC5	SystemServicesVsh	-	-	default
 0xFBFA2FF7	NID_FBFA2FF7	FirmwareConstants	-	-
 0xFC00EC48	NID_FC00EC48	data	-	-
 0xFC19AC06	NID_FC19AC06	data	-	-
 0xFC1A325C	NID_FC1A325C	FirmwareConstants	-	-
 0xFCB96733	NID_FCB96733	data	-	-
 0xFCC1E7BC	NID_FCC1E7BC	FirmwareConstants	-	-
+0xFCD876FB	NID_FCD876FB	SystemServicesVsh	-	-
 0xFCE2E385	NID_FCE2E385	FirmwareConstants	-	-
 0xFCE46A43	NID_FCE46A43	data	-	-
 0xFD31AE18	NID_FD31AE18	Psp2Compat	-	-
@@ -9532,6 +10614,7 @@
 0xFE4D6E4D	NID_FE4D6E4D	SqliteVsh	-	-
 0xFE7FE5A0	NID_FE7FE5A0	Paf	-	-
 0xFEAD4BDA	NID_FEAD4BDA	data	-	-
+0xFEBF87EB	NID_FEBF87EB	CommonDialog	-	-
 0xFEC85F75	NID_FEC85F75	FirmwareConstants	-	-
 0xFED50873	NID_FED50873	FirmwareConstants	-	-
 0xFED614F9	NID_FED614F9	FirmwareConstants	-	-
@@ -9543,9 +10626,62 @@
 0xFF934F37	NID_FF934F37	FirmwareConstants	-	-
 0xFF97623F	NID_FF97623F	FirmwareConstants	-	-
 0xFFD97FCD	NID_FFD97FCD	Paf	-	-
+0xC6DB0740	SceCommonDialog_C6DB0740	UserTwins	-	-
 0x4915DEE7	SceCompatForVsh_4915DEE7	Compat	-	-
 0x70997F92	SceCompatForVsh_70997F92	Compat	-	-	default
 0x9C107CC9	SceCompatForVsh_9C107CC9	Compat	-	-
+0x58DDAC4F	SceLibKernel_58DDAC4F	UserTwins	-	-
+0x6F9C4CC1	SceLibKernel_6F9C4CC1	UserTwins	-	-
+0x16268321	SceNetCtl_16268321	UserTwins	-	-
+0x766E2AE1	SceNetCtl_766E2AE1	UserTwins	-	-
+0xA7F4F4AB	SceNetCtl_A7F4F4AB	UserTwins	-	-
+0xB0122008	SceNetCtl_B0122008	UserTwins	-	-
+0xBBAD980D	SceNetCtl_BBAD980D	UserTwins	-	-
+0xC81AD91B	SceNetCtl_C81AD91B	UserTwins	-	-
+0xE03981D6	SceNetCtl_E03981D6	UserTwins	-	-
+0x08E8D89D	SceNpCommerce2_08E8D89D	UserTwins	-	-
+0x0FA01B8E	SceNpCommerce2_0FA01B8E	UserTwins	-	-
+0x188B27D3	SceNpCommerce2_188B27D3	UserTwins	-	-
+0x2B7C71D0	SceNpCommerce2_2B7C71D0	UserTwins	-	-
+0x2BCB23B2	SceNpCommerce2_2BCB23B2	UserTwins	-	-
+0x2C3EF0F5	SceNpCommerce2_2C3EF0F5	UserTwins	-	-
+0x3449647C	SceNpCommerce2_3449647C	UserTwins	-	-
+0x37610D66	SceNpCommerce2_37610D66	UserTwins	-	-
+0x398B0940	SceNpCommerce2_398B0940	UserTwins	-	-
+0x3D49ABFA	SceNpCommerce2_3D49ABFA	UserTwins	-	-
+0x4121F2A1	SceNpCommerce2_4121F2A1	UserTwins	-	-
+0x4B49C464	SceNpCommerce2_4B49C464	UserTwins	-	-
+0x50E50CFB	SceNpCommerce2_50E50CFB	UserTwins	-	-
+0x5541AF3C	SceNpCommerce2_5541AF3C	UserTwins	-	-
+0x592C3D4A	SceNpCommerce2_592C3D4A	UserTwins	-	-
+0x5F4626FA	SceNpCommerce2_5F4626FA	UserTwins	-	-
+0x61634358	SceNpCommerce2_61634358	UserTwins	-	-
+0x7575795A	SceNpCommerce2_7575795A	UserTwins	-	-
+0x791774B7	SceNpCommerce2_791774B7	UserTwins	-	-
+0x7C13533C	SceNpCommerce2_7C13533C	UserTwins	-	-
+0x85C461FE	SceNpCommerce2_85C461FE	UserTwins	-	-
+0x869EA46B	SceNpCommerce2_869EA46B	UserTwins	-	-
+0x87D67D0B	SceNpCommerce2_87D67D0B	UserTwins	-	-
+0x8A804C00	SceNpCommerce2_8A804C00	UserTwins	-	-
+0x8B8465E2	SceNpCommerce2_8B8465E2	UserTwins	-	-
+0x8D4FDF78	SceNpCommerce2_8D4FDF78	UserTwins	-	-
+0x935C25D1	SceNpCommerce2_935C25D1	UserTwins	-	-
+0x94C1EA04	SceNpCommerce2_94C1EA04	UserTwins	-	-
+0x9CF6BDA3	SceNpCommerce2_9CF6BDA3	UserTwins	-	-
+0x9FEE1E0E	SceNpCommerce2_9FEE1E0E	UserTwins	-	-
+0xA18757A4	SceNpCommerce2_A18757A4	UserTwins	-	-
+0xA3A80BFA	SceNpCommerce2_A3A80BFA	UserTwins	-	-
+0xA62BBCE3	SceNpCommerce2_A62BBCE3	UserTwins	-	-
+0xB523FE1A	SceNpCommerce2_B523FE1A	UserTwins	-	-
+0xB8F96BD2	SceNpCommerce2_B8F96BD2	UserTwins	-	-
+0xCCF71DBE	SceNpCommerce2_CCF71DBE	UserTwins	-	-
+0xD494B4CE	SceNpCommerce2_D494B4CE	UserTwins	-	-
+0xD7ED457F	SceNpCommerce2_D7ED457F	UserTwins	-	-
+0xE53BD365	SceNpCommerce2_E53BD365	UserTwins	-	-
+0xEC0BD12F	SceNpCommerce2_EC0BD12F	UserTwins	-	-
+0xF0E90E02	SceNpCommerce2_F0E90E02	UserTwins	-	-
+0xFC459CE8	SceNpCommerce2_FC459CE8	UserTwins	-	-
+0xFC8B048C	SceNpCommerce2_FC8B048C	UserTwins	-	-
 0x9A5E7B2F	sceCodecEngineUser_9A5E7B2F	CodecEngine	-	-
 0x9AD7E66F	sceCodecEngineUser_9AD7E66F	CodecEngine	-	-
 0x33626E2C	sceCommonDialog_33626E2C	CommonDialog	-	-
@@ -9820,6 +10956,7 @@
 0x235DE96C	sceNetInternal_235DE96C	Net	-	-
 0x7493FB0C	sceNetInternal_7493FB0C	Net	-	-
 0xDE8DD55E	sceNetInternal_DE8DD55E	Net	-	-
+0x1CAAF066	sceNpBasic_1CAAF066	NpSocial	-	-
 0x6F1B58F9	sceNpBasic_6F1B58F9	NpSocial	-	-
 0xB414E768	sceNpBasic_B414E768	NpSocial	-	-
 0x006200AD	sceNpCommerce2_006200AD	NpCommerce2	-	-
@@ -9828,6 +10965,7 @@
 0x027A054E	sceNpCommerce2_027A054E	NpCommerce2	-	-
 0x0390787C	sceNpCommerce2_0390787C	NpCommerce2	-	-
 0x03A27E16	sceNpCommerce2_03A27E16	NpCommerce2	-	-
+0x03B6777B	sceNpCommerce2_03B6777B	NpCommerce2	-	-
 0x05002E87	sceNpCommerce2_05002E87	NpCommerce2	-	-
 0x0507F960	sceNpCommerce2_0507F960	NpCommerce2	-	-
 0x05D6DBDB	sceNpCommerce2_05D6DBDB	NpCommerce2	-	-
@@ -9942,6 +11080,7 @@
 0x499732CA	sceNpCommerce2_499732CA	NpCommerce2	-	-
 0x4A315A31	sceNpCommerce2_4A315A31	NpCommerce2	-	-
 0x4A36892A	sceNpCommerce2_4A36892A	NpCommerce2	-	-
+0x4A6B0527	sceNpCommerce2_4A6B0527	NpCommerce2	-	-
 0x4ABA502B	sceNpCommerce2_4ABA502B	NpCommerce2	-	-
 0x4ABFA125	sceNpCommerce2_4ABFA125	NpCommerce2	-	-
 0x4BA3CA8C	sceNpCommerce2_4BA3CA8C	NpCommerce2	-	-
@@ -9975,6 +11114,7 @@
 0x57C93D02	sceNpCommerce2_57C93D02	NpCommerce2	-	-
 0x580C74F2	sceNpCommerce2_580C74F2	NpCommerce2	-	-
 0x58587046	sceNpCommerce2_58587046	NpCommerce2	-	-
+0x58BFD97B	sceNpCommerce2_58BFD97B	NpCommerce2	-	-
 0x5953F48D	sceNpCommerce2_5953F48D	NpCommerce2	-	-
 0x5A1ACD90	sceNpCommerce2_5A1ACD90	NpCommerce2	-	-
 0x5AB115CE	sceNpCommerce2_5AB115CE	NpCommerce2	-	-
@@ -9986,6 +11126,7 @@
 0x60137ABB	sceNpCommerce2_60137ABB	NpCommerce2	-	-
 0x6218343E	sceNpCommerce2_6218343E	NpCommerce2	-	-
 0x624B7A50	sceNpCommerce2_624B7A50	NpCommerce2	-	-
+0x62BBC725	sceNpCommerce2_62BBC725	NpCommerce2	-	-
 0x6308701B	sceNpCommerce2_6308701B	NpCommerce2	-	-
 0x64E27331	sceNpCommerce2_64E27331	NpCommerce2	-	-
 0x65743DF2	sceNpCommerce2_65743DF2	NpCommerce2	-	-
@@ -10003,6 +11144,7 @@
 0x71ADF5A6	sceNpCommerce2_71ADF5A6	NpCommerce2	-	-
 0x71B86720	sceNpCommerce2_71B86720	NpCommerce2	-	-
 0x71CCD6E9	sceNpCommerce2_71CCD6E9	NpCommerce2	-	-
+0x72ABB589	sceNpCommerce2_72ABB589	NpCommerce2	-	-
 0x7377AEC9	sceNpCommerce2_7377AEC9	NpCommerce2	-	-
 0x7471D20F	sceNpCommerce2_7471D20F	NpCommerce2	-	-
 0x749C8571	sceNpCommerce2_749C8571	NpCommerce2	-	-
@@ -10041,13 +11183,16 @@
 0x8ECAE666	sceNpCommerce2_8ECAE666	NpCommerce2	-	-
 0x8EDA59C2	sceNpCommerce2_8EDA59C2	NpCommerce2	-	-
 0x8F24F115	sceNpCommerce2_8F24F115	NpCommerce2	-	-
+0x901E6455	sceNpCommerce2_901E6455	NpCommerce2	-	-
 0x907BC19E	sceNpCommerce2_907BC19E	NpCommerce2	-	-
 0x917646A1	sceNpCommerce2_917646A1	NpCommerce2	-	-
 0x91979E62	sceNpCommerce2_91979E62	NpCommerce2	-	-
 0x92DCC788	sceNpCommerce2_92DCC788	NpCommerce2	-	-
 0x92DF40CC	sceNpCommerce2_92DF40CC	NpCommerce2	-	-
 0x938D7819	sceNpCommerce2_938D7819	NpCommerce2	-	-
+0x947A58B6	sceNpCommerce2_947A58B6	NpCommerce2	-	-
 0x94AA1BFB	sceNpCommerce2_94AA1BFB	NpCommerce2	-	-
+0x94AB4446	sceNpCommerce2_94AB4446	NpCommerce2	-	-
 0x94B068D1	sceNpCommerce2_94B068D1	NpCommerce2	-	-
 0x95C0850D	sceNpCommerce2_95C0850D	NpCommerce2	-	-
 0x95C185B5	sceNpCommerce2_95C185B5	NpCommerce2	-	-
@@ -10059,6 +11204,7 @@
 0x98345A30	sceNpCommerce2_98345A30	NpCommerce2	-	-
 0x984036CB	sceNpCommerce2_984036CB	NpCommerce2	-	-
 0x98E244BA	sceNpCommerce2_98E244BA	NpCommerce2	-	-
+0x9A095860	sceNpCommerce2_9A095860	NpCommerce2	-	-
 0x9A24EB17	sceNpCommerce2_9A24EB17	NpCommerce2	-	-
 0x9B1AE84E	sceNpCommerce2_9B1AE84E	NpCommerce2	-	-
 0x9B444B7C	sceNpCommerce2_9B444B7C	NpCommerce2	-	-
@@ -10102,6 +11248,7 @@
 0xB27F7BA1	sceNpCommerce2_B27F7BA1	NpCommerce2	-	-
 0xB37493FA	sceNpCommerce2_B37493FA	NpCommerce2	-	-
 0xB38AB217	sceNpCommerce2_B38AB217	NpCommerce2	-	-
+0xB5D6F4AF	sceNpCommerce2_B5D6F4AF	NpCommerce2	-	-
 0xB70BF176	sceNpCommerce2_B70BF176	NpCommerce2	-	-
 0xB7387C96	sceNpCommerce2_B7387C96	NpCommerce2	-	-
 0xB7434181	sceNpCommerce2_B7434181	NpCommerce2	-	-
@@ -10147,6 +11294,7 @@
 0xD039082A	sceNpCommerce2_D039082A	NpCommerce2	-	-
 0xD0831EFE	sceNpCommerce2_D0831EFE	NpCommerce2	-	-
 0xD09A38DA	sceNpCommerce2_D09A38DA	NpCommerce2	-	-
+0xD0B44018	sceNpCommerce2_D0B44018	NpCommerce2	-	-
 0xD160F700	sceNpCommerce2_D160F700	NpCommerce2	-	-
 0xD3509F1B	sceNpCommerce2_D3509F1B	NpCommerce2	-	-
 0xD35F548B	sceNpCommerce2_D35F548B	NpCommerce2	-	-
@@ -10161,6 +11309,7 @@
 0xDA5B6779	sceNpCommerce2_DA5B6779	NpCommerce2	-	-
 0xDACD1180	sceNpCommerce2_DACD1180	NpCommerce2	-	-
 0xDAE82F31	sceNpCommerce2_DAE82F31	NpCommerce2	-	-
+0xDB8BA72E	sceNpCommerce2_DB8BA72E	NpCommerce2	-	-
 0xDBC8B377	sceNpCommerce2_DBC8B377	NpCommerce2	-	-
 0xDDB75C18	sceNpCommerce2_DDB75C18	NpCommerce2	-	-
 0xDDB91745	sceNpCommerce2_DDB91745	NpCommerce2	-	-
@@ -10182,6 +11331,7 @@
 0xE89CF937	sceNpCommerce2_E89CF937	NpCommerce2	-	-
 0xE8F39860	sceNpCommerce2_E8F39860	NpCommerce2	-	-
 0xE9C58817	sceNpCommerce2_E9C58817	NpCommerce2	-	-
+0xEA3FF0FC	sceNpCommerce2_EA3FF0FC	NpCommerce2	-	-
 0xEA4A4CAE	sceNpCommerce2_EA4A4CAE	NpCommerce2	-	-
 0xEB8775F5	sceNpCommerce2_EB8775F5	NpCommerce2	-	-
 0xEC09FF89	sceNpCommerce2_EC09FF89	NpCommerce2	-	-
@@ -10252,8 +11402,10 @@
 0x2FE3625C	sceNpManager_2FE3625C	NpManager	-	-
 0x351A74C2	sceNpManager_351A74C2	NpManager	-	-
 0x375A8BC0	sceNpManager_375A8BC0	NpManager	-	-
+0x38626F73	sceNpManager_38626F73	NpManager	-	-
 0x3907F96A	sceNpManager_3907F96A	NpManager	-	-
 0x4110B787	sceNpManager_4110B787	NpManager	-	-
+0x4341692A	sceNpManager_4341692A	NpManager	-	-
 0x455E05C1	sceNpManager_455E05C1	NpManager	-	-
 0x4C5D2A19	sceNpManager_4C5D2A19	NpManager	-	-
 0x4E94274C	sceNpManager_4E94274C	NpManager	-	-
@@ -10290,6 +11442,7 @@
 0xD1D191FB	sceNpManager_D1D191FB	NpManager	-	-
 0xD4180D28	sceNpManager_D4180D28	NpManager	-	-
 0xD6C54CC2	sceNpManager_D6C54CC2	NpManager	-	-
+0xD83C8CCB	sceNpManager_D83C8CCB	NpManager	-	-
 0xD891AB9A	sceNpManager_D891AB9A	NpManager	-	-
 0xDDF30B0E	sceNpManager_DDF30B0E	NpManager	-	-
 0xE2FAC2CA	sceNpManager_E2FAC2CA	NpManager	-	-
@@ -10325,6 +11478,38 @@
 0x395739DF	scePromoterUtility_395739DF	SystemFallback	-	-
 0x59A6CDAE	scePromoterUtility_59A6CDAE	SystemFallback	-	-
 0x8494C742	scePromoterUtility_8494C742	SystemFallback	-	-
+0x0AEA9963	sceSasCheckGrainInternal	Sas	-	-
+0x62CCF050	sceSasCoreInternal	Sas	-	-
+0x799DD9C0	sceSasExitInternal	Sas	-	-
+0x40ED8367	sceSasGetDryPeakInternal	Sas	-	-
+0x0F771045	sceSasGetEndStateInternal	Sas	-	-
+0xE3A5D1D4	sceSasGetEnvelopeInternal	Sas	-	-
+0x26B2B2A9	sceSasGetGrainInternal	Sas	-	-
+0x5F82207D	sceSasGetNeededMemorySizeInternal	Sas	-	-
+0x0B96AF29	sceSasGetOutputmodeInternal	Sas	-	-
+0xBEEBC820	sceSasGetPauseStateInternal	Sas	-	-
+0x3D4F37FF	sceSasGetPreMasterPeakInternal	Sas	-	-
+0x0DE54FF9	sceSasGetWetPeakInternal	Sas	-	-
+0x5C5250C1	sceSasInitInternal	Sas	-	-
+0x44514A50	sceSasSetADSRInternal	Sas	-	-
+0xE9F3944D	sceSasSetADSRmodeInternal	Sas	-	-
+0x1744ACD7	sceSasSetDistortionInternal	Sas	-	-
+0xE04ACC5A	sceSasSetEffectInternal	Sas	-	-
+0xCB23EA6D	sceSasSetEffectParamInternal	Sas	-	-
+0xDAF4773A	sceSasSetEffectTypeInternal	Sas	-	-
+0x50D722D7	sceSasSetEffectVolumeInternal	Sas	-	-
+0xB47D5122	sceSasSetGrainInternal	Sas	-	-
+0x4636ACC2	sceSasSetKeyOffInternal	Sas	-	-
+0xB26DF4BF	sceSasSetKeyOnInternal	Sas	-	-
+0xBD2907EA	sceSasSetNoiseInternal	Sas	-	-
+0x107D1850	sceSasSetOutputmodeInternal	Sas	-	-
+0x79665BCA	sceSasSetPauseInternal	Sas	-	-
+0x81AF90AC	sceSasSetPitchInternal	Sas	-	-
+0xFE263F55	sceSasSetSLInternal	Sas	-	-
+0xBF95B455	sceSasSetSimpleADSRInternal	Sas	-	-
+0x0C294FAF	sceSasSetVoiceInternal	Sas	-	-
+0xEB6708B0	sceSasSetVoicePCMInternal	Sas	-	-
+0x868E1C88	sceSasSetVolumeInternal	Sas	-	-
 0x7CBF442B	sceShellSvc_7CBF442B	SystemFallback	-	-
 0xA0B067AC	sceShellSvc_A0B067AC	SystemFallback	-	-
 0xFB03FBC9	sceShellSvc_FB03FBC9	SystemFallback	-	-

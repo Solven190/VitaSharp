@@ -33,7 +33,7 @@ Fonte da comparação (2026-10-18):
 | [kernel-exports.md](kernel-exports.md) | Exportações de kernel do FW 3.74 (`*ForDriver`/`*ForKernel` dos `os0:kd`): censo e situação no HLE |
 | [user-exports.md](user-exports.md) | Exportações de usuário do FW 3.74 (syscalls, `os0:us`, bibliotecas de `vs0:` servidas pelo HLE): censo dos buracos e ordem dos lotes |
 | [H-psm.md](H-psm.md) | PlayStation Mobile: censo dos imports dos runtimes (PCSI00011) e quem fornece cada função |
-| [data/](data/) | TSVs brutos: funções do VitaSDK com status, implementadas no VitaSharp, faltantes por jogo |
+| [data/](data/) | TSVs brutos: funções do VitaSDK com status, implementadas no VitaSharp, faltantes por jogo e por grupo do status (`missing-by-group.tsv`: games/system/general/vitasdk; gerado com o status por `build/hle-status.ps1`) |
 
 ## Comece por aqui: achados que atravessam pacotes
 

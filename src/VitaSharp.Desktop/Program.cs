@@ -177,9 +177,10 @@ public static class Program
                 return a == null ? 1 : 0;
             }
             case "hle-implemented":
-                // hle-implemented [--vitasdk=<vitasdk-user-functions.tsv>]: every NID with an HLE implementation, as
-                // docs/hle/data/vitasharp-implemented.tsv (nid, name, module, library, "vh" when the VitaSDK lists it).
-                return ListHleImplemented(args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..]);
+                // hle-implemented [--vitasdk=<vitasdk-user-functions.tsv>] [--out=<tsv>]: every NID with an HLE
+                // implementation, as docs/hle/data/vitasharp-implemented.tsv (nid, name, module, library, "vh" when the
+                // VitaSDK lists it); to the file, else to stdout (the log goes to stderr either way).
+                return ListHleImplemented(args.Skip(1).FirstOrDefault(a => a.StartsWith("--vitasdk="))?["--vitasdk=".Length..], OptValue(args, "--out"));
             case "kernel-census":
                 // kernel-census [--root=<repository>]: the HLE status of every FW 3.74 kernel export in
                 // docs/hle/data/kernel-exports.tsv and the per-library table of docs/hle/kernel-exports.md
@@ -743,7 +744,8 @@ public static class Program
     /// ones the installed games import, the ones the system programs/modules import (not already counted for games) and
     /// the rest; --out writes one line per firmware function (nid, name, library, module, group, implemented, one
     /// importer, how many games and how many system programs/modules import it). --status=&lt;repository root&gt; writes the README status (docs/hle/data/hle-status.tsv, the badges and
-    /// progress map in docs/assets/status, docs/hle/progress.md; see HleStatusReport).</summary>
+    /// progress map in docs/assets/status, docs/hle/progress.md; see HleStatusReport) and the per-function tables of the same census
+    /// (missing functions by group, user-side holes, implemented NIDs; see HleCensusTables).</summary>
     static int HleCoverage(string? outTsv, string? vitasdkTsv = null, string? statusRoot = null)
     {
         Log.Level = LogLevel.Warn;
@@ -799,6 +801,21 @@ public static class Program
             {
                 [VitaSharp.Core.Firmware.HleStatusReport.TsvPath] = VitaSharp.Core.Firmware.HleStatusReport.ToTsv(status),
             };
+            // the per-function tables of the same census: the missing functions of each group, the user-side holes
+            // (docs/hle/user-exports.md) and the implemented NIDs
+            HashSet<uint> sdkNids = ReadVitaSdkNids(vitasdkTsv);
+            var functions = rows.Select(r => new VitaSharp.Core.Firmware.HleCensusTables.Function(r.Nid, NidDatabase.NameOf(r.Nid), r.Library, r.Module, r.Group,
+                r.Impl, c.GameImporterCount.GetValueOrDefault(r.Nid), c.SystemImporterCount.GetValueOrDefault(r.Nid), Importer(r.Nid))).ToList();
+            var sdkFunctions = File.ReadLines(vitasdkTsv!).Where(l => l.StartsWith("0x")).Select(l => l.Split('\t'))
+                .Select(f => (Nid: uint.Parse(f[0].AsSpan(2, 8), System.Globalization.NumberStyles.HexNumber), Columns: f)).DistinctBy(f => f.Nid)
+                .Select(f => new VitaSharp.Core.Firmware.HleCensusTables.Function(f.Nid, f.Columns.Length > 3 ? f.Columns[3] : NidDatabase.NameOf(f.Nid),
+                    f.Columns.Length > 2 ? f.Columns[2] : "-", f.Columns.Length > 1 ? f.Columns[1] : "-", "vitasdk", Status(f.Nid).Covered,
+                    c.GameImporterCount.GetValueOrDefault(f.Nid), c.SystemImporterCount.GetValueOrDefault(f.Nid), Importer(f.Nid)));
+            string firmware = VitaSharp.Core.Firmware.FirmwareInfo.Read(FsRoot)?.Version ?? "?";
+            files[VitaSharp.Core.Firmware.HleCensusTables.MissingPath] = VitaSharp.Core.Firmware.HleCensusTables.MissingByGroup(firmware, functions.Concat(sdkFunctions));
+            files[VitaSharp.Core.Firmware.HleCensusTables.UserExportsPath] = VitaSharp.Core.Firmware.HleCensusTables.UserExports(functions, impl.ContainsKey,
+                firmwareServesImporters, sdkNids.Contains);
+            files[VitaSharp.Core.Firmware.HleCensusTables.ImplementedPath] = ImplementedTable(impl, sdkNids);
             foreach (var (path, text) in files)
             {
                 string full = Path.Combine(statusRoot, path.Replace('/', Path.DirectorySeparatorChar));
@@ -836,29 +853,51 @@ public static class Program
         return 0;
     }
 
-    static int ListHleImplemented(string? vitasdkTsv)
+    /// <summary>hle-implemented: the table of every NID with an [Hle] entry (<see cref="VitaSharp.Core.Firmware.HleCensusTables.Implemented"/>)
+    /// to <paramref name="outTsv"/> or stdout. The emulator the scan makes logs at Info level; that log goes to stderr,
+    /// so stdout (redirected into the table by earlier refreshes, which put log lines on top of it) carries only data.</summary>
+    static int ListHleImplemented(string? vitasdkTsv, string? outTsv = null)
     {
-        var vitasdk = new HashSet<uint>();
-        if (vitasdkTsv != null)
-        {
-            foreach (var line in File.ReadLines(vitasdkTsv))
-            {
-                if (line.StartsWith("0x") && uint.TryParse(line.AsSpan(2, 8), System.Globalization.NumberStyles.HexNumber, null, out var n))
-                {
-                    vitasdk.Add(n);
-                }
-            }
-        }
-
+        Log.ConsoleToStandardError = true;
+        HashSet<uint> vitasdk = ReadVitaSdkNids(vitasdkTsv);
         var byNid = HleImplementedNids();
-        foreach (var (nid, (name, module, isDefault)) in byNid.OrderBy(e => NidDatabase.Lookup(e.Key)?.Library ?? "~", StringComparer.Ordinal).ThenBy(e => e.Value.Name, StringComparer.Ordinal))
+        string table = ImplementedTable(byNid, vitasdk);
+        if (outTsv != null)
         {
-            Console.WriteLine($"0x{nid:X8}	{name}	{module}	{NidDatabase.Lookup(nid)?.Library ?? "-"}	{(vitasdk.Contains(nid) ? "vh" : "-")}{(isDefault ? "	default" : "")}");
+            File.WriteAllText(outTsv, table);
+        }
+        else
+        {
+            Console.Out.Write(table);
         }
 
         Console.Error.WriteLine($"{byNid.Count} implemented NIDs ({byNid.Keys.Count(vitasdk.Contains)} in the VitaSDK list, {byNid.Values.Count(v => v.Default)} default)");
         return 0;
     }
+
+    /// <summary>The NIDs of a VitaSDK function list (docs/hle/data/vitasdk-user-functions.tsv); empty without one.</summary>
+    static HashSet<uint> ReadVitaSdkNids(string? vitasdkTsv)
+    {
+        var vitasdk = new HashSet<uint>();
+        if (vitasdkTsv == null)
+        {
+            return vitasdk;
+        }
+
+        foreach (string line in File.ReadLines(vitasdkTsv))
+        {
+            if (line.StartsWith("0x") && uint.TryParse(line.AsSpan(2, 8), System.Globalization.NumberStyles.HexNumber, null, out uint nid))
+            {
+                vitasdk.Add(nid);
+            }
+        }
+
+        return vitasdk;
+    }
+
+    static string ImplementedTable(SortedDictionary<uint, (string Name, string Module, bool Default)> byNid, HashSet<uint> vitasdk) =>
+        VitaSharp.Core.Firmware.HleCensusTables.Implemented(
+            byNid.Select(e => (e.Key, e.Value.Name, e.Value.Module, NidDatabase.Lookup(e.Key)?.Library, e.Value.Default)), vitasdk.Contains);
 
     /// <summary>rco-dump &lt;file.rco&gt; [--extract=&lt;dir&gt;]: the element tree of a system RCO and, optionally, its files.</summary>
     static int RcoDump(string path, string? extractDir)
