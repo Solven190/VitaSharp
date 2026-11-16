@@ -300,6 +300,11 @@ public sealed partial class Piglet
         var segs = new List<(uint, byte[])>();
         if (f.Compressed)
         {
+            if (f.GxmFormat == 0x84000000)
+            {
+                texels = Etc1ToGxm(texels);
+            }
+
             int bw = f.BlockW, bh = f.BlockH, bb = f.BlockBytes;
             int bx0 = x / bw, by0 = y / bh, nbx = (w + bw - 1) / bw, nby = (h + bh - 1) / bh;
             if (f.Pvrtc || !swizzled) { segs.Add((baseAddr, texels)); }
@@ -523,6 +528,24 @@ public sealed partial class Piglet
         if (t.Format != f) { Err(c, Gl.INVALID_OPERATION); return; }
         if (width == 0 || height == 0) return;
         PlaceTexels(t, face, level, xoffset, yoffset, width, height, ConvertClientPixels(pixels, width, height, format, type, c.UnpackAlignment, f));
+    }
+
+    /// <summary>
+    /// GL's ETC1 blocks (OES_compressed_ETC1_RGB8_texture: two big-endian 32-bit words) as the SGX reads them, each word
+    /// little-endian: what a GL on the console does to an ETC1 upload (vitaGL: texture_swizzler.cpp, CopyETCBlock).
+    /// </summary>
+    static byte[] Etc1ToGxm(byte[] khronos)
+    {
+        byte[] gxm = new byte[khronos.Length];
+        for (int i = 0; i + 3 < khronos.Length; i += 4)
+        {
+            gxm[i] = khronos[i + 3];
+            gxm[i + 1] = khronos[i + 2];
+            gxm[i + 2] = khronos[i + 1];
+            gxm[i + 3] = khronos[i];
+        }
+
+        return gxm;
     }
 
     static int CompressedSize(PgTexFormat f, int w, int h)
