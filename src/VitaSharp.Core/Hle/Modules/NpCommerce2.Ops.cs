@@ -254,6 +254,7 @@ public sealed partial class NpCommerce2
     [Hle("sceNpCommerce2_D160F700", Nid = 0xD160F700, Library = "SceNpCommerce2")]
     [Hle("sceNpCommerce2_00F16110", Nid = 0x00F16110, Library = "SceNpCommerce2")]
     [Hle("sceNpCommerce2_6B743513", Nid = 0x6B743513, Library = "SceNpCommerce2")]
+    [Hle("sceNpCommerce2_31782CA7", Nid = 0x31782CA7, Library = "SceNpCommerce2")]
     int StoreOp(uint reqId) => StoreRequest(reqId);
 
     // ---- (reqId, const void *param): the parameter is required
@@ -275,6 +276,7 @@ public sealed partial class NpCommerce2
     [Hle("sceNpCommerce2_BAB8A533", Nid = 0xBAB8A533, Library = "SceNpCommerce2")]
     [Hle("sceNpCommerce2_D9A80442", Nid = 0xD9A80442, Library = "SceNpCommerce2")]
     [Hle("sceNpCommerce2_F9730784", Nid = 0xF9730784, Library = "SceNpCommerce2")]
+    [Hle("sceNpCommerce2_9AF7E167", Nid = 0x9AF7E167, Library = "SceNpCommerce2")]
     int StoreOpParam(uint reqId, uint param) => InitOr(param != 0, reqId);
 
     // ---- the others, each with its own argument checks

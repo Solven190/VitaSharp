@@ -79,7 +79,7 @@ public sealed class NpCommerce2ParserTests(GuestMemoryFixture fx)
         var nids = typeof(NpCommerce2).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .Where(m => m.Name.StartsWith("C2", StringComparison.Ordinal))
             .SelectMany(m => m.GetCustomAttributes<HleAttribute>()).Where(h => h.Library == "SceNpCommerce2").Select(h => h.Nid).ToList();
-        Assert.Equal(162, nids.Count);
+        Assert.Equal(166, nids.Count);
         Assert.Equal(nids.Count, nids.Distinct().Count());
     }
 

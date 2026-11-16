@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=310 general=260 vitasdk=0
+# firmware=3.74 games=0 system=310 general=247 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceCommonDialog	0x089FB01E	NID_089FB01E	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libSceNearDialogUtil.suprx
@@ -393,19 +393,6 @@ general	SceNpBasic	0x999CC1E9	NID_999CC1E9	vs0:sys/external/np_basic.suprx	0	0	-
 general	SceNpBasic	0xA1C1A8E2	NID_A1C1A8E2	vs0:sys/external/np_basic.suprx	0	0	-
 general	SceNpBasic	0xA6BFBBFF	NID_A6BFBBFF	vs0:sys/external/np_basic.suprx	0	0	-
 general	SceNpBasic	0xB93ADCDA	NID_B93ADCDA	vs0:sys/external/np_basic.suprx	0	0	-
-general	SceNpCommerce2	0x043F86FF	NID_043F86FF	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x303DE914	NID_303DE914	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x31782CA7	NID_31782CA7	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x60187EF1	NID_60187EF1	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x87A71049	NID_87A71049	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x884BF45A	NID_884BF45A	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x922382C1	NID_922382C1	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0x9AF7E167	NID_9AF7E167	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0xA94C2A99	NID_A94C2A99	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0xB45A7935	NID_B45A7935	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0xDFC84F4F	NID_DFC84F4F	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0xE46F89EA	NID_E46F89EA	vs0:sys/external/np_commerce2.suprx	0	0	-
-general	SceNpCommerce2	0xF9DE9CDF	NID_F9DE9CDF	vs0:sys/external/np_commerce2.suprx	0	0	-
 general	SceNpCommon	0x13293ADC	NID_13293ADC	vs0:sys/external/np_common.suprx	0	0	-
 general	SceNpCommon	0x92DF18F6	NID_92DF18F6	vs0:sys/external/np_common.suprx	0	0	-
 general	SceNpManager	0x06EBD8B1	NID_06EBD8B1	vs0:sys/external/np_manager.suprx	0	0	-
