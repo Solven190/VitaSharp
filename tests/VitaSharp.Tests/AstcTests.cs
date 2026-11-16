@@ -225,13 +225,26 @@ public sealed class AstcTests(ITestOutputHelper output)
         byte[] rgb = Textured(Width, Height, false, 7);
         byte[] rgba = Textured(Width, Height, true, 8);
         byte[] blocks = new byte[(Width / 4) * (Height / 4) * 16];
-        AstcEncoder.Encode(rgb, Width, Height, blocks, AstcChannels.Rgba); // warm up (JIT, statics)
-        foreach ((byte[] img, AstcChannels channels) in new[] { (rgb, AstcChannels.Rgba), (rgba, AstcChannels.Rgba), (rgb, AstcChannels.R), (rgb, AstcChannels.Rg) })
+        (byte[] Img, AstcChannels Channels)[] variants = { (rgb, AstcChannels.Rgba), (rgba, AstcChannels.Rgba), (rgb, AstcChannels.R), (rgb, AstcChannels.Rg) };
+        // warm up every variant (each channel count takes its own paths: JIT, statics)
+        foreach ((byte[] img, AstcChannels channels) in variants)
         {
-            long before = GC.GetAllocatedBytesForCurrentThread();
             AstcEncoder.Encode(img, Width, Height, blocks, channels);
-            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-            Assert.True(allocated == 0, $"{channels}: the encoder allocated {allocated} bytes for {Width}x{Height}");
+        }
+
+        foreach ((byte[] img, AstcChannels channels) in variants)
+        {
+            // the fewest bytes of a few runs: the runtime may still compile on this thread (tier-up, OSR under load, the
+            // CI's 7656 bytes in one RG run); a per-block allocation in the encoder allocates in every run
+            long allocated = long.MaxValue;
+            for (int run = 0; run < 3 && allocated != 0; run++)
+            {
+                long before = GC.GetAllocatedBytesForCurrentThread();
+                AstcEncoder.Encode(img, Width, Height, blocks, channels);
+                allocated = Math.Min(allocated, GC.GetAllocatedBytesForCurrentThread() - before);
+            }
+
+            Assert.True(allocated == 0, $"{channels}: the encoder allocated {allocated} bytes for {Width}x{Height} in each of 3 runs");
         }
         RoundTrip(rgb, Width, Height, AstcChannels.Rgba, 0x7, out double sRgb);
         RoundTrip(rgba, Width, Height, AstcChannels.Rgba, 0xF, out double sRgba);
