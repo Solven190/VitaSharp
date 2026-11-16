@@ -56,6 +56,13 @@ public sealed class GpuEs4UserDeviceTests(GuestMemoryFixture fixture) : IDisposa
     [InlineData(0xBDE2B9E1u, true)]
     [InlineData(0xD90B0707u, true)]
     [InlineData(0xF0CCE9DBu, true)]
+    [InlineData(0x09BB98B2u, true)]
+    [InlineData(0x768482F6u, true)]
+    [InlineData(0x9A4A5DAEu, true)]
+    [InlineData(0x9E8E2957u, true)]
+    [InlineData(0xAAD85460u, true)]
+    [InlineData(0xC0D16CE5u, true)]
+    [InlineData(0xCCEE0336u, true)]
     [InlineData(0x1A575DFDu, false)]
     [InlineData(0x1BE5985Au, false)]
     [InlineData(0x7AF40138u, false)]
@@ -107,6 +114,51 @@ public sealed class GpuEs4UserDeviceTests(GuestMemoryFixture fixture) : IDisposa
         Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4UserF0CCE9DB", device, words, words));
         Assert.Equal(0xAAAAAAAAu, GuestMemory.R32(result));
         Assert.Equal(0xAAAAAAAAu, GuestMemory.R32(result2));
+    }
+
+    [Fact]
+    public void TheInfoCallsAreRefusedAfterTheirChecks()
+    {
+        uint output = _harness.Word(0);
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4UserConnect", output, 0u));
+        uint record = GuestMemory.R32(output); // the connection: its +0 is the services record
+        uint device = _harness.Alloc(8);
+        GuestMemory.W32(device, record);
+        GuestMemory.W32(device + 4, 0x1234);
+        uint words = _harness.Alloc(0x200);
+        GuestMemory.Fill(words, 0xAA, 0x200);
+        uint result = _harness.Word(0xAAAAAAAA);
+
+        // 09BB98B2: NULL info 3; type 9 answered by libgpu (3, with the memory record's info words copied)
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4User09BB98B2", device, 0u));
+        uint info = _harness.Alloc(0x14);
+        GuestMemory.W32(info, 9);
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4User09BB98B2", device, info));
+        uint block = _harness.Alloc(0x14);
+        GuestMemory.W32(block + 0xC, 0x11);
+        GuestMemory.W32(block + 0x10, 0x22);
+        uint memory = _harness.Alloc(0x78);
+        GuestMemory.W32(memory + 0x74, block);
+        GuestMemory.W32(info + 8, memory);
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4User09BB98B2", device, info));
+        Assert.Equal(0x11u, GuestMemory.R32(info + 0xC));
+        Assert.Equal(0x22u, GuestMemory.R32(info + 0x10));
+        GuestMemory.W32(info, 1);
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4User09BB98B2", device, info));
+
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4User768482F6", device, words));
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4User9A4A5DAE", device, 1u, 0u));
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4User9A4A5DAE", 0u, 1u, words));
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4User9A4A5DAE", device, 1u, words));
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4User9E8E2957", device, 1u, result));
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4UserAAD85460", 0u, 1u, 0u));
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4UserAAD85460", _harness.Word(0), 1u, 0u));
+        Assert.Equal(InvalidParams, Call(Gpu, "GpuEs4UserAAD85460", record, 1u, 1u)); // reserved not 0
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4UserAAD85460", record, 1u, 0u));
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4UserC0D16CE5", device, words));
+        Assert.Equal(BridgeCallFailed, Call(Gpu, "GpuEs4UserCCEE0336", device, 1u, words));
+        Assert.Equal(0xAAAAAAAAu, GuestMemory.R32(result)); // nothing copied from a refused call
+        Assert.Equal(0xAAAAAAAAu, GuestMemory.R32(words));
     }
 
     [Fact]

@@ -263,4 +263,83 @@ public sealed partial class Ssl
             thread.CallGuest(callback, bio, 0x86, 0, 0xB, 0, flushed);
         }
     }
+
+    /// <summary>NID_DABB61EE (object, value, required): NULL object or a required argument 0 is 0x2721; the method at
+    /// +0x10 of the object's table runs as (object, 1, value); no method 0x271B.</summary>
+    [Hle("NID_DABB61EE", Nid = 0xDABB61EE, Library = "SceSslInternal")]
+    uint SslInternalDispatch10(uint objectAddress, uint value, uint required)
+    {
+        if (objectAddress == 0 || required == 0)
+        {
+            return MesInvalidArgument;
+        }
+
+        uint method = GuestMemory.R32(GuestMemory.R32(objectAddress) + 0x10);
+        return method == 0 ? MesNotSupported : GuestThread.Current!.CallGuest(method, objectAddress, 1, value);
+    }
+
+    /// <summary>NID_FEFE761C (object, ..., the seventh argument): that argument 0, a NULL object or one without a table
+    /// is 0x2721; the method at +0x30 of its table runs with the caller's arguments; no method 0x271B.</summary>
+    [Hle("NID_FEFE761C", Nid = 0xFEFE761C, Library = "SceSslInternal")]
+    void SslInternalDispatch30Checked(HleContext context)
+    {
+        uint objectAddress = context.Gpr(0);
+        uint table = objectAddress != 0 ? GuestMemory.R32(objectAddress) : 0;
+        if (context.Gpr(6) == 0 || table == 0)
+        {
+            context.Return(MesInvalidArgument);
+            return;
+        }
+
+        uint method = GuestMemory.R32(table + 0x30);
+        context.Return(method == 0 ? MesNotSupported : CallMethod(context, method));
+    }
+
+    /// <summary>
+    /// NID_CB83EA07 BIO_printf(BIO *bio, const char *format, ...): NULL BIO 0; the text is formatted into libssl's
+    /// 1024-byte buffer (cut to 1023 bytes) and written with BIO_write (NID_33AC7A16), whose result it returns.
+    /// </summary>
+    [Hle("NID_CB83EA07", Nid = 0xCB83EA07, Library = "SceSslInternal")]
+    int SslInternalBioPrintf(uint bio, string format, VarArgs arguments)
+    {
+        if (bio == 0)
+        {
+            return 0;
+        }
+
+        const int BufferSize = 0x400;
+        byte[] text = System.Text.Encoding.UTF8.GetBytes(CFormat.Format(format, arguments));
+        int length = Math.Min(text.Length, BufferSize - 1);
+        uint buffer = Emu.Memory.Alloc(BufferSize, "libssl BIO_printf", MemoryRegion.User, 4);
+        try
+        {
+            text.AsSpan(0, length).CopyTo(GuestMemory.Span(buffer, length));
+            GuestMemory.Write(buffer + (uint)length, (byte)0);
+            return SslInternalBioWrite(bio, buffer, (uint)length);
+        }
+        finally
+        {
+            Emu.Memory.Free(buffer);
+        }
+    }
+
+    /// <summary>
+    /// NID_92560B8D SSL_connect(SSL *ssl): libssl first resets a connection that is not in its handshake (SSL_clear,
+    /// engine state) and then runs the connect method (+0x14 of the method table at +8). The HLE's method tables are
+    /// NULL (no libssl engine), so a connection without a table fails the handshake (-1, never connected); a table
+    /// the caller made has its method run.
+    /// </summary>
+    [Hle("NID_92560B8D", Nid = 0x92560B8D, Library = "SceSslInternal", Default = true)]
+    int SslInternalConnect(uint ssl)
+    {
+        uint table = GuestMemory.R32(ssl + 8);
+        uint method = table != 0 ? GuestMemory.R32(table + 0x14) : 0;
+        if (method == 0)
+        {
+            EngineUnavailable("SSL_connect");
+            return -1;
+        }
+
+        return (int)GuestThread.Current!.CallGuest(method, ssl);
+    }
 }

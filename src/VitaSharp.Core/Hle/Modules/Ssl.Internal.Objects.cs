@@ -14,8 +14,27 @@ public sealed partial class Ssl
     [SnapshotMissing]
     readonly HashSet<uint> _libsslBlocks = new();
 
+    /// <summary>libssl's malloc: the caller's memory function when one was installed (NID_C1299FB6; it may answer
+    /// NULL), else a block of the HLE's libssl heap; zeroed.</summary>
     uint LibsslAlloc(uint size)
     {
+        uint malloc;
+        lock (_libsslBlocks)
+        {
+            malloc = _libsslMalloc;
+        }
+
+        if (malloc != 0)
+        {
+            uint guestBlock = GuestThread.Current!.CallGuest(malloc, size);
+            if (guestBlock != 0)
+            {
+                GuestMemory.Fill(guestBlock, 0, size);
+            }
+
+            return guestBlock;
+        }
+
         uint block = Emu.Memory.Alloc(size, "libssl heap", MemoryRegion.User, 8);
         GuestMemory.Fill(block, 0, size);
         lock (_libsslBlocks)
@@ -26,15 +45,28 @@ public sealed partial class Ssl
         return block;
     }
 
-    /// <summary>libssl's free: a block of its heap goes back, anything else is left alone.</summary>
+    /// <summary>libssl's free: a block of its heap goes back; another block goes to the caller's free when one was
+    /// installed (NID_C1299FB6), else is left alone.</summary>
     void LibsslFree(uint block)
     {
+        uint free;
         lock (_libsslBlocks)
         {
-            if (!_libsslBlocks.Remove(block))
+            free = _libsslFree;
+            if (_libsslBlocks.Remove(block))
+            {
+                free = 0;
+            }
+            else if (free == 0 || block == 0)
             {
                 return;
             }
+        }
+
+        if (free != 0)
+        {
+            GuestThread.Current!.CallGuest(free, block);
+            return;
         }
 
         Emu.Memory.Free(block);
@@ -168,6 +200,11 @@ public sealed partial class Ssl
         }
 
         uint record = LibsslAlloc(0x28);
+        if (record == 0)
+        {
+            return 0x2715;
+        }
+
         GuestMemory.W32(record, value);
         GuestMemory.W32(record + 4, 1);
         GuestMemory.W32(record + 16, 0xFFFFFFFF);
