@@ -175,6 +175,40 @@ internal static unsafe partial class HostVirtualMemory
     [LibraryImport("libc", SetLastError = true)]
     private static partial int ftruncate(int fd, long length);
 
+    // shm_open(name, oflag, ...) is variadic: on Apple arm64 the variadic mode goes on the stack, where a ninth
+    // integer argument also goes (x0-x7 hold the first eight); elsewhere (x86-64) it is the third register
+    [LibraryImport("libc", SetLastError = true, EntryPoint = "shm_open", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int shm_open_arm64(string name, int oflag, nint x2, nint x3, nint x4, nint x5, nint x6, nint x7, nint mode);
+
+    [LibraryImport("libc", SetLastError = true, EntryPoint = "shm_open", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int shm_open_x64(string name, int oflag, nint mode);
+
+    [LibraryImport("libc", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int shm_unlink(string name);
+
+    private const int O_RDWR_MAC = 2, O_CREAT_MAC = 0x200, O_EXCL_MAC = 0x800;
+
+    /// <summary>
+    /// macOS: an anonymous POSIX shared memory object (shm_open with a unique name, unlinked at once so only the
+    /// descriptor holds it). Its pages are ordinary anonymous memory (swap backed, never written to a file), what memfd
+    /// is on Linux. -1 when the host refuses it.
+    /// </summary>
+    private static int CreateMacSharedMemory(string tag)
+    {
+        // names are at most 31 bytes (PSHMNAMLEN)
+        string name = $"/vs{Environment.ProcessId:x}{tag[..Math.Min(tag.Length, 6)]}{Random.Shared.Next():x8}";
+        int oflag = O_RDWR_MAC | O_CREAT_MAC | O_EXCL_MAC;
+        const nint OwnerReadWrite = 0x180; // 0600
+        int fd = RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+            ? shm_open_arm64(name, oflag, 0, 0, 0, 0, 0, 0, OwnerReadWrite)
+            : shm_open_x64(name, oflag, OwnerReadWrite);
+        if (fd >= 0)
+        {
+            shm_unlink(name);
+        }
+        return fd;
+    }
+
     [LibraryImport("libc", SetLastError = true)]
     private static partial int close(int fd);
 
@@ -182,8 +216,8 @@ internal static unsafe partial class HostVirtualMemory
 
     /// <summary>
     /// Memory that several reservations map at once (<see cref="ReserveWithViews"/>): a pagefile-backed section whose pages
-    /// are committed on demand (Windows), or an anonymous memory file (Linux and Android memfd). Returns 0 when the host
-    /// cannot provide it.
+    /// are committed on demand (Windows), an anonymous memory file (Linux and Android memfd) or an unlinked POSIX shared
+    /// memory object (macOS). Returns 0 when the host cannot provide it.
     /// </summary>
     public static nint CreateSharedMemory(ulong size, string tag)
     {
@@ -194,8 +228,9 @@ internal static unsafe partial class HostVirtualMemory
                 nint h = CreateFileMappingW(-1, null, PAGE_READWRITE | SEC_RESERVE, (uint)(size >> 32), (uint)size, null);
                 return h;
             }
-            // anonymous shared memory: memfd (Linux, Android). Elsewhere (macOS) a temporary file would do, but its dirty
-            // pages are written back to disk, which CDRAM traffic must not cost: there all processes share one space
+            // anonymous shared memory: memfd (Linux, Android), an unlinked shm object (macOS; not a temporary file, whose
+            // dirty pages would be written back to disk, which CDRAM traffic must not cost). Elsewhere all processes
+            // share one space
             int fd = -1;
             if (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid())
             {
@@ -207,6 +242,10 @@ internal static unsafe partial class HostVirtualMemory
                 {
                     fd = -1;
                 }
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                fd = CreateMacSharedMemory(tag);
             }
             if (fd < 0)
             {
