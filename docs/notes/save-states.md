@@ -84,7 +84,7 @@ Android does not do the LoadExec step yet (its load from the pause menu refuses 
 Recreated on load: audio ports, AT9/MP3/AAC and H.264 decoders (empty; movies restart on the key frame before the
 saved position, a few pictures of drift), MP4 demuxers and AvPlayer media (reopened and seeked), open files
 (reopened at their offset), camera captures, system fonts. Dropped: network sockets (the game sees a disconnect).
-Not saved, the save is refused while one exists: see "refused in use" in the inventory. Saved data, trophies and
+Saved data, trophies and
 registry values the game wrote are the user's (on disk) and are not rolled back.
 
 ## Tested (desktop, 04/11/2026)
@@ -108,5 +108,7 @@ picture continues from the saved point, frame rate as before the load.
 | Jak and Daxter Collection, God of War Collection | LoadExec after a load | pass (06/11/2026: state in the collection menu, loaded, then Jak 1 to PRESS START / God of War 1 to its menu at 30 fps) |
 | Jak and Daxter Collection, God of War Collection, Uncharted | state saved after a LoadExec, loaded in a new session | pass (06/11/2026: Jak 1 / God of War 1 gameplay and Uncharted's title (its eboot.bin LoadExecs uncharted.self) with `--load-state` (boots the saved executable) and from the collection's menu (LoadExec first, as F7), 20 / 30 / 60 fps as when saved; rerun of a Gravar tudo capture of Jak 1: 98% of the frames as recorded) |
 
-Not exercised by an installed game: Atrac (ATRAC streams), Sas, Audioenc/Videoenc/Mp4Recorder, G729, Location,
-NetAdhocMatching/Rudp (online), TriggerUtil, Ime (in-game keyboard), the Vita shell (refused).
+Modules in use at the save (16/11/2026): Final Fantasy X HD's launcher (Sas) and PCSG00845 (Atrac, its music)
+save and load with the sound going on from the saved point. Audioenc/Videoenc/Mp4Recorder, G729, Location,
+NetAdhocMatching/Rudp, TriggerUtil and Ime are covered by `SaveStateModulesInUseTests` only (no installed game reaches
+them in a short run). The Vita shell is still refused.

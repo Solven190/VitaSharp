@@ -266,9 +266,24 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] Uso em diagnóstico: o Gravar tudo (F8) leva o estado do início (`state_start.vss`) e o da pré-gravação
   (`state_preroll.vss`), e `rerun` recomeça dele com a entrada gravada (FIFA 13: 95% dos quadros iguais, mediana da
   diferença 0; `docs/notes/session-capture.md`)
-- [ ] [P3][M] Sem teste por falta de um jogo instalado que use: Atrac, Sas, Audioenc/Videoenc/Mp4Recorder, G729, Location,
-  NetAdhocMatching/Rudp, TriggerUtil e o `sceIme` (teclado do jogo sem o diálogo do sistema); esses módulos recusam o
-  salvamento só enquanto estão em uso. Sob o shell do Vita (vários processos) o salvamento é recusado
+- [x] Save state dos módulos que recusavam o salvamento enquanto em uso: Atrac, Sas, Audioenc/Videoenc/Mp4Recorder,
+  G729, Location, NetAdhocMatching/Rudp, TriggerUtil e o `sceIme` (teclado do jogo sem o diálogo do sistema). Feito
+  (feat/ss12-savestates, 16/11/2026): o estado inteiro de cada um entra no save state pelos campos gerados
+  (`[SnapshotMissing]`: estados antigos, que não tinham nada em uso, carregam como antes, sem mudar a assinatura dos
+  hooks): Atrac (grupo e cada handle: posições do anel e da reprodução, loops, o último superframe; decodificador novo
+  preparado com o último superframe consumido), Sas (mixer público e os contextos das variantes: vozes com fonte,
+  reamostrador e envelope, o efeito e a linha de atraso), Ime (sessão aberta e os eventos ainda não entregues; o
+  teclado do host reabre no texto carregado), Location, NetAdhocMatching, Rudp (contextos e polls; offline não há sessão
+  de rede), G729/Videoenc (contextos; o codec FFmpeg é refeito no próximo quadro), Audioenc, Mp4Recorder; os eventos do
+  TriggerUtil são do sistema (em disco), não voltam com o load e são relidos. Testes (falham sem a correção, com a
+  recusa "in use"): `AtracHleTests.SaveStateWhileStreamingContinuesTheSameSamples`, `...WithTheFileInMemory...` e
+  `SaveStateModulesInUseTests` (um por módulo: as mesmas chamadas no módulo original e no carregado dão o mesmo
+  resultado). Validado em jogo: Final Fantasy X HD (PCSE00293, Sas no launcher) e PCSG00845 (Atrac, a música): antes
+  "module Sas/Atrac: host resource ... not supported yet"; agora salva, carrega e o som segue do ponto salvo. Sem jogo
+  real: Audioenc, Videoenc, Mp4Recorder, G729, Rudp e TriggerUtil (nenhum jogo instalado importa); Location (Severed),
+  NetAdhocMatching (Soul Sacrifice Delta, Army Corps of Hell, Table Top Tanks e outros) e Ime (LittleBigPlanet,
+  Shinobido 2 e outros) são importados, mas não ficam em uso no começo do jogo num cenário curto sem janela.
+- [ ] [P3][M] Sob o shell do Vita (vários processos) o salvamento é recusado
 - [x] Não validado (06/11/2026): o device lost do Tearaway na janela (o relato de 04/11 não reproduziu em 3 cargas
   sem janela; não houve teste com janela); o teclado do sistema (ImeDialog) aberto num save: o Sakatsuku
   (`st_game2`, 7000 quadros) não chegou ao teclado, e o Invizimals não foi testado

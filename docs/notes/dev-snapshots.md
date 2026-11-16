@@ -118,13 +118,13 @@ only while one exists; with none open the module saves normally).
 | Ngs | Ngs.cs | hand-written | systems, racks, voices, patches, decode positions; ATRAC9 decoders recreated |
 | NpManager, NpTrophy | Np.cs, NpTrophy.cs | hand-written | trophy sets read again by communication id |
 | Pgf, Pvf | Pgf.cs, Pvf.cs | hand-written | system fonts reopened; PVF fonts from game data kept with their file; a PGF font from game data is refused |
-| Atrac | Atrac.cs | refused in use | ATRAC stream decoder |
-| Audioenc, Videoenc, Mp4Recorder | | refused in use | encoders / recorder |
+| Atrac | Atrac.cs, AtracStream.cs | generated (nested) | decoder group and every handle (ring and playback positions, loops, last superframe); a new ATRAC9 decoder per handle, primed with the last superframe it consumed |
+| Audioenc, Videoenc, Mp4Recorder | Audioenc.cs, Videoenc.cs, Mp4Recorder.cs | generated (nested) | encoders and recorders; the FFmpeg H.264 encoder is made again at the next picture (new GOP) |
 | Voice | Voice.cs | generated (nested) | voice ports and buffered audio; the host stream reopens on demand |
-| G729 | G729.cs | refused in use | voice chat codec |
-| Ime | Ime.cs | refused in use | IME session events |
-| Location | Location.cs | refused in use | location handles |
+| G729 | G729.cs | generated (nested) | decoder/encoder contexts; the FFmpeg G.729 decoder is made again at the next frame |
+| Ime | Ime.cs | generated (nested) | open session and the events not yet delivered; the host keyboard reopens on the loaded text |
+| Location | Location.cs | generated (nested) | handles (methods, confirmation dialog) |
 | NpMatching2 | Multiplayer.cs | generated (nested) | matching contexts and callbacks |
-| NetAdhocMatching, Rudp | | refused in use | online sessions (network) |
-| Sas | Sas.cs | refused in use | SAS engine |
-| TriggerUtil | TriggerUtil.cs | refused in use | scheduled trigger events |
+| NetAdhocMatching, Rudp | NetAdhocMatching.cs, Multiplayer.cs | generated (nested) | contexts and polls (offline: no network session behind them) |
+| Sas | Sas.cs, SasEngine.cs | generated (nested) | public mixer and context-variant mixers: voices (source, resampler, envelope), effect and its delay line |
+| TriggerUtil | TriggerUtil.cs | stateless (system data) | registered events are the system's, on disk: not rolled back, read again after a load |
