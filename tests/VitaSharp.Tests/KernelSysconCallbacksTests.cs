@@ -12,7 +12,7 @@ namespace VitaSharp.Tests;
 [Collection("guest")]
 public sealed class KernelSysconCallbacksTests(GuestMemoryFixture fixture) : IDisposable
 {
-    private static readonly (string Export, int Event)[] Registrations =
+    private static readonly (string Export, int Event)[] s_registrations =
     [
         ("NID_18A6F4D9", 0),
         ("NID_DE613081", 1),
@@ -59,7 +59,7 @@ public sealed class KernelSysconCallbacksTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void EachRegistrationKeepsItsEventsHandler()
     {
-        foreach ((string export, int number) in Registrations)
+        foreach ((string export, int number) in s_registrations)
         {
             uint callback = 0x81000001u + (uint)number * 0x10;
             Assert.Equal(0, Call(Syscon, export, callback, (uint)number + 0x100));
