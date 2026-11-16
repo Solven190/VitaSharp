@@ -25,10 +25,6 @@ public sealed partial class Net
     [SnapshotMissing]
     uint _libnetThreadEntry;
 
-    /// <summary>The debug print callback (libnet's NID_A64CFBF5 sets it); 0 = the print does nothing.</summary>
-    [SnapshotMissing]
-    uint _debugPrintCallback;
-
     /// <summary>libnet's SFMT19937 state (624 words) and the index of the next word; seeded on first use.</summary>
     [SnapshotMissing]
     readonly uint[] _randomState = new uint[624];
@@ -374,7 +370,7 @@ public sealed partial class Net
     [Hle("NID_694F8996", Nid = 0x694F8996, Library = "SceNetInternal")]
     int NetInternalDebugPrint(string format, VarArgs args)
     {
-        uint callback = _debugPrintCallback;
+        uint callback = _libnetWord; // the debug print callback NID_A64CFBF5 sets
         if (callback == 0)
         {
             return 0;
