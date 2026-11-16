@@ -2,7 +2,7 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_calloutThreads", "CalloutSink")]
+[GenerateSnapshot, SnapshotIgnoreFields("_calloutThreads", "CalloutSink", "_xmlReaders", "XmlSink")]
 public sealed partial class NpManager
 {
     [GenerateSnapshot]

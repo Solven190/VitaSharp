@@ -14,6 +14,7 @@ public sealed partial class NpManager
     int NID_650D111B(uint record, uint first, uint second, uint third)
     {
         GuestMemory.Fill(record, 0, 0x248);
+        ResetXml(record);
         GuestMemory.W32(record, first);
         GuestMemory.W32(record + 0x240, second);
         GuestMemory.W32(record + 0x244, third);
