@@ -190,10 +190,10 @@ SceNpPartyAppUtil	vs0:app/NPXS10001/np_party_app.suprx	15	15	0	0	15	15	0	0	0	15
 SceNpPartyGameUtil	vs0:sys/external/np_party.suprx	13	13	8	8	0	0	2	0	0	0
 SceNpScore	vs0:sys/external/np_ranking.suprx	32	32	26	26	0	0	0	0	0	0
 SceNpSignaling	vs0:sys/external/np_signaling.suprx	18	18	12	12	0	0	0	0	0	0
-SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	30	6	6	23	23	19	0	19	0
-SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	31	15	15	16	16	10	0	10	0
+SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	61	6	6	23	23	42	0	19	0
+SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	59	15	15	16	16	38	0	10	0
 SceNpTus	vs0:sys/external/np_tus.suprx	67	67	46	46	0	0	0	0	0	0
-SceNpUtility	vs0:sys/external/np_utility.suprx	140	80	33	33	46	46	30	0	30	0
+SceNpUtility	vs0:sys/external/np_utility.suprx	140	140	33	33	46	46	68	0	30	0
 SceNpUtilityAvatarN	vs0:sys/external/np_utility.suprx	2	2	0	0	0	0	0	0	0	2
 SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	63	19	19	25	25	1	0	1	0
 SceNpWebApiCommonDialog	vs0:sys/external/libcdlg.suprx	10	10	8	8	2	2	0	0	0	0

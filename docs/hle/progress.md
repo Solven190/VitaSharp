@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
 | System imports | 7,276 | 6,907 | 369 | 0 | 7,320 | 99.3% |
-| General | 9,793 | 9,513 | 280 | 0 | 9,944 | 98.4% |
-| All firmware 3.74 exports | 19,211 | 5,065 | 655 | 13,491 | 19,406 | 98.9% |
+| General | 9,912 | 9,543 | 369 | 0 | 9,944 | 99.6% |
+| All firmware 3.74 exports | 19,330 | 5,095 | 744 | 13,491 | 19,406 | 99.6% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -477,10 +477,10 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpPartyGameUtil | `vs0:sys/external/np_party.suprx` | 13 / 13 | 100% | 2 | 8 / 8 | - |
 | SceNpScore | `vs0:sys/external/np_ranking.suprx` | 32 / 32 | 100% | - | 26 / 26 | - |
 | SceNpSignaling | `vs0:sys/external/np_signaling.suprx` | 18 / 18 | 100% | - | 12 / 12 | - |
-| SceNpSnsFacebook | `vs0:sys/external/np_sns_facebook.suprx` | 30 / 61 | 49.1% | 19 | 6 / 6 | 23 / 23 |
-| SceNpTrophy | `vs0:sys/external/np_trophy.suprx` | 31 / 59 | 52.5% | 10 | 15 / 15 | 16 / 16 |
+| SceNpSnsFacebook | `vs0:sys/external/np_sns_facebook.suprx` | 61 / 61 | 100% | 42 | 6 / 6 | 23 / 23 |
+| SceNpTrophy | `vs0:sys/external/np_trophy.suprx` | 59 / 59 | 100% | 38 | 15 / 15 | 16 / 16 |
 | SceNpTus | `vs0:sys/external/np_tus.suprx` | 67 / 67 | 100% | - | 46 / 46 | - |
-| SceNpUtility | `vs0:sys/external/np_utility.suprx` | 80 / 140 | 57.1% | 30 | 33 / 33 | 46 / 46 |
+| SceNpUtility | `vs0:sys/external/np_utility.suprx` | 140 / 140 | 100% | 68 | 33 / 33 | 46 / 46 |
 | SceNpUtilityAvatarN | `vs0:sys/external/np_utility.suprx` | 2 / 2 | 100% | - | - | - |
 | SceNpWebApi | `vs0:sys/external/np_webapi.suprx` | 63 / 63 | 100% | 1 | 19 / 19 | 25 / 25 |
 | SceNpWebApiCommonDialog | `vs0:sys/external/libcdlg.suprx` | 10 / 10 | 100% | - | 8 / 8 | 2 / 2 |

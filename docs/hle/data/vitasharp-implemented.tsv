@@ -6925,25 +6925,56 @@
 0xBC892D18	sceNpSignalingTerm	NpSignaling	SceNpSignaling	vh
 0xA413F8C2	sceNpSignalingTerminateConnection	NpSignaling	SceNpSignaling	vh
 0x06A167FC	NID_06A167FC	NpSnsFacebook	SceNpSnsFacebook	-
+0x0CDD6B52	NID_0CDD6B52	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x0FEBCA93	NID_0FEBCA93	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x1375638F	NID_1375638F	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x18041141	NID_18041141	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x20B68EBC	NID_20B68EBC	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x249B3C57	NID_249B3C57	NpSnsFacebook	SceNpSnsFacebook	-
+0x2814F3DB	NID_2814F3DB	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x34A88B2D	NID_34A88B2D	NpSnsFacebook	SceNpSnsFacebook	-
 0x3574800C	NID_3574800C	NpSnsFacebook	SceNpSnsFacebook	-
+0x42CD6A87	NID_42CD6A87	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x46C23078	NID_46C23078	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x4A453D97	NID_4A453D97	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x501CCC39	NID_501CCC39	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x5069C04E	NID_5069C04E	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x58CAC784	NID_58CAC784	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x5EAB459F	NID_5EAB459F	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x61DDCBB7	NID_61DDCBB7	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x64E5B424	NID_64E5B424	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x6A170F5D	NID_6A170F5D	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x6CAB3583	NID_6CAB3583	NpSnsFacebook	SceNpSnsFacebook	-
+0x72A0685C	NID_72A0685C	NpSnsFacebook	SceNpSnsFacebook	-
+0x76B234BD	NID_76B234BD	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x78636540	NID_78636540	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x7C1286C0	NID_7C1286C0	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x7CE37858	NID_7CE37858	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x836AA54A	NID_836AA54A	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x8770E114	NID_8770E114	NpSnsFacebook	SceNpSnsFacebook	-	default
+0x8CB58B88	NID_8CB58B88	NpSnsFacebook	SceNpSnsFacebook	-
+0x9663A2EC	NID_9663A2EC	NpSnsFacebook	SceNpSnsFacebook	-
 0x9A0A4832	NID_9A0A4832	NpSnsFacebook	SceNpSnsFacebook	-	default
 0x9C6AAB52	NID_9C6AAB52	NpSnsFacebook	SceNpSnsFacebook	-
 0x9DE0B1BC	NID_9DE0B1BC	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xA3785735	NID_A3785735	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xA9C661E9	NID_A9C661E9	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xABF56333	NID_ABF56333	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xB22D89FD	NID_B22D89FD	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xB45419A5	NID_B45419A5	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xC10D390C	NID_C10D390C	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xC15158EE	NID_C15158EE	NpSnsFacebook	SceNpSnsFacebook	-
+0xC87C016D	NID_C87C016D	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xC9798074	NID_C9798074	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xC9ACC1C1	NID_C9ACC1C1	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xCB2ED352	NID_CB2ED352	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xCB51675B	NID_CB51675B	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xD08701B6	NID_D08701B6	NpSnsFacebook	SceNpSnsFacebook	-
+0xDC06BD48	NID_DC06BD48	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xDCCE1BB3	NID_DCCE1BB3	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xDEDD3ECA	NID_DEDD3ECA	NpSnsFacebook	SceNpSnsFacebook	-	default
+0xEF957AD0	NID_EF957AD0	NpSnsFacebook	SceNpSnsFacebook	-
+0xF3956995	NID_F3956995	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xFA6FBAAE	NID_FA6FBAAE	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xFB99FF8E	NID_FB99FF8E	NpSnsFacebook	SceNpSnsFacebook	-	default
 0xFD842B21	NID_FD842B21	NpSnsFacebook	SceNpSnsFacebook	-	default
@@ -6954,21 +6985,49 @@
 0xA3C9041D	sceNpSnsFacebookGetLongAccessToken	NpSnsFacebook	SceNpSnsFacebook	vh
 0x80557AA0	sceNpSnsFacebookInit	NpSnsFacebook	SceNpSnsFacebook	vh
 0xA71E6847	sceNpSnsFacebookTerm	NpSnsFacebook	SceNpSnsFacebook	vh
+0x03D7BB80	NID_03D7BB80	NpTrophy	SceNpTrophy	-	default
 0x061DE3F5	NID_061DE3F5	NpTrophy	SceNpTrophy	-	default
 0x0AC3CEA8	NID_0AC3CEA8	NpTrophy	SceNpTrophy	-	default
+0x0B4BCB51	NID_0B4BCB51	NpTrophy	SceNpTrophy	-	default
 0x10182F1B	NID_10182F1B	NpTrophy	SceNpTrophy	-	default
 0x10371F25	NID_10371F25	NpTrophy	SceNpTrophy	-
+0x11A4F171	NID_11A4F171	NpTrophy	SceNpTrophy	-	default
 0x17FB1D9E	NID_17FB1D9E	NpTrophy	SceNpTrophy	-
+0x21676448	NID_21676448	NpTrophy	SceNpTrophy	-	default
 0x2B0CC831	NID_2B0CC831	NpTrophy	SceNpTrophy	-	default
 0x2EE76D88	NID_2EE76D88	NpTrophy	SceNpTrophy	-	default
+0x32473A4B	NID_32473A4B	NpTrophy	SceNpTrophy	-	default
 0x3AC04020	NID_3AC04020	NpTrophy	SceNpTrophy	-	default
+0x4173F2C7	NID_4173F2C7	NpTrophy	SceNpTrophy	-	default
 0x44E0F73E	NID_44E0F73E	NpTrophy	SceNpTrophy	-
+0x47456D7E	NID_47456D7E	NpTrophy	SceNpTrophy	-	default
+0x4D16AF03	NID_4D16AF03	NpTrophy	SceNpTrophy	-	default
+0x4DA9A081	NID_4DA9A081	NpTrophy	SceNpTrophy	-	default
+0x5672DAE5	NID_5672DAE5	NpTrophy	SceNpTrophy	-	default
 0x62E37599	NID_62E37599	NpTrophy	SceNpTrophy	-	default
+0x69532B6A	NID_69532B6A	NpTrophy	SceNpTrophy	-	default
+0x6B41EC32	NID_6B41EC32	NpTrophy	SceNpTrophy	-	default
+0x6F17BD4E	NID_6F17BD4E	NpTrophy	SceNpTrophy	-	default
+0x722D9BAD	NID_722D9BAD	NpTrophy	SceNpTrophy	-	default
+0x72446B6B	NID_72446B6B	NpTrophy	SceNpTrophy	-	default
+0x7BD69297	NID_7BD69297	NpTrophy	SceNpTrophy	-	default
+0x86C16F67	NID_86C16F67	NpTrophy	SceNpTrophy	-	default
+0x87E4C1B5	NID_87E4C1B5	NpTrophy	SceNpTrophy	-	default
 0x97D19AB6	NID_97D19AB6	NpTrophy	SceNpTrophy	-
+0x9E483C50	NID_9E483C50	NpTrophy	SceNpTrophy	-	default
+0xAAF30D25	NID_AAF30D25	NpTrophy	SceNpTrophy	-	default
+0xADEAD655	NID_ADEAD655	NpTrophy	SceNpTrophy	-	default
+0xBF78B2BC	NID_BF78B2BC	NpTrophy	SceNpTrophy	-	default
+0xC1406504	NID_C1406504	NpTrophy	SceNpTrophy	-	default
 0xC338E582	NID_C338E582	NpTrophy	SceNpTrophy	-	default
 0xC80794CF	NID_C80794CF	NpTrophy	SceNpTrophy	-
 0xCCDEB18B	NID_CCDEB18B	NpTrophy	SceNpTrophy	-	default
 0xD70DAFA7	NID_D70DAFA7	NpTrophy	SceNpTrophy	-	default
+0xDCFBE482	NID_DCFBE482	NpTrophy	SceNpTrophy	-	default
+0xE363C13A	NID_E363C13A	NpTrophy	SceNpTrophy	-	default
+0xED1908F7	NID_ED1908F7	NpTrophy	SceNpTrophy	-	default
+0xEF32F9F6	NID_EF32F9F6	NpTrophy	SceNpTrophy	-	default
+0xF44BFD5F	NID_F44BFD5F	NpTrophy	SceNpTrophy	-	default
 0xFD34F7CF	NID_FD34F7CF	NpTrophy	SceNpTrophy	-
 0xD55C6F4C	sceNpTrophyAbortHandle	NpTrophy	SceNpTrophy	vh
 0xC49FD33F	sceNpTrophyCreateContext	NpTrophy	SceNpTrophy	vh
@@ -7053,41 +7112,101 @@
 0x518A64B9	sceNpTusTryAndSetVariableVUserAsync	NpTus	SceNpTus	vh
 0x3907A8BC	sceNpTusWaitAsync	NpTus	SceNpTus	vh
 0x01C44B07	NID_01C44B07	NpUtility	SceNpUtility	-	default
+0x04AA56CB	NID_04AA56CB	NpUtility	SceNpUtility	-	default
 0x08893FA1	NID_08893FA1	NpUtility	SceNpUtility	-	default
+0x1392F18F	NID_1392F18F	NpUtility	SceNpUtility	-	default
 0x14437509	NID_14437509	NpUtility	SceNpUtility	-
+0x15227842	NID_15227842	NpUtility	SceNpUtility	-	default
+0x15D37FB1	NID_15D37FB1	NpUtility	SceNpUtility	-
+0x191D314C	NID_191D314C	NpUtility	SceNpUtility	-	default
+0x200BBAC5	NID_200BBAC5	NpUtility	SceNpUtility	-	default
+0x23414285	NID_23414285	NpUtility	SceNpUtility	-	default
 0x23B387A5	NID_23B387A5	NpUtility	SceNpUtility	-	default
+0x2580CDAF	NID_2580CDAF	NpUtility	SceNpUtility	-	default
 0x25D26B6F	NID_25D26B6F	NpUtility	SceNpUtility	-	default
+0x2835BC9B	NID_2835BC9B	NpUtility	SceNpUtility	-
+0x2E4D8BCF	NID_2E4D8BCF	NpUtility	SceNpUtility	-
 0x31423835	NID_31423835	NpUtility	SceNpUtility	-
 0x31D3542E	NID_31D3542E	NpUtility	SceNpUtility	-	default
 0x34B42669	NID_34B42669	NpUtility	SceNpUtility	-	default
+0x37AD71B9	NID_37AD71B9	NpUtility	SceNpUtility	-
+0x3A1BA624	NID_3A1BA624	NpUtility	SceNpUtility	-
 0x4013244C	NID_4013244C	NpUtility	SceNpUtility	-	default
 0x418E1324	NID_418E1324	NpUtility	SceNpUtility	-	default
 0x44A2F444	NID_44A2F444	NpUtility	SceNpUtility	-	default
+0x44FE1097	NID_44FE1097	NpUtility	SceNpUtility	-	default
+0x450C80FB	NID_450C80FB	NpUtility	SceNpUtility	-
+0x46543307	NID_46543307	NpUtility	SceNpUtility	-	default
+0x475B35A8	NID_475B35A8	NpUtility	SceNpUtility	-
 0x485F368A	NID_485F368A	NpUtility	SceNpUtility	-	default
 0x4A479D1D	NID_4A479D1D	NpUtility	SceNpUtility	-	default
+0x4B30CAEF	NID_4B30CAEF	NpUtility	SceNpUtility	-	default
+0x4D52A224	NID_4D52A224	NpUtility	SceNpUtility	-
+0x4FAC4566	NID_4FAC4566	NpUtility	SceNpUtility	-	default
 0x548625FC	NID_548625FC	NpUtility	SceNpUtility	-	default
 0x54C48F92	NID_54C48F92	NpUtility	SceNpUtility	-
+0x5631E596	NID_5631E596	NpUtility	SceNpUtility	-	default
+0x575BBBC4	NID_575BBBC4	NpUtility	SceNpUtility	-
+0x5D75C414	NID_5D75C414	NpUtility	SceNpUtility	-
+0x60CC5AFB	NID_60CC5AFB	NpUtility	SceNpUtility	-	default
+0x60D70B4A	NID_60D70B4A	NpUtility	SceNpUtility	-	default
+0x67147C73	NID_67147C73	NpUtility	SceNpUtility	-	default
 0x6C1161AD	NID_6C1161AD	NpUtility	SceNpUtility	-	default
+0x6EB4C8FE	NID_6EB4C8FE	NpUtility	SceNpUtility	-	default
+0x72FC55A7	NID_72FC55A7	NpUtility	SceNpUtility	-
+0x74B0D0AC	NID_74B0D0AC	NpUtility	SceNpUtility	-	default
+0x75FD803B	NID_75FD803B	NpUtility	SceNpUtility	-	default
 0x7A86C37E	NID_7A86C37E	NpUtility	SceNpUtility	-	default
 0x7BC7E7F7	NID_7BC7E7F7	NpUtility	SceNpUtility	-	default
+0x83445FED	NID_83445FED	NpUtility	SceNpUtility	-	default
+0x839F805E	NID_839F805E	NpUtility	SceNpUtility	-	default
 0x866D737A	NID_866D737A	NpUtility	SceNpUtility	-
+0x8857763D	NID_8857763D	NpUtility	SceNpUtility	-	default
+0x8904FE15	NID_8904FE15	NpUtility	SceNpUtility	-	default
+0x89484A9C	NID_89484A9C	NpUtility	SceNpUtility	-
+0x8951DA6B	NID_8951DA6B	NpUtility	SceNpUtility	-	default
 0x89C8F74E	NID_89C8F74E	NpUtility	SceNpUtility	-	default
+0x8CA24D19	NID_8CA24D19	NpUtility	SceNpUtility	-
 0x944FE83C	NID_944FE83C	NpUtility	SceNpUtility	-	default
 0x9D8E0730	NID_9D8E0730	NpUtility	SceNpUtility	-	default
+0x9EEDD7F8	NID_9EEDD7F8	NpUtility	SceNpUtility	-	default
 0xA08E60BA	NID_A08E60BA	NpUtility	SceNpUtility	-	default
 0xA0991531	NID_A0991531	NpUtility	SceNpUtility	-	default
+0xA15150C9	NID_A15150C9	NpUtility	SceNpUtility	-	default
+0xA3767D45	NID_A3767D45	NpUtility	SceNpUtility	-
 0xA3E828ED	NID_A3E828ED	NpUtility	SceNpUtility	-	default
+0xA48B44C9	NID_A48B44C9	NpUtility	SceNpUtility	-	default
+0xA9D5542A	NID_A9D5542A	NpUtility	SceNpUtility	-
+0xAB499EA4	NID_AB499EA4	NpUtility	SceNpUtility	-
 0xB2FD5E9D	NID_B2FD5E9D	NpUtility	SceNpUtility	-	default
+0xB418204E	NID_B418204E	NpUtility	SceNpUtility	-	default
+0xB4423DAF	NID_B4423DAF	NpUtility	SceNpUtility	-	default
 0xB7A52202	NID_B7A52202	NpUtility	SceNpUtility	-	default
+0xB8DFA4D1	NID_B8DFA4D1	NpUtility	SceNpUtility	-
 0xB9FFB253	NID_B9FFB253	NpUtility	SceNpUtility	-	default
+0xBDFC2D58	NID_BDFC2D58	NpUtility	SceNpUtility	-
+0xC01F7C6A	NID_C01F7C6A	NpUtility	SceNpUtility	-
+0xC02139E5	NID_C02139E5	NpUtility	SceNpUtility	-	default
 0xC2598A46	NID_C2598A46	NpUtility	SceNpUtility	-	default
+0xC4FE3A57	NID_C4FE3A57	NpUtility	SceNpUtility	-	default
+0xC63A0F6B	NID_C63A0F6B	NpUtility	SceNpUtility	-	default
 0xC9283605	NID_C9283605	NpUtility	SceNpUtility	-	default
 0xCD3A3712	NID_CD3A3712	NpUtility	SceNpUtility	-
+0xD03605CD	NID_D03605CD	NpUtility	SceNpUtility	-	default
 0xD46E45DE	NID_D46E45DE	NpUtility	SceNpUtility	-	default
+0xD5BB8464	NID_D5BB8464	NpUtility	SceNpUtility	-	default
+0xDFFF438A	NID_DFFF438A	NpUtility	SceNpUtility	-	default
 0xE2135903	NID_E2135903	NpUtility	SceNpUtility	-
 0xE64B4101	NID_E64B4101	NpUtility	SceNpUtility	-	default
+0xE916C86A	NID_E916C86A	NpUtility	SceNpUtility	-
+0xE9544993	NID_E9544993	NpUtility	SceNpUtility	-	default
 0xED2B86ED	NID_ED2B86ED	NpUtility	SceNpUtility	-	default
+0xF32ED20E	NID_F32ED20E	NpUtility	SceNpUtility	-	default
+0xF32ED701	NID_F32ED701	NpUtility	SceNpUtility	-
 0xF4B21646	NID_F4B21646	NpUtility	SceNpUtility	-	default
+0xF5086697	NID_F5086697	NpUtility	SceNpUtility	-	default
+0xF73C4411	NID_F73C4411	NpUtility	SceNpUtility	-	default
+0xFF9F1571	NID_FF9F1571	NpUtility	SceNpUtility	-
 0x32B068C4	sceNpBandwidthTestAbort	NpUtility	SceNpUtility	vh
 0xE0EBFBF6	sceNpBandwidthTestGetStatus	NpUtility	SceNpUtility	vh
 0x081FA13C	sceNpBandwidthTestInitStart	NpUtility	SceNpUtility	vh
