@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,139 | 2,133 | 6 | 0 | 2,139 | 100% |
 | System imports | 6,134 | 5,909 | 225 | 0 | 7,322 | 83.7% |
-| General | 8,205 | 7,994 | 211 | 0 | 9,945 | 82.5% |
-| All firmware 3.74 exports | 16,478 | 4,703 | 442 | 11,333 | 19,406 | 84.9% |
+| General | 8,237 | 8,026 | 211 | 0 | 9,945 | 82.8% |
+| All firmware 3.74 exports | 16,510 | 4,735 | 442 | 11,333 | 19,406 | 85% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -503,7 +503,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceRtabi | `os0:us/libkernel.suprx` | 16 / 16 | 100% | - | - | 4 / 4 |
 | SceRtc | `os0:kd/rtc.skprx` | 17 / 17 | 100% | - | 1 / 1 | 16 / 16 |
 | SceRtcUser | `os0:us/driver_us.suprx` | 44 / 44 | 100% | - | 30 / 30 | 10 / 10 |
-| SceSas | `vs0:sys/external/libsas.suprx` | 33 / 65 | 50.7% | - | 10 / 10 | - |
+| SceSas | `vs0:sys/external/libsas.suprx` | 65 / 65 | 100% | - | 10 / 10 | - |
 | SceSblACMgr | `os0:kd/acmgr.skprx` | 1 / 1 | 100% | - | - | 1 / 1 |
 | SceSblAimgr | `os0:kd/ss_mgr.skprx` | 1 / 1 | 100% | - | - | 1 / 1 |
 | SceSblDmac5Mgr | `os0:kd/ss_mgr.skprx` | 4 / 4 | 100% | 3 | 1 / 1 | 3 / 3 |

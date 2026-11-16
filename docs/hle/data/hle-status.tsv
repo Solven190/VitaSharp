@@ -228,7 +228,7 @@ SceRiffPromoter	vs0:vsh/common/mms/RiffPromoter.suprx	6	2	0	0	0	0	0	0	0	2
 SceRtabi	os0:us/libkernel.suprx	16	16	0	0	4	4	0	0	0	0
 SceRtc	os0:kd/rtc.skprx	17	17	1	1	16	16	0	0	0	0
 SceRtcUser	os0:us/driver_us.suprx	44	44	30	30	10	10	0	0	0	0
-SceSas	vs0:sys/external/libsas.suprx	65	33	10	10	0	0	0	0	0	0
+SceSas	vs0:sys/external/libsas.suprx	65	65	10	10	0	0	0	0	0	0
 SceSblACMgr	os0:kd/acmgr.skprx	1	1	0	0	1	1	0	0	0	0
 SceSblAimgr	os0:kd/ss_mgr.skprx	1	1	0	0	1	1	0	0	0	0
 SceSblDmac5Mgr	os0:kd/ss_mgr.skprx	4	4	1	1	3	3	3	0	3	0

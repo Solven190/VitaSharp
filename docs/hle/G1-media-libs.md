@@ -14,7 +14,7 @@ marcados **(inferido)**; valores sem fonte estão marcados **a confirmar**, com 
 | Biblioteca | Funções | Header | Arquivo HLE proposto |
 | --- | ---: | --- | --- |
 | SceAtrac | 24 | `psp2/atrac.h` | `Hle/Modules/Atrac.cs` (+ `Hle/Audio/At9Container.cs`) |
-| SceSas | 33 | nenhum (inferido do PSP) | `Hle/Modules/Sas.cs` + `Hle/Audio/SasEngine.cs` |
+| SceSas | 65 | nenhum (inferido do PSP; variantes de contexto do libsas 3.74) | `Hle/Modules/Sas.cs` + `Sas.Internal.cs` + `Hle/Audio/SasEngine.cs` |
 | ScePvf | 43 | `psp2/pvf.h` (10 inferidas) | `Hle/Modules/Pvf.cs` |
 | ScePgf | 23 | `psp2/pgf.h` | `Hle/Modules/Pgf.cs` |
 | SceJpegUser | 11 | `psp2/jpeg.h` | `Hle/Modules/Jpeg.cs` + `Media/JpegDecoder.cs`, `Media/JpegCommon.cs`, `Media/YuvConvert.cs` |
@@ -423,7 +423,7 @@ teste ao longo da reprodução e comparar com Vita3K LLE.
 | - [x] sceAtracGetVacantSize | 0x9BDB14F7 | `int sceAtracGetVacantSize(int atracHandle, SceUInt32 *pVacantSize);` | Espaço livre total no anel (`BufferSize - Filled`), sem considerar contiguidade; 0 se tudo na memória. |
 | - [x] sceAtracGetInternalError | 0x67981334 | `int sceAtracGetInternalError(int atracHandle, int *pInternalError);` | Devolve o último erro do decoder (`InternalError`, 0 se nenhum), como `sceAudiodecGetInternalError`. |
 
-## SceSas (33 funções)
+## SceSas (65 funções)
 
 ### Arquitetura (SceSas)
 
@@ -439,6 +439,12 @@ teste ao longo da reprodução e comparar com Vita3K LLE.
   inicialização recebe uma *string de configuração* (`"numGrains=256 numVoices=32 numReverbs=1"`, lembrança do SDK
   oficial; chaves e defaults a confirmar). Como confirmar: desmontar `libsas.suprx` (Ghidra + vita-loader) ou
   rastrear chamadas num jogo que use Sas com o Vita3K em LLE (logar r0–r3 na entrada de cada export).
+- **Variantes de contexto (FW 3.74, `libsas.suprx` descompilado):** a tabela de exports tem 65 funções: as 33
+  públicas e 32 variantes que recebem o contexto do mixer como primeiro argumento (`sceSas*Internal` no HLE,
+  `Hle/Modules/Sas.Internal.cs`). Cada pública é a variante sobre o contexto que o `sceSasInit` criou; o contexto fica
+  no início do buffer do chamador alinhado a 16 bytes, e `sceSasInitInternal` exige o tamanho exato que
+  `sceSasGetNeededMemorySizeInternal` devolve. Os volumes de `sceSasCoreInternal` são sem sinal (0/0 escreve o grão,
+  qualquer outro par mistura no buffer).
 - **LLE x HLE (decisão):**
   - *Opção A (recomendada quando houver firmware): LLE.* O Vita3K carrega `libsas` por LLE e funciona
     (`auto_lle_modules` em `module/src/load_module.cpp`), o que indica que o módulo é ARM puro, sem syscalls de
