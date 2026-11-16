@@ -95,33 +95,30 @@ public sealed partial class Net
         return 1;
     }
 
-    /// <summary>(int s, int cmd, void *data, int size): SceNetPs control requests (s &lt; 0: the stack itself). 0x22:
-    /// read and clear the 0x44-byte traffic counters (none on the loopback-only stack); 0x14: an int; 0x10000002: the
-    /// state of an entry of a three-slot table looked up by the id in data[0] (empty here: -EIO, as the kernel);
-    /// 0x20000003/0x12/0x19/0x20: settings the stack takes (the shell's network setup). Unknown commands or short buffers: -EINVAL, the kernel's default.</summary>
+    /// <summary>
+    /// (int s, int cmd, void *data, int size): SceNetPs control requests (FW 3.74 SceNetPs read in its code, study
+    /// only). s &lt; 0 is the stack itself, s &gt;= 0 the kernel index of an interface: lo0 (1) is the only one here,
+    /// any other index -EIO like the kernel's interface walk. A NULL block, a short one or an unknown command: -EINVAL,
+    /// the kernel's default. The stack's own commands (2, 0x20000002, 0x22) are -EIO on an interface, the interface
+    /// ones (4, 0x20000004) on the stack. The commands and their state are in NetSyscalls.Control.cs.
+    /// </summary>
     [Hle]
     int sceNetSyscallControl(int s, int cmd, uint data, int size)
     {
-        if (data == 0) return -22;
-        switch (cmd)
+        if (data == 0)
         {
-            case 0x22 when size >= 0x44: GuestMemory.Fill(data, 0, 0x44); return 0;
-            case 0x14 when size >= 4: GuestMemory.W32(data, 0); return 0;
-            case 0x10000002 when size >= 0x20: return -5;
-            case 0x20000012 when size >= 0x200: return 0;
-            case 0x20000019 when size >= 0xC: return 0;
-            case 0x20000003 when size >= 8: return 0;
-            case 0x20000020 when size >= 4: return 0;
-            case 0x21: return 0; // the {word, word} entries of the stack's flagged list, size / 8 at most: none here
-            case 0x10000018 when size >= 8: // { int value; int flags }: read setting 0x18 (bit 0 of flags picks the slot)
-                lock (_netLock) GuestMemory.W32(data, (uint)((GuestMemory.R32(data + 4) & 1) == 0 ? _ctl18a : _ctl18b));
-                return 0;
-            case 0x20000018 when size >= 8:
-                lock (_netLock) SetCtl18((int)GuestMemory.R32(data + 4) & 1, (int)GuestMemory.R32(data));
-                return 0;
-            default:
-                Log.WarnOnce($"netctl{cmd:X}", $"sceNetSyscallControl: command 0x{cmd:X} (size {size}) not modelled");
-                return -22;
+            return KernelEinval;
+        }
+
+        bool onInterface = s >= 0;
+        if (onInterface && s != Lo0KernelIndex)
+        {
+            return KernelEio;
+        }
+
+        lock (_netLock)
+        {
+            return StackControl(onInterface, cmd, data, size);
         }
     }
 

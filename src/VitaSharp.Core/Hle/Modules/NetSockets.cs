@@ -528,12 +528,27 @@ public sealed partial class Net
 
     // ------------------------------------------------------------------ DNS / misc
 
-    /// <summary>SceNetDnsInfo (8): dns_addr[2]. Stored; offline the resolver fails anyway.</summary>
+    /// <summary>SceNetDnsInfo (8): dns_addr[2], the process's own DNS servers over the stack's (libnet.suprx 3.74: needs
+    /// sceNetInit; flags 0; NULL clears them, a first address 0 is EINVAL). Offline the resolver fails anyway.</summary>
     [Hle]
     int sceNetSetDnsInfo(uint info, int flags)
     {
-        if (info == 0 || flags != 0) return NetErr(EINVAL);
-        _dns0 = GuestMemory.R32(info); _dns1 = GuestMemory.R32(info + 4);
+        if (!Initialized)
+        {
+            return NetErr(ENOTINIT);
+        }
+
+        if (flags != 0 || (info != 0 && GuestMemory.R32(info) == 0))
+        {
+            return NetErr(EINVAL);
+        }
+
+        lock (_netLock)
+        {
+            _dns0 = info == 0 ? 0 : GuestMemory.R32(info);
+            _dns1 = info == 0 ? 0 : GuestMemory.R32(info + 4);
+        }
+
         return 0;
     }
 

@@ -432,7 +432,7 @@ public sealed partial class ThreadMgr : HleModule
     uint sceKernelGetProcessTimeLow() => (uint)ProcTime();
     [Hle(Cost = HleCost.UserLibrary)]
     [Hle("sceKernelGetProcessTimeWideCore", Cost = HleCost.UserLibrary)]
-    ulong sceKernelGetProcessTimeWide() => ProcTime();
+    internal ulong sceKernelGetProcessTimeWide() => ProcTime();
     [Hle(Cost = HleCost.UserLibrary)] int sceKernelGetProcessTime(Ptr<ulong> clock) { clock.TrySet(ProcTime()); return 0; }
     /// <summary>Copies the 8-byte clock to user memory; a NULL pointer fails the copy (error code approximated).</summary>
     [Hle(Cost = HleCost.UserLibrary)]
