@@ -1,5 +1,5 @@
 # HLE status per firmware library, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=56 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
+# firmware=3.74 games=57 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
 library	module	total	impl	games	games_impl	system	system_impl	default	games_default	system_default	lle
 SceAACPromoter	vs0:vsh/common/mms/AACPromoter.suprx	4	1	0	0	0	0	0	0	0	1
 SceAVConfig	os0:kd/bootimage.skprx/SceAVConfig	34	34	0	0	31	31	0	0	0	0
@@ -117,7 +117,7 @@ SceLibFflMp4	vs0:vsh/common/libFflMp4.suprx	213	213	0	0	113	113	0	0	0	213
 SceLibFflVuMp4	vs0:vsh/common/libSenvuabsFFsdk.suprx	61	61	0	0	13	13	0	0	0	61
 SceLibGcc	os0:us/libkernel.suprx	20	20	0	0	0	0	0	0	0	2
 SceLibJson	vs0:sys/external/libSceJson.suprx	179	179	50	50	16	16	0	0	0	0
-SceLibKernel	os0:us/libkernel.suprx	341	331	122	122	67	67	30	0	26	0
+SceLibKernel	os0:us/libkernel.suprx	341	333	123	123	67	67	30	0	26	0
 SceLibLocation	vs0:sys/external/liblocation.suprx	33	22	5	5	25	14	0	0	0	0
 SceLibLocationExtension	vs0:sys/external/liblocation_extension.suprx	3	3	0	0	1	1	0	0	0	0
 SceLibLocationFactory	vs0:sys/external/liblocation_factory.suprx	1	1	0	0	0	0	0	0	0	1
@@ -144,7 +144,7 @@ SceMarlinHci	os0:kd/marlin_hci.skprx	44	44	0	0	20	20	34	0	17	0
 SceMetaGen	vs0:vsh/common/mms/meta_gen.suprx	16	0	0	0	12	0	0	0	0	0
 SceMgVideo	os0:kd/mgvideo.skprx	29	29	0	0	20	20	29	0	20	0
 SceMgVideoForMiniApp	os0:kd/mgvideo.skprx	4	4	0	0	0	0	4	0	0	0
-SceModulemgr	os0:kd/modulemgr.skprx	16	16	1	1	15	15	0	0	0	0
+SceModulemgr	os0:kd/modulemgr.skprx	16	16	2	2	14	14	0	0	0	0
 SceMotion	os0:us/driver_us.suprx	41	41	17	17	15	15	0	0	0	0
 SceMotionDev	os0:kd/bootimage.skprx/SceMotionDev	32	32	0	0	26	26	5	0	0	0
 SceMp3Promoter	vs0:vsh/common/mms/Mp3Promoter.suprx	32	7	0	0	0	0	0	0	0	7
@@ -170,8 +170,8 @@ SceNotificationUtilProgress	vs0:sys/external/notification_util.suprx	3	3	0	0	0	0
 SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
 SceNpBasic	vs0:sys/external/np_basic.suprx	41	31	25	25	4	2	0	0	0	0
-SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	457	41	41	391	391	0	0	0	0
-SceNpCommon	vs0:sys/external/np_common.suprx	71	50	14	14	50	35	0	0	0	0
+SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	475	41	41	391	391	0	0	0	0
+SceNpCommon	vs0:sys/external/np_common.suprx	71	54	14	14	50	35	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
 SceNpDrm	os0:kd/bootimage.skprx/SceNpDrm	8	8	0	0	8	8	6	0	6	0
 SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
@@ -182,7 +182,7 @@ SceNpManager	vs0:sys/external/np_manager.suprx	91	79	15	15	65	63	0	0	0	0
 SceNpManagerOAuth	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerSP	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerTicket	vs0:sys/external/np_manager.suprx	5	5	0	0	0	0	0	0	0	5
-SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	51	44	44	3	1	0	0	0	0
+SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	53	44	44	3	2	0	0	0	0
 SceNpMessage	vs0:sys/external/np_message.suprx	11	11	10	10	0	0	0	0	0	0
 SceNpMessageContacts	vs0:sys/external/np_message_contacts.suprx	16	16	0	0	12	12	0	0	0	16
 SceNpMessageDialogPlugin	vs0:sys/external/np_message_dialog_impl.suprx	5	5	0	0	4	4	0	0	0	5
@@ -213,7 +213,7 @@ ScePerfInternal	vs0:sys/external/libperf.suprx	6	6	0	0	0	0	0	0	0	6
 ScePgf	vs0:sys/external/libpgf.suprx	23	23	0	0	0	0	0	0	0	0
 ScePhotoExport	vs0:sys/external/libScePhotoExport.suprx	10	4	4	4	6	0	0	0	0	0
 ScePngPromoter	vs0:vsh/common/mms/png_promoter.suprx	3	2	0	0	0	0	0	0	0	2
-ScePower	os0:kd/bootimage.skprx/ScePower	42	42	16	16	14	14	0	0	0	0
+ScePower	os0:kd/bootimage.skprx/ScePower	42	42	17	17	13	13	0	0	0	0
 SceProcessmgr	os0:kd/processmgr.skprx	31	31	12	12	17	17	0	0	0	0
 ScePromoterUtil	vs0:sys/external/libScePromoterUtil.suprx	26	26	0	0	21	21	0	0	0	26
 ScePsmDrm	os0:kd/bootimage.skprx/SceNpDrm	6	6	6	6	0	0	6	6	0	0

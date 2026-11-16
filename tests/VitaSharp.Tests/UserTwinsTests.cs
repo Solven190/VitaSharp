@@ -21,44 +21,62 @@ public sealed class UserTwinsTests(GuestMemoryFixture fixture) : IDisposable
 
     public void Dispose() => _harness.Dispose();
 
-    /// <summary>The firmware's pairs: twin NID -> the export with the same body (libkernel 0x58DDAC4F: its import stub
-    /// of sceKernelDeleteThread).</summary>
+    /// <summary>The firmware's pairs: twin NID -> the export with the same body, a copy of its code, or the same body
+    /// through a pass-through thunk (np_commerce2's parsers); libkernel 0x58DDAC4F: its import stub of sceKernelDeleteThread.</summary>
     private static readonly Dictionary<uint, uint> s_pairs = new()
     {
         [0x08E8D89D] = 0x513940B4,
+        [0x0FA01B8E] = 0x17DF6D62,
         [0x16268321] = 0x5AD6CBE8,
         [0x188B27D3] = 0x8B4BEA99,
+        [0x2B7C71D0] = 0x307290E8,
+        [0x2BCB23B2] = 0x30ABA9CA,
         [0x2C3EF0F5] = 0xA200696D,
         [0x3449647C] = 0xD3BCDADD,
+        [0x37610D66] = 0x0FFC4396,
         [0x398B0940] = 0x3E8B077C,
         [0x3D49ABFA] = 0x8B4BEA99,
         [0x4121F2A1] = 0x8B4BEA99,
+        [0x4B49C464] = 0x0FFC4396,
+        [0x50E50CFB] = 0x05002E87,
         [0x5541AF3C] = 0x5730F4A4,
         [0x58DDAC4F] = 0x1BBDE3D9,
         [0x592C3D4A] = 0x8B4BEA99,
+        [0x5F4626FA] = 0x2A9DB98C,
         [0x61634358] = 0x838F1DAB,
         [0x6F9C4CC1] = 0xA7819967,
         [0x7575795A] = 0xA200696D,
         [0x766E2AE1] = 0x8B2FEFAA,
         [0x791774B7] = 0x1A53A505,
+        [0x7C13533C] = 0x2A9DB98C,
+        [0x85C461FE] = 0x2A9DB98C,
+        [0x869EA46B] = 0x30ABA9CA,
         [0x87D67D0B] = 0x838F1DAB,
         [0x8A804C00] = 0xD0831EFE,
+        [0x8B8465E2] = 0x027A054E,
         [0x8D4FDF78] = 0x8B4BEA99,
         [0x935C25D1] = 0x3E8B077C,
         [0x94C1EA04] = 0xD0831EFE,
         [0x9CF6BDA3] = 0x7D2A014E,
         [0x9FEE1E0E] = 0xC1542070,
+        [0xA18757A4] = 0x16FE6A6E,
         [0xA3A80BFA] = 0xD0831EFE,
         [0xA62BBCE3] = 0x3E8B077C,
         [0xA7F4F4AB] = 0x777FE4C2,
         [0xB0122008] = 0xE99EE305,
+        [0xB523FE1A] = 0xA1E8C739,
+        [0xB8F96BD2] = 0x05002E87,
         [0xBBAD980D] = 0xE8E8DF18,
         [0xC6DB0740] = 0x4535A358,
         [0xC81AD91B] = 0x27932A1B,
+        [0xCCF71DBE] = 0xA1E8C739,
         [0xD494B4CE] = 0x8B4BEA99,
         [0xD7ED457F] = 0xD3BCDADD,
         [0xE03981D6] = 0xAB1462C5,
+        [0xE53BD365] = 0x05002E87,
         [0xEC0BD12F] = 0x1A53A505,
+        [0xF0E90E02] = 0x05002E87,
+        [0xFC459CE8] = 0xA1E8C739,
         [0xFC8B048C] = 0xD7B43E47,
     };
 
@@ -117,6 +135,8 @@ public sealed class UserTwinsTests(GuestMemoryFixture fixture) : IDisposable
         (0xC6DB0740, _ => [0]),
         (0x61634358, b => [b, b + 0x200]),
         (0x8D4FDF78, _ => [0]),
+        (0x85C461FE, b => [b, b + 0x200]),
+        (0x869EA46B, b => [b, b + 0x100, 0x100]),
     ];
 
     [Fact]

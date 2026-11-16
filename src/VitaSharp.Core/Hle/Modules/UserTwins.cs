@@ -5,8 +5,11 @@ namespace VitaSharp.Core.Hle.Modules;
 /// <summary>
 /// User library exports that are the same function as another export of their module in the FW 3.74 firmware
 /// (decompiled, study only; compared instruction by instruction, literal pool words included): the module exports one
-/// body under two NIDs, or exports the import stub of a syscall (libkernel's 0x58DDAC4F is its stub of the threadmgr
-/// sceKernelDeleteThread). Each entry runs the HLE of the other NID on the caller's registers, the way
+/// body under two NIDs, exports two copies of the same code (np_commerce2's parsers: equal down to every function they
+/// call), or two bodies that differ only in a thunk that passes the registers through to the same function (push
+/// {r4, lr}; bl; pop), or exports the import stub of a syscall (libkernel's
+/// 0x58DDAC4F is its stub of the threadmgr sceKernelDeleteThread). Each entry runs the HLE of the other NID on the
+/// caller's registers, the way
 /// <see cref="KernelTwins"/> does for the kernel entries.
 /// </summary>
 public sealed partial class UserTwins : HleModule
@@ -72,6 +75,78 @@ public sealed partial class UserTwins : HleModule
     void SceNetCtl_E03981D6(HleContext context) => Forward(context, 0xAB1462C5);
 
     // ------------------------------------------------------------------ SceNpCommerce2
+
+    /// <summary>SceNpCommerce2 0x2B7C71D0: a copy of 0x307290E8 (NID_307290E8), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0x2B7C71D0, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_2B7C71D0(HleContext context) => Forward(context, 0x307290E8);
+
+    /// <summary>SceNpCommerce2 0x2BCB23B2: a copy of 0x30ABA9CA (NID_30ABA9CA), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0x2BCB23B2, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_2BCB23B2(HleContext context) => Forward(context, 0x30ABA9CA);
+
+    /// <summary>SceNpCommerce2 0x50E50CFB: a copy of 0x05002E87 (NID_05002E87), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0x50E50CFB, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_50E50CFB(HleContext context) => Forward(context, 0x05002E87);
+
+    /// <summary>SceNpCommerce2 0x869EA46B: a copy of 0x30ABA9CA (NID_30ABA9CA), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0x869EA46B, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_869EA46B(HleContext context) => Forward(context, 0x30ABA9CA);
+
+    /// <summary>SceNpCommerce2 0x8B8465E2: a copy of 0x027A054E (NID_027A054E), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0x8B8465E2, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_8B8465E2(HleContext context) => Forward(context, 0x027A054E);
+
+    /// <summary>SceNpCommerce2 0xB8F96BD2: a copy of 0x05002E87 (NID_05002E87), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0xB8F96BD2, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_B8F96BD2(HleContext context) => Forward(context, 0x05002E87);
+
+    /// <summary>SceNpCommerce2 0xE53BD365: a copy of 0x05002E87 (NID_05002E87), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0xE53BD365, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_E53BD365(HleContext context) => Forward(context, 0x05002E87);
+
+    /// <summary>SceNpCommerce2 0xF0E90E02: a copy of 0x05002E87 (NID_05002E87), the same code down to every function it calls.</summary>
+    [Hle(Nid = 0xF0E90E02, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_F0E90E02(HleContext context) => Forward(context, 0x05002E87);
+
+    /// <summary>SceNpCommerce2 0x0FA01B8E: the same wrapper as 0x17DF6D62 (NID_17DF6D62), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x0FA01B8E, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_0FA01B8E(HleContext context) => Forward(context, 0x17DF6D62);
+
+    /// <summary>SceNpCommerce2 0x37610D66: the same wrapper as 0x0FFC4396 (NID_0FFC4396), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x37610D66, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_37610D66(HleContext context) => Forward(context, 0x0FFC4396);
+
+    /// <summary>SceNpCommerce2 0x4B49C464: the same wrapper as 0x0FFC4396 (NID_0FFC4396), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x4B49C464, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_4B49C464(HleContext context) => Forward(context, 0x0FFC4396);
+
+    /// <summary>SceNpCommerce2 0x5F4626FA: the same wrapper as 0x2A9DB98C (NID_2A9DB98C), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x5F4626FA, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_5F4626FA(HleContext context) => Forward(context, 0x2A9DB98C);
+
+    /// <summary>SceNpCommerce2 0x7C13533C: the same wrapper as 0x2A9DB98C (NID_2A9DB98C), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x7C13533C, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_7C13533C(HleContext context) => Forward(context, 0x2A9DB98C);
+
+    /// <summary>SceNpCommerce2 0x85C461FE: the same wrapper as 0x2A9DB98C (NID_2A9DB98C), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0x85C461FE, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_85C461FE(HleContext context) => Forward(context, 0x2A9DB98C);
+
+    /// <summary>SceNpCommerce2 0xA18757A4: the same wrapper as 0x16FE6A6E (NID_16FE6A6E), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0xA18757A4, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_A18757A4(HleContext context) => Forward(context, 0x16FE6A6E);
+
+    /// <summary>SceNpCommerce2 0xB523FE1A: the same wrapper as 0xA1E8C739 (NID_A1E8C739), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0xB523FE1A, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_B523FE1A(HleContext context) => Forward(context, 0xA1E8C739);
+
+    /// <summary>SceNpCommerce2 0xCCF71DBE: the same wrapper as 0xA1E8C739 (NID_A1E8C739), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0xCCF71DBE, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_CCF71DBE(HleContext context) => Forward(context, 0xA1E8C739);
+
+    /// <summary>SceNpCommerce2 0xFC459CE8: the same wrapper as 0xA1E8C739 (NID_A1E8C739), through a pass-through thunk to the same parser.</summary>
+    [Hle(Nid = 0xFC459CE8, Library = "SceNpCommerce2")]
+    void SceNpCommerce2_FC459CE8(HleContext context) => Forward(context, 0xA1E8C739);
 
     /// <summary>SceNpCommerce2 0x08E8D89D: the same body as 0x513940B4 (NID_513940B4).</summary>
     [Hle(Nid = 0x08E8D89D, Library = "SceNpCommerce2")]
