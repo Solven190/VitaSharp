@@ -62,24 +62,31 @@ sealed class SessionCaptureControl : IDisposable
         }
 
         Capture = new SessionCapture(emu, o);
-        string? spec = options.FirstOrDefault(x => x == "--capture-preroll" || x.StartsWith("--capture-preroll="))
-            is { } opt ? (opt.Contains('=') ? opt[(opt.IndexOf('=') + 1)..] : DefaultPreRoll.ToString(CultureInfo.InvariantCulture))
-            : Environment.GetEnvironmentVariable(EnvVars.CapturePreRoll);
-        if (spec != null && double.TryParse(spec, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
-        {
-            _explicitPreRoll = Math.Max(0, s);
-        }
-
-        if (overrides != null)
-        {
-            _explicitPreRoll = 0; // a re-run's own recording has no pre-roll
-        }
-
+        // a re-run's own recording has no pre-roll
+        _explicitPreRoll = overrides != null ? 0 : ExplicitPreRoll(options, Environment.GetEnvironmentVariable(EnvVars.CapturePreRoll));
         UpdatePreRoll();
     }
 
+    /// <summary>The pre-roll set explicitly: --capture-preroll (the default 10 s), --capture-preroll=SECONDS, or else
+    /// <paramref name="env"/> (VITASHARP_CAPTURE_PREROLL); a negative value is 0, null when none is given.</summary>
+    internal static double? ExplicitPreRoll(string[] options, string? env)
+    {
+        string? spec = options.FirstOrDefault(x => x == "--capture-preroll" || x.StartsWith("--capture-preroll="))
+            is { } opt ? (opt.Contains('=') ? opt[(opt.IndexOf('=') + 1)..] : DefaultPreRoll.ToString(CultureInfo.InvariantCulture))
+            : env;
+        if (spec != null && double.TryParse(spec, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
+        {
+            return Math.Max(0, s);
+        }
+
+        return null;
+    }
+
+    /// <summary>The pre-roll in effect: the explicit one, or else 10 s in debug mode and none outside it.</summary>
+    internal static double PreRollFor(double? explicitPreRoll, bool debugMode) => explicitPreRoll ?? (debugMode ? DefaultPreRoll : 0);
+
     /// <summary>The pre-roll follows debug mode unless it was set explicitly.</summary>
-    public void UpdatePreRoll() => Capture.SetPreRoll(_explicitPreRoll ?? (DebugMode.Enabled ? DefaultPreRoll : 0));
+    public void UpdatePreRoll() => Capture.SetPreRoll(PreRollFor(_explicitPreRoll, DebugMode.Enabled));
 
     /// <summary>--capture-at=START:STOP (guest frames, or VITASHARP_CAPTURE_AT): a recording over those frames.</summary>
     public void StartScheduled(string[] options)
