@@ -1196,7 +1196,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   pergunta .vpk ou .pkg + licença (arquivo work.bin/.rif ou zRIF colado), com barra de progresso e o erro em
   diálogo. O zRIF é decodificado no Core (`Package/Zrif.cs`, dicionário do pkg2zip) e o `PkgInstaller` confere o
   content ID da licença contra o do `.pkg`; o `install <pkg> <rif|zRIF>` do CLI também aceita zRIF
-- [ ] Sistema do Vita (shell) não roda no Android (relato do usuário, 01/11/2026; log do celular
+- [x] (16/11/2026, usuário: o shell roda no Android; o que sobrou está no item seguinte) Sistema do Vita (shell) não roda no Android (relato do usuário, 01/11/2026; log do celular
   16/11/2026 (relato do usuário, APK com a correção da espera sem núcleo): o shell abre, mas demora, e as opções do app Configurações não funcionam/não aparecem. Próximo passo quando o Android voltar: captura "Gravar tudo" no app Configurações e comparar com o mesmo app no PC.
   `20261101_204800_SYSTEM.log`, Redmi Note 14, firmware 3.74 instalado no app): a sessão abre, a GPU apresenta só
   2 superfícies (0x6043E000 e 0x60240000) e 91 quadros em ~4 s, com apenas 7 shaders e 4 pipelines (no PC o shell
@@ -1222,6 +1222,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   novo depois de pegar o núcleo (`ThreadMgrHleTests.AWaitingThreadTakesNoCoreUntilItIsWoken`,
   `ContendedLocksNeverLetTwoThreadsIn`). No PC, boot-shell depois de 35 s: 2-4 fps antes, 47-59 fps depois; TestGame
   225/0 antes e depois. Falta confirmar no celular.
+- [ ] [P2][M] Sistema do Vita no Android: o shell demora para abrir e as opções do app Configurações não aparecem/não funcionam (relato do usuário, 16/11/2026, APK com a correção da espera sem núcleo). Próximo passo: captura "Gravar tudo" no app Configurações no celular e comparar com o mesmo app no PC; medir o tempo de boot do shell (PC x celular).
 - [x] App .NET MAUI com interface declarativa em C# (MauiReactor), seguindo os mockups em `docs/android/` (biblioteca
   e troféus, ajustes, firmware, conta PSN e rede, driver e informações da GPU, Sistema do Vita) (30/10/2026: gera o
   APK, `src/VitaSharp.Android`; ainda não rodou num aparelho nem no emulador)
