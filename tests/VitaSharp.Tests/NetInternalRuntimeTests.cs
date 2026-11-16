@@ -124,6 +124,17 @@ public sealed class NetInternalRuntimeTests(GuestMemoryFixture fixture) : IDispo
     }
 
     [Fact]
+    public void TheDebugPrintGoesThroughTheCallbackNidA64CFBF5Sets()
+    {
+        NetInit();
+        Assert.Equal(0, Call(NetModule, "NetInternalDebugPrint", "ab", null)); // no callback yet
+        uint code = _harness.Alloc(4);
+        GuestMemory.Write(code, (ushort)0x4770); // bx lr
+        Assert.Equal(0, Call(NetModule, "NID_A64CFBF5", code | 1));
+        _harness.OnGuest(_ => Assert.Equal(2, Call(NetModule, "NetInternalDebugPrint", "ab", null)));
+    }
+
+    [Fact]
     public void TheDhcpSyncObjectWaitsAndSignalsItsEventFlag()
     {
         NetInit();

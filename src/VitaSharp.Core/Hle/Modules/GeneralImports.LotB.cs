@@ -228,7 +228,7 @@ public sealed partial class Http
 
 public sealed partial class Net
 {
-    /// <summary>libnet's word NID_A64CFBF5 sets (its last caller's value).</summary>
+    /// <summary>libnet's debug print callback NID_A64CFBF5 sets (NID_694F8996 prints through it; 0 = none).</summary>
     [SnapshotMissing]
     uint _libnetWord;
 
@@ -334,7 +334,7 @@ public sealed partial class Net
         return NetErr((flags & ~7u) != 0 ? EINVAL : ENOENT);
     }
 
-    /// <summary>NID_A64CFBF5 (SceNetInternal)(uint value): a word of the library, set under its lock.</summary>
+    /// <summary>NID_A64CFBF5 (SceNetInternal)(callback): libnet's debug print callback, set under its lock.</summary>
     [Hle("NID_A64CFBF5", Nid = 0xA64CFBF5, Library = "SceNetInternal")]
     int NetInternalSetWord(uint value)
     {
