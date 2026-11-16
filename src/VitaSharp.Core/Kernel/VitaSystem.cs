@@ -117,9 +117,14 @@ public sealed class VitaSystem
     /// <summary>The power button, the power callbacks, standby and power off (ScePower), for every process.</summary>
     public SystemPower Power { get; } = new();
 
-    /// <summary>The plugin configuration's *KERNEL modules were loaded (or tried) for this session: the plugin loader loads them
-    /// once, at boot; a later process does not load (or retry) them.</summary>
-    internal bool KernelPluginsLoaded { get; set; }
+    /// <summary>The process whose kernel holds the plugin configuration's *KERNEL modules (null: not loaded or tried yet).
+    /// The plugin loader loads them once, at boot; a later process does not load (or retry) them. A LoadExec of that
+    /// process rebuilds its kernel for the new image (<see cref="Emulator.PerformExec"/>), so it clears this and the
+    /// new image loads them again: on a Vita the kernel, with its modules, outlives the LoadExec.</summary>
+    internal Emulator? KernelPluginsProcess { get; set; }
+
+    /// <summary>The *KERNEL modules were loaded (or tried) in some process of this session.</summary>
+    internal bool KernelPluginsLoaded => KernelPluginsProcess != null;
 
     /// <summary>marlin_hci.skprx's "SceMarlinHciMutex" (one kernel module for every process): 0 until the first
     /// SceMarlinHci call makes the one the module's boot start creates, -1 after the module's stop entry deleted it.

@@ -720,6 +720,14 @@ public sealed class Emulator : IDisposable
         Space.Renew();
         Vita.Objects.RemoveOwnedBy(Pid);
         InitProcess();
+        // the kernel plugins lived in the old image's kernel, which is gone: the new image loads them again (on a Vita
+        // they stay loaded across a LoadExec; without this a homebrew port's eboot.bin, started by its configurador.bin,
+        // found no kubridge and its imports became stubs that did nothing: Real Racing 3 stuck at 99%)
+        if (Vita.KernelPluginsProcess == this)
+        {
+            Vita.KernelPluginsProcess = null;
+        }
+
         MainModule = null;
         ExecRequest = null;
         string self = path.StartsWith("app0:", StringComparison.OrdinalIgnoreCase) ? path[5..].TrimStart('/') : path;
@@ -1586,7 +1594,7 @@ public sealed class Emulator : IDisposable
             return results;
         }
 
-        Vita.KernelPluginsLoaded = true;
+        Vita.KernelPluginsProcess = this;
         foreach (string path in PluginConfig.ModulesFor(config, "KERNEL"))
         {
             if (Kernel.Modules.Values.Any(m => m.IsKernel && string.Equals(m.Path, path, StringComparison.OrdinalIgnoreCase)))

@@ -2518,6 +2518,17 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 ## Bugs em aberto
 
 - [ ] [P1][M] Real Racing 3 (port RR3VITA01) parado em "Preparando los shaders… 99%" (relato do usuário, 16/11/2026; captura `RR3VITA01_20261116_013628_tudo`): a tela desenha a 60 fps a mesma imagem ("1714 preparados" não sobe), as 4 `rr3_worker` só dormem em laço (sceKernelDelayThread 100 ms), a `main` espera o semáforo `rr3_dib_vaciado` com timeout (0x80028005 x4379) e a `rr3_dibujo` segue desenhando e passa bloqueada em sceGxmDisplayQueueAddEntry — ninguém sinaliza o "desenho esvaziado". Suspeitas: a fila de exibição do GXM nunca libera a entrada que a thread de desenho espera para sinalizar, ou o libshacccg não devolveu um shader. O módulo PluginFramework (taiHEN) recusa save state, então a captura não tem estado para rerun. Primeiro passo: ler o código da rr3_dibujo em torno do sinal de rr3_dib_vaciado (lr 0x810145DD / 0x81014425) e o histórico do sema.
+  Achado e correção (16/11/2026, kill3; correção feita, ainda não confirmada no jogo): o semáforo é a sincronização
+  normal do anel de comandos main → rr3_dibujo (os timeouts de 2/4 ms são esperados) e o jogo não está travado: a tela
+  de shaders só some quando o port chama a sua função de fim (0x8101D358, que grava `cache3/shaders_arranque.txt`), e
+  ela vem de um gancho que o port escreve no código do `libRealRacing3.so` com o kubridge. O jogo começa por
+  configurador.bin, que faz LoadExec do eboot.bin: o LoadExec refazia o kernel do processo (o kubridge carregado no
+  boot sumia) e a marca "plugins de kernel já carregados" ficava, então o eboot.bin não achou o kubridge e
+  kuKernelMemProtect/kuKernelFlushCaches/kuKernelCpuUnrestrictedMemcpy viraram stubs HLE que não faziam nada (log:
+  "Unimplemented HLE function kubridge::..."); o gancho nunca foi escrito. Agora um LoadExec do processo que tem os
+  plugins de kernel os carrega de novo na nova imagem (`KernelPluginExecTests`, falha sem a correção). Falta: um app
+  aberto pelo Sistema do Vita (processo ao lado do shell) também não vê os plugins de kernel, que só o primeiro
+  processo carrega.
 - [ ] [P1][M] Textura quebrada no MGS3 depois de trocar de jogo pelo shell (relato do usuário, 15/11/2026; captura `shell_20261115_225727_tudo`, com dump da GPU de 177 quadros): shell → Metal Gear Solid HD → God of War Collection → de volta ao MGS, e na abertura do MGS3 (avião) a cabeça do tripulante sai com textura errada e sombra em blocos. Pistas do log: dois jogos vivos ao mesmo tempo ("scenes of several processes interleaved"), e `[vram] pressure 198% ... evicting 0 MB` repetido (VRAM acima do orçamento e nada liberado). Suspeitas: cache de texturas/alvos chaveado só pelo endereço do guest e compartilhado entre processos (o GoW usa os mesmos endereços), ou textura descartada/não recarregada sob pressão de VRAM. Primeiro passo: `replay-gpu --frame=37` do dump e comparar com o MGS aberto direto, sem o GoW.
   Achados (16/11/2026, kill2, 1h20): (1) o `--frame` do replay-gpu é o número do present, não o índice no dump:
   o "quadro 37" da captura é `--frame=17120`. (2) O defeito **reproduz no replay de um renderer novo**, inclusive com
