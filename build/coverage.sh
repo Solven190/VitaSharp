@@ -11,7 +11,8 @@
 # Measured: the src projects the test project references (Core, Mobile.Core, Renderer.Vulkan, Desktop), without the
 # code third-party source generators write (System.Text.Json, LibraryImport). Android needs its workload and is not
 # built by the tests, so it is not in the report. The renderer's tests need a software Vulkan device
-# (SwiftShader from Edge/Chrome, or Mesa lavapipe) and are skipped without one.
+# (Windows: Mesa lavapipe in %LOCALAPPDATA%\VitaSharpTools\mesa, else SwiftShader from Edge/Chrome;
+# Linux: Mesa lavapipe; macOS: MoltenVK) and are skipped without one (tests/VitaSharp.Tests/SoftwareVulkan.cs).
 
 set -uo pipefail
 

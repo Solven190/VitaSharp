@@ -2207,11 +2207,43 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] (16/11/2026, usuário: fechado — o CI do Windows e a cobertura estão verdes) [P3][M] CI do Windows e da cobertura (pausado em 11/11/2026): `fix/ci-green-2` (SwiftShader registrado para o carregador
   como administrador, `--gpu-dump-at` armado antes do jogo, limite de 3 apresentações pendentes). Antes de juntar:
   medição A/B do F1 2011 e do Uncharted com a máquina quieta e conferência de travadas nos quadros gravados.
-- [ ] [P3][M] Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
+- [x] (**16/11/2026, rm4, feat/lavapipe-windows**: lavapipe é o padrão local no Windows, SwiftShader a reserva) [P3][M]
+  Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
   `%LOCALAPPDATA%\VitaSharpTools`), o mesmo driver que o CI do Linux usa. Antes de trocar: conferir se ele expõe
   `VK_EXT_rasterization_order_attachment_access` (caminho de fetch passes da Mali no replay), rodar os mesmos
   replays/testes do renderizador nos dois (exatidão, extensões, tempo) e só então mudar a regra do projeto, o CI do
   Windows e o README.
+  Medida (lavapipe 26.2.6 Vulkan 1.4 x SwiftShader do Edge 157 Vulkan 1.3, os dois pelo carregador com
+  `VK_DRIVER_FILES`): **extensões** — os dois têm `rasterization_order_attachment_access` e `graphics_pipeline_library`;
+  só o lavapipe tem `fragment_shader_interlock`, `transform_feedback`, `extended_dynamic_state3`, `descriptor_buffer`.
+  **Testes** RendererPaths/Renderer*/Gxm*/Texture*/GpuDump* (107, `Category!=Slow`): SwiftShader 107/107 em 21 s,
+  pico 502 MB; lavapipe 106/107 em 61 s, pico 660 MB (o tempo extra está em 3 testes que compilam muitos pipelines:
+  `MsaaModesResolutionScaleAndAsyncShaders` 1,8→16,5 s, `EveryTextureFormatAndLayout...` 1,7→11,6 s,
+  `SecondSessionTakesItsShadersFromTheTitleCache` 1,4→11,2 s). A falha: `RendererDeviceHandoffTests` precisa de
+  `VK_EXT_headless_surface`, que o lavapipe do Windows não tem; agora é pulado com motivo (atributo
+  `SoftwareVulkanHeadlessFact`) e continua rodando no CI (SwiftShader no Windows, lavapipe no Linux).
+  **Replays** (`replay-gpu --compare`, 5 dumps, lavapipe contra SwiftShader): diferenças pequenas de arredondamento em
+  4 (média por quadro 0,007 a 0,37 /255, até 0,19% dos pixels acima de 8) e uma grande no SILH00004_183315: 44 de 131
+  quadros (993-998, 1037...) saem **brancos no SwiftShader e pretos no lavapipe**. Contra a GPU de verdade (NVIDIA
+  GTX 1650, mesmos dumps): no SILH00004 o lavapipe é idêntico em 131/131 quadros e o SwiftShader erra os 44; nos
+  outros dois medidos os dois ficam a menos de 0,5/255 da GPU (lavapipe 0,085% e 0,030% dos pixels acima de 8;
+  SwiftShader 0,217% e 0,041%). Tempo dos replays empatado (soma 161 s x 168 s, com a CPU dividida com outros
+  agentes). Decisão: o lavapipe é igual ou melhor em exatidão e extensões; perde em tempo dos testes (+40 s nessa
+  classe) e memória (+31%). **Troca feita:** `tests/VitaSharp.Tests/SoftwareVulkan.cs` escolhe no Windows o
+  `lvp_icd*.json` da versão mais nova em `%LOCALAPPDATA%\VitaSharpTools\mesa\<versão>\<arq>` quando o carregador do
+  sistema pode usá-lo (há `vulkan-1.dll` e o processo não é elevado, ou o driver está registrado) e cai no SwiftShader
+  do Edge/Chrome senão (`SoftwareVulkanSelectionTests`); README e README.pt-BR dizem como instalar. Não há script local
+  que escolha o driver (os scripts e o `dotnet test` usam o `SoftwareVulkan`); o `build/coverage.*` só teve o
+  comentário atualizado. **CI do Windows não mudou:** o runner não tem o lavapipe e cai sozinho no SwiftShader;
+  trocar exigiria baixar o `.7z` do mesa-dist-win a cada execução e registrar o manifesto em HKLM (o runner é
+  elevado) — fica como item abaixo.
+- [ ] [P3][P] CI do Windows com o lavapipe (como o local, 16/11/2026): baixar e guardar em cache o `x64` do
+  mesa-dist-win, registrar o `lvp_icd.x86_64.json` em `HKLM\SOFTWARE\Khronos\Vulkan\Drivers` (o runner é elevado) e
+  manter um job/passo com o SwiftShader para o teste do `VK_EXT_headless_surface`.
+- [ ] [P3][M] SwiftShader diverge da GPU no dump SILH00004_20261108_183315 (rm4, 16/11/2026): 44 de 131 quadros
+  (993-998, 1037 em diante) saem brancos no SwiftShader e pretos na NVIDIA e no lavapipe (`replay-gpu`, os dois
+  idênticos entre si). Ver se é comportamento indefinido do nosso renderizador (memória não iniciada, barreira faltando)
+  que só o SwiftShader expõe, ou um erro do SwiftShader; `--trace-draws` do quadro 993 nos dois.
 - [x] (**resolvido em 15/11/2026**: CI e Release verdes na main 7e53fbeb; fix/ci-15 corrigiu o fuso do host no Ubuntu 26.04
   e o dump agendado no macOS) **PRIORIDADE (11/11/2026)** Builds do GitHub Actions quebrando na main (relato do usuário, 11/11/2026, página de
   commits da main). Ver em cada workflow (ci.yml: Windows/Ubuntu/macOS, publish, "Coverage gate" novo de 11/11;

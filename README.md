@@ -401,7 +401,7 @@ What `dotnet test tests/VitaSharp.Tests` needs per system; a test whose requirem
 | | Windows | Linux | macOS |
 |---|---|---|---|
 | SDK | .NET 10 SDK | .NET 10 SDK | .NET 10 SDK |
-| Vulkan device (renderer, GPU dump and game-run tests) | SwiftShader as Microsoft Edge or Google Chrome ship it (found by itself) | Mesa lavapipe: `sudo apt install mesa-vulkan-drivers libvulkan1` (Fedora: `mesa-vulkan-drivers vulkan-loader`) | MoltenVK: the LunarG Vulkan SDK, or `brew install molten-vk vulkan-loader` |
+| Vulkan device (renderer, GPU dump and game-run tests) | Mesa lavapipe (Vulkan 1.4, the Linux CI's driver): unpack the `x64` folder of a [mesa-dist-win](https://github.com/pal1000/mesa-dist-win/releases) release (`vulkan_lvp.dll` + `lvp_icd.x86_64.json`) into `%LOCALAPPDATA%\VitaSharpTools\mesa\<version>\x64`; without it, or when the system loader `vulkan-1.dll` cannot take it, SwiftShader as Microsoft Edge or Google Chrome ship it (both found by themselves) | Mesa lavapipe: `sudo apt install mesa-vulkan-drivers libvulkan1` (Fedora: `mesa-vulkan-drivers vulkan-loader`) | MoltenVK: the LunarG Vulkan SDK, or `brew install molten-vk vulkan-loader` |
 | shaderc (renderer and shader-compile tests; the renderer needs it too) | from the Silk.NET.Shaderc.Native package | from the package; when that copy does not load: `sudo apt install libshaderc-dev` (Fedora, Arch: `shaderc`) | from the package |
 | A desktop window (game overlay tests) | always | an X11 or Wayland display; headless: `xvfb-run dotnet test tests/VitaSharp.Tests` (`sudo apt install xvfb`) | skipped: AppKit creates windows only on the main thread, and the tests run on worker threads |
 | FFmpeg (video and audio decode tests) | downloaded by the first build | downloaded by the first build | the system's: `brew install ffmpeg` |
@@ -422,7 +422,9 @@ What `dotnet test tests/VitaSharp.Tests` needs per system; a test whose requirem
   from `VK_DRIVER_FILES`. An elevated process (Administrator) makes the loader ignore that variable: run the tests
   unelevated, or register the driver's `*_icd.json` as a DWORD value `0` under
   `HKLM\SOFTWARE\Khronos\Vulkan\Drivers` (the CI does this for Edge's SwiftShader); otherwise the test is skipped. It
-  is skipped on macOS.
+  is skipped on macOS. An elevated process also takes SwiftShader instead of an unregistered lavapipe.
+- Windows' lavapipe has no `VK_EXT_headless_surface`: the test of a window-less renderer
+  (`RendererDeviceHandoffTests`) is skipped with it and runs with SwiftShader (the Windows CI) and on Linux.
 - Media parity (`MediaParityTests`): the desktop side (FFmpeg) always runs; the Android side needs the developer APK
   (`-p:VitaSharpDeveloper=true`) on a phone or the Android Emulator (any system with the Android SDK: an x86_64
   Google APIs image and the `android-x64` build). `build/android-media-parity.sh` (or `.ps1`) records the trace on the
