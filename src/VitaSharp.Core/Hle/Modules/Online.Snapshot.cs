@@ -3,7 +3,7 @@ using VitaSharp.Core.SaveState;
 namespace VitaSharp.Core.Hle.Modules;
 
 /// <summary>Save states: net callbacks and settings are kept; open sockets are dropped (see LoadExtra).</summary>
-[GenerateSnapshot, SnapshotIgnoreFields("ConfigOverride", "_sockets", "_epolls", "_resolvers", "_dumps", "_poller")]
+[GenerateSnapshot, SnapshotIgnoreFields("ConfigOverride", "_sockets", "_epolls", "_resolvers", "_dumps", "_poller", "_threadManager")]
 public sealed partial class Net
 {
     [GenerateSnapshot]

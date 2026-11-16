@@ -86,7 +86,11 @@ public sealed partial class Net
                 return 0;
             case 0x20000012 when size >= 0x200:
                 return 0;
-            case 0x20000003 when size >= 8:
+            case 0x20000003 when size >= 8: // { callback, flags }: attach an event callback to the stack or lo0
+                return 0;
+            case 0x20000005 when size >= 0x20: // the callback's event acknowledged
+                return 0;
+            case 0x20000007 when size >= 8: // { callback, - }: detach it
                 return 0;
             case 0x20000020 when size >= 4:
                 _stackSetting20 = (int)GuestMemory.R32(data);

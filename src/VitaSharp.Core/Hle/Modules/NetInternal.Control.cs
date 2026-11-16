@@ -539,15 +539,32 @@ public sealed partial class Net
             GuestMemory.Fill(block, 0, (uint)size);
         }
 
+        if (block != 0)
+        {
+            lock (_netLock)
+            {
+                _libnetBlocks[block] = size;
+            }
+        }
+
         return block;
     }
 
+    /// <summary>libnet's free: the block is poisoned with 0xDD, then returned; NULL or a block libnet did not hand out:
+    /// nothing.</summary>
     void LibnetFree(uint block)
     {
-        if (block != 0)
+        int size;
+        lock (_netLock)
         {
-            Emu.Memory.Free(block);
+            if (block == 0 || !_libnetBlocks.Remove(block, out size))
+            {
+                return;
+            }
         }
+
+        GuestMemory.Fill(block, 0xDD, (uint)size);
+        Emu.Memory.Free(block);
     }
 
     /// <summary>NID_8157DE3E (int *indexes, int max, uint flags): the libnet indexes of the interfaces in the kernel's
