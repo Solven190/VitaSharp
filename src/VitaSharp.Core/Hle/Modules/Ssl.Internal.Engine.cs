@@ -310,4 +310,186 @@ public sealed partial class Ssl
         EngineUnavailable(what);
         return MesNotSupported;
     }
+
+    /// <summary>NID_133ED36D / NID_FB51AE89 (): another libssl method table and the MES library's resource list, both
+    /// static data its engine fills; NULL here (no engine).</summary>
+    [Hle("NID_133ED36D", Nid = 0x133ED36D, Library = "SceSslInternal", Default = true)]
+    uint SslInternalMethodTable()
+    {
+        EngineUnavailable("method table");
+        return 0;
+    }
+
+    [Hle("NID_FB51AE89", Nid = 0xFB51AE89, Library = "SceSslInternal", Default = true)]
+    uint SslInternalResourceList()
+    {
+        EngineUnavailable("resource list");
+        return 0;
+    }
+
+    /// <summary>NID_DEC6DD27 (): tears down the engine's subsystems (cipher, digest, certificate and error tables);
+    /// the HLE started none: nothing to do.</summary>
+    [Hle("NID_DEC6DD27", Nid = 0xDEC6DD27, Library = "SceSslInternal", Default = true)]
+    void SslInternalCleanup()
+    {
+        EngineUnavailable("cleanup");
+    }
+
+    /// <summary>NID_09657E15 (resource list, -, context **out): a MES library context (0x19C bytes) built by each
+    /// resource's init callback; NULL list or out 0x2721. The resources are the engine's: 0x271B, out untouched.</summary>
+    [Hle("NID_09657E15", Nid = 0x09657E15, Library = "SceSslInternal", Default = true)]
+    uint SslInternalNewLibraryContext(uint resources, uint unused, uint output)
+    {
+        return CertificateCall(resources != 0 && output != 0, "library context");
+    }
+
+    /// <summary>NID_4725F9E7 (library context): drops one reference (+0x194); at the context's base count (+0x198)
+    /// its resources (none without the engine) and the block go back. NULL is nothing; always 0.</summary>
+    [Hle("NID_4725F9E7", Nid = 0x4725F9E7, Library = "SceSslInternal")]
+    uint SslInternalFreeLibraryContext(uint libraryContext)
+    {
+        if (libraryContext == 0)
+        {
+            return 0;
+        }
+
+        uint references = GuestMemory.R32(libraryContext + 0x194) - 1;
+        GuestMemory.W32(libraryContext + 0x194, references);
+        if (references == GuestMemory.R32(libraryContext + 0x198))
+        {
+            LibsslFree(libraryContext);
+        }
+
+        return 0;
+    }
+
+    /// <summary>NID_00ABEBC3 (SSL_CTX *context, certificate): adds a certificate to the context's store (+0x6C) after
+    /// reading its subject; NULL context or certificate 0; the store and the certificate service are the engine's:
+    /// 0 (not added).</summary>
+    [Hle("NID_00ABEBC3", Nid = 0x00ABEBC3, Library = "SceSslInternal", Default = true)]
+    uint SslInternalAddStoreCertificate(uint context, uint certificate)
+    {
+        if (context != 0 && certificate != 0)
+        {
+            EngineUnavailable("add certificate to store");
+        }
+
+        return 0;
+    }
+
+    /// <summary>NID_05F6A292 (SSL_CTX *context, key, int type): installs a key of type 0..2; NULL context or key 0, a
+    /// type outside 0..2 0x2722; the key service is the engine's: 0 (not installed).</summary>
+    [Hle("NID_05F6A292", Nid = 0x05F6A292, Library = "SceSslInternal", Default = true)]
+    uint SslInternalUseKey(uint context, uint key, int type)
+    {
+        if (context == 0 || key == 0)
+        {
+            return 0;
+        }
+
+        if (type is < 0 or > 2)
+        {
+            return 0x2722;
+        }
+
+        EngineUnavailable("use key");
+        return 0;
+    }
+
+    /// <summary>
+    /// NID_26CBEEB6 / NID_D419451B (SSL *ssl, certificate / key): the connection's certificate record (+0x4C, a 0x68-byte
+    /// block of libssl's heap { +4 = its +0x24, +0x64 = 1 }) is made when missing, then the certificate / key is
+    /// installed in it through the certificate service. NID_26CBEEB6 refuses a NULL certificate first (0). The
+    /// service is the engine's: 0 (not installed).
+    /// </summary>
+    [Hle("NID_26CBEEB6", Nid = 0x26CBEEB6, Library = "SceSslInternal", Default = true)]
+    uint SslInternalUseCertificate(uint ssl, uint certificate)
+    {
+        if (certificate == 0)
+        {
+            return 0;
+        }
+
+        return CertificateRecordCall(ssl, "use certificate");
+    }
+
+    [Hle("NID_D419451B", Nid = 0xD419451B, Library = "SceSslInternal", Default = true)]
+    uint SslInternalUsePrivateKey(uint ssl, uint key)
+    {
+        return CertificateRecordCall(ssl, "use private key");
+    }
+
+    uint CertificateRecordCall(uint ssl, string what)
+    {
+        if (GuestMemory.R32(ssl + 0x4C) == 0)
+        {
+            uint record = LibsslAlloc(0x68);
+            if (record == 0)
+            {
+                return 0;
+            }
+
+            GuestMemory.W32(record + 4, record + 0x24);
+            GuestMemory.W32(record + 0x64, 1);
+            GuestMemory.W32(ssl + 0x4C, record);
+        }
+
+        EngineUnavailable(what);
+        return 0;
+    }
+
+    /// <summary>NID_6046C1F3 (SSL_CTX *context, const char *list): sets the cipher list from the engine's cipher
+    /// table; NULL list false; no engine, so no cipher is ever chosen: false.</summary>
+    [Hle("NID_6046C1F3", Nid = 0x6046C1F3, Library = "SceSslInternal", Default = true)]
+    bool SslInternalSetCipherList(uint context, uint list)
+    {
+        if (list != 0)
+        {
+            EngineUnavailable("cipher list");
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// NID_6D0D3B11 (object, BIO *bio, int type, int format, out): reads a certificate from a BIO (format 0 DER, 0x100
+    /// base64, 0x1100 PEM "CERTIFICATE" / "WTLS CERTIFICATE") into the object; NULL object, BIO or out 0x2721,
+    /// another format 0x271A; the decoding is the certificate service: 0x271B.
+    /// </summary>
+    [Hle("NID_6D0D3B11", Nid = 0x6D0D3B11, Library = "SceSslInternal", Default = true)]
+    uint SslInternalReadCertificate(uint objectAddress, uint bio, int type, int format, uint output)
+    {
+        if (objectAddress == 0 || output == 0 || bio == 0)
+        {
+            return MesInvalidArgument;
+        }
+
+        return format is 0 or 0x100 or 0x1100 ? CertificateCall(true, "certificate read") : 0x271A;
+    }
+
+    /// <summary>
+    /// NID_CBEC7D13 (connection, int command, argument): NULL connection 0x2721, a NULL argument 0x2721 for any command
+    /// but 7. Command 2 is 0; command 1 with that library context already set (+0xA4) is 0; setting a new library
+    /// context (1), its query (7) and the session import (0xC) are the engine's: 0x271B; another command 0x271B.
+    /// </summary>
+    [Hle("NID_CBEC7D13", Nid = 0xCBEC7D13, Library = "SceSslInternal", Default = true)]
+    uint SslInternalConnectionControl(uint connection, int command, uint argument)
+    {
+        if (connection == 0 || (argument == 0 && command != 7))
+        {
+            return MesInvalidArgument;
+        }
+
+        if (command == 2 || (command == 1 && argument == GuestMemory.R32(connection + 0xA4)))
+        {
+            return 0;
+        }
+
+        if (command is 1 or 7 or 0xC)
+        {
+            EngineUnavailable("control " + command);
+        }
+
+        return MesNotSupported;
+    }
 }

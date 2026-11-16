@@ -1,5 +1,6 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
@@ -262,5 +263,122 @@ public sealed partial class Ssl
     {
         return context.Thread.CallGuest(method, context.Gpr(0), context.Gpr(1), context.Gpr(2), context.Gpr(3), context.Gpr(4),
             context.Gpr(5), context.Gpr(6), context.Gpr(7));
+    }
+
+    /// <summary>NID_0C693D36 (SSL *ssl): +0xA4 of the record at +0xD0, 0 without a record.</summary>
+    [Hle("NID_0C693D36", Nid = 0x0C693D36, Library = "SceSslInternal")]
+    uint SslInternalSessionWordA4(uint ssl)
+    {
+        uint record = GuestMemory.R32(ssl + 0xD0);
+        return record != 0 ? GuestMemory.R32(record + 0xA4) : 0;
+    }
+
+    /// <summary>NID_3EF42454 (object): its first word.</summary>
+    [Hle("NID_3EF42454", Nid = 0x3EF42454, Library = "SceSslInternal")]
+    uint SslInternalFirstWord(uint objectAddress)
+    {
+        return GuestMemory.R32(objectAddress);
+    }
+
+    /// <summary>NID_6F3B9809 (SSL *ssl): the connection's state word (+0x30).</summary>
+    [Hle("NID_6F3B9809", Nid = 0x6F3B9809, Library = "SceSslInternal")]
+    uint SslInternalStateWord(uint ssl)
+    {
+        return GuestMemory.R32(ssl + 0x30);
+    }
+
+    /// <summary>NID_B1745DAD (SSL *ssl): the word at +0x2C.</summary>
+    [Hle("NID_B1745DAD", Nid = 0xB1745DAD, Library = "SceSslInternal")]
+    uint SslInternalWord2C(uint ssl)
+    {
+        return GuestMemory.R32(ssl + 0x2C);
+    }
+
+    /// <summary>NID_D6D32A2F (SSL *ssl): the word at +0x18 (the read/write state SSL_get_error looks at).</summary>
+    [Hle("NID_D6D32A2F", Nid = 0xD6D32A2F, Library = "SceSslInternal")]
+    uint SslInternalWord18(uint ssl)
+    {
+        return GuestMemory.R32(ssl + 0x18);
+    }
+
+    /// <summary>
+    /// NID_F4007DBE (SSL *ssl): a client (+0x24 0) with an SSL 3 / TLS version (+0 high byte 3) gives +0x230 of the
+    /// record at +0x54 (0 without one); a server gives +0x10C, or when that is 0 +0x6C of the context at +0x100.
+    /// </summary>
+    [Hle("NID_F4007DBE", Nid = 0xF4007DBE, Library = "SceSslInternal")]
+    uint SslInternalPeerWord(uint ssl)
+    {
+        if (GuestMemory.R32(ssl + 0x24) == 0)
+        {
+            uint record = GuestMemory.R32(ssl + 0x54);
+            bool version3 = (int)GuestMemory.R32(ssl) >> 8 == 3;
+            return version3 && record != 0 ? GuestMemory.R32(record + 0x230) : 0;
+        }
+
+        uint word = GuestMemory.R32(ssl + 0x10C);
+        return word != 0 ? word : GuestMemory.R32(GuestMemory.R32(ssl + 0x100) + 0x6C);
+    }
+
+    /// <summary>libssl's "(NONE)" string in guest memory (made on first use).</summary>
+    [SnapshotMissing]
+    uint _noCipherName;
+
+    /// <summary>NID_2B90012E (const SSL_CIPHER *cipher): its name (+4); "(NONE)" for a NULL cipher.</summary>
+    [Hle("NID_2B90012E", Nid = 0x2B90012E, Library = "SceSslInternal")]
+    uint SslInternalCipherName(uint cipher)
+    {
+        if (cipher != 0)
+        {
+            return GuestMemory.R32(cipher + 4);
+        }
+
+        lock (_libsslBlocks)
+        {
+            if (_noCipherName == 0)
+            {
+                uint name = Emu.Memory.Alloc(8, "libssl (NONE)", MemoryRegion.User, 4);
+                GuestMemory.WriteCString(name, "(NONE)", 8);
+                _noCipherName = name;
+            }
+
+            return _noCipherName;
+        }
+    }
+
+    /// <summary>NID_422DFE70 (): drops the calling thread's entry of libssl's error-state table and returns its
+    /// value; the HLE keeps no error queue, so no thread has an entry: 0.</summary>
+    [Hle("NID_422DFE70", Nid = 0x422DFE70, Library = "SceSslInternal")]
+    uint SslInternalRemoveErrorState()
+    {
+        return 0;
+    }
+
+    /// <summary>libssl's memory functions (malloc, realloc, free) a caller installed with NID_C1299FB6; 0 = its own
+    /// heap.</summary>
+    [SnapshotMissing]
+    uint _libsslMalloc;
+
+    [SnapshotMissing]
+    uint _libsslRealloc;
+
+    [SnapshotMissing]
+    uint _libsslFree;
+
+    /// <summary>NID_C1299FB6 (malloc, realloc, free): with all three non-NULL they become libssl's memory functions
+    /// (its later allocations and frees run them); otherwise nothing changes.</summary>
+    [Hle("NID_C1299FB6", Nid = 0xC1299FB6, Library = "SceSslInternal")]
+    void SslInternalSetMemoryFunctions(uint malloc, uint realloc, uint free)
+    {
+        if (malloc == 0 || realloc == 0 || free == 0)
+        {
+            return;
+        }
+
+        lock (_libsslBlocks)
+        {
+            _libsslMalloc = malloc;
+            _libsslRealloc = realloc;
+            _libsslFree = free;
+        }
     }
 }

@@ -388,4 +388,77 @@ public sealed partial class GpuEs4
 
         return null;
     }
+
+    /// <summary>
+    /// NID_09BB98B2 (device, info *info): NULL info 3. An info of type 9 (+0) is answered by libgpu itself: with a
+    /// memory record at +8, its info block (+0x74) words +0xC / +0x10 go to +0xC / +0x10, and the call answers 3 either
+    /// way as 3.74 does; any other type goes to bridge 0x106C { cookie, info }.
+    /// </summary>
+    [Hle("NID_09BB98B2", Nid = 0x09BB98B2, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4User09BB98B2(uint device, uint info)
+    {
+        if (info == 0)
+        {
+            return PvrInvalidParams;
+        }
+
+        if (GuestMemory.R32(info) != 9)
+        {
+            return ServicesBridgeResult(ServicesOfDevice(device), 0x6C, 0xC, 8);
+        }
+
+        uint memory = GuestMemory.R32(info + 8);
+        if (memory != 0)
+        {
+            uint block = GuestMemory.R32(memory + 0x74);
+            GuestMemory.W32(info + 0xC, GuestMemory.R32(block + 0xC));
+            GuestMemory.W32(info + 0x10, GuestMemory.R32(block + 0x10));
+        }
+
+        return PvrInvalidParams;
+    }
+
+    /// <summary>NID_768482F6 (device, uint out[9]): bridge 0x1091, nine words back on PVRSRV_OK.</summary>
+    [Hle("NID_768482F6", Nid = 0x768482F6, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4User768482F6(uint device, uint output)
+    {
+        return ServicesBridgeResult(ServicesOfDevice(device), 0x91, 4, 0x28);
+    }
+
+    /// <summary>NID_9A4A5DAE (device, value, uint out[3]): NULLs 3; bridge 0x105C, three words back on PVRSRV_OK.</summary>
+    [Hle("NID_9A4A5DAE", Nid = 0x9A4A5DAE, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4User9A4A5DAE(uint device, uint value, uint output)
+    {
+        return output == 0 || device == 0 ? PvrInvalidParams : ServicesBridgeResult(ServicesOfDevice(device), 0x5C, 8, 0x10);
+    }
+
+    /// <summary>NID_9E8E2957 (device, value, uint *out): bridge 0x108A, its word to out on PVRSRV_OK.</summary>
+    [Hle("NID_9E8E2957", Nid = 0x9E8E2957, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4User9E8E2957(uint device, uint value, uint output)
+    {
+        return BridgeWithWord(ServicesOfDevice(device), 0x8A, 8, output);
+    }
+
+    /// <summary>NID_AAD85460 (services **record, value, reserved): a NULL record or services, or reserved not 0, 3;
+    /// bridge 0x1053 { value }.</summary>
+    [Hle("NID_AAD85460", Nid = 0xAAD85460, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4UserAAD85460(uint record, uint value, uint reserved)
+    {
+        uint services = ServicesOfConnection(record);
+        return record == 0 || services == 0 || reserved != 0 ? PvrInvalidParams : ServicesBridgeResult(services, 0x53, 8, 8);
+    }
+
+    /// <summary>NID_C0D16CE5 (device, info *out): bridge 0x1092 { cookie } (0x120 bytes back, copied on PVRSRV_OK).</summary>
+    [Hle("NID_C0D16CE5", Nid = 0xC0D16CE5, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4UserC0D16CE5(uint device, uint output)
+    {
+        return ServicesBridgeResult(ServicesOfDevice(device), 0x92, 4, 0x124);
+    }
+
+    /// <summary>NID_CCEE0336 (device, value, info *out): bridge 0x1088 (0x4C bytes back, copied on PVRSRV_OK).</summary>
+    [Hle("NID_CCEE0336", Nid = 0xCCEE0336, Library = "SceGpuEs4User", Default = true)]
+    int GpuEs4UserCCEE0336(uint device, uint value, uint output)
+    {
+        return ServicesBridgeResult(ServicesOfDevice(device), 0x88, 8, 0x50);
+    }
 }
