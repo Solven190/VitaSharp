@@ -16,10 +16,12 @@ public static class DesktopProcess
     private static string Exe => Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "VitaSharp.Desktop.exe" : "VitaSharp.Desktop");
 
     /// <summary>Runs the front-end with <paramref name="args"/> and <c>--data=<paramref name="data"/></c>; the output
-    /// is stdout and stderr together. Fails the test when it does not end in <paramref name="timeoutMs"/>.</summary>
+    /// is stdout and stderr together (stdout only when <paramref name="withStandardError"/> is false). Fails the test
+    /// when it does not end in <paramref name="timeoutMs"/>.</summary>
     /// <param name="systemLoader">Windows: the software driver through the system Vulkan loader (its ICD manifest) instead of
     /// loaded directly; a window surface needs it (GLFW creates the surface through the loader).</param>
-    public static Result Run(string data, IEnumerable<string> args, int timeoutMs = 120_000, IDictionary<string, string>? env = null, bool softwareVulkan = true, bool systemLoader = false)
+    public static Result Run(string data, IEnumerable<string> args, int timeoutMs = 120_000, IDictionary<string, string>? env = null, bool softwareVulkan = true, bool systemLoader = false,
+        bool withStandardError = true)
     {
         var psi = new ProcessStartInfo(Exe)
         {
@@ -67,7 +69,7 @@ public static class DesktopProcess
         };
         p.ErrorDataReceived += (_, e) =>
         {
-            if (e.Data != null)
+            if (e.Data != null && withStandardError)
             {
                 lock (output)
                 {

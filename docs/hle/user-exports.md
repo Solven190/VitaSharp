@@ -33,7 +33,8 @@ ainda não têm implementação. É o par do censo de kernel (`kernel-exports.md
   importam cada função (cada importador contado uma vez; teste `FunctionCensusTests`).
 - Situação no VitaSharp: `VitaSharp.Desktop hle-implemented` (os `[Hle]` e o módulo HLE de cada um) — dele sai quais
   bibliotecas o HLE serve.
-- Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv) (os buracos: biblioteca, NID, nome, tipo,
+- Tabela por função: [`data/user-exports.tsv`](data/user-exports.tsv), gerada junto com o status por
+  `build/hle-status.ps1` (`hle-coverage --status`, `HleCensusTables`; os buracos: biblioteca, NID, nome, tipo,
   importadores, se está no VitaSDK).
 
 ## Lote 15 (15/11/2026, feat/user-hle-15)
