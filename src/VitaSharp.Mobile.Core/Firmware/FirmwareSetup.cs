@@ -49,6 +49,11 @@ public static class FirmwareSetup
 {
     public const string PickerMimeType = "application/octet-stream";
 
+    /// <summary>"Desinstalar firmware" (the desktop launcher's; no Android screen yet): removes the firmware
+    /// partitions and index files of <paramref name="fsRoot"/> (FirmwareInstaller.Uninstall); games, saves and
+    /// ux0/ur0 stay. Returns the names removed.</summary>
+    public static Task<IReadOnlyList<string>> UninstallAsync(string fsRoot) => Task.Run(() => FirmwareInstaller.Uninstall(fsRoot));
+
     public static Task<FirmwareInfo> InstallAsync(Func<Stream> openDocument, string displayName, string fsRoot,
         IProgress<FirmwareProgress>? progress = null, CancellationToken cancellationToken = default) => Task.Run(() =>
     {

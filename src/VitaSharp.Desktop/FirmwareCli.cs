@@ -109,6 +109,34 @@ public static class FirmwareCli
         }
     }
 
+    /// <summary>uninstall-firmware [--yes]: removes the firmware partitions and index files of the data folder
+    /// (FirmwareInstaller.Uninstall; games, saves and ux0/ur0 stay). Without --yes it asks first.</summary>
+    public static int Uninstall(string[] options)
+    {
+        if (!options.Contains("--yes"))
+        {
+            Console.Write($"Uninstall the firmware from {Program.FsRoot}? Games, saves and the data in ux0/ur0 stay; os0, vs0, sa0 and pd0 are removed. [y/N] ");
+            string? answer = Console.ReadLine();
+            if (answer is null || !answer.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Nothing removed.");
+                return 1;
+            }
+        }
+
+        try
+        {
+            IReadOnlyList<string> removed = FirmwareInstaller.Uninstall(Program.FsRoot);
+            Console.WriteLine(removed.Count == 0 ? "No firmware installed." : $"Removed: {string.Join(", ", removed)}");
+            return 0;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Uninstall failed: {e.Message}");
+            return 1;
+        }
+    }
+
     public static int Info()
     {
         var info = FirmwareInfo.Read(Program.FsRoot);

@@ -62,6 +62,9 @@ public static class Program
             }
             case "install-firmware" when args.Length >= 2:
                 return FirmwareCli.Install(args[1], args.Skip(2).ToArray());
+            case "uninstall-firmware":
+            case "--uninstall-firmware":
+                return FirmwareCli.Uninstall(args.Skip(1).ToArray());
             case "firmware-info":
                 return FirmwareCli.Info();
             case "firmware-verify":
@@ -949,6 +952,7 @@ public static class Program
         Console.WriteLine("  install-firmware <PSVUPDAT.PUP>       install the official system software (os0/vs0/sa0/pd0) into the data folder");
         Console.WriteLine("  install-firmware <folder>|--vita3k   copy a firmware already installed elsewhere (e.g. Vita3K's)");
         Console.WriteLine("  install-firmware --pd0[=<folder>]     copy only pd0 (factory data: the home screen music), from Vita3K by default");
+        Console.WriteLine("  uninstall-firmware [--yes]           remove the installed firmware (os0/vs0/sa0/pd0); games, saves, ux0/ur0 stay");
         Console.WriteLine("  firmware-info                        show the installed firmware version");
         Console.WriteLine("  firmware-verify [other fs root]      check the key modules decrypt; compare files with another installation");
         Console.WriteLine("  import-trophies <folder>|--vita3k    import a PS Vita's ur0:user/00/trophy (decrypted copy) or Vita3K's trophies");

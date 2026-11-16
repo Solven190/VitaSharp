@@ -34,6 +34,7 @@ public sealed partial class MainWindow
         {
             _firmwarePanel = new FirmwarePanel();
             _firmwarePanel.Finished += () => { Refresh(rebuild: false); RebuildSidebar(); };
+            _firmwarePanel.ConfirmUninstall = message => Confirm(message, VitaSharp.Core.Localization.Loc.Get("FwUninstall"), danger: true);
         }
         Detach(_firmwarePanel);
         left.Children.Add(_k.Card(_firmwarePanel, 18, new Thickness(18, 14)));

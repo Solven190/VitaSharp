@@ -3129,4 +3129,13 @@
   <data name="SystemLanguageFollow" xml:space="preserve">
     <value>Seguir o sistema</value>
   </data>
+  <data name="FwUninstall" xml:space="preserve">
+    <value>Desinstalar firmware</value>
+  </data>
+  <data name="FwUninstallConfirm" xml:space="preserve">
+    <value>Desinstalar o firmware? Os jogos, os saves e os dados de ux0/ur0 ficam; o sistema do Vita e os módulos do firmware (os0, vs0, sa0, pd0) saem. Instale de novo para usá-los.</value>
+  </data>
+  <data name="FwUninstalled" xml:space="preserve">
+    <value>Firmware desinstalado (removido: {0}).</value>
+  </data>
 </root>
