@@ -62,7 +62,8 @@ modules of a section load in file order, and one that fails does not stop the ot
   manager calls them, in registration order: create when a process's main thread exists and before it starts (a create
   handler that fails refuses the process, and the handlers called before it get exit), exit when a process ends by
   itself, kill when it is ended (closed by the shell, a crash); stop when it is suspended (types 0x200 and 0x800 before
-  its threads stop, 0x1000 after) and start when it resumes (0x20000, then 0x40000). Switch events are not sent yet.
+  its threads stop, 0x1000 after) and start when it resumes (0x20000, then 0x40000); an application also sends the switch
+  event 0x11 when it is suspended and 0x10 when it resumes.
 - `*ALL` and `*TITLEID` modules load into every program's process, the system's own too (the plugin loader loads them after
   the process's preloaded modules), and start before its main thread. The
   section is the process's kernel title ID: `main` for the shell, the NPXS ID for a system application.

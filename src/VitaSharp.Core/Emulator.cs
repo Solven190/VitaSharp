@@ -620,6 +620,24 @@ public sealed class Emulator : IDisposable
         }
     }
 
+    /// <summary>A switch event (<see cref="ProcessEvents.SwitchIn"/>/<see cref="ProcessEvents.SwitchOut"/>) for an
+    /// application process the handlers were told was created; a system program's process sends none.</summary>
+    private void TellApplicationSwitch(int eventId, uint state)
+    {
+        if (IsSystemProgram)
+        {
+            return;
+        }
+
+        lock (_processEventGate)
+        {
+            if (_toldCreated)
+            {
+                InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _, 0, [0x14, (uint)Pid, state, 0, ProcessEvents.ApplicationType]);
+            }
+        }
+    }
+
     /// <summary>The exit or kill event, for a process the handlers were told was created.</summary>
     private void TellProcessEnd(int eventId)
     {
@@ -640,7 +658,7 @@ public sealed class Emulator : IDisposable
     /// thread of the kernel process, with the parameter block processmgr passes: its size word (0x14 for create, 0x10
     /// otherwise), then fields whose meaning is not known (0 here). Returns what the last handler returned.
     /// </summary>
-    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid, int eventType = 0)
+    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid, int eventType = 0, uint[]? paramWords = null)
     {
         failedUid = 0;
         List<KernelData> handlers = ProcessEvents.Handlers(Vita.Objects);
@@ -658,6 +676,13 @@ public sealed class Emulator : IDisposable
 
         GuestMemory.Fill(param, 0, 0x20);
         GuestMemory.W32(param, eventId == ProcessEvents.Create ? ProcessEvents.CreateParamSize : ProcessEvents.ParamSize);
+        if (paramWords != null)
+        {
+            for (int i = 0; i < paramWords.Length; i++)
+            {
+                GuestMemory.W32(param + (uint)i * 4, paramWords[i]);
+            }
+        }
         int result = 0, failed = 0;
         using (ProcessScope.Enter(kernel))
         {
@@ -838,6 +863,7 @@ public sealed class Emulator : IDisposable
         }
 
         TellProcessState(ProcessEvents.Stop, ProcessEvents.StopDone);
+        TellApplicationSwitch(ProcessEvents.SwitchOut, ProcessEvents.StateSuspended);
         Log.Info($"Process {Describe()} suspended");
     }
 
@@ -857,6 +883,7 @@ public sealed class Emulator : IDisposable
         }
 
         TellProcessState(ProcessEvents.Start, ProcessEvents.StartDone);
+        TellApplicationSwitch(ProcessEvents.SwitchIn, ProcessEvents.StateRunning);
 
         Log.Info($"Process {Describe()} resumed");
     }

@@ -136,6 +136,44 @@ public sealed class KernelProcessEventTests : IDisposable
 
     private StateRecorder? _stop, _start;
 
+    /// <summary>A switch handler entry's record: {event, the param's pid, the param's state, argument}.</summary>
+    private sealed record SwitchRecorder(uint Record)
+    {
+        public uint Event => GuestMemory.R32(Record);
+        public uint Pid => GuestMemory.R32(Record + 4);
+        public uint State => GuestMemory.R32(Record + 8);
+        public uint Argument => GuestMemory.R32(Record + 12);
+    }
+
+    private SwitchRecorder? _switch;
+
+    /// <summary>An A32 switch handler (event, type, param, argument): stores the event, the param's pid and state and
+    /// the argument; returns 0.</summary>
+    private (uint Entry, SwitchRecorder Recorder) SwitchHandler()
+    {
+        uint record = KernelBlock(0x10);
+        uint code = KernelBlock(0x28);
+        uint[] words =
+        [
+            0xE59FC01C, // ldr r12, [pc, #28]  (the record)
+            0xE58C0000, // str r0, [r12]
+            0xE5921004, // ldr r1, [r2, #4]
+            0xE58C1004, // str r1, [r12, #4]
+            0xE5921008, // ldr r1, [r2, #8]
+            0xE58C1008, // str r1, [r12, #8]
+            0xE58C300C, // str r3, [r12, #12]
+            0xE3A00000, // mov r0, #0
+            0xE12FFF1E, // bx lr
+            record,
+        ];
+        for (int i = 0; i < words.Length; i++)
+        {
+            GuestMemory.W32(code + (uint)i * 4, words[i]);
+        }
+
+        return (code, new SwitchRecorder(record));
+    }
+
     /// <summary>Registers a handler table {0x1C, create, exit, kill, 0, 0, 0} whose create returns
     /// <paramref name="createResult"/>.</summary>
     private Handlers Register(string name, int createResult = 0)
@@ -147,6 +185,8 @@ public sealed class KernelProcessEventTests : IDisposable
         (uint start, StateRecorder startRecord) = StateHandler();
         _stop = stopRecord;
         _start = startRecord;
+        (uint switchEntry, SwitchRecorder switchRecord) = SwitchHandler();
+        _switch = switchRecord;
         uint table = _harness.Alloc(0x1C);
         GuestMemory.Fill(table, 0, 0x1C);
         GuestMemory.W32(table, 0x1C);
@@ -155,6 +195,7 @@ public sealed class KernelProcessEventTests : IDisposable
         GuestMemory.W32(table + 0xC, kill);
         GuestMemory.W32(table + 0x10, stop);
         GuestMemory.W32(table + 0x14, start);
+        GuestMemory.W32(table + 0x18, switchEntry);
         ProcessmgrKernel processmgr = _harness.Module<ProcessmgrKernel>();
         int uid = 0;
         _harness.OnGuest(_ => uid = HleHarness.Call(processmgr, "ksceKernelRegisterProcEventHandler", _harness.Str(name), table, (int)Argument));
@@ -247,5 +288,27 @@ public sealed class KernelProcessEventTests : IDisposable
         Assert.Equal((uint)(ProcessEvents.StartBegin | ProcessEvents.StartDone), start.Types);
         Assert.Equal((uint)ProcessEvents.StartDone, start.LastType);
         Assert.Equal(Argument, start.Argument);
+    }
+
+    /// <summary>An application suspended hears the switch event 0x11 (state 3), resumed 0x10 (state 2), at the
+    /// handler's switch entry.</summary>
+    [Fact]
+    public void AHandlerHearsAnApplicationSwitchedOutAndIn()
+    {
+        Handlers handlers = Register("VsTestSwitch");
+        Emulator app = OpenApp("VSTS00002");
+        HleHarness.Until(() => handlers.Create.Pid == (uint)app.Pid, "the create event");
+        SwitchRecorder switched = _switch!;
+
+        app.Suspend();
+        Assert.Equal((uint)ProcessEvents.SwitchOut, switched.Event);
+        Assert.Equal((uint)app.Pid, switched.Pid);
+        Assert.Equal(ProcessEvents.StateSuspended, switched.State);
+        Assert.Equal(Argument, switched.Argument);
+
+        app.Resume();
+        Assert.Equal((uint)ProcessEvents.SwitchIn, switched.Event);
+        Assert.Equal((uint)app.Pid, switched.Pid);
+        Assert.Equal(ProcessEvents.StateRunning, switched.State);
     }
 }

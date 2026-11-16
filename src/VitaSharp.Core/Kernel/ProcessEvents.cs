@@ -25,6 +25,15 @@ public static class ProcessEvents
     /// after.</summary>
     public const int StopBegin = 0x200, StopThreads = 0x800, StopDone = 0x1000, StartBegin = 0x20000, StartDone = 0x40000;
 
+    /// <summary>The switch events (FW 3.74 processmgr): 0x10 when an application process resumes (its budget's active
+    /// count becomes non-zero), 0x11 when it is suspended (the count drops to 0). They go to the handler's switch entry
+    /// as switch(event, 0, param, argument), param being {0x14, pid, the process state, 0, the process type}.</summary>
+    public const int SwitchIn = 0x10, SwitchOut = 0x11;
+
+    /// <summary>The process type of an application (processmgr's process record +0x40) and the states the switch
+    /// events report (+0x3C: 2 running, 3 suspended).</summary>
+    public const uint ApplicationType = 0x1000000, StateRunning = 2, StateSuspended = 3;
+
     /// <summary>The size word processmgr writes at the start of the parameter block: 0x14 for the create event, 0x10 for
     /// the others.</summary>
     public const uint CreateParamSize = 0x14, ParamSize = 0x10;
