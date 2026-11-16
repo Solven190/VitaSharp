@@ -85,7 +85,7 @@ SceGameUpdate	vs0:sys/external/libgameupdate.suprx	4	4	0	0	0	0	0	0	0	0
 SceGifPromoter	vs0:vsh/common/mms/gif_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceGps	os0:kd/bootimage.skprx/SceGps	11	11	0	0	11	11	0	0	0	0
 SceGpuEs4ForUser	os0:kd/bootimage.skprx/SceGpuEs4	7	7	0	0	4	4	1	0	1	0
-SceGpuEs4User	os0:us/libgpu_es4.suprx	49	21	0	0	42	21	19	0	19	1
+SceGpuEs4User	os0:us/libgpu_es4.suprx	49	42	0	0	42	42	33	0	33	1
 SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	5	0	0	5	5	5	0	5	0
 SceGriefReportDialog	vs0:app/NPXS10065/grief_report_dialog.suprx	9	9	0	0	7	7	0	0	0	9
 SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
@@ -253,7 +253,7 @@ SceShutterSound	vs0:sys/external/libSceShutterSound.suprx	1	1	1	1	0	0	0	0	0	0
 SceSqlite	vs0:sys/external/libSceSqlite.suprx	171	171	0	0	0	0	0	0	0	171
 SceSqliteVsh	vs0:sys/external/sqlite.suprx	139	139	0	0	75	75	0	0	0	139
 SceSsl	vs0:sys/external/libssl.suprx	11	11	10	10	1	1	0	0	0	0
-SceSslInternal	vs0:sys/external/libssl.suprx	98	6	0	0	70	3	0	0	0	3
+SceSslInternal	vs0:sys/external/libssl.suprx	98	29	0	0	70	26	0	0	0	3
 SceStitchAdapter	vs0:app/NPXS10095/stitch_prx.suprx	14	14	0	0	11	11	0	0	0	14
 SceStitcherCoreAdapter	vs0:app/NPXS10095/stitch_core_prx.suprx	57	57	0	0	53	53	0	0	0	57
 SceSulpha	vs0:sys/external/libsulpha.suprx	23	23	0	0	10	10	0	0	0	23

@@ -1871,19 +1871,40 @@
 0x0EA7458D	NID_0EA7458D	GpuEs4	SceGpuEs4User	-	default
 0x116449D2	NID_116449D2	GpuEs4	SceGpuEs4User	-	default
 0x156A6B70	NID_156A6B70	GpuEs4	SceGpuEs4User	-	default
+0x1A575DFD	NID_1A575DFD	GpuEs4	SceGpuEs4User	-
+0x1BE5985A	NID_1BE5985A	GpuEs4	SceGpuEs4User	-
 0x1E0A9C4A	NID_1E0A9C4A	GpuEs4	SceGpuEs4User	-	default
 0x228252A2	NID_228252A2	GpuEs4	SceGpuEs4User	-	default
 0x416C8813	NID_416C8813	GpuEs4	SceGpuEs4User	-	default
 0x4447D217	NID_4447D217	GpuEs4	SceGpuEs4User	-	default
 0x5273D097	NID_5273D097	GpuEs4	SceGpuEs4User	-	default
+0x53CACDAB	NID_53CACDAB	GpuEs4	SceGpuEs4User	-
 0x5564C1BE	NID_5564C1BE	GpuEs4	SceGpuEs4User	-	default
 0x56893E98	NID_56893E98	GpuEs4	SceGpuEs4User	-	default
 0x5C3A6DFE	NID_5C3A6DFE	GpuEs4	SceGpuEs4User	-	default
 0x70800B46	NID_70800B46	GpuEs4	SceGpuEs4User	-	default
 0x73E945A1	NID_73E945A1	GpuEs4	SceGpuEs4User	-	default
+0x7AF40138	NID_7AF40138	GpuEs4	SceGpuEs4User	-
 0x7DCCBCAF	NID_7DCCBCAF	GpuEs4	SceGpuEs4User	-	default
 0x7E965369	NID_7E965369	GpuEs4	SceGpuEs4User	-	default
+0x804BA13D	NID_804BA13D	GpuEs4	SceGpuEs4User	-	default
+0x83D972DF	NID_83D972DF	GpuEs4	SceGpuEs4User	-	default
+0x86FC3202	NID_86FC3202	GpuEs4	SceGpuEs4User	-
+0x8A997DBB	NID_8A997DBB	GpuEs4	SceGpuEs4User	-	default
+0x8ED7D698	NID_8ED7D698	GpuEs4	SceGpuEs4User	-	default
+0x94286660	NID_94286660	GpuEs4	SceGpuEs4User	-	default
+0x9D5C4326	NID_9D5C4326	GpuEs4	SceGpuEs4User	-	default
 0xA5B14369	NID_A5B14369	GpuEs4	SceGpuEs4User	-
+0xA5E331FA	NID_A5E331FA	GpuEs4	SceGpuEs4User	-
+0xAD20D1A0	NID_AD20D1A0	GpuEs4	SceGpuEs4User	-	default
+0xB000CA65	NID_B000CA65	GpuEs4	SceGpuEs4User	-	default
+0xB26DF3D2	NID_B26DF3D2	GpuEs4	SceGpuEs4User	-	default
+0xB6CFD213	NID_B6CFD213	GpuEs4	SceGpuEs4User	-	default
+0xB9178277	NID_B9178277	GpuEs4	SceGpuEs4User	-	default
+0xBDE2B9E1	NID_BDE2B9E1	GpuEs4	SceGpuEs4User	-	default
+0xD90B0707	NID_D90B0707	GpuEs4	SceGpuEs4User	-	default
+0xE98914E4	NID_E98914E4	GpuEs4	SceGpuEs4User	-
+0xF0CCE9DB	NID_F0CCE9DB	GpuEs4	SceGpuEs4User	-	default
 0xF4735A47	NID_F4735A47	FirmwareConstants	SceGpuEs4User	-
 0x010DA2CB	NID_010DA2CB	GpuEs4	SceGpuEs4UserForVsh	-	default
 0x0A9556D9	NID_0A9556D9	GpuEs4	SceGpuEs4UserForVsh	-	default
@@ -9757,9 +9778,32 @@
 0x9B2F1BC1	sceSslGetSubjectName	Ssl	SceSsl	vh
 0x3C733316	sceSslInit	Ssl	SceSsl	vh
 0x03CE6E3A	sceSslTerm	Ssl	SceSsl	vh
+0x0DB6C206	NID_0DB6C206	Ssl	SceSslInternal	-
+0x243DE290	NID_243DE290	Ssl	SceSslInternal	-
+0x24C6257F	NID_24C6257F	Ssl	SceSslInternal	-
+0x260F5A85	NID_260F5A85	Ssl	SceSslInternal	-
+0x2F0FC3CD	NID_2F0FC3CD	Ssl	SceSslInternal	-
 0x33737FDC	NID_33737FDC	FirmwareConstants	SceSslInternal	-
+0x461C5990	NID_461C5990	Ssl	SceSslInternal	-
+0x4A1557A7	NID_4A1557A7	Ssl	SceSslInternal	-
+0x4F781BB6	NID_4F781BB6	Ssl	SceSslInternal	-
 0x56FE376A	NID_56FE376A	FirmwareConstants	SceSslInternal	-
+0x67FB1CD3	NID_67FB1CD3	Ssl	SceSslInternal	-
+0x9E38815D	NID_9E38815D	Ssl	SceSslInternal	-
+0xA4EA9DE0	NID_A4EA9DE0	Ssl	SceSslInternal	-
+0xAF50B945	NID_AF50B945	Ssl	SceSslInternal	-
+0xB0E4CB2F	NID_B0E4CB2F	Ssl	SceSslInternal	-
+0xBF99D664	NID_BF99D664	Ssl	SceSslInternal	-
 0xC0B135F0	NID_C0B135F0	FirmwareConstants	SceSslInternal	-
+0xC4D984C2	NID_C4D984C2	Ssl	SceSslInternal	-
+0xCC7F4211	NID_CC7F4211	Ssl	SceSslInternal	-
+0xD776E2F8	NID_D776E2F8	Ssl	SceSslInternal	-
+0xE5EDD91B	NID_E5EDD91B	Ssl	SceSslInternal	-
+0xEC9FAF42	NID_EC9FAF42	Ssl	SceSslInternal	-
+0xF030A0DE	NID_F030A0DE	Ssl	SceSslInternal	-
+0xF2C9B744	NID_F2C9B744	Ssl	SceSslInternal	-
+0xF71DB06F	NID_F71DB06F	Ssl	SceSslInternal	-
+0xFBEB1FD7	NID_FBEB1FD7	Ssl	SceSslInternal	-
 0x064DFC99	sceSslInternalGetCertificateAuthority	Ssl	SceSslInternal	vh
 0x4B4A2307	sceSslInternalIsInitalized	Ssl	SceSslInternal	vh
 0xF39A49C6	sceSslInternalWrite	Ssl	SceSslInternal	vh

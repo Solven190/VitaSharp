@@ -10,7 +10,7 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#5c8e29"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#298e29"/>
 <text x="952" y="27" font-size="11" fill="#9198a1">100%</text>
-<text x="12" y="58" font-size="13" font-weight="600" fill="#e6edf3">User (308 libraries): 98.4% implemented (19,105/19,406)</text>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#e6edf3">User (308 libraries): 98.6% implemented (19,149/19,406)</text>
 <g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="290.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#ffffff">PafWidget</text><text x="11" y="95" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="354.9" width="227.9" height="131.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="369.9" font-size="13" fill="#ffffff">PafMisc</text><text x="11" y="385.9" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>ScePsp2Compat: 1047/1047 (100%)</title><rect x="8" y="486.7" width="227.9" height="128.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="501.7" font-size="13" fill="#ffffff">Psp2Compat</text><text x="11" y="517.7" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
@@ -52,7 +52,7 @@
 <g><title>SceAppMgrUser: 128/128 (100%)</title><rect x="612.6" y="224.6" width="66.3" height="54" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="615.6" y="236.1" font-size="9.5" fill="#ffffff">AppMgrUser</text><text x="615.6" y="248.6" font-size="8" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>SceHttp: 100/116 (86.2%)</title><rect x="678.8" y="224.6" width="60" height="54" fill="#458e29" stroke="#0d1117" stroke-width="1"/><text x="681.8" y="235.2" font-size="8.6" fill="#ffffff">Http</text><text x="681.8" y="246.8" font-size="7.3" fill="#ffffff" fill-opacity=".8">86.2%</text></g>
 <g><title>SceNetCtl: 112/112 (100%)</title><rect x="738.9" y="224.6" width="58" height="54" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="741.9" y="234.9" font-size="8.3" fill="#ffffff">NetCtl</text><text x="741.9" y="246.2" font-size="7" fill="#ffffff" fill-opacity=".8">100%</text></g>
-<g><title>SceSslInternal: 6/98 (6.1%)</title><rect x="796.8" y="224.6" width="50.7" height="54" fill="#8e3629" stroke="#0d1117" stroke-width="1"/><text x="799.8" y="233.9" font-size="7.2" fill="#ffffff">SslInternal</text><text x="799.8" y="244.1" font-size="6.2" fill="#ffffff" fill-opacity=".8">6.1%</text></g>
+<g><title>SceSslInternal: 29/98 (29.5%)</title><rect x="796.8" y="224.6" width="50.7" height="54" fill="#8e6529" stroke="#0d1117" stroke-width="1"/><text x="799.8" y="233.9" font-size="7.2" fill="#ffffff">SslInternal</text><text x="799.8" y="244.1" font-size="6.2" fill="#ffffff" fill-opacity=".8">29.5%</text></g>
 <g><title>ScePafThread: 95/95 (100%)</title><rect x="847.6" y="224.6" width="49.2" height="54" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="850.6" y="233.6" font-size="7" fill="#ffffff">PafThread</text><text x="850.6" y="243.7" font-size="6" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>SceSystemSettingsCore: 93/93 (100%)</title><rect x="896.8" y="224.6" width="48.1" height="54" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNpManager: 84/91 (92.3%)</title><rect x="944.9" y="224.6" width="47.1" height="54" fill="#398e29" stroke="#0d1117" stroke-width="1"/></g>
@@ -81,7 +81,7 @@
 <g><title>SceNpMatching2: 55/55 (100%)</title><rect x="694.5" y="319.8" width="37.4" height="41.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceBt: 54/54 (100%), 46 default</title><rect x="694.5" y="361" width="37.4" height="40.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceCommonGuiDialog: 54/54 (100%)</title><rect x="694.5" y="401.3" width="37.4" height="40.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGpuEs4User: 21/49 (42.8%), 19 default</title><rect x="694.5" y="441.7" width="37.4" height="36.6" fill="#8e8029" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4User: 42/49 (85.7%), 33 default</title><rect x="694.5" y="441.7" width="37.4" height="36.6" fill="#468e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNearUtil: 49/49 (100%)</title><rect x="694.5" y="478.3" width="37.4" height="36.6" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceCamera: 46/46 (100%)</title><rect x="694.5" y="514.9" width="37.4" height="34.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceMarlinHci: 44/44 (100%), 34 default</title><rect x="694.5" y="549.3" width="37.4" height="32.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
