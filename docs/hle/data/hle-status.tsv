@@ -118,7 +118,7 @@ SceLibFflVuMp4	vs0:vsh/common/libSenvuabsFFsdk.suprx	61	61	0	0	13	13	0	0	0	61
 SceLibGcc	os0:us/libkernel.suprx	20	20	0	0	0	0	0	0	0	2
 SceLibJson	vs0:sys/external/libSceJson.suprx	179	179	50	50	16	16	0	0	0	0
 SceLibKernel	os0:us/libkernel.suprx	341	341	123	123	67	67	34	0	26	0
-SceLibLocation	vs0:sys/external/liblocation.suprx	33	22	5	5	25	14	0	0	0	0
+SceLibLocation	vs0:sys/external/liblocation.suprx	33	33	5	5	25	25	5	0	5	0
 SceLibLocationExtension	vs0:sys/external/liblocation_extension.suprx	3	3	0	0	1	1	0	0	0	0
 SceLibLocationFactory	vs0:sys/external/liblocation_factory.suprx	1	1	0	0	0	0	0	0	0	1
 SceLibLocationInternal	vs0:sys/external/liblocation_internal.suprx	5	5	0	0	4	4	0	0	0	5
@@ -171,7 +171,7 @@ SceNpActivity	vs0:sys/external/np_activity_sdk.suprx	4	4	3	3	0	0	0	0	0	0
 SceNpActivityNet	vs0:sys/external/np_activity.suprx	30	30	0	0	26	26	0	0	0	30
 SceNpBasic	vs0:sys/external/np_basic.suprx	41	34	25	25	4	4	0	0	0	0
 SceNpCommerce2	vs0:sys/external/np_commerce2.suprx	502	489	41	41	391	391	0	0	0	0
-SceNpCommon	vs0:sys/external/np_common.suprx	71	54	14	14	50	35	0	0	0	0
+SceNpCommon	vs0:sys/external/np_common.suprx	71	68	14	14	50	49	0	0	0	0
 SceNpCommonPs4	vs0:sys/external/np_common_ps4.suprx	713	713	0	0	246	246	0	0	0	713
 SceNpDrm	os0:kd/bootimage.skprx/SceNpDrm	8	8	0	0	8	8	6	0	6	0
 SceNpDrmPackage	os0:kd/bootimage.skprx/SceNpDrm	16	16	0	0	16	16	3	0	3	0
@@ -195,7 +195,7 @@ SceNpTrophy	vs0:sys/external/np_trophy.suprx	59	15	15	15	16	0	0	0	0	0
 SceNpTus	vs0:sys/external/np_tus.suprx	67	67	46	46	0	0	0	0	0	0
 SceNpUtility	vs0:sys/external/np_utility.suprx	140	44	33	33	46	10	0	0	0	0
 SceNpUtilityAvatarN	vs0:sys/external/np_utility.suprx	2	2	0	0	0	0	0	0	0	2
-SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	47	19	19	25	12	0	0	0	0
+SceNpWebApi	vs0:sys/external/np_webapi.suprx	63	60	19	19	25	25	1	0	1	0
 SceNpWebApiCommonDialog	vs0:sys/external/libcdlg.suprx	10	10	8	8	2	2	0	0	0	0
 ScePafCommon	vs0:sys/external/libpaf.suprx	176	176	0	0	72	72	0	0	0	176
 ScePafGraphics	vs0:sys/external/libpaf.suprx	686	686	0	0	214	214	0	0	0	686

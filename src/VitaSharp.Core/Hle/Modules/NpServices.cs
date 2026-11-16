@@ -82,7 +82,7 @@ public sealed partial class NpWebApi : HleModule
 
     int NewId() => Interlocked.Increment(ref _nextId);
 
-    [Hle] int sceNpWebApiInitialize(int libHttpCtxId, uint poolSize) => NewId();
+    [Hle] int sceNpWebApiInitialize(int libHttpCtxId, uint poolSize) => NewContext();
     [Hle] int sceNpWebApiTerminate(int libCtxId) { lock (_parts) _parts.Clear(); return 0; }
 
     [Hle]
@@ -112,7 +112,7 @@ public sealed partial class NpWebApi : HleModule
 
     /// <summary>(uint poolSize, const void *param, ...): a library context with its own pool (0 is refused); its id.</summary>
     [Hle("sceNpWebApi_E8FBA9B8", Nid = 0xE8FBA9B8, Library = "SceNpWebApi")]
-    int sceNpWebApiCreateContextForSystem(uint poolSize, uint param) => poolSize == 0 ? ERR_WEBAPI_ARG : NewId();
+    int sceNpWebApiCreateContextForSystem(uint poolSize, uint param) => poolSize == 0 ? ERR_WEBAPI_ARG : NewContext();
 
     /// <summary>(void *obj): hands an object to the library's internal manager when the library is set up (else 0).
     /// Nothing is ever sent, so there is nothing to keep.</summary>
@@ -122,7 +122,7 @@ public sealed partial class NpWebApi : HleModule
     /// <summary>(const void *a, const void *b): a library context for the system software (the library's busy check,
     /// 0x80559F02, cannot trigger here); its id. Messages and the PS4 Link set themselves up with it.</summary>
     [Hle("sceNpWebApi_A11FBA1A", Nid = 0xA11FBA1A, Library = "SceNpWebApi")]
-    int sceNpWebApiInitializeForSystem(uint a, uint b, uint c) => a == 0 ? ERR_WEBAPI_ARG : NewId();
+    int sceNpWebApiInitializeForSystem(uint a, uint b, uint c) => a == 0 ? ERR_WEBAPI_ARG : NewContext();
 
     /// <summary>(int libCtxId, const void *a, const void *b): a push event filter for the system software (both
     /// required); its id.</summary>

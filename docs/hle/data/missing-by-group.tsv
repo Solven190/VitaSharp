@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=310 general=260 vitasdk=0
+# firmware=3.74 games=0 system=272 general=260 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceCommonDialog	0x089FB01E	NID_089FB01E	vs0:sys/external/libcdlg.suprx	0	1	vs0:sys/external/libSceNearDialogUtil.suprx
@@ -67,17 +67,6 @@ system	SceGpuEs4User	0xBDE2B9E1	NID_BDE2B9E1	os0:us/libgpu_es4.suprx	0	1	os0:us/
 system	SceGpuEs4User	0xD90B0707	NID_D90B0707	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xE98914E4	NID_E98914E4	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xF0CCE9DB	NID_F0CCE9DB	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceLibLocation	0x0341758B	NID_0341758B	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
-system	SceLibLocation	0x0C0BB66A	NID_0C0BB66A	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
-system	SceLibLocation	0x2311B24A	NID_2311B24A	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
-system	SceLibLocation	0x41C1E68F	NID_41C1E68F	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
-system	SceLibLocation	0x4C8B6F21	NID_4C8B6F21	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
-system	SceLibLocation	0x5C7185D2	NID_5C7185D2	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_extension.suprx
-system	SceLibLocation	0x7F74AA94	NID_7F74AA94	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
-system	SceLibLocation	0x822BBF06	NID_822BBF06	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
-system	SceLibLocation	0x991AF2D0	NID_991AF2D0	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
-system	SceLibLocation	0xC1CFEC92	NID_C1CFEC92	vs0:sys/external/liblocation.suprx	0	5	vs0:app/NPXS10000/eboot.bin
-system	SceLibLocation	0xEFC9BD25	NID_EFC9BD25	vs0:sys/external/liblocation.suprx	0	2	vs0:sys/external/liblocation_extension.suprx
 system	SceNetInternal	0x01B090F1	NID_01B090F1	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x04E6136D	NID_04E6136D	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10028/eboot.bin
 system	SceNetInternal	0x0DFC23D6	NID_0DFC23D6	vs0:sys/external/libnet.suprx	0	5	vs0:app/NPXS10015/eboot.bin
@@ -115,21 +104,7 @@ system	SceNetInternal	0xEE94BF52	NID_EE94BF52	vs0:sys/external/libnet.suprx	0	1	
 system	SceNetInternal	0xEF421A65	NID_EF421A65	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0xF3917021	NID_F3917021	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10028/eboot.bin
 system	SceNetInternal	0xF6291476	NID_F6291476	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpCommon	0x38B88BA3	NID_38B88BA3	vs0:sys/external/np_common.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpCommon	0x40724BEA	NID_40724BEA	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
-system	SceNpCommon	0x40CC4D15	NID_40CC4D15	vs0:sys/external/np_common.suprx	0	29	vs0:app/NPXS10000/eboot.bin
-system	SceNpCommon	0x48314C6E	NID_48314C6E	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
-system	SceNpCommon	0x540B307E	NID_540B307E	vs0:sys/external/np_common.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpCommon	0x659ED07E	NID_659ED07E	vs0:sys/external/np_common.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpCommon	0x85503FA6	NID_85503FA6	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10002/eboot.bin
-system	SceNpCommon	0x85699AE2	NID_85699AE2	vs0:sys/external/np_common.suprx	0	29	vs0:app/NPXS10000/eboot.bin
 system	SceNpCommon	0x88B18A5B	NID_88B18A5B	vs0:sys/external/np_common.suprx	0	15	vs0:app/NPXS10002/eboot.bin
-system	SceNpCommon	0x9AEF645B	NID_9AEF645B	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
-system	SceNpCommon	0x9B7CAA67	NID_9B7CAA67	vs0:sys/external/np_common.suprx	0	27	vs0:app/NPXS10000/eboot.bin
-system	SceNpCommon	0xA7EC5CDB	NID_A7EC5CDB	vs0:sys/external/np_common.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpCommon	0xBDCD318E	NID_BDCD318E	vs0:sys/external/np_common.suprx	0	5	vs0:app/NPXS10008/eboot.bin
-system	SceNpCommon	0xD2B9BCA8	NID_D2B9BCA8	vs0:sys/external/np_common.suprx	0	27	vs0:app/NPXS10000/eboot.bin
-system	SceNpCommon	0xE2743C07	NID_E2743C07	vs0:sys/external/np_common.suprx	0	2	vs0:sys/external/np_manager.suprx
 system	SceNpSnsFacebook	0x06A167FC	NID_06A167FC	vs0:sys/external/np_sns_facebook.suprx	0	2	vs0:app/NPXS10002/eboot.bin
 system	SceNpSnsFacebook	0x18041141	NID_18041141	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
 system	SceNpSnsFacebook	0x3574800C	NID_3574800C	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
@@ -205,19 +180,6 @@ system	SceNpUtility	0xE2135903	NID_E2135903	vs0:sys/external/np_utility.suprx	0	
 system	SceNpUtility	0xE64B4101	NID_E64B4101	vs0:sys/external/np_utility.suprx	0	22	vs0:app/NPXS10000/eboot.bin
 system	SceNpUtility	0xED2B86ED	NID_ED2B86ED	vs0:sys/external/np_utility.suprx	0	22	vs0:app/NPXS10000/eboot.bin
 system	SceNpUtility	0xF4B21646	NID_F4B21646	vs0:sys/external/np_utility.suprx	0	22	vs0:app/NPXS10000/eboot.bin
-system	SceNpWebApi	0x07913970	NID_07913970	vs0:sys/external/np_webapi.suprx	0	2	vs0:app/NPXS10006/eboot.bin
-system	SceNpWebApi	0x0D910413	NID_0D910413	vs0:sys/external/np_webapi.suprx	0	14	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0x1D427258	NID_1D427258	vs0:sys/external/np_webapi.suprx	0	4	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0x4D7CC67C	NID_4D7CC67C	vs0:sys/external/np_webapi.suprx	0	1	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0x66CEC1A6	NID_66CEC1A6	vs0:sys/external/np_webapi.suprx	0	13	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0x6CDD45B6	NID_6CDD45B6	vs0:sys/external/np_webapi.suprx	0	1	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0x8D83A2D0	NID_8D83A2D0	vs0:sys/external/np_webapi.suprx	0	1	vs0:vsh/shell/shell.self
-system	SceNpWebApi	0xB280EA3D	NID_B280EA3D	vs0:sys/external/np_webapi.suprx	0	2	vs0:sys/external/libcdlg_game_custom_data_impl.suprx
-system	SceNpWebApi	0xC18E6DAA	NID_C18E6DAA	vs0:sys/external/np_webapi.suprx	0	2	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0xC359A88A	NID_C359A88A	vs0:sys/external/np_webapi.suprx	0	2	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0xC42F1E67	NID_C42F1E67	vs0:sys/external/np_webapi.suprx	0	10	vs0:app/NPXS10001/eboot.bin
-system	SceNpWebApi	0xCB51F139	NID_CB51F139	vs0:sys/external/np_webapi.suprx	0	2	vs0:app/NPXS10006/eboot.bin
-system	SceNpWebApi	0xFDCBD57D	NID_FDCBD57D	vs0:sys/external/np_webapi.suprx	0	1	vs0:app/NPXS10001/eboot.bin
 system	SceShell	0x0025417F	NID_0025417F	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x05D6FCB0	NID_05D6FCB0	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx
 system	SceShell	0x29A14252	NID_29A14252	vs0:vsh/shell/shell.self	0	1	vs0:vsh/shell/impose_net_plugin.suprx

@@ -3038,6 +3038,17 @@
 0xEB6DA895	sceSblGcAuthMgrPsmactVerifyR1	SystemServicesVsh	SceLibKernel	-	default
 0x93A6570E	sceSblGcAuthMgrSclkGetData1	SystemServicesVsh	SceLibKernel	-	default
 0xE088B0D0	sceSblGcAuthMgrSclkSetData2	SystemServicesVsh	SceLibKernel	-	default
+0x0341758B	NID_0341758B	Location	SceLibLocation	-	default
+0x0C0BB66A	NID_0C0BB66A	Location	SceLibLocation	-	default
+0x2311B24A	NID_2311B24A	Location	SceLibLocation	-
+0x41C1E68F	NID_41C1E68F	Location	SceLibLocation	-
+0x4C8B6F21	NID_4C8B6F21	Location	SceLibLocation	-	default
+0x5C7185D2	NID_5C7185D2	Location	SceLibLocation	-
+0x7F74AA94	NID_7F74AA94	Location	SceLibLocation	-
+0x822BBF06	NID_822BBF06	Location	SceLibLocation	-
+0x991AF2D0	NID_991AF2D0	Location	SceLibLocation	-
+0xC1CFEC92	NID_C1CFEC92	Location	SceLibLocation	-	default
+0xEFC9BD25	NID_EFC9BD25	Location	SceLibLocation	-	default
 0x71503251	sceLocationCancelGetLocation	Location	SceLibLocation	vh
 0x14FE76E8	sceLocationClose	Location	SceLibLocation	vh
 0xC895E567	sceLocationConfirm	Location	SceLibLocation	vh
@@ -6337,12 +6348,26 @@
 0xFF13E2C3	sceNpCommerce2_FF13E2C3	NpCommerce2	SceNpCommerce2	-
 0xFFED270E	sceNpCommerce2_FFED270E	NpCommerce2	SceNpCommerce2	-
 0xFFFC0101	sceNpCommerce2_FFFC0101	NpCommerce2	SceNpCommerce2	-
+0x38B88BA3	NID_38B88BA3	NpManager	SceNpCommon	-
+0x40724BEA	NID_40724BEA	NpManager	SceNpCommon	-
+0x40CC4D15	NID_40CC4D15	NpManager	SceNpCommon	-
+0x48314C6E	NID_48314C6E	NpManager	SceNpCommon	-
+0x540B307E	NID_540B307E	NpManager	SceNpCommon	-
 0x619FB198	NID_619FB198	NpManager	SceNpCommon	-
 0x622F004B	NID_622F004B	NpManager	SceNpCommon	-
 0x650D111B	NID_650D111B	NpManager	SceNpCommon	-
+0x659ED07E	NID_659ED07E	NpManager	SceNpCommon	-
 0x73BDFF32	NID_73BDFF32	NpManager	SceNpCommon	-
+0x85503FA6	NID_85503FA6	NpManager	SceNpCommon	-
+0x85699AE2	NID_85699AE2	NpManager	SceNpCommon	-
+0x9AEF645B	NID_9AEF645B	NpManager	SceNpCommon	-
+0x9B7CAA67	NID_9B7CAA67	NpManager	SceNpCommon	-
 0xA04C77A1	NID_A04C77A1	NpManager	SceNpCommon	-
+0xA7EC5CDB	NID_A7EC5CDB	NpManager	SceNpCommon	-
+0xBDCD318E	NID_BDCD318E	NpManager	SceNpCommon	-
 0xCC8E6AC6	NID_CC8E6AC6	NpManager	SceNpCommon	-
+0xD2B9BCA8	NID_D2B9BCA8	NpManager	SceNpCommon	-
+0xE2743C07	NID_E2743C07	NpManager	SceNpCommon	-
 0xE2582575	sceNpAuthAbortRequest	NpManager	SceNpCommon	vh
 0xED42079F	sceNpAuthCreateStartRequest	NpManager	SceNpCommon	vh
 0x14FC18AF	sceNpAuthDestroyRequest	NpManager	SceNpCommon	vh
@@ -6833,6 +6858,19 @@
 0x9F44CE45	sceNpWordFilterSetTimeout	NpUtility	SceNpUtility	vh
 0x7D140F70	sceNpWordFilterTerm	NpUtility	SceNpUtility	vh
 0x31B308AA	sceNpWordFilterWaitAsync	NpUtility	SceNpUtility	vh
+0x07913970	NID_07913970	NpWebApi	SceNpWebApi	-
+0x0D910413	NID_0D910413	NpWebApi	SceNpWebApi	-
+0x1D427258	NID_1D427258	NpWebApi	SceNpWebApi	-
+0x4D7CC67C	NID_4D7CC67C	NpWebApi	SceNpWebApi	-	default
+0x66CEC1A6	NID_66CEC1A6	NpWebApi	SceNpWebApi	-
+0x6CDD45B6	NID_6CDD45B6	NpWebApi	SceNpWebApi	-
+0x8D83A2D0	NID_8D83A2D0	NpWebApi	SceNpWebApi	-
+0xB280EA3D	NID_B280EA3D	NpWebApi	SceNpWebApi	-
+0xC18E6DAA	NID_C18E6DAA	NpWebApi	SceNpWebApi	-
+0xC359A88A	NID_C359A88A	NpWebApi	SceNpWebApi	-
+0xC42F1E67	NID_C42F1E67	NpWebApi	SceNpWebApi	-
+0xCB51F139	NID_CB51F139	NpWebApi	SceNpWebApi	-
+0xFDCBD57D	NID_FDCBD57D	NpWebApi	SceNpWebApi	-
 0xD462D519	sceNpWebApiAbortHandle	NpWebApi	SceNpWebApi	vh
 0xEB3D14CE	sceNpWebApiAbortRequest	NpWebApi	SceNpWebApi	vh
 0x8DCD6D19	sceNpWebApiAddHttpRequestHeader	NpWebApi	SceNpWebApi	vh
