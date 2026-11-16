@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 7,276 | 6,907 | 369 | 0 | 7,320 | 99.3% |
+| System imports | 7,320 | 6,925 | 395 | 0 | 7,320 | 100% |
 | General | 9,912 | 9,543 | 369 | 0 | 9,944 | 99.6% |
-| All firmware 3.74 exports | 19,330 | 5,095 | 744 | 13,491 | 19,406 | 99.6% |
+| All firmware 3.74 exports | 19,374 | 5,113 | 770 | 13,491 | 19,406 | 99.8% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -540,7 +540,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSqlite | `vs0:sys/external/libSceSqlite.suprx` | 171 / 171 | 100% | - | - | - |
 | SceSqliteVsh | `vs0:sys/external/sqlite.suprx` | 139 / 139 | 100% | - | - | 75 / 75 |
 | SceSsl | `vs0:sys/external/libssl.suprx` | 11 / 11 | 100% | - | 10 / 10 | 1 / 1 |
-| SceSslInternal | `vs0:sys/external/libssl.suprx` | 29 / 98 | 29.5% | - | - | 26 / 70 |
+| SceSslInternal | `vs0:sys/external/libssl.suprx` | 73 / 98 | 74.4% | 26 | - | 70 / 70 |
 | SceStitchAdapter | `vs0:app/NPXS10095/stitch_prx.suprx` | 14 / 14 | 100% | - | - | 11 / 11 |
 | SceStitcherCoreAdapter | `vs0:app/NPXS10095/stitch_core_prx.suprx` | 57 / 57 | 100% | - | - | 53 / 53 |
 | SceSulpha | `vs0:sys/external/libsulpha.suprx` | 23 / 23 | 100% | - | - | 10 / 10 |

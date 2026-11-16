@@ -253,7 +253,7 @@ SceShutterSound	vs0:sys/external/libSceShutterSound.suprx	1	1	1	1	0	0	0	0	0	0
 SceSqlite	vs0:sys/external/libSceSqlite.suprx	171	171	0	0	0	0	0	0	0	171
 SceSqliteVsh	vs0:sys/external/sqlite.suprx	139	139	0	0	75	75	0	0	0	139
 SceSsl	vs0:sys/external/libssl.suprx	11	11	10	10	1	1	0	0	0	0
-SceSslInternal	vs0:sys/external/libssl.suprx	98	29	0	0	70	26	0	0	0	3
+SceSslInternal	vs0:sys/external/libssl.suprx	98	73	0	0	70	70	26	0	26	3
 SceStitchAdapter	vs0:app/NPXS10095/stitch_prx.suprx	14	14	0	0	11	11	0	0	0	14
 SceStitcherCoreAdapter	vs0:app/NPXS10095/stitch_core_prx.suprx	57	57	0	0	53	53	0	0	0	57
 SceSulpha	vs0:sys/external/libsulpha.suprx	23	23	0	0	10	10	0	0	0	23
