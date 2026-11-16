@@ -110,6 +110,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][G] **Sincronização sob intercalações adversas:** event flag, semáforo, mutex, lwmutex, cond, msgpipe, eventos e
   callbacks testados contra a semântica do firmware 3.74 com o ponto de atraso entre cada par de chamadas (quem é
   acordado, em que ordem, o que sobra no padrão, cancelamento, delete, timeout), não só o caminho feliz.
+  Event flag coberto (16/11/2026, `EventFlagInterleavingTests`, conferido no threadmgr 3.74): modo ilegal na espera e
+  no poll (ILLEGAL_MODE, antes do UID), poll de outra thread numa flag sem WAITMULTIPLE com espera (EVF_MULTI), quem
+  um set satisfaz com o setter parado logo depois, o padrão que um cancelado/apagado devolve (o do momento do
+  cancel/delete), set depois do prazo em tempo de guest (WAIT_TIMEOUT, o bit fica) e antes do prazo (satisfaz).
+  ILLEGAL_MODE, EVF_MULTI no poll, o padrão do cancelado e o prazo eram bugs, corrigidos no mesmo hash. Achado para o
+  item: um cancel/delete não segura o acordado atrás do canceller parado (o set segura). Faltam semáforo, mutex,
+  lwmutex, cond, msgpipe, eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
