@@ -102,6 +102,10 @@ public sealed partial class NpCommerce2
     [Hle("sceNpCommerce2_093460F3", Nid = 0x093460F3, Library = C2)]
     int C2GameProduct(uint parent, uint info) => Need(parent, info) ?? GameProduct(parent, info, 2);
 
+    /// <summary>The v3 layout of the game product (item 0x8A): the 0x093460F3 code with variant 3.</summary>
+    [Hle("sceNpCommerce2_9A095860", Nid = 0x9A095860, Library = C2)]
+    int C2GameProduct8A(uint parent, uint info) => Need(parent, info) ?? GameProduct(parent, info, 3);
+
     /// <summary>The product with SKU list (0x98 bytes, 0xB8 record): the short product block (word 0x2B flags), the
     /// texts and the count of section 0x9C.</summary>
     [Hle("sceNpCommerce2_98E244BA", Nid = 0x98E244BA, Library = C2)]

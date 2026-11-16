@@ -60,9 +60,9 @@ public sealed class NpCommerce2FirmwareTests(GuestMemoryFixture fx, ITestOutputH
         Assert.True(parsed * 10 >= C2Harness.Parsers.Count * 8, $"only {parsed} of {C2Harness.Parsers.Count} parsers parse the full reply:\n" + string.Join("\n", unparsed));
     }
 
-    /// <summary>The 155 SceNpCommerce2 NIDs of NpCommerce2ParserTests less the four helpers that read no reply.</summary>
+    /// <summary>The 162 SceNpCommerce2 NIDs of NpCommerce2ParserTests less the four helpers that read no reply.</summary>
     [Fact]
-    public void EveryParserNidIsCovered() => Assert.Equal(151, C2Harness.Parsers.Count);
+    public void EveryParserNidIsCovered() => Assert.Equal(158, C2Harness.Parsers.Count);
 
     [C2FirmwareFact]
     public void MatchesFirmwareModule()

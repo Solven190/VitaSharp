@@ -419,6 +419,12 @@ public sealed partial class NpCommerce2 : HleModule
     [Hle] int sceNpCommerce2StartEmptyStoreCheck() => PsnAccount.Current.ServerError;
     [Hle] int sceNpCommerce2StopEmptyStoreCheck() => 0;
 
+    /// <summary>NID_785095D9(): sceNpCommerce2StopEmptyStoreCheck's code for the module's other background store check
+    /// (np_commerce2.suprx 3.74: aborts its request when one is running and sets its stop flag); the HLE never starts
+    /// it, so there is nothing to stop. Always 0.</summary>
+    [Hle(Nid = 0x785095D9, Library = "SceNpCommerce2")]
+    int NID_785095D9() => 0;
+
     // parsers over server data: unreachable offline (no data), so they reject their input
     [Hle] int sceNpCommerce2InitGetCategoryContentsResult(uint result, uint data, uint size) => ERR_INVALID_ARGUMENT;
     [Hle] int sceNpCommerce2DestroyGetCategoryContentsResult(uint result) => 0;

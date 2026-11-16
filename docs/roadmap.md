@@ -1370,6 +1370,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Firmware e sistema
 
+- [ ] [P3] NpMatching2: o Init do np_matching2 3.74 troca a porta de signaling para 0x2756 numa lista de títulos do
+  próprio módulo (a porta padrão é 9305; NID_B096B7A9/NID_40585786 já a definem e leem). Reproduzir lendo a lista do
+  np_matching2.suprx instalado (dados do firmware, não do emulador) quando o Matching2 tiver signaling real.
 - [ ] [P3][G] Ambiente de plugins do próprio sistema, todos funcionando (pedido do usuário, 13/11/2026: "o hardware original do
   Vita já implementa isso"). O firmware tem o seu sistema de plugins (o loader de plugins do libpaf usado pelo SceShell
   e pelos apps do sistema): `vs0:vsh/common` (auth_plugin, auth_reset_plugin, dbrecovery_plugin, idu_update_plugin,

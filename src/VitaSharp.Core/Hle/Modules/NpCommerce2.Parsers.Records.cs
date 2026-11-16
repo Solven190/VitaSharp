@@ -70,12 +70,28 @@ public sealed partial class NpCommerce2
 
     /// <summary>Reply with the count of section 0x74 (word 0x17); 0x60 bytes.</summary>
     [Hle("sceNpCommerce2_1599647E", Nid = 0x1599647E, Library = C2)]
-    int C2ReplyCount74(uint rec, uint buf, uint size)
+    int C2ReplyCount74(uint rec, uint buf, uint size) => ReplyCount(rec, buf, size, 0x74);
+
+    /// <summary>Reply with the count of section 0x39 (word 0x17); 0x60 bytes (the 0x74 parser's code with the other
+    /// section).</summary>
+    [Hle("sceNpCommerce2_62BBC725", Nid = 0x62BBC725, Library = C2)]
+    int C2ReplyCount39(uint rec, uint buf, uint size) => ReplyCount(rec, buf, size, 0x39);
+
+    /// <summary>A 0x60-byte reply record with the count of section <paramref name="type"/> at word 0x17.</summary>
+    int ReplyCount(uint rec, uint buf, uint size, int type)
     {
-        if (Need(rec, buf, size) is int e) return e;
+        if (Need(rec, buf, size) is int e)
+        {
+            return e;
+        }
+
         int r = Root(rec, 0x60, buf, size, out uint p, out uint n);
-        if (r < 0) return r;
-        r = Count(p, n, 0x74, At(rec, 0x17));
+        if (r < 0)
+        {
+            return r;
+        }
+
+        r = Count(p, n, type, At(rec, 0x17));
         return r < 0 ? r : 0;
     }
 
@@ -258,12 +274,30 @@ public sealed partial class NpCommerce2
     /// <summary>Pointer to item <paramref name="index"/> of section 0x23 after the parent's cursor.</summary>
     [Hle("sceNpCommerce2_0D9666D8", Nid = 0x0D9666D8, Library = C2)]
     [Hle("sceNpCommerce2_838F1DAB", Nid = 0x838F1DAB, Library = C2)]
-    int C2Item23(uint parent, uint index, uint outPtr)
+    int C2Item23(uint parent, uint index, uint outPtr) => SectionItem(parent, index, outPtr, 0x23);
+
+    /// <summary>Pointer to item <paramref name="index"/> of section 0x11 after the parent's cursor (the 0x23 parser's
+    /// code with the other tag).</summary>
+    [Hle("sceNpCommerce2_58BFD97B", Nid = 0x58BFD97B, Library = C2)]
+    [Hle("sceNpCommerce2_D0B44018", Nid = 0xD0B44018, Library = C2)]
+    [Hle("sceNpCommerce2_EA3FF0FC", Nid = 0xEA3FF0FC, Library = C2)]
+    int C2Item11(uint parent, uint index, uint outPtr) => SectionItem(parent, index, outPtr, 0x11);
+
+    /// <summary>Pointer to item <paramref name="index"/> of section <paramref name="tag"/> after the parent's cursor.</summary>
+    int SectionItem(uint parent, uint index, uint outPtr, int tag)
     {
-        if (Need(parent, outPtr) is int e) return e;
+        if (Need(parent, outPtr) is int e)
+        {
+            return e;
+        }
+
         Rest(parent, out uint p, out uint n);
-        int r = TlvElement(p, n, 0x23, 0, index, out _);
-        if (r >= 0) GuestMemory.W32(outPtr, p + (uint)r);
+        int r = TlvElement(p, n, tag, 0, index, out _);
+        if (r >= 0)
+        {
+            GuestMemory.W32(outPtr, p + (uint)r);
+        }
+
         return r;
     }
 
@@ -545,4 +579,8 @@ public sealed partial class NpCommerce2
 
     [Hle("sceNpCommerce2_1E26E2D1", Nid = 0x1E26E2D1, Library = C2)]
     int C2Wrapped4B(uint parent, uint info) => Need(parent, info) ?? Wrapped4B(parent, info, 2);
+
+    /// <summary>The v3 layout of the wrapped block (0x8D holding 0x91): the 0x1E26E2D1 code with variant 3.</summary>
+    [Hle("sceNpCommerce2_947A58B6", Nid = 0x947A58B6, Library = C2)]
+    int C2Wrapped8D(uint parent, uint info) => Need(parent, info) ?? Wrapped4B(parent, info, 3);
 }

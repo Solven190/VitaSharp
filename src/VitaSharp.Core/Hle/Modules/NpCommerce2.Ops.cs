@@ -74,6 +74,12 @@ public sealed partial class NpCommerce2
     // ---- request creation, one export per request type: (ctxId, uint *reqId)
 
     [Hle("sceNpCommerce2_07C16199", Nid = 0x07C16199, Library = "SceNpCommerce2")] int Create07C16199(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x41);
+    [Hle("sceNpCommerce2_4A6B0527", Nid = 0x4A6B0527, Library = "SceNpCommerce2")] int Create4A6B0527(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x16);
+    [Hle("sceNpCommerce2_72ABB589", Nid = 0x72ABB589, Library = "SceNpCommerce2")] int Create72ABB589(uint ctx, uint req) => CreateTypedReq(ctx, req, 0xe);
+    [Hle("sceNpCommerce2_901E6455", Nid = 0x901E6455, Library = "SceNpCommerce2")] int Create901E6455(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x43);
+    [Hle("sceNpCommerce2_94AB4446", Nid = 0x94AB4446, Library = "SceNpCommerce2")] int Create94AB4446(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x15);
+    [Hle("sceNpCommerce2_B5D6F4AF", Nid = 0xB5D6F4AF, Library = "SceNpCommerce2")] int CreateB5D6F4AF(uint ctx, uint req) => CreateTypedReq(ctx, req, 0xf);
+    [Hle("sceNpCommerce2_DB8BA72E", Nid = 0xDB8BA72E, Library = "SceNpCommerce2")] int CreateDB8BA72E(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x3e);
     [Hle("sceNpCommerce2_0985546A", Nid = 0x0985546A, Library = "SceNpCommerce2")] int Create0985546A(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x10);
     [Hle("sceNpCommerce2_0BF3C1C4", Nid = 0x0BF3C1C4, Library = "SceNpCommerce2")] int Create0BF3C1C4(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x39);
     [Hle("sceNpCommerce2_0C33B954", Nid = 0x0C33B954, Library = "SceNpCommerce2")] int Create0C33B954(uint ctx, uint req) => CreateTypedReq(ctx, req, 0x46);

@@ -429,6 +429,10 @@ public sealed partial class NpCommerce2
     [Hle("sceNpCommerce2_6ABA5313", Nid = 0x6ABA5313, Library = C2)]
     int C2Info7C(uint parent, uint info) => Need(parent, info) ?? Info7C(parent, info, 2);
 
+    /// <summary>The v3 layout (item 0x8E): the 0x6ABA5313 code with variant 3.</summary>
+    [Hle("sceNpCommerce2_03B6777B", Nid = 0x03B6777B, Library = C2)]
+    int C2Info8E(uint parent, uint info) => Need(parent, info) ?? Info7C(parent, info, 3);
+
     // ---- account field checks
 
     /// <summary>

@@ -9,6 +9,7 @@ internal static class NpCommerce2FirmwareGolden
         [0x006200AD] = "E005C15496CEF7F4", // C2Item9C
         [0x027A054E] = "0F13413C96197480", // C2ReplyStrings6
         [0x0390787C] = "1455167F0B5F7223", // C2Item28
+        [0x03B6777B] = "9977B473B7DDDFC5", // C2Info8E
         [0x05002E87] = "938B3D372F7E518F", // C2BareReply
         [0x0507F960] = "C94F5D2F1E512801", // C2Item80
         [0x0666D252] = "47B034592797ED0E", // C2Info33
@@ -76,11 +77,13 @@ internal static class NpCommerce2FirmwareGolden
         [0x57C93D02] = "E005C15496CEF7F4", // C2Item9C
         [0x580C74F2] = "C94F5D2F1E512801", // C2Item80
         [0x58587046] = "291C035879DC95EC", // C2Item38
+        [0x58BFD97B] = "5085A38AD657206B", // C2Item11
         [0x5953F48D] = "756ECC0F043B48A0", // C2ReplyString76
         [0x5E7B03D8] = "5606FAE56324E535", // C2Item39b
         [0x5EA4E81E] = "B6AF62C3271BF046", // C2Block4B
         [0x5EE39E3F] = "8E5CA921E9EC42C1", // C2Item64
         [0x60137ABB] = "248F2054AC04A69D", // C2Item25
+        [0x62BBC725] = "CA118A5A1BCD6627", // C2ReplyCount39
         [0x6308701B] = "4EF02CDBBFED371C", // C2Item24
         [0x677FE58A] = "B6AF62C3271BF046", // C2Block4B
         [0x6ABA5313] = "0CD3097C9F762EFF", // C2Info7C
@@ -96,8 +99,10 @@ internal static class NpCommerce2FirmwareGolden
         [0x8F24F115] = "26FC19ABBABAEECF", // C2ReplyCount78
         [0x91979E62] = "6EB18478645F1A33", // C2ReplyList71
         [0x938D7819] = "248F2054AC04A69D", // C2Item25
+        [0x947A58B6] = "971F133D648FB05D", // C2Wrapped8D
         [0x95C0850D] = "48A2579058692A00", // C2Item7A
         [0x98E244BA] = "73CA241F062B2C62", // C2Product4C
+        [0x9A095860] = "E8B23F0B7C979D4C", // C2GameProduct8A
         [0x9B1AE84E] = "9F1D5E024A7F6523", // C2Item18b
         [0x9DB36783] = "4423787A22181BAF", // C2Info9B
         [0x9E082DB2] = "D61AEB3A5808EE34", // C2Info29
@@ -134,6 +139,7 @@ internal static class NpCommerce2FirmwareGolden
         [0xCAA91CCE] = "42FE167148D443B1", // C2ContentCategoryV3
         [0xCF1FA4E5] = "73D9291FC0F593AC", // C2ReplyValues3
         [0xD0831EFE] = "C94F5D2F1E512801", // C2Item80
+        [0xD0B44018] = "5085A38AD657206B", // C2Item11
         [0xD3BCDADD] = "81A108AE02FD1C45", // C2Item3E
         [0xD42FB74B] = "3AB68C039A22FF99", // C2Item85
         [0xD44AAECA] = "0381ACC2CF55A080", // C2ReplyList2B
@@ -148,6 +154,7 @@ internal static class NpCommerce2FirmwareGolden
         [0xE793945B] = "248F2054AC04A69D", // C2Item25
         [0xE829D968] = "52221AFA29237915", // C2Info5E
         [0xE9C58817] = "938B3D372F7E518F", // C2BareReply3
+        [0xEA3FF0FC] = "5085A38AD657206B", // C2Item11
         [0xEC09FF89] = "DDE33C4F0BF28345", // C2SubCategory21
         [0xEFEA25A3] = "4EE5E8BDE54A5A01", // C2SkuInfoV3
         [0xF520899E] = "9F1D5E024A7F6523", // C2Item18b

@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
 | System imports | 6,133 | 5,908 | 225 | 0 | 7,320 | 83.7% |
-| General | 8,296 | 8,085 | 211 | 0 | 9,944 | 83.4% |
-| All firmware 3.74 exports | 16,571 | 4,796 | 442 | 11,333 | 19,406 | 85.3% |
+| General | 8,310 | 8,099 | 211 | 0 | 9,944 | 83.5% |
+| All firmware 3.74 exports | 16,585 | 4,810 | 442 | 11,333 | 19,406 | 85.4% |
 | VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
 
 ## Libraries provided by LLE
@@ -445,7 +445,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpActivity | `vs0:sys/external/np_activity_sdk.suprx` | 4 / 4 | 100% | - | 3 / 3 | - |
 | SceNpActivityNet | `vs0:sys/external/np_activity.suprx` | 30 / 30 | 100% | - | - | 26 / 26 |
 | SceNpBasic | `vs0:sys/external/np_basic.suprx` | 31 / 41 | 75.6% | - | 25 / 25 | 2 / 4 |
-| SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 475 / 502 | 94.6% | - | 41 / 41 | 391 / 391 |
+| SceNpCommerce2 | `vs0:sys/external/np_commerce2.suprx` | 489 / 502 | 97.4% | - | 41 / 41 | 391 / 391 |
 | SceNpCommon | `vs0:sys/external/np_common.suprx` | 54 / 71 | 76% | - | 14 / 14 | 35 / 50 |
 | SceNpCommonPs4 | `vs0:sys/external/np_common_ps4.suprx` | 713 / 713 | 100% | - | - | 246 / 246 |
 | SceNpDrm | `os0:kd/bootimage.skprx/SceNpDrm` | 8 / 8 | 100% | 6 | - | 8 / 8 |
