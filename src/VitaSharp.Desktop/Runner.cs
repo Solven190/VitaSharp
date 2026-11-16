@@ -33,7 +33,7 @@ public static class Runner
     }
 
     /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
-    static bool? OnOff(string[] options, string name)
+    internal static bool? OnOff(string[] options, string name)
     {
         var v = Opt(options, name);
         if (v == null)
@@ -823,7 +823,7 @@ public static class Runner
     /// <summary>The emulator keys of an --input script that came due: the pause key toggles the pause, F10 captures,
     /// F11 toggles fullscreen, F8 / Ctrl+F8 start or stop "Gravar tudo" / the GPU dump (window runs), F5 / F6 / F7 are the save state keys, F1 / F2 / F3 (Shift = back)
     /// change the internal resolution / frame rate mode / MSAA mode.</summary>
-    static void RunScriptedHostKeys(ScriptedInput script, Diagnostics diag, WindowHost? window = null, GraphicsHotkeys? graphics = null)
+    internal static void RunScriptedHostKeys(ScriptedInput script, Diagnostics diag, WindowHost? window = null, GraphicsHotkeys? graphics = null)
     {
         if (script.TakeHostKeys() is not { } keys)
         {
@@ -1023,7 +1023,7 @@ public static class Runner
 
     /// <summary>The executable to boot: --self, else the one a --load-state state was saved in (a program a LoadExec
     /// started, booted directly: Jak1.self of the Jak and Daxter Collection), else eboot.bin.</summary>
-    static string BootSelf(string[] options)
+    internal static string BootSelf(string[] options)
     {
         if (Opt(options, "--self") is { } self)
         {
@@ -1100,7 +1100,7 @@ public static class Runner
     /// --dump-frames[=dir] (PNG of every --dump-every'th present from --dump-from; the folder's old PNGs are deleted),
     /// --trace-draws=frame and --no-inspect, for a headless run and a window alike. Returns the dump folder, or null.
     /// </summary>
-    static string? ApplyFrameDumpOptions(string[] options, VulkanRendererOptions ro)
+    internal static string? ApplyFrameDumpOptions(string[] options, VulkanRendererOptions ro)
     {
         var dumpOpt = options.FirstOrDefault(o => o.StartsWith("--dump-frames"));
         ro.DumpEvery = int.TryParse(Opt(options, "--dump-every"), out var de) ? de : 60;
@@ -1445,9 +1445,9 @@ public static class Runner
     /// <summary>
     /// Automatic checks on every dumped frame, so problems are found without reading the images: mean luminance,
     /// fraction of saturated white / black pixels (blown-out or black output), and runs of identical frames (a
-    /// hang or a stuck screen). Written to metrics.csv; the findings go to the log as METRICS lines.
+    /// hang or a stuck screen). Written to metrics.csv; the findings go to the log as METRICS lines (also returned).
     /// </summary>
-    static void WriteFrameMetrics(string dir, List<(long Frame, byte[] Rgba)> all)
+    internal static string[] WriteFrameMetrics(string dir, List<(long Frame, byte[] Rgba)> all)
     {
         var sb = new System.Text.StringBuilder("frame,mean,white,black,hash\n");
         var over = new List<long>();
@@ -1486,7 +1486,7 @@ public static class Runner
                 hash = (hash ^ (ulong)((r >> 2) | (g >> 2) << 8 | (b >> 2) << 16)) * 1099511628211;
             }
             float mean = sum / (255f * n), fw = white / (float)n, fb = dark / (float)n;
-            sb.Append($"{frame},{mean:F3},{fw:F3},{fb:F3},{hash:X16}\n");
+            sb.Append(FormattableString.Invariant($"{frame},{mean:F3},{fw:F3},{fb:F3},{hash:X16}\n")); // a CSV: never the decimal comma of pt-BR
             if (fw > 0.35f || mean > 0.85f)
             {
                 over.Add(frame);
@@ -1533,11 +1533,20 @@ public static class Runner
         }
         File.WriteAllText(Path.Combine(dir, "metrics.csv"), sb.ToString());
         static string Range(List<long> l) => l.Count == 0 ? "none" : $"{l.Count} frames ({l[0]}..{l[^1]})";
-        Log.Info($"METRICS blown-out (>35% saturated white or mean >0.85): {Range(over)}");
-        Log.Info($"METRICS black (>97% black): {Range(black)}");
-        Log.Info($"METRICS flicker (brightness swing >0.35 between dumps): {Range(flicker)}");
-        Log.Info($"METRICS magenta (>5% magenta pixels, missing textures): {Range(magenta)}");
-        Log.Info($"METRICS frozen: {(longestFrozen >= 2 ? $"longest run of identical dumps {longestFrozen + 1} from frame {longestFrozenStart}" : "none")}");
+        string[] findings =
+        [
+            $"METRICS blown-out (>35% saturated white or mean >0.85): {Range(over)}",
+            $"METRICS black (>97% black): {Range(black)}",
+            $"METRICS flicker (brightness swing >0.35 between dumps): {Range(flicker)}",
+            $"METRICS magenta (>5% magenta pixels, missing textures): {Range(magenta)}",
+            $"METRICS frozen: {(longestFrozen >= 2 ? $"longest run of identical dumps {longestFrozen + 1} from frame {longestFrozenStart}" : "none")}",
+        ];
+        foreach (string finding in findings)
+        {
+            Log.Info(finding);
+        }
+
+        return findings;
     }
 
     static void WriteSheet(string path, List<(long Frame, byte[] Rgba)> list)
@@ -1686,7 +1695,7 @@ public static class Runner
     }
 
     /// <summary>--poke=ADDR:HEXVALUE@fN,...: writes a 32-bit value into guest memory when frame N is presented (experiments).</summary>
-    static void InstallPokes(string spec)
+    internal static void InstallPokes(string spec)
     {
         var pokes = spec.Split(',').Select(p => { var a = p.Split(':', '@'); return (Addr: Convert.ToUInt32(a[0], 16), Value: Convert.ToUInt32(a[1], 16), Frame: long.Parse(a[2].TrimStart('f'))); }).OrderBy(p => p.Frame).ToList();
         new Thread(() =>
@@ -1737,7 +1746,7 @@ public static class Runner
     /// <summary>--dump-mem=F1,F2,... writes every allocated guest block to memdump/mem_F.bin when frame F is presented
     /// (records of [u32 address][u32 size][bytes]); compare two dumps with the memdiff command.</summary>
     /// <summary>--peek=ADDR:LEN@F[,ADDR:LEN@F...] logs a hex dump of guest memory when frame F is presented.</summary>
-    static void StartPeeks(string spec)
+    internal static void StartPeeks(string spec)
     {
         var items = spec.Split(',').Select(s => { var a = s.Split(':', '@'); return (Addr: Convert.ToUInt32(a[0], 16), Len: Convert.ToInt32(a[1], 16), Frame: long.Parse(a[2])); }).ToList();
         new Thread(() =>
@@ -1765,7 +1774,7 @@ public static class Runner
         }.Start();
     }
 
-    static void StartMemoryDumps(string spec, string dir)
+    internal static void StartMemoryDumps(string spec, string dir)
     {
         var frames = new SortedSet<long>(spec.Split(',').Select(long.Parse));
         Directory.CreateDirectory(dir);
