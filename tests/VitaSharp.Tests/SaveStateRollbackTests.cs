@@ -101,4 +101,44 @@ public sealed class SaveStateRollbackTests : IDisposable
         SaveStates.Load(_harness.Emu, path);
         WaitForFrames(30, "frames after the good load");
     }
+
+    /// <summary>
+    /// A block with pages of one repeated word (the trap fill of a firmware module's code segment) goes into the state
+    /// file as its own section kind (<c>memw:</c>, those pages as their word) and a load gives every page back, the
+    /// filled ones and the others.
+    /// </summary>
+    [Fact]
+    public void ABlockWithPagesOfOneWordRoundTripsThroughAStateFile()
+    {
+        WaitForFrames(30, "the title's first frames");
+        const uint Size = 4 * GuestMemory.PageSize;
+        uint block = _harness.Emu.Memory.Alloc(Size, "word pages");
+        for (uint at = 0; at < 3 * GuestMemory.PageSize; at += 4)
+        {
+            GuestMemory.W32(block + at, 0xE7FDDEFE);
+        }
+
+        GuestMemory.W32(block + 3 * GuestMemory.PageSize + 8, 0xC0FFEE11);
+        string path = Path.Combine(_harness.Root, "words.vss");
+        SaveStates.Save(_harness.Emu, path, timeoutMs: 60_000);
+        var names = new List<string>();
+        using (FileStream file = File.OpenRead(path))
+        using (var reader = new SaveStateReader(file))
+        {
+            while (reader.Next(out string name, out _))
+            {
+                names.Add(name);
+                reader.ReadAll();
+            }
+        }
+
+        Assert.Contains("memw:" + block.ToString("X8"), names);
+        GuestMemory.Fill(block, 0x5A, Size);
+        SaveStates.Load(_harness.Emu, path);
+        Assert.Equal(0xE7FDDEFEu, GuestMemory.R32(block));
+        Assert.Equal(0xE7FDDEFEu, GuestMemory.R32(block + 3 * GuestMemory.PageSize - 4));
+        Assert.Equal(0u, GuestMemory.R32(block + 3 * GuestMemory.PageSize));
+        Assert.Equal(0xC0FFEE11u, GuestMemory.R32(block + 3 * GuestMemory.PageSize + 8));
+        WaitForFrames(30, "frames after the load");
+    }
 }

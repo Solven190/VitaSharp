@@ -303,10 +303,11 @@ public sealed unsafe class SaveStateGuestTests(GuestMemoryFixture fixture)
             GuestMemory.W32(addr + 0x10, 0x12345678);
             GuestMemory.W32(addr + 0xF000, 0xCAFEBABE);
             GuestMemory.Block block = fixture.Memory.FindBlock(addr)!;
-            byte[] data = fixture.Memory.CopyContents(block);
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            Assert.False(wordPages);
             Assert.Equal(2 + 2 * (int)GuestMemory.PageSize, data.Length); // bitmap + the two non-zero pages
             GuestMemory.Fill(addr, 0xEE, 0x10000);
-            fixture.Memory.RestoreContents(block, data);
+            fixture.Memory.RestoreContents(block, data, wordPages);
             Assert.Equal(0x12345678u, GuestMemory.R32(addr + 0x10));
             Assert.Equal(0xCAFEBABEu, GuestMemory.R32(addr + 0xF000));
             Assert.Equal(0u, GuestMemory.R32(addr + 0x5000));
@@ -314,6 +315,62 @@ public sealed unsafe class SaveStateGuestTests(GuestMemoryFixture fixture)
             GuestMemory.WriteBlockTable(bt, [block]);
             GuestMemory.Block back = Assert.Single(GuestMemory.ReadBlockTable(new SnapshotReader(bt.Data.ToArray())));
             Assert.Equal((block.Address, block.Size, block.Name, block.Region), (back.Address, back.Size, back.Name, back.Region));
+        }
+        finally
+        {
+            fixture.Memory.Free(addr);
+        }
+    }
+
+    /// <summary>
+    /// A page that is one word repeated (a memset pattern, the trap fill of a firmware module's code segment) is stored
+    /// as that word, not as 4 KB: the firmware module shells' code segments (about 20 MB of kernel memory with an
+    /// installed firmware) cost the state almost nothing, and every page comes back as it was, the other pages too.
+    /// </summary>
+    [Fact]
+    public void PagesOfOneRepeatedWordAreStoredAsTheWordAndComeBackWhole()
+    {
+        const int Pages = 16;
+        uint addr = fixture.Memory.Alloc(Pages * GuestMemory.PageSize, "savestate word pages");
+        try
+        {
+            GuestMemory.Fill(addr, 0, Pages * GuestMemory.PageSize);
+            for (uint at = 0; at < 8 * GuestMemory.PageSize; at += 4)
+            {
+                GuestMemory.W32(addr + at, 0xE7FDDEFE);
+            }
+
+            GuestMemory.Fill(addr + 9 * GuestMemory.PageSize, 0xFF, GuestMemory.PageSize);
+            // a pattern page with one word changed (code written over the fill) is stored whole
+            for (uint at = 0; at < GuestMemory.PageSize; at += 4)
+            {
+                GuestMemory.W32(addr + 11 * GuestMemory.PageSize + at, 0xE7FDDEFE);
+            }
+
+            GuestMemory.W32(addr + 11 * GuestMemory.PageSize + 0x10, 0xE12FFF1E);
+            GuestMemory.W32(addr + 13 * GuestMemory.PageSize + 0x20, 0x12345678);
+            GuestMemory.Block block = fixture.Memory.FindBlock(addr)!;
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            Assert.True(wordPages);
+            // two bitmaps, nine pages as their word, two pages whole
+            Assert.Equal(2 * 2 + 9 * 4 + 2 * (int)GuestMemory.PageSize, data.Length);
+
+            GuestMemory.Fill(addr, 0xEE, Pages * GuestMemory.PageSize);
+            fixture.Memory.RestoreContents(block, data, wordPages);
+            for (uint at = 0; at < 8 * GuestMemory.PageSize; at += 4)
+            {
+                Assert.Equal(0xE7FDDEFEu, GuestMemory.R32(addr + at));
+            }
+
+            Assert.Equal(0u, GuestMemory.R32(addr + 8 * GuestMemory.PageSize + 0x40));
+            Assert.Equal(0xFFFFFFFFu, GuestMemory.R32(addr + 9 * GuestMemory.PageSize + 0xFFC));
+            Assert.Equal(0u, GuestMemory.R32(addr + 10 * GuestMemory.PageSize));
+            Assert.Equal(0xE7FDDEFEu, GuestMemory.R32(addr + 11 * GuestMemory.PageSize + 0xC));
+            Assert.Equal(0xE12FFF1Eu, GuestMemory.R32(addr + 11 * GuestMemory.PageSize + 0x10));
+            Assert.Equal(0xE7FDDEFEu, GuestMemory.R32(addr + 11 * GuestMemory.PageSize + 0x14));
+            Assert.Equal(0x12345678u, GuestMemory.R32(addr + 13 * GuestMemory.PageSize + 0x20));
+            Assert.Equal(0u, GuestMemory.R32(addr + 15 * GuestMemory.PageSize));
+            Assert.Throws<SnapshotException>(() => fixture.Memory.RestoreContents(block, data[..^4], wordPages));
         }
         finally
         {

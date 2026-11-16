@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Memory;
@@ -50,27 +52,57 @@ public sealed unsafe partial class GuestMemory
 
     private byte* HostOf(Block b) => (b.Space ?? Primary).Base + b.Address;
 
-    /// <summary>The block's contents: a bitmap of its non-zero pages, then those pages.</summary>
-    internal byte[] CopyContents(Block b)
+    /// <summary>
+    /// The block's contents: a bitmap of its non-zero pages, then those pages. A page that is one 32-bit word repeated
+    /// (a memset pattern, the trap fill of a firmware module's code segment) is stored as that word: when the block has
+    /// one, <paramref name="wordPages"/> is true and the layout is the bitmap of non-zero pages, the bitmap of word
+    /// pages, then each non-zero page in order as its word or its bytes (<see cref="RestoreContents"/> with the same
+    /// flag); otherwise it is the plain layout.
+    /// </summary>
+    internal byte[] CopyContents(Block b, out bool wordPages)
     {
         uint pages = b.Size / PageSize;
         int bitmapLen = (int)((pages + 7) / 8);
         byte* p = HostOf(b);
         byte[] bitmap = new byte[bitmapLen];
-        long n = 0;
+        byte[] wordBitmap = new byte[bitmapLen];
+        long fullPages = 0, filledPages = 0;
         for (uint i = 0; i < pages; i++)
         {
-            if (new ReadOnlySpan<byte>(p + (long)i * PageSize, (int)PageSize).IndexOfAnyExcept((byte)0) < 0)
+            var page = new ReadOnlySpan<byte>(p + (long)i * PageSize, (int)PageSize);
+            if (page.IndexOfAnyExcept((byte)0) < 0)
             {
                 continue;
             }
 
             bitmap[i >> 3] |= (byte)(1 << (int)(i & 7));
-            n++;
+            ReadOnlySpan<uint> words = MemoryMarshal.Cast<byte, uint>(page);
+            if (words[1..].IndexOfAnyExcept(words[0]) < 0)
+            {
+                wordBitmap[i >> 3] |= (byte)(1 << (int)(i & 7));
+                filledPages++;
+            }
+            else
+            {
+                fullPages++;
+            }
         }
-        byte[] data = new byte[checked(bitmapLen + n * PageSize)];
+
+        wordPages = filledPages > 0;
+        if (!wordPages)
+        {
+            fullPages += filledPages;
+        }
+
+        int headerLen = wordPages ? 2 * bitmapLen : bitmapLen;
+        byte[] data = new byte[checked(headerLen + fullPages * PageSize + (wordPages ? filledPages * 4 : 0))];
         bitmap.CopyTo(data, 0);
-        long at = bitmapLen;
+        if (wordPages)
+        {
+            wordBitmap.CopyTo(data, bitmapLen);
+        }
+
+        long at = headerLen;
         for (uint i = 0; i < pages; i++)
         {
             if ((bitmap[i >> 3] & (1 << (int)(i & 7))) == 0)
@@ -78,23 +110,33 @@ public sealed unsafe partial class GuestMemory
                 continue;
             }
 
-            new ReadOnlySpan<byte>(p + (long)i * PageSize, (int)PageSize).CopyTo(data.AsSpan((int)at));
+            var page = new ReadOnlySpan<byte>(p + (long)i * PageSize, (int)PageSize);
+            if (wordPages && (wordBitmap[i >> 3] & (1 << (int)(i & 7))) != 0)
+            {
+                page[..4].CopyTo(data.AsSpan((int)at));
+                at += 4;
+                continue;
+            }
+
+            page.CopyTo(data.AsSpan((int)at));
             at += PageSize;
         }
         return data;
     }
 
-    internal void RestoreContents(Block b, byte[] data)
+    /// <summary>Writes back what <see cref="CopyContents"/> copied, in the layout <paramref name="wordPages"/> names.</summary>
+    internal void RestoreContents(Block b, byte[] data, bool wordPages = false)
     {
         uint pages = b.Size / PageSize;
         int bitmapLen = (int)((pages + 7) / 8);
-        if (data.Length < bitmapLen)
+        int headerLen = wordPages ? 2 * bitmapLen : bitmapLen;
+        if (data.Length < headerLen)
         {
             throw new SnapshotException($"memory block 0x{b.Address:X8} is corrupt");
         }
 
         byte* p = HostOf(b);
-        long at = bitmapLen;
+        long at = headerLen;
         for (uint i = 0; i < pages; i++)
         {
             var page = new Span<byte>(p + (long)i * PageSize, (int)PageSize);
@@ -103,6 +145,19 @@ public sealed unsafe partial class GuestMemory
                 page.Clear();
                 continue;
             }
+
+            if (wordPages && (data[bitmapLen + (i >> 3)] & (1 << (int)(i & 7))) != 0)
+            {
+                if (at + 4 > data.Length)
+                {
+                    throw new SnapshotException($"memory block 0x{b.Address:X8} is corrupt");
+                }
+
+                MemoryMarshal.Cast<byte, uint>(page).Fill(BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan((int)at)));
+                at += 4;
+                continue;
+            }
+
             if (at + PageSize > data.Length)
             {
                 throw new SnapshotException($"memory block 0x{b.Address:X8} is corrupt");

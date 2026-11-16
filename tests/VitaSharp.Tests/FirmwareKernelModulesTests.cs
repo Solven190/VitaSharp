@@ -324,6 +324,32 @@ public sealed class FirmwareKernelModulesTests : IDisposable
         Assert.NotEqual(0, Call(framework, "ModuleGetOffset", KernelSpace.KernelPid, shell.Uid, 0, FirmwareCodeSize + 1, address));
     }
 
+    /// <summary>
+    /// The trap fill of a firmware module's code segment is fixed content: a save state stores each of its pages as the
+    /// fill word, not 4 KB (the shells take the firmware's code sizes, about 20 MB of kernel memory on FW 3.74), and a
+    /// load gives the same segment back, still trapping where module_get_offset points.
+    /// </summary>
+    [Fact]
+    public void AFirmwareModulesCodeSegmentCostsASaveStateOneWordPerPage()
+    {
+        LoadKernelPlugins(("empty.skprx", new SceModuleBuilder("EmptyPlugin").Start(0)));
+        LoadedModule shell = _harness.Emu.FirmwareKernel.Modules.Single(m => m.Name == "SceSysmem");
+        uint code = shell.Segments[0].Address;
+        GuestMemory.Block block = _harness.Emu.Memory.FindBlock(code)!;
+        Assert.Equal(code, block.Address);
+        uint pages = block.Size / GuestMemory.PageSize;
+        byte[] data = _harness.Emu.Memory.CopyContents(block, out bool wordPages);
+        Assert.True(wordPages);
+        Assert.True(data.Length <= 2 * (int)((pages + 7) / 8) + (int)pages * 4, $"{data.Length} bytes for {pages} pages of trap fill");
+
+        GuestMemory.Fill(code, 0, block.Size);
+        _harness.Emu.Memory.RestoreContents(block, data, wordPages);
+        for (uint at = 0; at < FirmwareCodeSize; at += 4)
+        {
+            Assert.Equal(TrapFillWord, GuestMemory.R32(code + at));
+        }
+    }
+
     private sealed class CollectingSink : ILogSink
     {
         public readonly List<string> Messages = [];
