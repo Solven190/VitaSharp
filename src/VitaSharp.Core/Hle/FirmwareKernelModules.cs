@@ -277,7 +277,7 @@ public sealed class FirmwareKernelModules(Emulator emu)
             _imports[(image.Name, libNid, nids[function])] = (segment + offset, []);
         }
 
-        emu.Code.Invalidate(0, uint.MaxValue);
+        emu.InvalidateCode(0, uint.MaxValue); // kernel code runs on every process's threads
         return loadedModule;
     }
 
