@@ -291,6 +291,11 @@ public static class SessionReport
             yield return $"  IMMEDIATE flips held to the next vblank (VITASHARP_DISPLAY_IMMEDIATE_PACE): {VitaSharp.Core.Hle.Modules.Display.ImmediateFlipsPaced}";
         }
 
+        if (VitaSharp.Core.Hle.Modules.Display.PresentWaits > 0)
+        {
+            yield return $"  flips that waited for the previous present (VITASHARP_DISPLAY_PRESENT_WAIT): {VitaSharp.Core.Hle.Modules.Display.PresentWaits}";
+        }
+
         if (VitaSharp.Core.Gpu.GpuQueue.SceneGateReleases > 0)
         {
             yield return $"  scene gates opened early (a guest waited for a held draw, or 250 ms passed): {VitaSharp.Core.Gpu.GpuQueue.SceneGateReleases}";

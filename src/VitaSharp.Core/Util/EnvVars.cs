@@ -432,6 +432,10 @@ public static class EnvVars
     /// <summary>0: sceDisplaySetFrameBuf in IMMEDIATE mode no longer flips at most once per vblank (by default a second
     /// flip in the same vblank waits for the next one: the panel shows no more than that).</summary>
     public const string DisplayImmediatePace = "VITASHARP_DISPLAY_IMMEDIATE_PACE";
+    /// <summary>0: sceDisplaySetFrameBuf from a game thread no longer waits for the previous flip's present (by default a
+    /// flip waits until the GPU queue has shown the one before it: the picture is never more than a frame behind the
+    /// guest, as on the Vita, whose display reads the framebuffer at scanout).</summary>
+    public const string DisplayPresentWait = "VITASHARP_DISPLAY_PRESENT_WAIT";
     /// <summary>Frame rate mode: native (default), 30, 60 or unlimited (Hle/Modules/Display.cs FrameRate; desktop
     /// --frame-rate=, the launcher's "Taxa de quadros" per game).</summary>
     public const string FrameRate = "VITASHARP_FRAME_RATE";

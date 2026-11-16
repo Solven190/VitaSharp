@@ -140,6 +140,21 @@ public sealed partial class Display : HleModule
     /// off; the unlimited frame rate mode skips it.</summary>
     static readonly bool ImmediateOnePerVblank = Environment.GetEnvironmentVariable(EnvVars.DisplayImmediatePace) is not ("0" or "off");
     long _lastFlipVcount = -1;
+    /// <summary>
+    /// A flip from a game thread waits until the GPU queue has run the present of the flip before it. The Vita's display
+    /// controller reads the framebuffer while it scans it out, so what is on screen is never behind the guest; here a
+    /// present reads guest memory when the GPU worker reaches it, and nothing else bounds how far a guest that draws
+    /// with the CPU (no GXM, whose display queue and command throttle pace the others) runs ahead of a slow worker: the
+    /// picture fell many frames behind, and showed (or a GPU dump recorded) memory of frames written long after the
+    /// flip. One present in flight keeps it at most a frame behind, and a game that flips a buffer and then writes the
+    /// other one never has that one read while it writes it. Flips of the GXM display queue are left alone: their
+    /// callback runs once the frame's scene completed. VITASHARP_DISPLAY_PRESENT_WAIT=0 turns it off.
+    /// </summary>
+    static readonly bool PresentWait = Environment.GetEnvironmentVariable(EnvVars.DisplayPresentWait) is not ("0" or "off");
+    /// <summary>The GPU queue sequence of the last game-thread present: host state of this session, not saved.</summary>
+    [SaveState.SnapshotIgnore]
+    long _lastPresentSeq = -1;
+    public static long PresentWaits;
     public static long ImmediateFlipsPaced;
 
     /// <summary>True on the GXM display queue thread (<see cref="Gxm"/>): its callback's flips are submitted with
@@ -205,7 +220,13 @@ public sealed partial class Display : HleModule
         }
         else
         {
-            Emu.Gpu.Submit(present);
+            if (PresentWait && _lastPresentSeq >= 0 && Emu.Gpu.Completed < _lastPresentSeq)
+            {
+                PresentWaits++;
+                Emu.Gpu.WaitFor(_lastPresentSeq);
+            }
+
+            _lastPresentSeq = Emu.Gpu.Submit(present);
         }
 
         PresentTimes[FramesPresented & (PresentTimes.Length - 1)] = now;

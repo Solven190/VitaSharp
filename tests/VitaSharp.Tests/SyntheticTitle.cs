@@ -7,7 +7,8 @@ namespace VitaSharp.Tests;
 /// <summary>
 /// A tiny Vita executable written by the tests (no game data needed, also on CI): a fixed ET_SCE_EXEC ELF with one
 /// segment at the start of user memory, a module_info and an import table for three firmware functions, and ARM code
-/// that every frame reads the pad (sceCtrlPeekBufferPositive), fills a 480x272 A8B8G8R8 framebuffer with
+/// that every frame reads the pad (sceCtrlPeekBufferPositive), fills one of two 480x272 A8B8G8R8 framebuffers (in turn,
+/// as games double-buffer: the one not on screen) with
 /// <see cref="Idle"/> (no button held) or <see cref="Pressed"/> (any button), shows it (sceDisplaySetFrameBuf) and
 /// waits for the next vblank. The front-end's runner boots it like a game, so its frame loop, the scripted input and
 /// the frame dumps can be checked on pixels.
@@ -20,7 +21,7 @@ public static class SyntheticTitle
     public static readonly (byte R, byte G, byte B) Idle = (0xC0, 0x40, 0x20), Pressed = (0x20, 0xA0, 0xE0);
 
     private const uint InfoOff = 0x0, ImportsOff = 0x60, StringsOff = 0x100, TablesOff = 0x140, StubsOff = 0x180, CodeOff = 0x200;
-    private const uint ParamOff = 0x400, CtrlOff = 0x420, FbOff = 0x1000;
+    private const uint ParamOff = 0x400, CtrlOff = 0x420, Param2Off = 0x460, FbOff = 0x1000, Fb2Off = FbOff + Width * Height * 4;
 
     private static uint Abgr((byte R, byte G, byte B) c) => 0xFF000000u | (uint)c.B << 16 | (uint)c.G << 8 | c.R;
 
@@ -101,7 +102,7 @@ public static class SyntheticTitle
     /// <summary>The executable.</summary>
     public static byte[] Elf()
     {
-        byte[] seg = new byte[ParamOff + 0x40];
+        byte[] seg = new byte[Param2Off + 0x20];
         void W32(uint off, uint v) => BinaryPrimitives.WriteUInt32LittleEndian(seg.AsSpan((int)off), v);
         void W16(uint off, ushort v) => BinaryPrimitives.WriteUInt16LittleEndian(seg.AsSpan((int)off), v);
 
@@ -152,8 +153,16 @@ public static class SyntheticTitle
         W32(ParamOff + 12, 0);
         W32(ParamOff + 16, Width);
         W32(ParamOff + 20, Height);
+        // the second framebuffer's
+        W32(Param2Off, 0x18);
+        W32(Param2Off + 4, Base + Fb2Off);
+        W32(Param2Off + 8, Width);
+        W32(Param2Off + 12, 0);
+        W32(Param2Off + 16, Width);
+        W32(Param2Off + 20, Height);
 
         var a = new ArmCode(Base + CodeOff);
+        a.Emit(0xE3A05000);                        // mov r5, #0          r5: which framebuffer (kept across calls)
         a.Label("loop");
         a.Emit(0xE3A00000);                        // mov r0, #0          port
         a.LdrLiteral(1, Base + CtrlOff);           // ldr r1, =ctrl data
@@ -165,15 +174,20 @@ public static class SyntheticTitle
         a.Emit(0xE3510000);                        // cmp r1, #0
         a.LdrLiteral(3, Abgr(Pressed), cond: 0x1); // ldrne r3, =pressed
         a.LdrLiteral(2, Base + FbOff);
+        a.LdrLiteral(6, Base + ParamOff);
+        a.Emit(0xE3150001);                        // tst r5, #1
+        a.LdrLiteral(2, Base + Fb2Off, cond: 0x1); // ldrne r2, =second framebuffer
+        a.LdrLiteral(6, Base + Param2Off, cond: 0x1);
         a.LdrLiteral(4, Width * Height);
         a.Label("fill");
         a.Emit(0xE4823004);                        // str r3, [r2], #4
         a.Emit(0xE2544001);                        // subs r4, r4, #1
         a.Branch("fill", 0x1);                     // bne fill
-        a.LdrLiteral(0, Base + ParamOff);
+        a.Emit(0xE1A00006);                        // mov r0, r6          the filled one's SceDisplayFrameBuf
         a.Emit(0xE3A01001);                        // mov r1, #1          next vblank
         a.Bl(Base + StubsOff + 16);                // sceDisplaySetFrameBuf
         a.Bl(Base + StubsOff + 32);                // sceDisplayWaitVblankStart
+        a.Emit(0xE2255001);                        // eor r5, r5, #1      the other framebuffer next
         a.Branch("loop", 0xE);
         byte[] code = a.Assemble();
         if (CodeOff + code.Length > ParamOff)
@@ -183,7 +197,7 @@ public static class SyntheticTitle
 
         code.CopyTo(seg, (int)CodeOff);
 
-        // ELF header + one PT_LOAD (the framebuffer is the zero-filled rest of the segment)
+        // ELF header + one PT_LOAD (the framebuffers are the zero-filled rest of the segment)
         const int ProgramHeaderOffset = 0x34, DataOffset = 0x100;
         byte[] elf = new byte[DataOffset + seg.Length];
         Span<byte> e = elf.AsSpan();
@@ -205,7 +219,7 @@ public static class SyntheticTitle
         BinaryPrimitives.WriteUInt32LittleEndian(ph[8..], Base);
         BinaryPrimitives.WriteUInt32LittleEndian(ph[12..], Base);
         BinaryPrimitives.WriteUInt32LittleEndian(ph[16..], (uint)seg.Length);
-        BinaryPrimitives.WriteUInt32LittleEndian(ph[20..], FbOff + Width * Height * 4);
+        BinaryPrimitives.WriteUInt32LittleEndian(ph[20..], Fb2Off + Width * Height * 4);
         BinaryPrimitives.WriteUInt32LittleEndian(ph[24..], 7);                    // RWX
         BinaryPrimitives.WriteUInt32LittleEndian(ph[28..], 0x1000);
         seg.CopyTo(elf, DataOffset);
