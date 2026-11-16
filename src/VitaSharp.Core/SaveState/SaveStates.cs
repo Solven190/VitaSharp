@@ -7,16 +7,56 @@ using VitaSharp.Core.Util;
 namespace VitaSharp.Core.SaveState;
 
 /// <summary>
-/// Saves and loads the whole emulated system of a game run directly (one process): guest memory, CPU state of every
-/// thread, kernel objects, the HLE function table and the state of every HLE module the game used. GPU caches are not
-/// saved: the load gives the GPU a new backend that rebuilds them from guest memory, as after a LoadExec.
+/// Saves and loads the whole emulated system: guest memory, CPU state of every thread, kernel objects, the HLE function
+/// table and the state of every HLE module the programs used. A game run directly is one process; under the Vita shell
+/// the system's processes (the shell and the applications it opened) are saved together, each with its own address
+/// space, HLE state and threads, around the one kernel they share. GPU caches are not saved: the load gives the GPU a
+/// new backend that rebuilds them from guest memory, as after a LoadExec.
 /// See docs/notes/save-states.md.
 /// </summary>
 public static class SaveStates
 {
     private const string SysSection = "system", FunctionsSection = "hle.functions", ObjectsSection = "kernel.objects",
         BlocksSection = "memory.blocks", MemPrefix = "mem:", WordPagesMemPrefix = "memw:", ModulePrefix = "hle:", LayoutsSection = "layouts",
-        KernelModulePrefix = "kernel.hle:";
+        KernelModulePrefix = "kernel.hle:", ProcessesSection = "processes", SpacesSection = "memory.spaces";
+
+    /// <summary>The prefix of the sections of the system's process number <paramref name="index"/> (0, the first
+    /// process, has none: a state of one process has the layout of the builds before several processes were saved).</summary>
+    private static string ProcessPrefix(int index) => index == 0 ? "" : $"process{index}/";
+
+    /// <summary>A memory block's section name: its address, and the process whose address space holds it when that is
+    /// not the first process's (CDRAM and kernel blocks, in every space, name none).</summary>
+    private static string MemorySection(bool wordPages, uint address, int spacePid, int firstPid) =>
+        (wordPages ? WordPagesMemPrefix : MemPrefix) + address.ToString("X8") + (spacePid != 0 && spacePid != firstPid ? "@" + spacePid.ToString("X") : "");
+
+    /// <summary>The system's processes, the first one first (the order of the process sections in a state).</summary>
+    internal static List<Emulator> SystemProcesses(Emulator emu)
+    {
+        var processes = new List<Emulator> { emu };
+        foreach (Emulator process in emu.Vita.Processes)
+        {
+            if (!ReferenceEquals(process, emu))
+            {
+                processes.Add(process);
+            }
+        }
+
+        return processes;
+    }
+
+    /// <summary>The thread of any process of the system with a GPU scene open, or null.</summary>
+    private static GuestThread? OpenScene(Emulator emu)
+    {
+        foreach (Emulator process in emu.Vita.Processes)
+        {
+            if (process.OpenSceneThread is { } thread)
+            {
+                return thread;
+            }
+        }
+
+        return emu.OpenSceneThread;
+    }
 
     /// <summary>Raised after a state was loaded (front-ends refresh what they show of the game).</summary>
     public static event Action<Emulator>? Loaded;
@@ -30,9 +70,9 @@ public static class SaveStates
 
     private static void CheckSystem(Emulator emu)
     {
-        if (emu.Parent != null || emu.Vita.Processes.Count != 1)
+        if (emu.Parent != null)
         {
-            throw new SnapshotException("save states support a game run directly (one process); running under the Vita shell is not supported yet");
+            throw new SnapshotException("save states are taken from the system's first process");
         }
 
         if (emu.MainModule == null || !emu.Running)
@@ -40,9 +80,17 @@ public static class SaveStates
             throw new SnapshotException("no game is running");
         }
 
-        if (emu.Execing || emu.ExecRequest != null)
+        foreach (Emulator process in SystemProcesses(emu))
         {
-            throw new SnapshotException("the game is restarting (LoadExec)");
+            if (process.Execing || process.ExecRequest != null)
+            {
+                throw new SnapshotException(ReferenceEquals(process, emu) ? "the game is restarting (LoadExec)" : $"{process.Describe()} is restarting (LoadExec)");
+            }
+
+            if (!ReferenceEquals(process, emu) && (process.MainModule == null || !process.Running))
+            {
+                throw new SnapshotException($"{process.Describe()} is starting or ending");
+            }
         }
     }
 
@@ -192,7 +240,7 @@ public static class SaveStates
         {
             if (held.Count == 0)
             {
-                for (int i = 0; i < 400 && emu.OpenSceneThread != null; i++)
+                for (int i = 0; i < 400 && OpenScene(emu) != null; i++)
                 {
                     Thread.Sleep(1);
                 }
@@ -205,7 +253,7 @@ public static class SaveStates
                 return null;
             }
 
-            if (emu.OpenSceneThread == null && !why.Contains("GPU scene", StringComparison.Ordinal))
+            if (OpenScene(emu) == null && !why.Contains("GPU scene", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -245,7 +293,7 @@ public static class SaveStates
                 }
 
                 EmulationPause.Pause("GPU backend swap", @internal: true);
-                if (emu.OpenSceneThread is { } scene)
+                if (OpenScene(emu) is { } scene)
                 {
                     return $"thread '{scene.Name}' is finishing a GPU scene";
                 }
@@ -275,11 +323,12 @@ public static class SaveStates
         }
     }
 
-    /// <summary>The threads a state holds: the process's and the kernel process's (the system's one kernel, whose
-    /// threads the kernel modules made), when it exists.</summary>
+    /// <summary>The threads a state holds: every process's (the shell's and the applications' under the Vita shell)
+    /// and the kernel process's (the system's one kernel, whose threads the kernel modules made), when it exists.</summary>
     internal static IEnumerable<GuestThread> SessionThreads(Emulator emu)
     {
-        return emu.Vita.KernelProcess is { } kernelProcess ? emu.Kernel.Threads.Concat(kernelProcess.Kernel.Threads) : emu.Kernel.Threads;
+        IEnumerable<GuestThread> threads = SystemProcesses(emu).SelectMany(process => process.Kernel.Threads);
+        return emu.Vita.KernelProcess is { } kernelProcess ? threads.Concat(kernelProcess.Kernel.Threads) : threads;
     }
 
     /// <summary>Holds every guest thread of <paramref name="emu"/> at its next safe point (module service threads run on).</summary>
@@ -298,7 +347,11 @@ public static class SaveStates
     private static void CheckModules(Emulator emu)
     {
         var problems = new List<string>();
-        CheckModules(emu, problems, "");
+        foreach (Emulator process in SystemProcesses(emu))
+        {
+            CheckModules(process, problems, ReferenceEquals(process, emu) ? "" : process.Describe() + " ");
+        }
+
         if (emu.Vita.KernelProcess is { } kernelProcess)
         {
             CheckModules(kernelProcess, problems, "kernel ");
@@ -347,7 +400,7 @@ public static class SaveStates
     private static string? SafePointProblems(Emulator emu, out Dictionary<GuestThread, GuestThread.SafeKind> kinds)
     {
         kinds = new();
-        if (emu.OpenSceneThread is { } scene)
+        if (OpenScene(emu) is { } scene)
         {
             return $"thread '{scene.Name}' is finishing a GPU scene";
         }
@@ -396,20 +449,43 @@ public static class SaveStates
         list.Add((FunctionsSection, fn.Data.ToArray()));
         list.Add((ObjectsSection, KernelSnapshot.Save(emu, kinds).Data.ToArray()));
 
-        var used = new HashSet<string>();
         var layouts = new HashSet<string>(StringComparer.Ordinal);
-        foreach (HleModule hleModule in emu.Hle.Modules)
+        CaptureModules(emu, "", layouts, list);
+
+        // the other processes of the system (under the Vita shell: the applications the shell opened), each in sections
+        // of its own; the processes list names them all, the first one first
+        List<Emulator> processes = SystemProcesses(emu);
+        var processList = new SnapshotWriter();
+        processList.Write(processes.Count);
+        for (int index = 0; index < processes.Count; index++)
         {
-            if (hleModule is not ISnapshotState s)
+            Emulator process = processes[index];
+            processList.Write(process.Pid);
+            processList.Write(process.AppId);
+            processList.Write(process.TitleId);
+            processList.Write(process.Suspended);
+            processList.Write(ReferenceEquals(emu.Vita.Foreground, process));
+            if (index == 0)
             {
                 continue;
             }
 
-            string name = ModuleKey(hleModule, used);
-            var mw = new SnapshotWriter { UsedLayouts = layouts };
-            s.SaveState(mw);
-            list.Add((ModulePrefix + name, mw.Data.ToArray()));
+            string prefix = ProcessPrefix(index);
+            using Kernel.ProcessScope.Scope processScope = Kernel.ProcessScope.Enter(process);
+            var processSystem = new SnapshotWriter();
+            processSystem.Write(process.TitleId);
+            processSystem.Write(process.Pid);
+            processSystem.Write(process.AppId);
+            processSystem.WriteKernelObject(process.Kernel.MainThread);
+            processSystem.Write(process.BgmPriority);
+            list.Add((prefix + SysSection, processSystem.Data.ToArray()));
+            var processFunctions = new SnapshotWriter();
+            process.Hle.SaveState(processFunctions);
+            list.Add((prefix + FunctionsSection, processFunctions.Data.ToArray()));
+            CaptureModules(process, prefix, layouts, list);
         }
+
+        list.Add((ProcessesSection, processList.Data.ToArray()));
 
         // the kernel process's modules (the HLE state its kernel threads made), in sections of their own
         if (emu.Vita.KernelProcess is { } kernelProcess)
@@ -437,17 +513,63 @@ public static class SaveStates
 
         long t0 = Stopwatch.GetTimestamp(), raw = 0;
         List<GuestMemory.Block> blocks = emu.Memory.SnapshotBlocks();
+        // the process whose address space holds each private block (0: CDRAM and kernel blocks, in every space); read
+        // before the block table on load
+        var spaceOwners = new Dictionary<AddressSpace, int>();
+        foreach (Emulator process in emu.Vita.ProcessesAndKernel.Prepend(emu))
+        {
+            spaceOwners.TryAdd(process.Space, process.Pid);
+        }
+
+        // blocks a process that ended left in its space belong to no process of the state (a load frees them)
+        int orphans = blocks.RemoveAll(block => block.Space != null && !spaceOwners.ContainsKey(block.Space));
+        if (orphans > 0)
+        {
+            Log.Warn($"Save state: {orphans} memory blocks of processes that ended are not saved");
+        }
+
+        var spaces = new SnapshotWriter();
+        var blockSpacePids = new int[blocks.Count];
+        spaces.Write(blocks.Count);
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            GuestMemory.Block block = blocks[i];
+            int spacePid = block.Space == null ? 0 : spaceOwners[block.Space];
+            blockSpacePids[i] = spacePid;
+            spaces.Write(spacePid);
+        }
+
+        list.Add((SpacesSection, spaces.Data.ToArray()));
         var bt = new SnapshotWriter();
         GuestMemory.WriteBlockTable(bt, blocks);
         list.Add((BlocksSection, bt.Data.ToArray()));
-        foreach (GuestMemory.Block b in blocks)
+        for (int i = 0; i < blocks.Count; i++)
         {
+            GuestMemory.Block b = blocks[i];
             byte[] data = emu.Memory.CopyContents(b, out bool wordPages);
-            list.Add(((wordPages ? WordPagesMemPrefix : MemPrefix) + b.Address.ToString("X8"), data));
+            list.Add((MemorySection(wordPages, b.Address, blockSpacePids[i], emu.Pid), data));
             raw += data.Length;
         }
         Log.Info($"Save state: memory {blocks.Count} blocks, {raw >> 20} MB of non-zero pages copied in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
         return (header, list);
+    }
+
+    /// <summary>The sections of the HLE modules of <paramref name="process"/> with save state support.</summary>
+    private static void CaptureModules(Emulator process, string prefix, HashSet<string> layouts, List<(string, byte[])> list)
+    {
+        var used = new HashSet<string>();
+        foreach (HleModule hleModule in process.Hle.Modules)
+        {
+            if (hleModule is not ISnapshotState s)
+            {
+                continue;
+            }
+
+            string name = ModuleKey(hleModule, used);
+            var mw = new SnapshotWriter { UsedLayouts = layouts };
+            s.SaveState(mw);
+            list.Add((prefix + ModulePrefix + name, mw.Data.ToArray()));
+        }
     }
 
     /// <summary>A module's section name: its type name (numbered when a type is registered more than once).</summary>
@@ -659,11 +781,14 @@ public static class SaveStates
             }
         }
         long readMs = sw.ElapsedMilliseconds;
-        foreach (HleModule hleModule in emu.Hle.Modules)
+        foreach (Emulator process in SystemProcesses(emu))
         {
-            if (hleModule is not ISnapshotState && SnapshotSchema.IsStateful(hleModule.GetType()) && emu.Hle.WasUsed(hleModule))
+            foreach (HleModule hleModule in process.Hle.Modules)
             {
-                throw new SnapshotException($"module {hleModule.GetType().Name} was used in this session and its state cannot be replaced; restart the game, then load the state");
+                if (hleModule is not ISnapshotState && SnapshotSchema.IsStateful(hleModule.GetType()) && process.Hle.WasUsed(hleModule))
+                {
+                    throw new SnapshotException($"module {hleModule.GetType().Name} was used in this session and its state cannot be replaced; restart the game, then load the state");
+                }
             }
         }
 
@@ -733,7 +858,7 @@ public static class SaveStates
         {
             if (held.Count == 0)
             {
-                for (int i = 0; i < 400 && emu.OpenSceneThread != null; i++)
+                for (int i = 0; i < 400 && OpenScene(emu) != null; i++)
                 {
                     Thread.Sleep(1);
                 }
@@ -753,7 +878,7 @@ public static class SaveStates
                     }
                 }
 
-                if (emu.OpenSceneThread is { } scene)
+                if (OpenScene(emu) is { } scene)
                 {
                     busy = $"thread '{scene.Name}' is finishing a GPU scene";
                 }
@@ -771,7 +896,7 @@ public static class SaveStates
                 throw new SnapshotException($"not at a safe point: {busy}");
             }
 
-            if (emu.OpenSceneThread == null)
+            if (OpenScene(emu) == null)
             {
                 continue;
             }
@@ -790,11 +915,14 @@ public static class SaveStates
     /// with the reason, or null.</summary>
     internal static string? ModulesBusyForLoad(Emulator emu)
     {
-        foreach (HleModule hleModule in emu.Hle.Modules)
+        foreach (Emulator process in SystemProcesses(emu))
         {
-            if (hleModule is ISnapshotState state && state.CheckLoad() is { } why)
+            foreach (HleModule hleModule in process.Hle.Modules)
             {
-                return $"module {hleModule.GetType().Name}: {why}";
+                if (hleModule is ISnapshotState state && state.CheckLoad() is { } why)
+                {
+                    return $"module {hleModule.GetType().Name}: {why}";
+                }
             }
         }
 
@@ -969,23 +1097,96 @@ public static class SaveStates
         }
 
         var names = new HashSet<string>(sections.Select(s => s.Name), StringComparer.Ordinal);
-        var used = new HashSet<string>();
-        foreach (HleModule hleModule in emu.Hle.Modules)
+        List<Emulator> processes = SavedProcesses(emu, sections);
+        for (int index = 0; index < processes.Count; index++)
         {
-            if (hleModule is not ISnapshotState)
+            Emulator process = processes[index];
+            string prefix = ProcessPrefix(index);
+            var used = new HashSet<string>();
+            foreach (HleModule hleModule in process.Hle.Modules)
             {
-                continue;
-            }
+                if (hleModule is not ISnapshotState)
+                {
+                    continue;
+                }
 
-            string key = ModuleKey(hleModule, used);
-            if (!names.Contains(ModulePrefix + key) && emu.Hle.WasUsed(hleModule))
-            {
-                throw new SaveStateIncompatibleException(Localization.Loc.Format("StateModuleChanged", version,
-                    $"module {key} has no state in it and was used in this session (restart the game, then load the state)"));
+                string key = ModuleKey(hleModule, used);
+                if (!names.Contains(prefix + ModulePrefix + key) && process.Hle.WasUsed(hleModule))
+                {
+                    throw new SaveStateIncompatibleException(Localization.Loc.Format("StateModuleChanged", version,
+                        $"module {key} has no state in it and was used in this session (restart the game, then load the state)"));
+                }
             }
         }
 
         return (layouts, positional);
+    }
+
+    /// <summary>
+    /// The running processes in the order of the state's process sections, after checking that they are the ones the
+    /// state was saved with: the same process and application ids and titles (the shell and the applications it had
+    /// opened; open the same ones, then load), each suspended or not and on screen or not as when it was saved. A state
+    /// without a process list holds the first process only. Throws <see cref="SnapshotException"/> naming the difference.
+    /// </summary>
+    internal static List<Emulator> SavedProcesses(Emulator emu, List<(string Name, byte[] Data)> sections)
+    {
+        List<Emulator> running = SystemProcesses(emu);
+        byte[]? list = sections.FirstOrDefault(s => s.Name == ProcessesSection).Data;
+        if (list == null)
+        {
+            if (running.Count > 1)
+            {
+                throw new SnapshotException($"the state holds {emu.Describe()} alone and {running.Count - 1} more processes run here; close them, then load the state");
+            }
+
+            return running;
+        }
+
+        var r = new SnapshotReader(list);
+        int count = r.ReadInt32();
+        var saved = new List<(int Pid, int AppId, string TitleId, bool Suspended, bool Foreground)>(count);
+        for (int i = 0; i < count; i++)
+        {
+            saved.Add((r.ReadInt32(), r.ReadInt32(), r.ReadStringNotNull(), r.ReadBool(), r.ReadBool()));
+        }
+
+        if (count != running.Count || saved.Any(p => !running.Any(e => e.Pid == p.Pid)))
+        {
+            string savedNames = string.Join(", ", saved.Select(p => $"{p.TitleId} (pid 0x{p.Pid:X})"));
+            string runningNames = string.Join(", ", running.Select(e => e.Describe()));
+            throw new SnapshotException($"the state was saved with {savedNames} running, here {runningNames} run; open the same applications, then load the state");
+        }
+
+        var ordered = new List<Emulator>(count);
+        foreach ((int pid, int appId, string titleId, bool suspended, bool foreground) in saved)
+        {
+            Emulator process = running.First(e => e.Pid == pid);
+            if (process.AppId != appId || !string.Equals(process.TitleId, titleId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new SnapshotException($"process 0x{pid:X} was {titleId} (application 0x{appId:X}) when the state was saved, here it is {process.Describe()} (application 0x{process.AppId:X})");
+            }
+
+            if (process.Suspended != suspended)
+            {
+                string what = suspended ? "suspended" : "running";
+                throw new SnapshotException($"{process.Describe()} was {what} when the state was saved; switch to the same screen, then load the state");
+            }
+
+            if (foreground != ReferenceEquals(emu.Vita.Foreground, process))
+            {
+                string what = foreground ? "on screen" : "in the background";
+                throw new SnapshotException($"{process.Describe()} was {what} when the state was saved; switch to the same screen, then load the state");
+            }
+
+            ordered.Add(process);
+        }
+
+        if (!ReferenceEquals(ordered[0], emu))
+        {
+            throw new SnapshotException("the state's first process is not the system's first process");
+        }
+
+        return ordered;
     }
 
     private static List<GuestThread> LoadCore(Emulator emu, List<(string Name, byte[] Data)> list, IReadOnlyDictionary<string, SnapshotLayout> layouts,
@@ -999,20 +1200,32 @@ public static class SaveStates
         }
 
         Log.Info($"Load state: GPU backend replaced in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
+        List<Emulator> processes = SystemProcesses(emu);
         if (!s_keepCodeOnLoad)
         {
-            emu.Code.Clear();
+            foreach (Emulator process in processes)
+            {
+                process.Code.Clear();
+            }
         }
 
         try
         {
             List<GuestThread> restored = LoadSections(emu, list, layouts, positional);
-            RevalidateCode(emu.Code);
+            foreach (Emulator process in processes)
+            {
+                RevalidateCode(process.Code);
+            }
+
             return restored;
         }
         catch
         {
-            emu.Code.Clear(); // a half-restored memory: no translation can be trusted
+            foreach (Emulator process in processes)
+            {
+                process.Code.Clear(); // a half-restored memory: no translation can be trusted
+            }
+
             throw;
         }
     }
@@ -1039,19 +1252,36 @@ public static class SaveStates
     {
         AudioDiagnostics.ProcessEnded();
 
+        List<Emulator> processes = SavedProcesses(emu, list);
         var sections = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        Dictionary<uint, GuestMemory.Block>? blocks = null;
+        // blocks by address and the process whose address space holds them (0: the first process's space, or CDRAM and
+        // kernel memory, in every space)
+        Dictionary<(uint Address, int SpacePid), GuestMemory.Block>? blocks = null;
+        int[]? spacePids = null;
         foreach ((string? name, byte[]? data) in list)
         {
-            if (name == BlocksSection)
+            if (name == SpacesSection)
             {
-                blocks = emu.Memory.RestoreBlocks(GuestMemory.ReadBlockTable(new SnapshotReader(data))).ToDictionary(b => b.Address);
+                var spaces = new SnapshotReader(data);
+                spacePids = new int[spaces.ReadInt32()];
+                for (int i = 0; i < spacePids.Length; i++)
+                {
+                    int spacePid = spaces.ReadInt32();
+                    spacePids[i] = spacePid == emu.Pid ? 0 : spacePid;
+                }
+            }
+            else if (name == BlocksSection)
+            {
+                blocks = RestoreBlocks(emu, GuestMemory.ReadBlockTable(new SnapshotReader(data)), spacePids);
             }
             else if (name.StartsWith(MemPrefix, StringComparison.Ordinal) || name.StartsWith(WordPagesMemPrefix, StringComparison.Ordinal))
             {
                 bool wordPages = name.StartsWith(WordPagesMemPrefix, StringComparison.Ordinal);
-                uint addr = Convert.ToUInt32(name[(wordPages ? WordPagesMemPrefix : MemPrefix).Length..], 16);
-                if (blocks == null || !blocks.TryGetValue(addr, out GuestMemory.Block? b))
+                string key = name[(wordPages ? WordPagesMemPrefix : MemPrefix).Length..];
+                int at = key.IndexOf('@', StringComparison.Ordinal);
+                uint addr = Convert.ToUInt32(at < 0 ? key : key[..at], 16);
+                int spacePid = at < 0 ? 0 : Convert.ToInt32(key[(at + 1)..], 16);
+                if (blocks == null || !blocks.TryGetValue((addr, spacePid), out GuestMemory.Block? b))
                 {
                     throw new SnapshotException($"memory block 0x{addr:X8} is missing from the block table");
                 }
@@ -1083,19 +1313,111 @@ public static class SaveStates
         (sys.ReadBytes() ?? []).CopyTo(emu.Vita.AppMgrState, 0);
         emu.BgmPriority = Math.Max(0, sys.ReadInt32());
 
-        emu.Hle.LoadState(new SnapshotReader(Need(FunctionsSection)));
-        // this build's guest-code routines and SVCs, not the saving build's (Hle/HleGuestCode)
-        using (Kernel.ProcessScope.Enter(emu))
+        // the other processes' own records: the ids were checked (SavedProcesses), the main thread follows the objects
+        var mainThreads = new int[processes.Count];
+        mainThreads[0] = mainUid;
+        for (int index = 1; index < processes.Count; index++)
         {
-            int rebound = emu.Linker.RebindHleStubs(emu.Hle.ReplaceGuestCode());
-            Log.Info($"Load state: {rebound} HLE import stubs bound to this build's routines");
-        }
-        List<GuestThread> restored = KernelSnapshot.Load(emu, new SnapshotReader(Need(ObjectsSection)));
-        emu.Kernel.MainThread = emu.Kernel.Objects.Get<GuestThread>(mainUid);
-        GuestClock.RestoreMicroseconds(clockUs);
+            Emulator process = processes[index];
+            var processSystem = new SnapshotReader(Need(ProcessPrefix(index) + SysSection));
+            processSystem.ReadString();
+            int processPid = processSystem.ReadInt32(), processAppId = processSystem.ReadInt32();
+            if (processPid != process.Pid || processAppId != process.AppId)
+            {
+                throw new SnapshotException($"the process ids of {process.Describe()} differ (saved 0x{processPid:X}/0x{processAppId:X})");
+            }
 
+            mainThreads[index] = processSystem.ReadInt32();
+            process.BgmPriority = Math.Max(0, processSystem.ReadInt32());
+        }
+
+        for (int index = 0; index < processes.Count; index++)
+        {
+            Emulator process = processes[index];
+            process.Hle.LoadState(new SnapshotReader(Need(ProcessPrefix(index) + FunctionsSection)));
+            // this build's guest-code routines and SVCs, not the saving build's (Hle/HleGuestCode)
+            using (Kernel.ProcessScope.Enter(process))
+            {
+                int rebound = process.Linker.RebindHleStubs(process.Hle.ReplaceGuestCode());
+                Log.Info($"Load state: {rebound} HLE import stubs of {process.Describe()} bound to this build's routines");
+            }
+        }
+
+        List<GuestThread> restored = KernelSnapshot.Load(emu, new SnapshotReader(Need(ObjectsSection)));
+        for (int index = 0; index < processes.Count; index++)
+        {
+            processes[index].Kernel.MainThread = emu.Kernel.Objects.Get<GuestThread>(mainThreads[index]);
+        }
+
+        GuestClock.RestoreMicroseconds(clockUs);
+        for (int index = 0; index < processes.Count; index++)
+        {
+            if (index == 0)
+            {
+                LoadModules(processes[index], "", sections, layouts, positional);
+                continue;
+            }
+
+            using Kernel.ProcessScope.Scope processScope = Kernel.ProcessScope.Enter(processes[index]);
+            LoadModules(processes[index], ProcessPrefix(index), sections, layouts, positional);
+        }
+
+        LoadKernelModules(emu, sections, layouts, positional);
+        Scheduler.Reset();
+        return restored;
+    }
+
+    /// <summary>
+    /// Makes the block table the saved one, each private block in the address space of the process that held it
+    /// (<paramref name="spacePids"/>, by block: 0 for the first process's space and for CDRAM and kernel memory; null in
+    /// a state of one process). Returns the blocks by address and that process.
+    /// </summary>
+    private static Dictionary<(uint Address, int SpacePid), GuestMemory.Block> RestoreBlocks(Emulator emu, List<GuestMemory.Block> table, int[]? spacePids)
+    {
+        if (spacePids == null)
+        {
+            return emu.Memory.RestoreBlocks(table).ToDictionary(b => (b.Address, 0));
+        }
+
+        if (spacePids.Length != table.Count)
+        {
+            throw new SnapshotException($"the memory table names the space of {spacePids.Length} blocks, it has {table.Count}");
+        }
+
+        var spaceOf = new Dictionary<int, AddressSpace>();
+        foreach (Emulator process in emu.Vita.ProcessesAndKernel)
+        {
+            spaceOf.TryAdd(process.Pid, process.Space);
+        }
+
+        var spaces = new AddressSpace?[table.Count];
+        for (int i = 0; i < table.Count; i++)
+        {
+            if (spacePids[i] == 0)
+            {
+                continue;
+            }
+
+            spaces[i] = spaceOf.GetValueOrDefault(spacePids[i])
+                ?? throw new SnapshotException($"memory block {table[i].Name} belongs to process 0x{spacePids[i]:X}, which does not run here");
+        }
+
+        List<GuestMemory.Block> restored = emu.Memory.RestoreBlocks(table, spaces);
+        var blocks = new Dictionary<(uint Address, int SpacePid), GuestMemory.Block>(restored.Count);
+        for (int i = 0; i < restored.Count; i++)
+        {
+            blocks[(restored[i].Address, spacePids[i])] = restored[i];
+        }
+
+        return blocks;
+    }
+
+    /// <summary>The states of the HLE modules of <paramref name="process"/> with save state support, from the sections
+    /// named with <paramref name="prefix"/>.</summary>
+    private static void LoadModules(Emulator process, string prefix, Dictionary<string, byte[]> sections, IReadOnlyDictionary<string, SnapshotLayout> layouts, bool positional)
+    {
         var used = new HashSet<string>();
-        foreach (HleModule hleModule in emu.Hle.Modules)
+        foreach (HleModule hleModule in process.Hle.Modules)
         {
             if (hleModule is not ISnapshotState s)
             {
@@ -1103,9 +1425,9 @@ public static class SaveStates
             }
 
             string key = ModuleKey(hleModule, used);
-            if (!sections.TryGetValue(ModulePrefix + key, out byte[]? data))
+            if (!sections.TryGetValue(prefix + ModulePrefix + key, out byte[]? data))
             {
-                if (!emu.Hle.WasUsed(hleModule))
+                if (!process.Hle.WasUsed(hleModule))
                 {
                     continue; // a module the saving build did not have, unused here: it keeps its initial state
                 }
@@ -1113,7 +1435,7 @@ public static class SaveStates
                 throw new SnapshotException($"module {key} has no state in the save state");
             }
 
-            var mr = new SnapshotReader(data) { Objects = emu.Kernel.Objects, Layouts = layouts, Positional = positional };
+            var mr = new SnapshotReader(data) { Objects = process.Kernel.Objects, Layouts = layouts, Positional = positional };
             try
             {
                 s.LoadState(mr);
@@ -1122,15 +1444,12 @@ public static class SaveStates
             {
                 throw new SnapshotException($"module {key}: {e.Message}");
             }
+
             if (!mr.AtEnd)
             {
                 throw new SnapshotException($"module {key}: {mr.Remaining} bytes of its state were not read (layout mismatch)");
             }
         }
-
-        LoadKernelModules(emu, sections, layouts, positional);
-        Scheduler.Reset();
-        return restored;
     }
 
     /// <summary>The kernel process's module states (a state of a build before it has none: the kernel process keeps
