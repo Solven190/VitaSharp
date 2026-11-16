@@ -233,6 +233,10 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>This device begins multisampled renderings in the primary (<see cref="MsaaDirect"/>; tests).</summary>
     public bool BeginsMsaaRenderingsDirectly => MsaaDirect;
 
+    /// <summary>This device records scene renderings into secondaries: tile-based (<see cref="GpuQuirk.TileBased"/>) or
+    /// on the render-pass path (tests: the expected <see cref="BeginsMsaaRenderingsDirectly"/> is the opposite).</summary>
+    public bool DefersRenderingsByDevice => TiledRenderings || UseRenderPasses;
+
     /// <summary>Rasterization samples of the current scene's pipelines.</summary>
     private SampleCountFlags SceneSamples => _multisampled ? _msSamples : SampleCountFlags.Count1Bit;
 

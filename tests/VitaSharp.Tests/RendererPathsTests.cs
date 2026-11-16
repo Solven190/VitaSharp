@@ -87,12 +87,23 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 Assert.Equal(1, w.Run(1));
                 h.Emu.Gpu.WaitIdle();
                 m = renderer.MsaaMode;
-                // a desktop device with dynamic rendering (the software one here) begins native MSAA renderings in the
-                // primary, as the single-sampled ones (Metal Gear's one-frame bands through secondaries)
+                // a desktop device with dynamic rendering (lavapipe) begins native MSAA renderings in the primary, as the
+                // single-sampled ones (Metal Gear's one-frame bands through secondaries); a tile-based one (MoltenVK on
+                // the macOS runner, the Mali profile) or the render-pass path keeps them in secondaries
                 if (m == "native" && multisample != 0)
                 {
-                    Assert.True(renderer.BeginsMsaaRenderingsDirectly, "a desktop device defers its multisampled renderings");
-                    Assert.True(renderer.MsaaDirectRenderings > 0, "the multisampled rendering went through a secondary");
+                    bool direct = !renderer.DefersRenderingsByDevice;
+                    if (gpuProfile == "mali")
+                    {
+                        Assert.False(direct, "the tile-based Mali profile begins its multisampled renderings directly");
+                    }
+                    else if (gpuProfile == "desktop")
+                    {
+                        Assert.True(direct, "the desktop profile defers its multisampled renderings");
+                    }
+
+                    Assert.True(renderer.BeginsMsaaRenderingsDirectly == direct, $"{renderer.DeviceName}: multisampled renderings begun directly {renderer.BeginsMsaaRenderingsDirectly}, expected {direct}");
+                    Assert.True((renderer.MsaaDirectRenderings > 0) == direct, $"{renderer.DeviceName}: {renderer.MsaaDirectRenderings} multisampled renderings begun directly, expected direct {direct}");
                 }
                 w.Terminate();
             });
@@ -142,9 +153,15 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
 
         Assert.True(drawn > (W - 3) * (H - 3) / 2 * 9 / 10, $"the triangle drew {drawn} pixels");
-        foreach ((string mode, ushort samples) in new[] { ("native", (ushort)2), ("native", (ushort)1), ("ss", (ushort)2), ("off", (ushort)2) })
+        // the device's own path, plus both paths forced: "desktop" (direct, also on a tile-based runner) and "mali"
+        // (tile-based: the secondaries, also on a desktop runner)
+        foreach ((string mode, ushort samples, string? profile) in new[]
         {
-            byte[] img = MsaaScene(mode, samples, out string? shown);
+            ("native", (ushort)2, (string?)null), ("native", (ushort)1, null), ("ss", (ushort)2, null), ("off", (ushort)2, null),
+            ("native", (ushort)2, "desktop"), ("native", (ushort)2, "mali"),
+        })
+        {
+            byte[] img = MsaaScene(mode, samples, out string? shown, gpuProfile: profile);
             Assert.Equal(mode, shown);
             int far = 0, edge = 0;
             for (int y = 0; y < H; y++)
@@ -169,8 +186,8 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 }
             }
 
-            Assert.True(far == 0, $"MSAA {mode} {samples}: {far} pixels away from the edge differ ({edge} on it)");
-            Assert.True(edge <= 3 * W, $"MSAA {mode} {samples}: {edge} edge pixels differ");
+            Assert.True(far == 0, $"MSAA {mode} {samples} {profile}: {far} pixels away from the edge differ ({edge} on it)");
+            Assert.True(edge <= 3 * W, $"MSAA {mode} {samples} {profile}: {edge} edge pixels differ");
         }
     }
 
