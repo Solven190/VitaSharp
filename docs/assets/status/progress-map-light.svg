@@ -10,7 +10,7 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#9ed864"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#64d864"/>
 <text x="952" y="27" font-size="11" fill="#59636e">100%</text>
-<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 98.2% implemented (19,071/19,406)</text>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 98.4% implemented (19,105/19,406)</text>
 <g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="290.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#1f2328">PafWidget</text><text x="11" y="95" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="354.9" width="227.9" height="131.8" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="369.9" font-size="13" fill="#1f2328">PafMisc</text><text x="11" y="385.9" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePsp2Compat: 1047/1047 (100%)</title><rect x="8" y="486.7" width="227.9" height="128.4" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="501.7" font-size="13" fill="#1f2328">Psp2Compat</text><text x="11" y="517.7" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
@@ -137,7 +137,7 @@
 <g><title>SceLibGcc: 20/20 (100%)</title><rect x="787.1" y="571.4" width="25.6" height="21.8" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>ScePafLowlayer: 20/20 (100%)</title><rect x="787.1" y="593.3" width="25.6" height="21.8" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceSysmem: 20/20 (100%)</title><rect x="812.7" y="412" width="24.4" height="22.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceKrm: 0/19 (0%)</title><rect x="837.1" y="412" width="23.2" height="22.9" fill="#d86464" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceKrm: 19/19 (100%), 19 default</title><rect x="837.1" y="412" width="23.2" height="22.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceTriggerUtil: 15/19 (78.9%), 3 default</title><rect x="860.3" y="412" width="23.2" height="22.9" fill="#95d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceBeisobmf: 18/18 (100%)</title><rect x="883.4" y="412" width="22" height="22.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceNpGriefReport: 18/18 (100%)</title><rect x="905.4" y="412" width="22" height="22.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
@@ -161,7 +161,7 @@
 <g><title>SceAudiodecUser: 15/15 (100%)</title><rect x="812.7" y="577.1" width="22.1" height="19" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceBEAVCorePlayer: 15/15 (100%)</title><rect x="812.7" y="596.1" width="22.1" height="19" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceCommonDialogMain: 15/15 (100%)</title><rect x="834.7" y="455.5" width="20.3" height="20.6" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceGxmInternalForTest: 0/15 (0%)</title><rect x="855.1" y="455.5" width="20.3" height="20.6" fill="#d86464" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceGxmInternalForTest: 15/15 (100%)</title><rect x="855.1" y="455.5" width="20.3" height="20.6" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceMtpIf: 15/15 (100%)</title><rect x="875.4" y="455.5" width="20.3" height="20.6" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceNpPartyAppUtil: 15/15 (100%)</title><rect x="895.7" y="455.5" width="20.3" height="20.6" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceAudioencUser: 14/14 (100%)</title><rect x="916.1" y="455.5" width="19" height="20.6" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>

@@ -2179,6 +2179,21 @@
 0xD7506735	sceGxmUnmapVertexUsseMemoryInternal	Gxm	SceGxmInternal	vh
 0x83149CAD	sceGxmShaderPatcherCreateFragmentProgramForGles	Gxm	SceGxmInternalForGles	vh
 0xEFA222AF	sceGxmGetReplayRenderTargetMemSize	Gxm	SceGxmInternalForReplay	vh
+0x1D68FB73	NID_1D68FB73	Gxm	SceGxmInternalForTest	-
+0x2B0A5A39	NID_2B0A5A39	Gxm	SceGxmInternalForTest	-
+0x3D8863E2	NID_3D8863E2	Gxm	SceGxmInternalForTest	-
+0x46D6C306	NID_46D6C306	Gxm	SceGxmInternalForTest	-
+0x588FD7FD	NID_588FD7FD	Gxm	SceGxmInternalForTest	-
+0x631E95AA	NID_631E95AA	Gxm	SceGxmInternalForTest	-
+0x65FF05BC	NID_65FF05BC	Gxm	SceGxmInternalForTest	-
+0x6E9565D5	NID_6E9565D5	Gxm	SceGxmInternalForTest	-
+0x7C427319	NID_7C427319	Gxm	SceGxmInternalForTest	-
+0x9C7DC365	NID_9C7DC365	Gxm	SceGxmInternalForTest	-
+0x9CAFAE4B	NID_9CAFAE4B	Gxm	SceGxmInternalForTest	-
+0x9F4A526F	NID_9F4A526F	Gxm	SceGxmInternalForTest	-
+0xC65CED80	NID_C65CED80	Gxm	SceGxmInternalForTest	-
+0xD352F90A	NID_D352F90A	Gxm	SceGxmInternalForTest	-
+0xD412F27B	NID_D412F27B	Gxm	SceGxmInternalForTest	-
 0xA04F5FAC	sceGxmVshInitialize	Gxm	SceGxmInternalForVsh	vh
 0xBEB4F93D	sceGxmVshSyncObjectClose	Gxm	SceGxmInternalForVsh	vh
 0x2A956594	sceGxmVshSyncObjectCreate	Gxm	SceGxmInternalForVsh	vh
@@ -2540,6 +2555,25 @@
 0xD4622EA8	ksceKernelSysEventDispatch	SysmemKernel	SceKernelSuspendForDriver	-
 0xDD61D621	ksceKernelUnregisterSysEventHandler	SysmemKernel	SceKernelSuspendForDriver	-
 0x900148DB	ksceZlibDecompress	KernelTwins	SceKernelUtilsForDriver	-
+0x10202EB4	NID_10202EB4	SystemServicesVsh	SceKrm	-	default
+0x18DE25C6	NID_18DE25C6	SystemServicesVsh	SceKrm	-	default
+0x2528D613	NID_2528D613	SystemServicesVsh	SceKrm	-	default
+0x3257BD35	NID_3257BD35	SystemServicesVsh	SceKrm	-	default
+0x350C8251	NID_350C8251	SystemServicesVsh	SceKrm	-	default
+0x41547BE1	NID_41547BE1	SystemServicesVsh	SceKrm	-	default
+0x5296A954	NID_5296A954	SystemServicesVsh	SceKrm	-	default
+0x7251237D	NID_7251237D	SystemServicesVsh	SceKrm	-	default
+0x7401B932	NID_7401B932	SystemServicesVsh	SceKrm	-	default
+0x820B45C6	NID_820B45C6	SystemServicesVsh	SceKrm	-	default
+0x949506DC	NID_949506DC	SystemServicesVsh	SceKrm	-	default
+0x98EEB7F3	NID_98EEB7F3	SystemServicesVsh	SceKrm	-	default
+0xA100E9C3	NID_A100E9C3	SystemServicesVsh	SceKrm	-	default
+0xA9201DA3	NID_A9201DA3	SystemServicesVsh	SceKrm	-	default
+0xD7B35BE6	NID_D7B35BE6	SystemServicesVsh	SceKrm	-	default
+0xE0AEAE3B	NID_E0AEAE3B	SystemServicesVsh	SceKrm	-	default
+0xECE6B5F4	NID_ECE6B5F4	SystemServicesVsh	SceKrm	-	default
+0xECF53237	NID_ECF53237	SystemServicesVsh	SceKrm	-	default
+0xF0B626E7	NID_F0B626E7	SystemServicesVsh	SceKrm	-	default
 0xEA24BE03	ksceLedSetMode	SystemServicesVsh	SceLedForDriver	-	default
 0x29C2EB11	NID_29C2EB11	ProcessMgr	SceLibGcc	-
 0x6214B80C	NID_6214B80C	ProcessMgr	SceLibGcc	-

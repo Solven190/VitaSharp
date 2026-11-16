@@ -13,8 +13,8 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
 | System imports | 7,232 | 6,877 | 355 | 0 | 7,320 | 98.7% |
-| General | 9,697 | 9,462 | 235 | 0 | 9,944 | 97.5% |
-| All firmware 3.74 exports | 19,071 | 4,984 | 596 | 13,491 | 19,406 | 98.2% |
+| General | 9,731 | 9,477 | 254 | 0 | 9,944 | 97.8% |
+| All firmware 3.74 exports | 19,105 | 4,999 | 615 | 13,491 | 19,406 | 98.4% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -379,7 +379,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGxmInternal | `os0:us/libgxm_es4.suprx` | 16 / 16 | 100% | - | - | 10 / 10 |
 | SceGxmInternalForGles | `os0:us/libgxm_es4.suprx` | 1 / 1 | 100% | - | - | - |
 | SceGxmInternalForReplay | `os0:us/libgxm_es4.suprx` | 1 / 1 | 100% | - | - | - |
-| SceGxmInternalForTest | `os0:us/libgxm_es4.suprx` | 0 / 15 | 0% | - | - | - |
+| SceGxmInternalForTest | `os0:us/libgxm_es4.suprx` | 15 / 15 | 100% | - | - | - |
 | SceGxmInternalForVsh | `os0:us/libgxm_es4.suprx` | 5 / 5 | 100% | - | 1 / 1 | 4 / 4 |
 | SceHandwriting | `vs0:sys/external/libhandwriting.suprx` | 11 / 11 | 100% | - | - | - |
 | SceHid | `os0:kd/bootimage.skprx/SceHid` | 28 / 28 | 100% | - | 4 / 4 | 7 / 7 |
@@ -399,7 +399,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceJpegUser | `os0:us/avcodec_us.suprx` | 11 / 11 | 100% | - | 8 / 8 | - |
 | SceKernelForMono | `os0:us/libkernel.suprx` | 6 / 6 | 100% | - | 5 / 5 | - |
 | SceKernelForVM | `os0:us/libkernel.suprx` | 3 / 3 | 100% | - | - | - |
-| SceKrm | `os0:kd/bootimage.skprx/SceKrm` | 0 / 19 | 0% | - | - | - |
+| SceKrm | `os0:kd/bootimage.skprx/SceKrm` | 19 / 19 | 100% | 19 | - | - |
 | SceLibFflMp4 | `vs0:vsh/common/libFflMp4.suprx` | 213 / 213 | 100% | - | - | 113 / 113 |
 | SceLibFflVuMp4 | `vs0:vsh/common/libSenvuabsFFsdk.suprx` | 61 / 61 | 100% | - | - | 13 / 13 |
 | SceLibGcc | `os0:us/libkernel.suprx` | 20 / 20 | 100% | - | - | - |

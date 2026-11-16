@@ -92,7 +92,7 @@ SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
 SceGxmInternal	os0:us/libgxm_es4.suprx	16	16	0	0	10	10	0	0	0	0
 SceGxmInternalForGles	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
 SceGxmInternalForReplay	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
-SceGxmInternalForTest	os0:us/libgxm_es4.suprx	15	0	0	0	0	0	0	0	0	0
+SceGxmInternalForTest	os0:us/libgxm_es4.suprx	15	15	0	0	0	0	0	0	0	0
 SceGxmInternalForVsh	os0:us/libgxm_es4.suprx	5	5	1	1	4	4	0	0	0	0
 SceHandwriting	vs0:sys/external/libhandwriting.suprx	11	11	0	0	0	0	0	0	0	0
 SceHid	os0:kd/bootimage.skprx/SceHid	28	28	4	4	7	7	0	0	0	0
@@ -112,7 +112,7 @@ SceJpegPromoter	vs0:vsh/common/mms/jpeg_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceJpegUser	os0:us/avcodec_us.suprx	11	11	8	8	0	0	0	0	0	0
 SceKernelForMono	os0:us/libkernel.suprx	6	6	5	5	0	0	0	0	0	0
 SceKernelForVM	os0:us/libkernel.suprx	3	3	0	0	0	0	0	0	0	0
-SceKrm	os0:kd/bootimage.skprx/SceKrm	19	0	0	0	0	0	0	0	0	0
+SceKrm	os0:kd/bootimage.skprx/SceKrm	19	19	0	0	0	0	19	0	0	0
 SceLibFflMp4	vs0:vsh/common/libFflMp4.suprx	213	213	0	0	113	113	0	0	0	213
 SceLibFflVuMp4	vs0:vsh/common/libSenvuabsFFsdk.suprx	61	61	0	0	13	13	0	0	0	61
 SceLibGcc	os0:us/libkernel.suprx	20	20	0	0	0	0	0	0	0	2

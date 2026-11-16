@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=88 general=247 vitasdk=0
+# firmware=3.74 games=0 system=88 general=213 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceGpuEs4User	0x1A575DFD	NID_1A575DFD	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
@@ -102,21 +102,6 @@ general	SceGpuEs4User	0x9E8E2957	NID_9E8E2957	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xAAD85460	NID_AAD85460	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xC0D16CE5	NID_C0D16CE5	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xCCEE0336	NID_CCEE0336	os0:us/libgpu_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x1D68FB73	NID_1D68FB73	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x2B0A5A39	NID_2B0A5A39	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x3D8863E2	NID_3D8863E2	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x46D6C306	NID_46D6C306	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x588FD7FD	NID_588FD7FD	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x631E95AA	NID_631E95AA	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x65FF05BC	NID_65FF05BC	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x6E9565D5	NID_6E9565D5	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x7C427319	NID_7C427319	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x9C7DC365	NID_9C7DC365	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x9CAFAE4B	NID_9CAFAE4B	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0x9F4A526F	NID_9F4A526F	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0xC65CED80	NID_C65CED80	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0xD352F90A	NID_D352F90A	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternalForTest	0xD412F27B	NID_D412F27B	os0:us/libgxm_es4.suprx	0	0	-
 general	SceHttp	0x031EBD2A	NID_031EBD2A	vs0:sys/external/libhttp.suprx	0	0	-
 general	SceHttp	0x0B0D8E7A	NID_0B0D8E7A	vs0:sys/external/libhttp.suprx	0	0	-
 general	SceHttp	0x0CC59EF6	NID_0CC59EF6	vs0:sys/external/libhttp.suprx	0	0	-
@@ -133,25 +118,6 @@ general	SceHttp	0xC498765A	NID_C498765A	vs0:sys/external/libhttp.suprx	0	0	-
 general	SceHttp	0xE0825488	NID_E0825488	vs0:sys/external/libhttp.suprx	0	0	-
 general	SceHttp	0xF8885CFD	NID_F8885CFD	vs0:sys/external/libhttp.suprx	0	0	-
 general	SceHttp	0xFE60380A	NID_FE60380A	vs0:sys/external/libhttp.suprx	0	0	-
-general	SceKrm	0x10202EB4	NID_10202EB4	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x18DE25C6	NID_18DE25C6	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x2528D613	NID_2528D613	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x3257BD35	NID_3257BD35	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x350C8251	NID_350C8251	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x41547BE1	NID_41547BE1	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x5296A954	NID_5296A954	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x7251237D	NID_7251237D	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x7401B932	NID_7401B932	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x820B45C6	NID_820B45C6	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x949506DC	NID_949506DC	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0x98EEB7F3	NID_98EEB7F3	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xA100E9C3	NID_A100E9C3	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xA9201DA3	NID_A9201DA3	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xD7B35BE6	NID_D7B35BE6	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xE0AEAE3B	NID_E0AEAE3B	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xECE6B5F4	NID_ECE6B5F4	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xECF53237	NID_ECF53237	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceKrm	0xF0B626E7	NID_F0B626E7	os0:kd/bootimage.skprx/SceKrm	0	0	-
 general	SceNetInternal	0x0F83B7A9	NID_0F83B7A9	vs0:sys/external/libnet.suprx	0	0	-
 general	SceNetInternal	0x4054D2D8	NID_4054D2D8	vs0:sys/external/libnet.suprx	0	0	-
 general	SceNetInternal	0x65AFF9BE	NID_65AFF9BE	vs0:sys/external/libnet.suprx	0	0	-
