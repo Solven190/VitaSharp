@@ -146,7 +146,7 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceNetPsForDriver | SceNetPs (0xB2A5C920) | 20 | 12 | 12 | 0 | 8 | 3 | 7 |
 | SceNpDrmForDriver | SceNpDrm (0xD84DC44A) | 26 | 0 | 0 | 0 | 26 | 20 | 0 |
 | SceOledForDriver | SceOled (0x60C7478A) | 21 | 0 | 0 | 0 | 21 | 12 | 13 |
-| ScePervasiveForDriver | SceLowio (0xE692C727) | 156 | 40 | 77 | 0 | 79 | 40 | 131 |
+| ScePervasiveForDriver | SceLowio (0xE692C727) | 156 | 77 | 115 | 0 | 41 | 13 | 131 |
 | ScePfsFacadeForKernel | ScePfsMgr (0xC26DC7BD) | 6 | 0 | 0 | 0 | 6 | 6 | 6 |
 | ScePfsMgrForKernel | ScePfsMgr (0xA067B56F) | 14 | 0 | 0 | 0 | 14 | 11 | 5 |
 | ScePmMgrForDriver | SceSysmem (0xF13F32F9) | 2 | 0 | 0 | 0 | 2 | 1 | 0 |
@@ -204,5 +204,5 @@ syscall (o que o código de usuário chama) ficam no censo do usuário (`progres
 | SceUsbstorForDriver | SceUsbstorDriver (0x5D01DDE4) | 9 | 0 | 0 | 0 | 9 | 7 | 9 |
 | SceWlanBtForDriver | SceWlanBt (0xFD94FCE9) | 4 | 0 | 0 | 0 | 4 | 2 | 0 |
 | SceZlibForDriver | SceSblPostSsMgr (0xE241534E) | 65 | 0 | 0 | 0 | 65 | 6 | 65 |
-| **Total** | | **3918** | **998** | **978** | **57** | **2883** | **1574** | **2037** |
+| **Total** | | **3918** | **1035** | **1016** | **57** | **2845** | **1547** | **2037** |
 
