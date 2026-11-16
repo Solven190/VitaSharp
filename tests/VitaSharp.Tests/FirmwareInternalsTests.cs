@@ -16,7 +16,9 @@ public sealed class FirmwareInternalsTests(GuestMemoryFixture fixture) : IDispos
 {
     private const uint LibraryNid = 0x7B47D9CF;
     private const uint PublicNid = 0xE0EBFBF6; // sceNpBandwidthTestGetStatus, in the HLE
-    private const uint InternalNid = 0x548625FC; // unnamed, imported by the system applications, not in the HLE
+    // a synthetic NID (no firmware module exports it, nids.txt does not list it), so the HLE never implements it: a real
+    // internal NID stops being one when the HLE gains it (NID_548625FC did)
+    private const uint InternalNid = 0x5EC4E7A1;
     private const string ModulePath = "vs0:sys/external/np_utility.suprx";
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-internals-" + Guid.NewGuid().ToString("N"));
@@ -59,6 +61,15 @@ public sealed class FirmwareInternalsTests(GuestMemoryFixture fixture) : IDispos
 
     private static bool LoadsRealModule(Emulator emu, LoadedModule importer) =>
         emu.LoadFirmwareDependencies(importer).Any(m => m.Path.Equals(ModulePath, StringComparison.OrdinalIgnoreCase));
+
+    [Fact]
+    public void TheInternalNidIsOneTheHleCannotHave()
+    {
+        using Emulator emu = Create();
+        Assert.Null(VitaSharp.Core.Hle.NidDatabase.Lookup(InternalNid));
+        Assert.False(emu.Hle.Implements(InternalNid));
+        Assert.True(emu.Hle.Implements(PublicNid));
+    }
 
     [Fact]
     public void GameKeepsTheHleEvenForInternals()
