@@ -46,6 +46,99 @@ public sealed class ScriptedInputTests
         Assert.Null(s.TakeHostKeys()); // each fires once
     }
 
+    [Fact]
+    public void ASwipeStartsAtItsFirstPointAndMovesAlongTheLine()
+    {
+        // 600 s from (0.2, 0.8) to (0.8, 0.2): right after the start the finger is still at the first point, and it
+        // is always on the segment between the two (x + y = 1)
+        var s = new ScriptedInput("swipe@0:0.2:0.8:0.8:0.2:600");
+        TouchPoint p = Assert.Single(s.GetTouches(false));
+        Assert.Equal(1, p.Id);
+        Assert.InRange(p.X, 0.2f, 0.21f);
+        Assert.InRange(p.Y, 0.79f, 0.8f);
+        Assert.Equal(1f, p.X + p.Y, 3);
+        Assert.Empty(s.GetTouches(true));
+        // the span form used by the guest-facing touch path gives the same point
+        Span<TouchPoint> one = stackalloc TouchPoint[1];
+        Assert.Equal(1, s.GetTouches(false, one));
+        Assert.InRange(one[0].X, 0.2f, 0.21f);
+        Assert.Equal(0, s.GetTouches(true, one));
+        Assert.Equal(0, s.GetTouches(false, Span<TouchPoint>.Empty));
+    }
+
+    [Fact]
+    public void KeyStepsGoThroughTheDefaultKeyboardProfile()
+    {
+        // X is Cross and W is the left stick up in the default keyboard profile
+        var s = new ScriptedInput("key@0:X:600,key@0:W:600");
+        ControllerState c = s.GetController(0);
+        Assert.Equal(VitaButtons.Cross, c.Buttons & VitaButtons.Cross);
+        Assert.Equal((byte)0, c.Ly);
+        Assert.Equal((byte)128, c.Lx);
+        // a game key is not an emulator key
+        Assert.False(s.HasHostKeySteps);
+        Assert.Null(s.TakeHostKeys());
+    }
+
+    [Fact]
+    public void ThePauseHotkeyIsReportedAsPause()
+    {
+        // P is the pause key of the default keyboard profile; "f..+S" waits for a frame that has not been presented
+        var s = new ScriptedInput("key@0:P,key@f999999999+1:P");
+        Assert.True(s.HasHostKeySteps);
+        Assert.Equal([ScriptedInput.PauseKey], s.TakeHostKeys());
+        Assert.Null(s.TakeHostKeys());
+    }
+
+    [Fact]
+    public void ATiltStepMakesTheScriptTheMotionSourceAndTurnsAtMost180DegreesPerSecond()
+    {
+        var idle = new ScriptedInput("cross@0:1");
+        Assert.False(idle.HasSensors);
+        Assert.Equal(0, idle.ReadSamples(new MotionSample[4]));
+
+        var s = new ScriptedInput("tilt@0:30:0:600");
+        Assert.True(s.HasSensors);
+        var samples = new MotionSample[4];
+        Assert.Equal(0, s.ReadSamples(Span<MotionSample>.Empty));
+        // the first sample is the Vita lying flat: gravity straight down the screen's -z, no rotation yet
+        Assert.Equal(1, s.ReadSamples(samples));
+        Assert.Equal(0f, samples[0].Acceleration.X, 4);
+        Assert.Equal(0f, samples[0].Acceleration.Y, 4);
+        Assert.Equal(-1f, samples[0].Acceleration.Z, 4);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        Thread.Sleep(50);
+        int n = s.ReadSamples(samples);
+        double elapsed = clock.Elapsed.TotalSeconds;
+        Assert.Equal(1, n);
+        // raising the top edge (pitch about x): gravity leaves -z, the rotation rate is about +x and bounded by 180
+        // degrees/s, so after ~50 ms the Vita is part of the way to 30 degrees, not there yet
+        MotionSample m = samples[0];
+        float pitch = MathF.Atan2(MathF.Abs(m.Acceleration.Y), -m.Acceleration.Z);
+        Assert.InRange(pitch, 0.001f, (float)(Math.PI * (elapsed + 0.01)));
+        Assert.True(pitch < 30 * MathF.PI / 180 || elapsed > 0.16, $"pitch {pitch} after {elapsed} s");
+        Assert.True(m.AngularVelocity.X > 0, $"gyro {m.AngularVelocity}");
+        Assert.InRange(m.AngularVelocity.X, 0f, MathF.PI * 1.001f);
+        Assert.Equal(0f, m.AngularVelocity.Y, 4);
+        Assert.Equal(1f, m.Acceleration.Length(), 3);
+    }
+
+    [Fact]
+    public void ADialogOverTheGameHidesTheScriptFromIt()
+    {
+        var s = new ScriptedInput("cross@0:600,tap@0:0.5:0.5:600");
+        bool open = true;
+        var gated = new DialogGatedInput(s, () => open);
+        Assert.Equal(ControllerState.Neutral.Buttons, gated.GetController(0).Buttons);
+        Assert.Empty(gated.GetTouches(false));
+        Span<TouchPoint> one = stackalloc TouchPoint[1];
+        Assert.Equal(0, gated.GetTouches(false, one));
+        open = false;
+        Assert.Equal(VitaButtons.Cross, gated.GetController(0).Buttons & VitaButtons.Cross);
+        Assert.Single(gated.GetTouches(false));
+        Assert.Equal(1, gated.GetTouches(false, one));
+    }
+
     [Theory]
     [InlineData("circle@52,5")]       // a decimal comma
     [InlineData("circle")]            // no time
