@@ -354,14 +354,63 @@ public static class Wait
     }
 }
 
+/// <summary>
+/// sceKernel*Sema, as threadmgr does it (FW 3.74): a count and a wait queue, first come first served or, with
+/// SCE_KERNEL_ATTR_TH_PRIO, by thread priority (first come first served among equal priorities). A signal hands the
+/// units to the waiters in queue order, each one taking all it asked for, and stops at the first one they do not
+/// cover; the waiters it reached return OK whenever their threads run again and never look at the count. A wait or a
+/// poll takes units at once only when no waiter is ahead of it (any waiter in a FIFO semaphore, one of equal or higher
+/// priority in a TH_PRIO one). A waiter whose timeout passes leaves the queue, and the units go on to the waiters behind
+/// it (the class's wait-release handler); a cancel or a delete takes every waiter off the queue at once.
+/// </summary>
 public sealed partial class Semaphore : KernelObject
 {
     public override int UidClass => 2;
+    /// <summary>SCE_KERNEL_ATTR_TH_PRIO: waiters queue by thread priority instead of first come first served.</summary>
+    public const uint AttrThreadPriority = 0x2000;
     public uint Attr;
     public int InitCount, Count, MaxCount;
+    /// <summary>Threads in the wait queue (SceKernelSemaInfo.numWaitThreads).</summary>
     public int Waiters;
     private bool _deleted;
-    private int _cancelled;
+
+    /// <summary>One thread in sceKernelWaitSema.</summary>
+    private sealed class WaitRequest
+    {
+        public int Need;
+        public int Priority;
+        public int ThreadUid;
+        /// <summary>A signal (or a timed-out waiter ahead of it) gave it its units.</summary>
+        public bool Granted;
+        /// <summary>Off the queue without the units: WAIT_CANCEL, WAIT_DELETE or WAIT_TIMEOUT.</summary>
+        public int Error;
+        /// <summary>Guest time at the wait and its limit in microseconds (-1: none).</summary>
+        public long StartTicks;
+        public long LimitUs = -1;
+    }
+
+    /// <summary>The wait queue, in the order a signal serves it.</summary>
+    private readonly List<WaitRequest> _queue = new();
+
+    /// <summary>Waiters given their units that have not returned yet (their thread still has to wake up).</summary>
+    private readonly List<WaitRequest> _granted = new();
+
+    /// <summary>Waiters of a loaded save state whose threads have not issued their wait again yet: the reissued wait
+    /// takes its place (and its outcome, if a signal or cancel reached it meanwhile).</summary>
+    private readonly List<WaitRequest> _restored = new();
+
+    private static int CurrentPriority() => GuestThread.Current?.Priority ?? 0;
+
+    /// <summary>A waiter is ahead of a caller of this priority: a wait or poll may not take units before it.</summary>
+    private bool WaiterAhead(int priority)
+    {
+        if (_queue.Count == 0)
+        {
+            return false;
+        }
+
+        return (Attr & AttrThreadPriority) == 0 || _queue[0].Priority <= priority;
+    }
 
     public int WaitSema(int need, Ptr<uint> timeout)
     {
@@ -370,33 +419,195 @@ public sealed partial class Semaphore : KernelObject
             return SceError.INVALID_ARGUMENT;
         }
 
+        int result;
+        bool woken;
         lock (this)
         {
-            Waiters++;
-            int gen = _cancelled;
-            try
+            if (_deleted)
             {
-                int r = Wait.Until(this, (s: this, need, gen), static t => t.s.Count >= t.need, timeout,
-                    static t => t.s._deleted ? SceError.WAIT_DELETE : t.s._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
-                if (r == SceError.OK)
+                return SceError.WAIT_DELETE;
+            }
+
+            ReleaseExpired();
+            GuestThread? self = GuestThread.Current;
+            WaitRequest? request = TakeRestored(self);
+            if (request != null && (request.Granted || request.Error != 0))
+            {
+                _granted.Remove(request);
+                ObserveSignal();
+                return request.Granted ? SceError.OK : request.Error;
+            }
+
+            if (request == null)
+            {
+                int priority = self?.Priority ?? 0;
+                if (!WaiterAhead(priority) && Count >= need)
                 {
                     Count -= need;
+                    ObserveSignal();
+                    return SceError.OK;
                 }
 
-                return r;
+                request = new WaitRequest { Need = need, Priority = priority, ThreadUid = self?.Uid ?? 0 };
+                Enqueue(request);
+                Waiters++;
+            }
+
+            request.StartTicks = GuestClock.Ticks;
+            request.LimitUs = timeout.IsNull ? -1 : timeout.Value;
+            try
+            {
+                result = Wait.UntilGranted(this, request, static r => r.Granted, timeout, static r => r.Granted ? 0 : r.Error,
+                    WaitDescription, out woken);
             }
             finally
             {
-                Waiters--;
+                if (request.Granted)
+                {
+                    _granted.Remove(request);
+                }
+                else if (request.Error == 0 && _queue.Remove(request))
+                {
+                    // its own timeout (or the thread's end): the units go on to the waiters behind it
+                    Waiters--;
+                    if (Deliver())
+                    {
+                        Monitor.PulseAll(this);
+                    }
+                }
             }
+            if (request.Granted)
+            {
+                result = SceError.OK; // a timeout or cancel that came after the units does not undo them
+            }
+            else if (request.Error == SceError.WAIT_TIMEOUT)
+            {
+                result = SceError.WAIT_TIMEOUT;
+                timeout.TrySet(0);
+            }
+        }
+        if (woken && result == SceError.OK)
+        {
+            Wait.WakeLatency();
+        }
+
+        return result;
+    }
+
+    private void Enqueue(WaitRequest request)
+    {
+        if ((Attr & AttrThreadPriority) == 0)
+        {
+            _queue.Add(request);
+            return;
+        }
+
+        int index = 0;
+        while (index < _queue.Count && _queue[index].Priority <= request.Priority)
+        {
+            index++;
+        }
+
+        _queue.Insert(index, request);
+    }
+
+    /// <summary>Hands the count to the waiters in queue order until the first one it does not cover. True when it
+    /// reached one.</summary>
+    private bool Deliver()
+    {
+        bool granted = false;
+        while (_queue.Count > 0 && _queue[0].Need <= Count)
+        {
+            WaitRequest request = _queue[0];
+            Count -= request.Need;
+            request.Granted = true;
+            _queue.RemoveAt(0);
+            _granted.Add(request);
+            Waiters--;
+            granted = true;
+        }
+
+        return granted;
+    }
+
+    /// <summary>
+    /// The kernel's timers at the waiters' guest-time deadlines: a waiter whose timeout has passed is off the queue
+    /// (WAIT_TIMEOUT), however late its host thread is to notice, and each one leaving hands the count on to the
+    /// waiters behind it, in the order the deadlines came. Called before every operation that looks at the queue.
+    /// </summary>
+    private void ReleaseExpired()
+    {
+        bool changed = false;
+        while (true)
+        {
+            int earliest = -1;
+            for (int i = 0; i < _queue.Count; i++)
+            {
+                WaitRequest request = _queue[i];
+                if (request.LimitUs < 0 || !Wait.Expired(request.StartTicks, request.LimitUs))
+                {
+                    continue;
+                }
+
+                if (earliest < 0 || Deadline(request) < Deadline(_queue[earliest]))
+                {
+                    earliest = i;
+                }
+            }
+            if (earliest < 0)
+            {
+                break;
+            }
+
+            _queue[earliest].Error = SceError.WAIT_TIMEOUT;
+            _queue.RemoveAt(earliest);
+            Waiters--;
+            Deliver();
+            changed = true;
+        }
+        if (changed)
+        {
+            Monitor.PulseAll(this); // the timed-out and the served waiters: nobody was woken by this thread
         }
     }
 
+    /// <summary>A waiter's deadline, for the order the timers fire in (the limit in guest microseconds).</summary>
+    private static double Deadline(WaitRequest request) => request.StartTicks + (double)request.LimitUs * System.Diagnostics.Stopwatch.Frequency / 1_000_000 / TimeScale.Wait;
+
+    /// <summary>The place a loaded save state kept for the calling thread's wait, if any.</summary>
+    private WaitRequest? TakeRestored(GuestThread? self)
+    {
+        if (_restored.Count == 0 || self == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < _restored.Count; i++)
+        {
+            if (_restored[i].ThreadUid == self.Uid)
+            {
+                WaitRequest request = _restored[i];
+                _restored.RemoveAt(i);
+                return request;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>sceKernelPollSema: takes the units only when they are there and no waiter is ahead of the caller,
+    /// else SEMA_ZERO.</summary>
     public int Poll(int need)
     {
+        if (need <= 0 || need > MaxCount)
+        {
+            return SceError.INVALID_ARGUMENT;
+        }
+
         lock (this)
         {
-            if (Count < need)
+            ReleaseExpired();
+            if (WaiterAhead(CurrentPriority()) || Count < need)
             {
                 return SceError.SEMA_ZERO;
             }
@@ -407,28 +618,55 @@ public sealed partial class Semaphore : KernelObject
         }
     }
 
+    /// <summary>sceKernelSignalSema: adds the units (SEMA_OVF past the maximum, nothing changed) and hands them to
+    /// the queue.</summary>
     public int Signal(int n)
     {
         lock (this)
         {
+            ReleaseExpired();
             if (Count + n > MaxCount)
             {
                 return SceError.SEMA_OVF;
             }
 
             Count += n;
-            WakeWaiters();
+            RecordSignal();
+            if (Deliver())
+            {
+                WakeWaiters();
+            }
+
             return SceError.OK;
         }
     }
 
-    public int Cancel(int setCount, Ptr<int> numWait)
+    /// <summary>The count and waiters sceKernelGetSemaInfo reports (timed-out waiters already off the queue).</summary>
+    internal (int Count, int Waiters) Info()
     {
         lock (this)
         {
+            ReleaseExpired();
+            return (Count, Waiters);
+        }
+    }
+
+    /// <summary>sceKernelCancelSema: every waiter returns WAIT_CANCEL (numWait: how many), and the count becomes
+    /// <paramref name="setCount"/> (negative: the initial count) without serving anyone. A count above the maximum is
+    /// INVALID_ARGUMENT.</summary>
+    public int Cancel(int setCount, Ptr<int> numWait)
+    {
+        if (setCount > MaxCount)
+        {
+            return SceError.INVALID_ARGUMENT;
+        }
+
+        lock (this)
+        {
+            ReleaseExpired();
             numWait.TrySet(Waiters);
+            DequeueAll(SceError.WAIT_CANCEL);
             Count = setCount < 0 ? InitCount : setCount;
-            _cancelled++;
             WakeWaiters();
             return SceError.OK;
         }
@@ -439,8 +677,20 @@ public sealed partial class Semaphore : KernelObject
         lock (this)
         {
             _deleted = true;
+            DequeueAll(SceError.WAIT_DELETE);
             WakeWaiters();
         }
+    }
+
+    private void DequeueAll(int error)
+    {
+        foreach (WaitRequest request in _queue)
+        {
+            request.Error = error;
+        }
+
+        _queue.Clear();
+        Waiters = 0;
     }
 }
 

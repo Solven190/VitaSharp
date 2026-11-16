@@ -2,20 +2,57 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Kernel;
 
-// Save states: the state of each kernel object kind. Wait queues are not saved: a thread blocked in a wait is saved
-// as about to issue the call again (GuestThread.Snapshot.cs), so every waiter count starts at 0 and refills when the
-// restored threads reissue their waits. Thread references are UIDs, resolved once every object exists.
+// Save states: the state of each kernel object kind. Wait queues are not saved (except a semaphore's, below): a thread
+// blocked in a wait is saved as about to issue the call again (GuestThread.Snapshot.cs), so every waiter count starts
+// at 0 and refills when the restored threads reissue their waits. Thread references are UIDs, resolved once every
+// object exists.
 
+// A semaphore keeps its wait queue: the order a signal serves the waiters (and the waiters a signal already served
+// that had not returned) is the saved session's, not the order the restored threads happen to reissue their waits in.
 public sealed partial class Semaphore
 {
     internal void Save(SnapshotWriter w)
     {
-        w.Write(Attr);
-        w.Write(InitCount);
-        w.Write(Count);
-        w.Write(MaxCount);
-        w.Write(_deleted);
+        lock (this)
+        {
+            int count = Count;
+            List<WaitRequest> kept = new();
+            foreach (WaitRequest request in _granted)
+            {
+                if (request.ThreadUid != 0)
+                {
+                    kept.Add(request);
+                }
+                else
+                {
+                    count += request.Need; // not a guest thread: nothing reissues it, the units go back
+                }
+            }
+            foreach (WaitRequest request in _queue)
+            {
+                if (request.ThreadUid != 0)
+                {
+                    kept.Add(request);
+                }
+            }
+            w.Write(Attr);
+            w.Write(InitCount);
+            w.Write(count);
+            w.Write(MaxCount);
+            w.Write(_deleted);
+            // added 16/11/2026; states of builds before it have no queue: their waits are reissued as new ones, as
+            // those builds did ([SnapshotMissing] for this hand-written record: the empty queue)
+            w.Write(kept.Count);
+            foreach (WaitRequest request in kept)
+            {
+                w.Write(request.ThreadUid);
+                w.Write(request.Need);
+                w.Write(request.Priority);
+                w.Write(request.Granted);
+            }
+        }
     }
+
     internal void Load(SnapshotReader r)
     {
         Attr = r.ReadUInt32();
@@ -23,6 +60,31 @@ public sealed partial class Semaphore
         Count = r.ReadInt32();
         MaxCount = r.ReadInt32();
         _deleted = r.ReadBool();
+        _queue.Clear();
+        _granted.Clear();
+        _restored.Clear();
+        Waiters = 0;
+        int saved = r.AtEnd ? 0 : r.ReadInt32();
+        for (int i = 0; i < saved; i++)
+        {
+            WaitRequest request = new()
+            {
+                ThreadUid = r.ReadInt32(),
+                Need = r.ReadInt32(),
+                Priority = r.ReadInt32(),
+                Granted = r.ReadBool(),
+            };
+            _restored.Add(request);
+            if (request.Granted)
+            {
+                _granted.Add(request);
+            }
+            else
+            {
+                _queue.Add(request); // saved in queue order
+                Waiters++;
+            }
+        }
     }
 }
 

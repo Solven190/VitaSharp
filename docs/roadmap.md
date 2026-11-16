@@ -123,14 +123,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   um set satisfaz com o setter parado logo depois, o padrão que um cancelado/apagado devolve (o do momento do
   cancel/delete), set depois do prazo em tempo de guest (WAIT_TIMEOUT, o bit fica) e antes do prazo (satisfaz).
   ILLEGAL_MODE, EVF_MULTI no poll, o padrão do cancelado e o prazo eram bugs, corrigidos no mesmo hash. Achado para o
-  item: um cancel/delete não segura o acordado atrás do canceller parado (o set segura). Faltam semáforo, mutex,
-  lwmutex, cond, msgpipe, eventos e callbacks.
-  Achado para o semáforo (16/11/2026, rm2): `Semaphore.WaitSema` não tem fila de espera: cada espera só confere
-  `Count >= need` quando acorda, então quem leva as unidades de um signal é a thread do host que pega o lock primeiro
-  (o atributo `SCE_KERNEL_ATTR_TH_PRIO` e a ordem FIFO são ignorados, e um signal de 2 pode ir inteiro para uma
-  thread que volta a esperar antes da outra acordar). Visto com duas threads esperando o mesmo semáforo de
-  prioridade: um signal de 1 não acordou a de prioridade maior. O firmware entrega as unidades no signal, na
-  ordem da fila (prioridade ou chegada).
+  item: um cancel/delete não segura o acordado atrás do canceller parado (o set segura).
+  Semáforo coberto (16/11/2026, `SemaphoreInterleavingTests`, conferido no threadmgr 3.74: wait, poll, signal, cancel,
+  delete e o tratador de saída de espera da classe): fila de espera FIFO ou por prioridade com
+  `SCE_KERNEL_ATTR_TH_PRIO` (chegada entre prioridades iguais); o signal entrega as unidades dentro da chamada, na ordem
+  da fila, cada um levando o que pediu, e para no primeiro que não cabe; wait e poll não passam na frente da fila (FIFO:
+  qualquer espera; TH_PRIO: uma de prioridade igual ou maior); o prazo em tempo de guest tira a espera da fila e entrega
+  as unidades aos de trás; cancel (contagem acima do máximo = INVALID_ARGUMENT) e delete tiram todos sem servir;
+  need < 1 = INVALID_ARGUMENT antes do UID. A fila (ordem e servidos ainda sem retorno) entra no save state; estados
+  antigos carregam com a fila vazia. Eram bugs (`WaitSema` sem fila), corrigidos no mesmo hash. Faltam mutex, lwmutex,
+  cond, msgpipe, eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.

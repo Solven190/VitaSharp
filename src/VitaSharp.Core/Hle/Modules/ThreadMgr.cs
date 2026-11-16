@@ -475,9 +475,27 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle("sceKernelWaitSema", Cost = HleCost.SchedulerWait)]
     [Hle("sceKernelWaitSemaCB", Cost = HleCost.SchedulerWait, CallbackWait = true)]
-    internal int sceKernelWaitSema(int uid, int need, Ptr<uint> timeout) => Obj<Semaphore>(uid)?.WaitSema(need, timeout) ?? SceError.UNKNOWN_SEMA_ID;
+    internal int sceKernelWaitSema(int uid, int need, Ptr<uint> timeout)
+    {
+        if (need <= 0)
+        {
+            return SceError.INVALID_ARGUMENT; // threadmgr checks it before the UID
+        }
 
-    [Hle(Cost = HleCost.SchedulerWait)] int sceKernelPollSema(int uid, int need) => Obj<Semaphore>(uid)?.Poll(need) ?? SceError.UNKNOWN_SEMA_ID;
+        return Obj<Semaphore>(uid)?.WaitSema(need, timeout) ?? SceError.UNKNOWN_SEMA_ID;
+    }
+
+    [Hle(Cost = HleCost.SchedulerWait)]
+    int sceKernelPollSema(int uid, int need)
+    {
+        if (need <= 0)
+        {
+            return SceError.INVALID_ARGUMENT; // threadmgr checks it before the UID
+        }
+
+        return Obj<Semaphore>(uid)?.Poll(need) ?? SceError.UNKNOWN_SEMA_ID;
+    }
+
     [Hle] int sceKernelCancelSema(int uid, int setCount, Ptr<int> numWait) => Obj<Semaphore>(uid)?.Cancel(setCount, numWait) ?? SceError.UNKNOWN_SEMA_ID;
 
     [Hle]
@@ -487,14 +505,12 @@ public sealed partial class ThreadMgr : HleModule
         if (s == null) return SceError.UNKNOWN_SEMA_ID;
         Span<byte> f = stackalloc byte[0x3C]; // SceKernelSemaInfo
         f.Clear();
-        lock (s)
-        {
-            KernelInfo.Header(f, uid, s.Name, s.Attr);
-            KernelInfo.Put(f, 0x2C, s.InitCount);
-            KernelInfo.Put(f, 0x30, s.Count);
-            KernelInfo.Put(f, 0x34, s.MaxCount);
-            KernelInfo.Put(f, 0x38, s.Waiters);
-        }
+        (int count, int waiters) = s.Info();
+        KernelInfo.Header(f, uid, s.Name, s.Attr);
+        KernelInfo.Put(f, 0x2C, s.InitCount);
+        KernelInfo.Put(f, 0x30, count);
+        KernelInfo.Put(f, 0x34, s.MaxCount);
+        KernelInfo.Put(f, 0x38, waiters);
         return KernelInfo.Write(info, f);
     }
 
