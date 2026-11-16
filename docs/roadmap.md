@@ -432,7 +432,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   dinâmico (`VK_EXT_extended_dynamic_state` 2/3, como Ryujinx e yuzu), onde o driver tiver as extensões, mantendo o
   caminho atual onde o suporte for parcial (Mali); (3) mais threads de compilação quando a CPU tiver folga (hoje 2
   workers). Pular o desenho até o pipeline ficar pronto não entra como padrão (não é 1:1 com o console).
-- [ ] [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
+- [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
   Causa provável: o processo BelowNormal ficou sem CPU (as threads AboveNormal dele continuam abaixo de trabalho
@@ -1164,7 +1164,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   volta ao despachante, superblocos e ponto flutuante/NEON mapeado direto. Meta: jogos limitados pela CPU (F1 2011,
   Devious Dungeon) com a thread do jogo pelo menos 1,5-2x mais rápida no celular; validar com o teste de corpus contra
   o interpretador e o `VITASHARP_NATIVE_VERIFY` no celular
-- [ ] Comparar o desempenho com o Vita3K no mesmo celular (pedido do usuário, 04/11/2026): Minecraft (instalado nos
+- [x] (16/11/2026, usuário: removido) Comparar o desempenho com o Vita3K no mesmo celular (pedido do usuário, 04/11/2026): Minecraft (instalado nos
   dois, mas não roda no Vita3K do celular, segundo o usuário) e Uncharted quando o usuário instalar no Vita3K; gameplay no mesmo ponto, resolução nativa e 0,5, fps mediano
   e 1% mais baixo pelo contador do sistema, prints; só leitura, nada gravado na pasta do Vita3K
 - [x] (15/11/2026: replay de 391 quadros de 7 dumps UC/KZ/MC a 0.75 e 0.5 sem erro estrutural, res15; usuário fechou; falta só um olhar no celular com o UC a 0.5) Resolução interna reduzida (0.75 / 0.5, por jogo, desligada por padrão) para o Uncharted no Mali-G57 (GPU ~40 ms
@@ -1341,7 +1341,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [x] (15/11/2026, trabalho contínuo, segue nas regras/ferramentas) Ferramentas de desenvolvedor (`-p:VitaSharpDeveloper=true`, `tools/dev/README.md`): bench da GPU com fixtures e
   variantes em tempo de execução, teste de flicker no aparelho (replay e `VITASHARP_FLICKER_CHECK` no jogo), Perfetto,
   snapshots de desenvolvedor e o gravador de voo (últimos N s com um botão)
-- [ ] Próxima fase, quando Uncharted e F1 estiverem sólidos no celular (fps nativo, sem flicker nem quadro escuro, som
+- [x] (16/11/2026, usuário: removido da lista; era um plano) Próxima fase, quando Uncharted e F1 estiverem sólidos no celular (fps nativo, sem flicker nem quadro escuro, som
   correto, sem crash) e o gravador de voo funcionar: testar os outros jogos instalados no celular, os mais pesados
   primeiro (ordem pelo ms/quadro de CPU+GPU no PC, dos logs de revalidação e `docs/compatibility.md`; provavelmente
   Killzone Mercenary, Soul Sacrifice Delta, Gravity Rush, Unit 13, Resistance, CoD BO Declassified, God of War
@@ -2118,7 +2118,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `src/VitaSharp.Android` (fora do .sln), 30 no `src/VitaSharp.Desktop/Lockstep.cs` (só com `-p:Lockstep=true`), 2
   no `build/IconGen`, além dos ~311 do Hle. Os WIPs do Android, do Desktop e da format-check corrigem; só considerar
   feito com uma busca no repositório inteiro que dê zero fora do Hle, e com a format-check cobrindo esses projetos.
-- [ ] [P3][M] CI do Windows e da cobertura (pausado em 11/11/2026): `fix/ci-green-2` (SwiftShader registrado para o carregador
+- [x] (16/11/2026, usuário: fechado — o CI do Windows e a cobertura estão verdes) [P3][M] CI do Windows e da cobertura (pausado em 11/11/2026): `fix/ci-green-2` (SwiftShader registrado para o carregador
   como administrador, `--gpu-dump-at` armado antes do jogo, limite de 3 apresentações pendentes). Antes de juntar:
   medição A/B do F1 2011 e do Uncharted com a máquina quieta e conferência de travadas nos quadros gravados.
 - [ ] [P3][M] Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
