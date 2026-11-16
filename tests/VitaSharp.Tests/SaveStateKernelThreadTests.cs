@@ -1,4 +1,5 @@
 using VitaSharp.Core;
+using VitaSharp.Core.Hle.Modules;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Loader;
 using VitaSharp.Core.Memory;
@@ -107,6 +108,85 @@ public sealed class SaveStateKernelThreadTests : IDisposable
         Assert.Equal(KernelSpace.KernelPid, worker.Pid);
         Assert.DoesNotContain(_emu.Kernel.Threads, t => t.Name == "VsTestKernelWorker");
         HleHarness.Until(() => GuestMemory.R32(counter) > afterLoad + 5, "counts after the load");
+    }
+
+    /// <summary>
+    /// A title thread blocked in sceKernelWaitSema when the state is saved is saved in its wait: after a load it is
+    /// still waiting (the semaphore's count and the counter in its memory are the saved ones, whatever happened after
+    /// the save), and a signal wakes it from the saved registers, after which it waits again. Guest code: count the
+    /// wake-ups in user memory, wait on the semaphore, again.
+    /// </summary>
+    [Fact]
+    public void AThreadWaitingOnASemaphoreIsSavedInItsWaitAndWakesAfterALoad()
+    {
+        const uint WaitSema = 0x0C7B834B;
+        ThreadMgr threadMgr = _harness.Module<ThreadMgr>();
+        uint counter, code;
+        int sema;
+        using (ProcessScope.Enter(_emu))
+        {
+            counter = _emu.Memory.Alloc(0x10, "test:wake counter");
+            code = _emu.Memory.Alloc(0x60, "test:sema waiter code");
+            sema = threadMgr.sceKernelCreateSema("VsTestWaitSema", 0, 0, 1, 0);
+        }
+
+        Assert.True(sema > 0, $"sceKernelCreateSema: 0x{sema:X8}");
+        GuestMemory.Fill(counter, 0, 0x10);
+        uint stub = code + 0x40;
+        Linker.WriteHleStub(stub, _emu.Hle.GetHleFunctionIndex(WaitSema, 0, "SceLibKernel"), WaitSema);
+        uint[] words =
+        [
+            0xE59F4020, // ldr r4, [pc, #32]   (the counter)
+            0xE59F0020, // ldr r0, [pc, #32]   (the semaphore)
+            0xE3A01001, // mov r1, #1
+            0xE3A02000, // mov r2, #0          (no timeout)
+            0xE59FC018, // ldr r12, [pc, #24]  (the wait stub)
+            0xE12FFF3C, // blx r12
+            0xE5945000, // ldr r5, [r4]
+            0xE2855001, // add r5, r5, #1
+            0xE5845000, // str r5, [r4]
+            0xEAFFFFF6, // b to the semaphore load
+            counter,
+            (uint)sema,
+            stub,
+        ];
+        for (int i = 0; i < words.Length; i++)
+        {
+            GuestMemory.W32(code + (uint)i * 4, words[i]);
+        }
+
+        GuestThread waiter;
+        using (ProcessScope.Enter(_emu))
+        {
+            waiter = _emu.Kernel.CreateThread("VsTestSemaWaiter", code, 0x40, 0x4000, 0, 0x70000);
+            waiter.Start(0, 0);
+        }
+
+        HleHarness.Until(() => waiter.Status == ThreadStatus.Waiting, "the thread waits on the semaphore");
+        Assert.Equal(0u, GuestMemory.R32(counter));
+
+        string path = Path.Combine(_harness.Root, "state.vss");
+        SaveStates.Save(_emu, path, timeoutMs: 60_000);
+        Assert.Equal(0, Signal(threadMgr, sema));
+        HleHarness.Until(() => GuestMemory.R32(counter) == 1, "the wake-up after the save");
+
+        SaveStates.Load(_emu, path);
+        Assert.Equal(0u, GuestMemory.R32(counter));
+        GuestThread restored = Assert.Single(_emu.Kernel.Threads, t => t.Name == "VsTestSemaWaiter");
+        HleHarness.Until(() => restored.Status == ThreadStatus.Waiting, "the loaded thread waits on the semaphore");
+        Assert.Equal(0u, GuestMemory.R32(counter));
+        Assert.Equal(0, Signal(threadMgr, sema));
+        HleHarness.Until(() => GuestMemory.R32(counter) == 1, "the wake-up after the load");
+        HleHarness.Until(() => restored.Status == ThreadStatus.Waiting, "the thread waits again");
+        Assert.Equal(1u, GuestMemory.R32(counter));
+    }
+
+    private int Signal(ThreadMgr threadMgr, int sema)
+    {
+        using (ProcessScope.Enter(_emu))
+        {
+            return threadMgr.sceKernelSignalSema(sema, 1);
+        }
     }
 
     /// <summary>A kernel module that started (module_start on a kernel thread of the kernel process, gone once it

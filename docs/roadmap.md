@@ -152,7 +152,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   `MediaContract`/`MediaParityTests`).
 - [ ] [P3][M] **Sistema de arquivos, carregador e módulos:** montagens, patches por origem, NIDs, imports/exports, permissões
   de módulos de sistema.
-- [ ] [P3][M] **Save states:** ida e volta de cada módulo HLE e do escalonador com threads em espera.
+- [x] [P3][M] **Save states:** ida e volta de cada módulo HLE e do escalonador com threads em espera. Feito
+  (16/11/2026, rm1, test/savestate-waiting-thread): os módulos HLE já eram cobertos por
+  `ModuleSnapshotTests.EveryModuleStateRoundTrips` (cada módulo salvo, carregado noutro emulador e salvo de novo, byte
+  a byte, vazio e com todos os campos preenchidos) e os objetos do kernel por `KernelSnapshotTests`; faltava a thread
+  em espera: `SaveStateKernelThreadTests.AThreadWaitingOnASemaphoreIsSavedInItsWaitAndWakesAfterALoad` (thread do
+  título parada em `sceKernelWaitSema` no save: depois do load continua esperando, com o contador e o semáforo do save,
+  um signal a acorda pelos registradores salvos e ela volta a esperar), ao lado da thread de kernel em
+  `ksceKernelDelayThread` e da thread principal no vblank do mesmo arquivo; 50x sem falha.
 - [ ] [P3][G] **Um teste sintético por bug corrigido:** o padrão do guest reproduzido sem o jogo (protocolo de sync,
   sequência de comandos GXM, chamadas HLE com os argumentos vistos), nunca dependente dos dados de um jogo.
 - [x] (15/11/2026, pelo usuário: já é feito continuamente — regras.md, cada correção traz seu caso no TestGame) [P3][G] **O jogo de teste (`tests/VitaSharp.TestGame`) como suíte de integração:** o homebrew de teste (VitaSDK, código
