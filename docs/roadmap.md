@@ -162,6 +162,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   backends (native, IL, interpretador).
 - [ ] [P3][G] **GXM e tradução de shaders:** sequências sintéticas de comandos (cenas, sync objects, fila de display, MSAA,
   formatos de textura) com a imagem e a ordem de execução esperadas.
+- [x] [P3][P] **GXM: `sceGxmSetYuvProfile` e `sceGxmSetVisibilityBuffer` iguais à libgxm 3.74.** Feito (16/11/2026,
+  rm3, fix/gxm-yuv-visibility-checks): pelo módulo `libgxm_es4.suprx` 3.74 (estudo), o `sceGxmCreateContext` grava os
+  perfis CSC0 = BT.601 estúdio e CSC1 = BT.709 estúdio (o HLE tinha [0, 2]); os dois setters recusam contexto deferred
+  (0x805B0003) antes das outras checagens e qualquer chamada dentro de uma cena (0x805B0007, sem gravar); o
+  `SetVisibilityBuffer` exige base **e** stride alinhados a 16 (0x805B0005); o `SetYuvProfile` aceita perfil acima de
+  3 só de programas com SDK anterior a 2.50. Prova: `GxmFlowTests.YuvProfileAndVisibilityBufferFollowTheFirmwareChecks`
+  (falha sem a correção). O renderizador não lê esses campos (o decodificador YUV usa as matrizes fixas, CSC1 = BT.601
+  full), então a imagem não muda; usar o perfil do contexto no decodificador é parte do item de GXM acima.
 - [ ] [P3][M] **Mídia:** decodificação de vídeo e áudio pelo contrato do Vita no desktop e no Android (já existe a base em
   `MediaContract`/`MediaParityTests`).
 - [ ] [P3][M] **Sistema de arquivos, carregador e módulos:** montagens, patches por origem, NIDs, imports/exports, permissões

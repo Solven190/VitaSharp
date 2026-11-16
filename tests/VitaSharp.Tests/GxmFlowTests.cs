@@ -571,6 +571,61 @@ public sealed class GxmFlowTests : IDisposable
         Assert.Equal(0, Call(Gxm, "sceGxmSetValidationEnable", ctx, 1u));
     }
 
+    /// <summary>sceGxmSetYuvProfile and sceGxmSetVisibilityBuffer as libgxm 3.74: CSC0 BT601 / CSC1 BT709 after
+    /// sceGxmCreateContext; a deferred context refused before the other checks; base and stride 16-byte aligned; both
+    /// refused inside a scene (the values kept); profiles above 3 only for programs built with an SDK before 2.50.</summary>
+    [Fact]
+    public void YuvProfileAndVisibilityBufferFollowTheFirmwareChecks()
+    {
+        Init();
+        uint ctx = Context(), rt = RenderTarget(64, 64), buf = _harness.Alloc(0x100) & ~0xFu;
+        var context = (VitaSharp.Core.Gxm.GxmContext)Invoke(Gxm, "Ctx", ctx)!;
+        Assert.Equal(new byte[] { 0, 1 }, context.YuvProfile);
+
+        Assert.Equal(INVALID_ALIGNMENT, Call(Gxm, "sceGxmSetVisibilityBuffer", ctx, buf + 0x10, 0x18u));
+        Assert.Equal(INVALID_ALIGNMENT, Call(Gxm, "sceGxmSetVisibilityBuffer", ctx, buf + 4, 0x20u));
+        Assert.Equal(0u, context.VisBuffer);
+        Assert.Equal(0, Call(Gxm, "sceGxmSetVisibilityBuffer", ctx, buf, 0x20u));
+        Assert.Equal(0, Call(Gxm, "sceGxmSetYuvProfile", ctx, 0u, 2u));
+
+        uint color = _harness.Alloc(0x40), data = _harness.Alloc(64 * 64 * 4);
+        Assert.Equal(0, Call(Gxm, "sceGxmColorSurfaceInit", color, 0u, 0u, 0u, 0u, 64u, 64u, 64u, data));
+        Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", ctx, 0u, rt, 0u, 0u, 0u, color, 0u));
+        Assert.Equal(WITHIN_SCENE, Call(Gxm, "sceGxmSetVisibilityBuffer", ctx, buf + 0x40, 0x40u));
+        Assert.Equal(WITHIN_SCENE, Call(Gxm, "sceGxmSetYuvProfile", ctx, 1u, 3u));
+        // the argument checks still come first inside a scene
+        Assert.Equal(INVALID_ALIGNMENT, Call(Gxm, "sceGxmSetVisibilityBuffer", ctx, buf + 4, 0x40u));
+        Assert.Equal(INVALID_VALUE, Call(Gxm, "sceGxmSetYuvProfile", ctx, 2u, 0u));
+        Assert.Equal(0, Call(Gxm, "sceGxmEndScene", ctx, 0u, 0u));
+        Finish();
+        Assert.Equal(buf, context.VisBuffer);
+        Assert.Equal(0x20u, context.VisStride);
+        Assert.Equal(new byte[] { 2, 1 }, context.YuvProfile);
+
+        uint p = _harness.Alloc(0x30), o = Out();
+        GuestMemory.W32(p + 0x18, _harness.Alloc(0x2000));
+        GuestMemory.W32(p + 0x1C, 0x2000);
+        GuestMemory.W32(p + 0x20, _harness.Alloc(0x4000));
+        GuestMemory.W32(p + 0x24, 0x4000);
+        GuestMemory.W32(p + 0x28, _harness.Alloc(0x4000));
+        GuestMemory.W32(p + 0x2C, 0x4000);
+        Assert.Equal(0, Call(Gxm, "sceGxmCreateDeferredContext", p, new Ptr<uint>(o)));
+        uint deferred = GuestMemory.R32(o);
+        Assert.Equal(INVALID_VALUE, Call(Gxm, "sceGxmSetVisibilityBuffer", deferred, buf + 4, 0x18u));
+        Assert.Equal(INVALID_VALUE, Call(Gxm, "sceGxmSetYuvProfile", deferred, 0u, 0u));
+
+        // a profile above 3 is taken only from a program built with an SDK before 2.50 (process param +0x10)
+        Assert.Equal(INVALID_VALUE, Call(Gxm, "sceGxmSetYuvProfile", ctx, 0u, 4u));
+        uint processParam = _harness.Alloc(0x20);
+        GuestMemory.W32(processParam, 0x20);
+        GuestMemory.W32(processParam + 0x10, 0x02400011);
+        typeof(VitaSharp.Core.Loader.Linker).GetProperty("ProcessParam")!.SetValue(_harness.Emu.Linker, processParam);
+        Assert.Equal(0, Call(Gxm, "sceGxmSetYuvProfile", ctx, 0u, 4u));
+        Assert.Equal((byte)4, context.YuvProfile[0]);
+        GuestMemory.W32(processParam + 0x10, 0x02500000);
+        Assert.Equal(INVALID_VALUE, Call(Gxm, "sceGxmSetYuvProfile", ctx, 0u, 5u));
+    }
+
     [Fact]
     public void DeferredContextsRecordCommandLists()
     {
