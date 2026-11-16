@@ -172,6 +172,55 @@ public static class FirmwareInstaller
         _ => null,
     };
 
+    /// <summary>The files an installation writes next to the partitions: its metadata and the module index.</summary>
+    public static readonly string[] IndexFiles = [FirmwareInfo.MetadataFile, FirmwareLibraries.CacheFileName];
+
+    /// <summary>
+    /// Removes what a firmware installation created in <paramref name="fsRoot"/>: the partitions
+    /// (<see cref="FirmwareInfo.PartitionNames"/>), a staging folder left behind and the <see cref="IndexFiles"/>. The
+    /// memory card and the user's partitions (ux0, ur0, uma0, imc0, grw0, vd0 with the registry...) are never touched,
+    /// and a junction or symbolic link (a partition linked to another emulator's firmware, or one inside it) is removed
+    /// as a link, never what it points to. Afterwards the data folder is as before the first install, and installing
+    /// again works the same. Returns the names removed.
+    /// </summary>
+    public static IReadOnlyList<string> Uninstall(string fsRoot)
+    {
+        var removed = new List<string>();
+        if (!Directory.Exists(fsRoot))
+        {
+            return removed;
+        }
+
+        foreach (string name in FirmwareInfo.PartitionNames.Append(StagingName))
+        {
+            var dir = new DirectoryInfo(Path.Combine(fsRoot, name));
+            if (dir.LinkTarget != null)
+            {
+                dir.Delete(recursive: false); // the link itself (also a broken one), never its target
+                removed.Add(name);
+            }
+            else if (dir.Exists)
+            {
+                DeleteTree(dir.FullName);
+                removed.Add(name);
+            }
+        }
+
+        foreach (string name in IndexFiles)
+        {
+            string path = Path.Combine(fsRoot, name);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+                removed.Add(name);
+            }
+        }
+
+        FirmwareLibraries.Forget(fsRoot);
+        Log.Info($"firmware: uninstalled from {fsRoot} ({(removed.Count == 0 ? "nothing installed" : string.Join(", ", removed))})");
+        return removed;
+    }
+
     public static FirmwareInfo Install(string pupPath, string fsRoot, IProgress<FirmwareProgress>? progress = null, CancellationToken ct = default)
     {
         using var pup = Pup.Open(pupPath);

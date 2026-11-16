@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=256f48e4b95d3a06ea8b2248913ff16ec5e615742f3f4b4a22b4c3548c7e4ab3 -->
+<!-- pair: README.pt-BR.md sha256=778cf65f6b2485f996e693e3315da372f33aad0667f10c20144fd9decd519df8 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -152,7 +152,9 @@ left in `RO/runtime` moves there by itself at the next start.
 **Firmware (optional).** Games run without firmware. Install it for the system fonts and libraries (`libSceXml`,
 `libSceSqlite`...) and the **Vita System**: on the **Vita System** page, **Install firmware (.PUP)...**, or **Use
 Vita3K's firmware** (copies `os0`/`vs0`/`sa0`/`pd0` from a Vita3K installation). From the command line:
-`install-firmware <PSVUPDAT.PUP>`.
+`install-firmware <PSVUPDAT.PUP>`. **Uninstall firmware** (same page; `uninstall-firmware [--yes]`) removes only what the
+install created (`os0`/`vs0`/`sa0`/`pd0` and the index files `firmware.json`, `firmware-libraries.txt`): games, saves and
+`ux0`/`ur0` stay, and a partition linked to another folder loses only the link.
 
 **Vita System.** With the firmware installed, the launcher's **Open Vita System** button (Ctrl+H, or `boot-shell`)
 runs the firmware's `shell.self`: initial setup the first time, lock screen, home screen with the installed games and

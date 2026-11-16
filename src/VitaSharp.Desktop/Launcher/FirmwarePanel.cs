@@ -23,6 +23,7 @@ public sealed class FirmwarePanel : StackPanel
     readonly Button _install = new() { Content = Loc.Get("FwInstallPup") };
     readonly Button _vita3k = new() { Content = Loc.Get("FwUseVita3K") };
     readonly Button _cancel = new() { Content = S.Cancel, IsVisible = false };
+    readonly Button _uninstall = new() { Content = Loc.Get("FwUninstall") };
     readonly string? _vita3kRoot = FirmwareInstaller.FindVita3KFirmware();
     CancellationTokenSource? _cts;
 
@@ -31,6 +32,9 @@ public sealed class FirmwarePanel : StackPanel
 
     /// <summary>True while an installation runs (closing the settings window cancels it first).</summary>
     public bool Busy => _cts != null;
+
+    /// <summary>Asks the user to confirm the uninstall (the launcher's dialog); without it nothing is removed.</summary>
+    public Func<string, Task<bool>>? ConfirmUninstall { get; set; }
 
     public FirmwarePanel()
     {
@@ -43,6 +47,7 @@ public sealed class FirmwarePanel : StackPanel
             buttons.Children.Add(_vita3k);
         }
         buttons.Children.Add(_cancel);
+        buttons.Children.Add(_uninstall);
         Children.Add(_status);
         Children.Add(buttons);
         Children.Add(_progress);
@@ -58,7 +63,43 @@ public sealed class FirmwarePanel : StackPanel
         _vita3k.Click += async (_, _) => await Run(Loc.Get("FwCopyingVita3K"),
             (p, ct) => FirmwareInstaller.ImportFrom(_vita3kRoot!, Program.FsRoot, "Vita3K", p, ct));
         _cancel.Click += (_, _) => { _cts?.Cancel(); _cancel.IsEnabled = false; };
+        _uninstall.Click += async (_, _) => await Uninstall();
         Refresh();
+    }
+
+    /// <summary>"Uninstall firmware": after the confirmation, removes the partitions the installation created and its
+    /// index files (FirmwareInstaller.Uninstall); games, saves and ux0/ur0 stay. The launcher then shows "no firmware".</summary>
+    async Task Uninstall()
+    {
+        if (_cts != null || ConfirmUninstall == null || !await ConfirmUninstall(Loc.Get("FwUninstallConfirm")))
+        {
+            return;
+        }
+
+        _install.IsEnabled = false;
+        _vita3k.IsEnabled = false;
+        _uninstall.IsEnabled = false;
+        _detail.IsVisible = true;
+        _detail.Foreground = LauncherTheme.Muted;
+        try
+        {
+            IReadOnlyList<string> removed = await Task.Run(() => FirmwareInstaller.Uninstall(Program.FsRoot));
+            Refresh();
+            _detail.Text = Loc.Format("FwUninstalled", removed.Count == 0 ? "-" : string.Join(", ", removed));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Refresh();
+            _detail.Text = Loc.Format("FwFailed", e.Message);
+            _detail.Foreground = Brushes.IndianRed;
+        }
+        finally
+        {
+            _install.IsEnabled = true;
+            _vita3k.IsEnabled = true;
+            _uninstall.IsEnabled = true;
+        }
+        Finished?.Invoke();
     }
 
     void Refresh()
@@ -71,6 +112,7 @@ public sealed class FirmwarePanel : StackPanel
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         // fonts count on their own: sa0 may have been filled without a firmware install (copied by hand)
         bool fonts = FirmwareInfo.HasSystemFonts(Program.FsRoot);
+        _uninstall.IsVisible = info != null || fonts;
         _status.Text = info == null
             ? Loc.Get("FwStatusMissing") + (fonts ? Loc.Get("FwFontsPresent") : "")
             : $"Firmware: {info.Display}" + (info.Partitions.Count > 0 ? $"  ({string.Join(", ", info.Partitions)})" : "") +

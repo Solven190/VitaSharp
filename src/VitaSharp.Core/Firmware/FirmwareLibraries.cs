@@ -31,12 +31,18 @@ public sealed class FirmwareLibraries
     /// <summary>The index of the firmware installed in <paramref name="fsRoot"/> (empty when there is none).</summary>
     public static FirmwareLibraries For(string fsRoot) => s_cache.GetOrAdd(Path.GetFullPath(fsRoot), r => new FirmwareLibraries(r));
 
+    /// <summary>The index file in the data folder's file system root.</summary>
+    public const string CacheFileName = "firmware-libraries.txt";
+
+    /// <summary>Drops the in-memory index of <paramref name="fsRoot"/> (its firmware was removed or replaced).</summary>
+    public static void Forget(string fsRoot) => s_cache.TryRemove(Path.GetFullPath(fsRoot), out _);
+
     /// <summary>The module exporting <paramref name="library"/> (first one in <see cref="ModuleFiles"/> order).</summary>
     public Module? Provider(string library) => _byLibrary.GetValueOrDefault(library);
 
     private FirmwareLibraries(string fsRoot)
     {
-        string cacheFile = Path.Combine(fsRoot, "firmware-libraries.txt");
+        string cacheFile = Path.Combine(fsRoot, CacheFileName);
         Dictionary<string, (string Stamp, Module Module)> cached = ReadCache(cacheFile);
         var modules = new List<Module>();
         var lines = new List<string>();

@@ -2,7 +2,8 @@
 
 Stage 4 of the Vita OS plan. VitaSharp runs the installed firmware's own programs, not a recreation:
 `vs0:vsh/shell/shell.self` (SceShell: boot sequence, lock screen, home screen, LiveArea) and the
-applications in `vs0:app/NPXS*`. They need the firmware installed (`install-firmware`); everything below
+applications in `vs0:app/NPXS*`. They need the firmware installed (`install-firmware`; `uninstall-firmware` or the
+launcher's **Uninstall firmware** removes os0/vs0/sa0/pd0 and the index files again, keeping ux0/ur0); everything below
 was checked with firmware 3.74 copied from Vita3K into a scratch data folder.
 
 ## How to run

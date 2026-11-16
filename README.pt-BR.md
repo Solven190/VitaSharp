@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=ea906472e668a8fece56fcf2735735f62651af708f469f9bf84158448dfc3644 -->
+<!-- pair: README.md sha256=febac326f63b9e7310292f26f2bc90d6a667e66110be2ddd38362e1bba3905ba -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -155,7 +155,9 @@ seguinte.
 **Firmware (opcional).** Os jogos rodam sem firmware. Instale-o para ter as fontes e bibliotecas do sistema
 (`libSceXml`, `libSceSqlite`...) e o **Sistema do Vita**: na página **Sistema do Vita**, **Instalar firmware
 (.PUP)…**, ou **Usar firmware do Vita3K** (copia o `os0`/`vs0`/`sa0`/`pd0` de uma instalação do Vita3K). Pela linha
-de comando: `install-firmware <PSVUPDAT.PUP>`.
+de comando: `install-firmware <PSVUPDAT.PUP>`. **Desinstalar firmware** (na mesma página; `uninstall-firmware [--yes]`)
+remove só o que a instalação criou (`os0`/`vs0`/`sa0`/`pd0` e os arquivos de índice `firmware.json`,
+`firmware-libraries.txt`): os jogos, os saves e o `ux0`/`ur0` ficam, e uma partição ligada a outra pasta perde só o link.
 
 **Sistema do Vita.** Com o firmware instalado, o botão **Abrir Sistema do Vita** do launcher (Ctrl+H, ou `boot-shell`) roda o
 `shell.self` do firmware: configuração inicial na primeira vez, tela de bloqueio, tela inicial com os jogos
