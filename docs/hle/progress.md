@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 7,048 | 6,801 | 247 | 0 | 7,320 | 96.2% |
+| System imports | 7,105 | 6,835 | 270 | 0 | 7,320 | 97% |
 | General | 9,697 | 9,462 | 235 | 0 | 9,944 | 97.5% |
-| All firmware 3.74 exports | 18,887 | 4,908 | 488 | 13,491 | 19,406 | 97.3% |
+| All firmware 3.74 exports | 18,944 | 4,942 | 511 | 13,491 | 19,406 | 97.6% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -372,7 +372,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGifPromoter | `vs0:vsh/common/mms/gif_promoter.suprx` | 3 / 3 | 100% | - | - | - |
 | SceGps | `os0:kd/bootimage.skprx/SceGps` | 11 / 11 | 100% | - | - | 11 / 11 |
 | SceGpuEs4ForUser | `os0:kd/bootimage.skprx/SceGpuEs4` | 7 / 7 | 100% | 1 | - | 4 / 4 |
-| SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 1 / 49 | 2% | - | - | 1 / 42 |
+| SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 21 / 49 | 42.8% | 19 | - | 21 / 42 |
 | SceGpuEs4UserForVsh | `os0:us/libgpu_es4.suprx` | 5 / 5 | 100% | 5 | - | 5 / 5 |
 | SceGriefReportDialog | `vs0:app/NPXS10065/grief_report_dialog.suprx` | 9 / 9 | 100% | - | - | 7 / 7 |
 | SceGxm | `os0:us/libgxm_es4.suprx` | 267 / 267 | 100% | - | 246 / 246 | - |
@@ -447,7 +447,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNet | `vs0:sys/external/libnet.suprx` | 62 / 62 | 100% | - | 47 / 47 | 4 / 4 |
 | SceNetAdhocMatching | `vs0:sys/external/adhoc_matching.suprx` | 14 / 14 | 100% | - | 13 / 13 | - |
 | SceNetCtl | `vs0:sys/external/libnetctl.suprx` | 112 / 112 | 100% | - | 16 / 16 | 76 / 76 |
-| SceNetInternal | `vs0:sys/external/libnet.suprx` | 9 / 58 | 15.5% | - | - | 8 / 45 |
+| SceNetInternal | `vs0:sys/external/libnet.suprx` | 46 / 58 | 79.3% | 4 | - | 45 / 45 |
 | SceNetPsForSyscalls | `os0:kd/bootimage.skprx/SceNetPs` | 34 / 34 | 100% | - | - | 34 / 34 |
 | SceNgs | `vs0:sys/external/libngs.suprx` | 68 / 68 | 100% | - | 55 / 55 | - |
 | SceNgsInternal | `os0:kd/bootimage.skprx/SceNgs` | 62 / 62 | 100% | 5 | - | 61 / 61 |

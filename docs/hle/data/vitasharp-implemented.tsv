@@ -1840,6 +1840,26 @@
 0x05BCE11C	sceGpuSignalWait	GpuEs4	SceGpuEs4ForUser	vh
 0xE0DECA6E	sceGpuSignalWaitLockup	GpuEs4	SceGpuEs4ForUser	vh
 0x807202B7	sceGpuUnregisterSalvage	GpuEs4	SceGpuEs4ForUser	vh
+0x0162A405	NID_0162A405	GpuEs4	SceGpuEs4User	-	default
+0x071E62F0	NID_071E62F0	GpuEs4	SceGpuEs4User	-	default
+0x0BFE1685	NID_0BFE1685	GpuEs4	SceGpuEs4User	-	default
+0x0D27286F	NID_0D27286F	GpuEs4	SceGpuEs4User	-	default
+0x0EA7458D	NID_0EA7458D	GpuEs4	SceGpuEs4User	-	default
+0x116449D2	NID_116449D2	GpuEs4	SceGpuEs4User	-	default
+0x156A6B70	NID_156A6B70	GpuEs4	SceGpuEs4User	-	default
+0x1E0A9C4A	NID_1E0A9C4A	GpuEs4	SceGpuEs4User	-	default
+0x228252A2	NID_228252A2	GpuEs4	SceGpuEs4User	-	default
+0x416C8813	NID_416C8813	GpuEs4	SceGpuEs4User	-	default
+0x4447D217	NID_4447D217	GpuEs4	SceGpuEs4User	-	default
+0x5273D097	NID_5273D097	GpuEs4	SceGpuEs4User	-	default
+0x5564C1BE	NID_5564C1BE	GpuEs4	SceGpuEs4User	-	default
+0x56893E98	NID_56893E98	GpuEs4	SceGpuEs4User	-	default
+0x5C3A6DFE	NID_5C3A6DFE	GpuEs4	SceGpuEs4User	-	default
+0x70800B46	NID_70800B46	GpuEs4	SceGpuEs4User	-	default
+0x73E945A1	NID_73E945A1	GpuEs4	SceGpuEs4User	-	default
+0x7DCCBCAF	NID_7DCCBCAF	GpuEs4	SceGpuEs4User	-	default
+0x7E965369	NID_7E965369	GpuEs4	SceGpuEs4User	-	default
+0xA5B14369	NID_A5B14369	GpuEs4	SceGpuEs4User	-
 0xF4735A47	NID_F4735A47	FirmwareConstants	SceGpuEs4User	-
 0x010DA2CB	NID_010DA2CB	GpuEs4	SceGpuEs4UserForVsh	-	default
 0x0A9556D9	NID_0A9556D9	GpuEs4	SceGpuEs4UserForVsh	-	default
@@ -5630,10 +5650,47 @@
 0xF081EFF9	sceNetCtl_F081EFF9	Net	SceNetCtl	-
 0xF30365D6	sceNetCtl_F30365D6	Net	SceNetCtl	-
 0xFFDC123A	sceNetCtl_FFDC123A	Net	SceNetCtl	-
+0x01B090F1	NID_01B090F1	Net	SceNetInternal	-
+0x04E6136D	NID_04E6136D	Net	SceNetInternal	-
+0x0DFC23D6	NID_0DFC23D6	Net	SceNetInternal	-
+0x104E4820	NID_104E4820	Net	SceNetInternal	-
+0x16222ED6	NID_16222ED6	Net	SceNetInternal	-
+0x225C4801	NID_225C4801	Net	SceNetInternal	-
+0x26EFF46D	NID_26EFF46D	Net	SceNetInternal	-
+0x2FEC8B74	NID_2FEC8B74	Net	SceNetInternal	-
+0x333F9CB3	NID_333F9CB3	Net	SceNetInternal	-
+0x3B5F94B7	NID_3B5F94B7	Net	SceNetInternal	-
 0x46E28336	NID_46E28336	Net	SceNetInternal	-
+0x4EF96CD8	NID_4EF96CD8	Net	SceNetInternal	-
+0x4F5E0E8A	NID_4F5E0E8A	Net	SceNetInternal	-
+0x5B0E370C	NID_5B0E370C	Net	SceNetInternal	-	default
 0x6273AF23	NID_6273AF23	Net	SceNetInternal	-
+0x689B9D7D	NID_689B9D7D	Net	SceNetInternal	-
+0x694F8996	NID_694F8996	Net	SceNetInternal	-
+0x7F63379E	NID_7F63379E	Net	SceNetInternal	-
+0x8157DE3E	NID_8157DE3E	Net	SceNetInternal	-
+0x9D12D8A4	NID_9D12D8A4	Net	SceNetInternal	-
 0x9DBD2F60	NID_9DBD2F60	Net	SceNetInternal	-
+0xA2C2BC5F	NID_A2C2BC5F	Net	SceNetInternal	-
+0xA6B9F5D2	NID_A6B9F5D2	Net	SceNetInternal	-
+0xA9F2277C	NID_A9F2277C	Net	SceNetInternal	-	default
+0xAA414742	NID_AA414742	Net	SceNetInternal	-
+0xB01ABD0A	NID_B01ABD0A	Net	SceNetInternal	-
+0xBDA92B76	NID_BDA92B76	Net	SceNetInternal	-	default
+0xC2FF615E	NID_C2FF615E	Net	SceNetInternal	-
+0xCF49E9C4	NID_CF49E9C4	Net	SceNetInternal	-
+0xDEF2357F	NID_DEF2357F	Net	SceNetInternal	-
 0xDF815D48	NID_DF815D48	Net	SceNetInternal	-
+0xE03F6A77	NID_E03F6A77	Net	SceNetInternal	-
+0xE62A2FAA	NID_E62A2FAA	Net	SceNetInternal	-
+0xEAC33599	NID_EAC33599	Net	SceNetInternal	-
+0xEDAA3453	NID_EDAA3453	Net	SceNetInternal	-
+0xEE1985D9	NID_EE1985D9	Net	SceNetInternal	-
+0xEE94BA15	NID_EE94BA15	Net	SceNetInternal	-	default
+0xEE94BF52	NID_EE94BF52	Net	SceNetInternal	-
+0xEF421A65	NID_EF421A65	Net	SceNetInternal	-
+0xF3917021	NID_F3917021	Net	SceNetInternal	-
+0xF6291476	NID_F6291476	Net	SceNetInternal	-
 0x93F2FF08	sceNetInternalIcmConnect	Net	SceNetInternal	-
 0x916EA798	sceNetInternalInetPton	Net	SceNetInternal	-
 0x235DE96C	sceNetInternal_235DE96C	Net	SceNetInternal	-

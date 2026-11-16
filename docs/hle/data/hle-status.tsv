@@ -85,7 +85,7 @@ SceGameUpdate	vs0:sys/external/libgameupdate.suprx	4	4	0	0	0	0	0	0	0	0
 SceGifPromoter	vs0:vsh/common/mms/gif_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceGps	os0:kd/bootimage.skprx/SceGps	11	11	0	0	11	11	0	0	0	0
 SceGpuEs4ForUser	os0:kd/bootimage.skprx/SceGpuEs4	7	7	0	0	4	4	1	0	1	0
-SceGpuEs4User	os0:us/libgpu_es4.suprx	49	1	0	0	42	1	0	0	0	1
+SceGpuEs4User	os0:us/libgpu_es4.suprx	49	21	0	0	42	21	19	0	19	1
 SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	5	0	0	5	5	5	0	5	0
 SceGriefReportDialog	vs0:app/NPXS10065/grief_report_dialog.suprx	9	9	0	0	7	7	0	0	0	9
 SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
@@ -160,7 +160,7 @@ SceNearUtil	vs0:sys/external/libSceNearUtil.suprx	49	49	46	46	0	0	0	0	0	0
 SceNet	vs0:sys/external/libnet.suprx	62	62	47	47	4	4	0	0	0	0
 SceNetAdhocMatching	vs0:sys/external/adhoc_matching.suprx	14	14	13	13	0	0	0	0	0	0
 SceNetCtl	vs0:sys/external/libnetctl.suprx	112	112	16	16	76	76	0	0	0	0
-SceNetInternal	vs0:sys/external/libnet.suprx	58	9	0	0	45	8	0	0	0	0
+SceNetInternal	vs0:sys/external/libnet.suprx	58	46	0	0	45	45	4	0	4	0
 SceNetPsForSyscalls	os0:kd/bootimage.skprx/SceNetPs	34	34	0	0	34	34	0	0	0	0
 SceNgs	vs0:sys/external/libngs.suprx	68	68	55	55	0	0	0	0	0	0
 SceNgsInternal	os0:kd/bootimage.skprx/SceNgs	62	62	0	0	61	61	5	0	5	0
