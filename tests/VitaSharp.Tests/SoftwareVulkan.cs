@@ -9,8 +9,11 @@ namespace VitaSharp.Tests;
 /// <list type="bullet">
 /// <item>any OS: the driver manifest in VK_DRIVER_FILES / VK_ICD_FILENAMES when one is set (a downloaded SwiftShader
 /// or Mesa build), through the system Vulkan loader;</item>
-/// <item>Windows: Google's SwiftShader as Microsoft Edge and Google Chrome ship it (vk_swiftshader.dll next to the
-/// browser, loaded directly as the driver, no system loader needed);</item>
+/// <item>Windows: Mesa's lavapipe from a mesa-dist-win build unpacked in
+/// %LOCALAPPDATA%\VitaSharpTools\mesa\&lt;version&gt;\x64 (the newest version; the same driver the Linux CI uses,
+/// Vulkan 1.4), through the system loader (vulkan-1.dll); otherwise, or when the loader cannot take it (no
+/// vulkan-1.dll, or an elevated process without the driver registered), Google's SwiftShader as Microsoft Edge and
+/// Google Chrome ship it (vk_swiftshader.dll next to the browser, loaded directly as the driver, no loader needed);</item>
 /// <item>Linux: Mesa's lavapipe (the distribution's mesa-vulkan-drivers package) through the system loader
 /// (libvulkan1);</item>
 /// <item>macOS: MoltenVK (the LunarG Vulkan SDK, or Homebrew's molten-vk and vulkan-loader) through the loader.</item>
@@ -21,7 +24,8 @@ public static class SoftwareVulkan
 {
     private static readonly (string? Driver, string? Loader, string? Missing) s_found = Find();
 
-    /// <summary>vk_swiftshader.dll (Windows, loaded directly) or the driver's ICD manifest (through the loader); null when absent.</summary>
+    /// <summary>vk_swiftshader.dll (Windows' fallback, loaded directly) or the driver's ICD manifest (through the loader:
+    /// lavapipe on Windows and Linux, MoltenVK, or VK_DRIVER_FILES); null when absent.</summary>
     public static string? Driver => s_found.Driver;
 
     public static string? SkipReason => s_found.Missing;
@@ -46,29 +50,11 @@ public static class SoftwareVulkan
         }
         if (OperatingSystem.IsWindows())
         {
-            foreach (string? root in new[]
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Microsoft\Edge\Application",
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Microsoft\Edge\Application",
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Google\Chrome\Application",
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Google\Chrome\Application",
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\Application",
-            })
-            {
-                if (!Directory.Exists(root))
-                {
-                    continue;
-                }
-
-                string? dll = Directory.EnumerateDirectories(root).Select(d => Path.Combine(d, "vk_swiftshader.dll")).Where(File.Exists)
-                    .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
-                if (dll != null)
-                {
-                    return (dll, null, null);
-                }
-            }
-            return (null, null, "no software Vulkan driver: install Microsoft Edge or Google Chrome (they ship SwiftShader, vk_swiftshader.dll), "
-                + "or set VK_DRIVER_FILES to the ICD manifest of a SwiftShader or Mesa build");
+            string tools = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VitaSharpTools");
+            string? lavapipe = FindLavapipeManifest(tools, RuntimeInformation.ProcessArchitecture);
+            bool loaderTakes = lavapipe != null && File.Exists(Path.Combine(Environment.SystemDirectory, "vulkan-1.dll"))
+                && (!IsElevated() || RegisteredDriver(lavapipe));
+            return ChooseWindows(loaderTakes ? lavapipe : null, FindSwiftShader());
         }
         if (OperatingSystem.IsLinux())
         {
@@ -107,6 +93,77 @@ public static class SoftwareVulkan
             return MacLoader() is { } loader ? (icd, loader, null) : (null, null, "MoltenVK is installed but not the Vulkan loader (libvulkan.1.dylib): brew install vulkan-loader, or the LunarG SDK");
         }
         return (null, null, "no software Vulkan device for this OS");
+    }
+
+    /// <summary>Windows: the newest vk_swiftshader.dll that Microsoft Edge or Google Chrome ship; null when neither is installed.</summary>
+    private static string? FindSwiftShader()
+    {
+        foreach (string? root in new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Microsoft\Edge\Application",
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Microsoft\Edge\Application",
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Google\Chrome\Application",
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Google\Chrome\Application",
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\Application",
+        })
+        {
+            if (!Directory.Exists(root))
+            {
+                continue;
+            }
+
+            string? dll = Directory.EnumerateDirectories(root).Select(d => Path.Combine(d, "vk_swiftshader.dll")).Where(File.Exists)
+                .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+            if (dll != null)
+            {
+                return dll;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Windows: lavapipe's ICD manifest (lvp_icd*.json) in the newest &lt;tools&gt;\mesa\&lt;version&gt;\&lt;arch&gt;
+    /// folder that has one (x64 / arm64 / x86 as mesa-dist-win names them); null when there is none.</summary>
+    internal static string? FindLavapipeManifest(string tools, Architecture arch)
+    {
+        string mesa = Path.Combine(tools, "mesa");
+        if (!Directory.Exists(mesa))
+        {
+            return null;
+        }
+
+        string sub = arch switch
+        {
+            Architecture.Arm64 => "arm64",
+            Architecture.X86 => "x86",
+            _ => "x64",
+        };
+        return Directory.EnumerateDirectories(mesa)
+            .Select(d => (Version: Version.TryParse(Path.GetFileName(d), out Version? v) ? v : new Version(0, 0), Dir: Path.Combine(d, sub)))
+            .Where(c => Directory.Exists(c.Dir))
+            .OrderByDescending(c => c.Version)
+            .Select(c => Directory.EnumerateFiles(c.Dir, "lvp_icd*.json").FirstOrDefault())
+            .FirstOrDefault(m => m != null);
+    }
+
+    /// <summary>Windows' choice: lavapipe (its manifest, through the system loader) when the loader can take it,
+    /// otherwise SwiftShader (its DLL, loaded directly), otherwise the reason the tests are skipped.</summary>
+    internal static (string? Driver, string? Loader, string? Missing) ChooseWindows(string? lavapipeManifest, string? swiftShaderDll)
+    {
+        if (lavapipeManifest != null)
+        {
+            return (lavapipeManifest, null, null);
+        }
+
+        if (swiftShaderDll != null)
+        {
+            return (swiftShaderDll, null, null);
+        }
+
+        return (null, null, "no software Vulkan driver: unpack Mesa lavapipe (mesa-dist-win) into "
+            + @"%LOCALAPPDATA%\VitaSharpTools\mesa\<version>\x64, or install Microsoft Edge or Google Chrome (they ship SwiftShader, "
+            + "vk_swiftshader.dll), or set VK_DRIVER_FILES to the ICD manifest of a SwiftShader or Mesa build");
     }
 
     private static (string?, string?, string?) Free(nint h, string json)
@@ -255,6 +312,42 @@ public static class SoftwareVulkan
         return key != null && key.GetValueNames().Any(name => string.Equals(Path.GetFullPath(name), Path.GetFullPath(manifest), StringComparison.OrdinalIgnoreCase));
     }
 
+    private static readonly Lazy<string?> s_headless = new(FindHeadlessSurface);
+
+    /// <summary>Why the software driver cannot make a window-less presentation surface (VK_EXT_headless_surface: SwiftShader,
+    /// lavapipe on Linux and MoltenVK have it; lavapipe on Windows does not), or null when it can.</summary>
+    public static string? HeadlessSurfaceSkipReason => SkipReason ?? s_headless.Value;
+
+    private static unsafe string? FindHeadlessSurface()
+    {
+        using IDisposable driver = Use();
+        try
+        {
+            Silk.NET.Vulkan.Vk vk = VulkanLoader.Load();
+            uint n = 0;
+            vk.EnumerateInstanceExtensionProperties((byte*)null, ref n, null);
+            var props = new Silk.NET.Vulkan.ExtensionProperties[n];
+            fixed (Silk.NET.Vulkan.ExtensionProperties* p = props)
+            {
+                vk.EnumerateInstanceExtensionProperties((byte*)null, ref n, p);
+            }
+
+            foreach (Silk.NET.Vulkan.ExtensionProperties e in props)
+            {
+                if (Marshal.PtrToStringAnsi((nint)e.ExtensionName) == "VK_EXT_headless_surface")
+                {
+                    return null;
+                }
+            }
+
+            return $"the software Vulkan driver {Driver} has no VK_EXT_headless_surface (a window-less presentation surface)";
+        }
+        catch (Exception e)
+        {
+            return $"the software Vulkan driver {Driver} did not load: {e.Message}";
+        }
+    }
+
     private sealed class Restore(Action a) : IDisposable
     {
         public void Dispose() => a();
@@ -294,6 +387,19 @@ public sealed class SoftwareVulkanFactAttribute : FactAttribute
     public SoftwareVulkanFactAttribute()
     {
         if ((SoftwareVulkan.SkipReason ?? ShadercAvailability.SkipReason) is { } r)
+        {
+            Skip = r;
+        }
+    }
+}
+
+/// <summary>[Fact] of a renderer presenting to a window-less surface: skipped as <see cref="SoftwareVulkanFactAttribute"/>,
+/// and when the software driver has no VK_EXT_headless_surface (<see cref="SoftwareVulkan.HeadlessSurfaceSkipReason"/>).</summary>
+public sealed class SoftwareVulkanHeadlessFactAttribute : FactAttribute
+{
+    public SoftwareVulkanHeadlessFactAttribute()
+    {
+        if ((SoftwareVulkan.SkipReason ?? ShadercAvailability.SkipReason ?? SoftwareVulkan.HeadlessSurfaceSkipReason) is { } r)
         {
             Skip = r;
         }

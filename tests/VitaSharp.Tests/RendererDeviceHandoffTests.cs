@@ -45,7 +45,7 @@ public sealed class RendererDeviceHandoffTests(GuestMemoryFixture fixture)
     /// makes: a LoadExec then a state load (Uncharted), then a second load right after (Killzone). Every replacement
     /// keeps the first renderer's device and presents frames.
     /// </summary>
-    [SoftwareVulkanFact]
+    [SoftwareVulkanHeadlessFact]
     public void LoadExecThenTwoStateLoadsKeepTheWindowsDevice()
     {
         using IDisposable driver = SoftwareVulkan.Use();
