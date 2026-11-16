@@ -107,10 +107,8 @@ public sealed partial class SystemFallback : HleModule
 
     // ------------------------------------------------------------------ SceShellSvc (libshellsvc): event flags
     // An event number (&lt; 0x80) is a bit of the shell's event flags: word number / 32 + 4, bit number % 32. Without
-    // the shell there is no service object and no handler is ever registered.
+    // the shell there is no service object. The handler table (register, unregister, dispatch) is in ShellUtil.
     [Hle("sceShellSvcGetSvcObj", Library = "SceShellSvc")] uint ShellSvcGetSvcObj() => 0;
-    [Hle("sceShellSvc_7CBF442B", Nid = 0x7CBF442B, Library = "SceShellSvc")] int ShellSvcUnregisterEvent(int ev) => (uint)ev < 0x80 ? 0 : unchecked((int)0x80100910);
-    [Hle("sceShellSvc_FB03FBC9", Nid = 0xFB03FBC9, Library = "SceShellSvc")] int ShellSvcEventPending(int ev) => unchecked((int)0x80100962);
     /// <summary>(uint out[2], int event): the flag word and bit of an event.</summary>
     [Hle("sceShellSvc_A0B067AC", Nid = 0xA0B067AC, Library = "SceShellSvc")]
     int ShellSvcEventBit(uint outp, int ev)
