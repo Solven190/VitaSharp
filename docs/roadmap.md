@@ -417,7 +417,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   - [ ] Caminhos quentes sem custos escondidos: boxing, `params object[]`, interpolação de string em logs desligados
     (usar `[InterpolatedStringHandler]`/checar o nível antes), LINQ e lambdas que alocam por quadro, `ToString()` de
     enums em logs; medir com o contador de alocações (`PERF allocated`) e zerar o que for por quadro
-  - [ ] Backend IL do JIT (único uso real de `Reflection.Emit`): manter só onde não há JIT nativo e documentar
+  - [x] Backend IL do JIT (único uso real de `Reflection.Emit`): manter só onde não há JIT nativo e documentar
+    Conferido (16/11/2026, rm3): já é assim. O IL só pega o que o nativo não roda (blocos rejeitados, 0 nos jogos
+    medidos; tier-up de blocos dominados por callouts NEON; watchpoints de escrita, que desligam os nativos;
+    `--cpu=il`) e sai da cadeia sem código dinâmico (`IlJitCompiler.IsSupported` = `IsDynamicCodeSupported`; Native
+    AOT fica native > interp); o método que emite e o `IlDump` têm `[RequiresDynamicCode]` e o IL3050 é erro de build. Nos
+    jogos medidos em 11/11 o IL roda 0,00% dos ciclos. Documentado em docs/notes/il-jit.md (seção "Where the IL
+    backend is kept").
 - [x] Instalação de `.pkg` + `work.bin` muito lenta no build Native AOT do desktop (relato do usuário, 31/10/2026).
   Medido com o WRC 4 (1,5 GB, 195 arquivos PFS): o AOT não tinha caminho lento próprio (CPU 2,7-3,8 s no AOT, 4,7 s
   no JIT); o tempo era E/S. O pacote era extraído ainda cifrado em PFS e cada arquivo era relido e regravado no

@@ -7,6 +7,22 @@ inlines the handlers (`[AggressiveInlining]`) and folds the decoding. It takes t
 rejects and the blocks dominated by NEON callouts (native tier-up), and it is the first tier when the native
 backend is off (write watchpoints, `--cpu=il`).
 
+## Where the IL backend is kept (the only Reflection.Emit user)
+
+The IL backend and its dump (`IlDump`) are the only code that uses `Reflection.Emit`. They are kept only for what
+the native backends cannot run:
+
+- blocks a native backend rejects (out of spill slots; 0 in the measured games) and the native tier-ups of blocks
+  dominated by NEON callouts;
+- write watchpoints (the native backends are off while `WriteWatch` is on) and `--cpu=il` / `VITASHARP_CPU=il`;
+- hosts without a native backend for their architecture.
+
+`IlJitCompiler.IsSupported` is `RuntimeFeature.IsDynamicCodeSupported`: under Native AOT the backend leaves the
+chain (`no dynamic code`) and the chain is native > interpreter. The emitting method and `IlDump` carry `[RequiresDynamicCode]`, and
+`Directory.Build.targets` turns IL3050/IL3051 into errors in the AOT-compatible projects, so no new dynamic-code
+use enters without being seen. In the games measured on 11/11/2026 the IL tier ran 0.00% of the guest cycles, so it
+costs nothing at run time.
+
 ## Where guest code runs (CPU tiers line)
 
 Every run's end report (and the Android periodic summary) has a line
