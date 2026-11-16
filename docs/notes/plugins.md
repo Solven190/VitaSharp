@@ -93,8 +93,6 @@ functions do nothing, as imports nothing provides. Function hooks are the next s
 
 ## Limits
 
-- Save states do not hold the kernel process's own threads: a state cannot be saved while a thread a kernel module
-  made is running (the threads module_start runs on are gone once it returns).
 - A plugin that patches the firmware's own code by offset finds no firmware code there (VitaSharp implements the
   firmware's libraries itself).
 - Exceptions are not delivered to kernel handlers (the emulated CPU reports a guest fault as a crash); interrupt
