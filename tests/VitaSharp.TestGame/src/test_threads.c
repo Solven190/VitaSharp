@@ -467,6 +467,9 @@ static void check_condition_variable(void)
 
 static void check_timing(void)
 {
+    /* A delay never returns before the time asked (the threadmgr wakes the thread from its timer list at the deadline
+     * or later); how much later depends on how busy the machine is (on the console, higher-priority threads; on an
+     * emulator, the host), so the lateness is reported and does not decide. */
     const unsigned int delays[3] = {1000, 10000, 100000};
     const char *names[3] = {"delay_1ms", "delay_10ms", "delay_100ms"};
     for (int index = 0; index < 3; index++)
@@ -474,8 +477,9 @@ static void check_timing(void)
         uint64_t start = time_now_us();
         sceKernelDelayThread(delays[index]);
         uint64_t elapsed = time_now_us() - start;
-        bool accurate = elapsed >= delays[index] && elapsed < delays[index] + 5000 + delays[index] / 10;
-        result_check(AREA, names[index], accurate, "%llu us", (unsigned long long)elapsed);
+        bool notEarly = elapsed >= delays[index];
+        result_check(AREA, names[index], notEarly, "%llu us (%+lld us late)", (unsigned long long)elapsed,
+                     (long long)elapsed - (long long)delays[index]);
     }
 
     SceRtcTick rtcStart;

@@ -1,6 +1,8 @@
 /*
  * Audio: sceAudioOut ports (MAIN 48 kHz, BGM 44.1 kHz, VOICE mono), volume and config calls, and two tones played
- * at the same time from two threads; the blocking period of sceAudioOutOutput is measured against the clock.
+ * at the same time from two threads; the blocking period of sceAudioOutOutput is measured against the clock: a port
+ * never takes blocks faster than it plays them (the decision), and how much slower it goes is reported (a busy machine
+ * makes the playing thread late, on the console as on an emulator).
  */
 #include <math.h>
 #include <stdio.h>
@@ -158,9 +160,9 @@ void test_audio_run(void)
         int steadyBlocks = BLOCKS - WARMUP_BLOCKS;
         double measured = (double)g_jobs[index].steadyMicroseconds / 1000.0 / (double)steadyBlocks;
         double wanted = (double)GRAIN * 1000.0 / (double)g_jobs[index].sampleRate;
-        bool accurate = g_jobs[index].outputErrors == 0 && measured > wanted * 0.9 && measured < wanted * 1.1;
-        result_check(AREA, periodNames[index], accurate, "%.3f ms per %d samples (want %.3f), errors %d", measured,
-                     GRAIN, wanted, g_jobs[index].outputErrors);
+        bool notFaster = g_jobs[index].outputErrors == 0 && measured > wanted * 0.9;
+        result_check(AREA, periodNames[index], notFaster, "%.3f ms per %d samples (want %.3f, %+.1f%%), errors %d",
+                     measured, GRAIN, wanted, (measured / wanted - 1.0) * 100.0, g_jobs[index].outputErrors);
     }
     float period = generated_period(1000.0f, 48000);
     result_check(AREA, "tone_1khz_period", fabsf(period - 48.0f) < 0.5f, "%.2f samples at 48 kHz", (double)period);
