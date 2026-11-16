@@ -80,7 +80,18 @@ public sealed partial class NpMatching2 : HleModule
     [Hle]
     int sceNpMatching2Term()
     {
-        lock (_lock) { _initialized = false; _contexts.Clear(); }
+        lock (_lock)
+        {
+            if (_initialized)
+            {
+                // np_matching2.suprx 3.74 puts the signaling port back to its default when it terminates
+                _signalingPort = DefaultSignalingPort;
+            }
+
+            _initialized = false;
+            _contexts.Clear();
+        }
+
         _callbacks.Close();
         return 0;
     }
