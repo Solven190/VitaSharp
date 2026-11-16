@@ -74,6 +74,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   com os vblanks vistos a 59,94 Hz com folga de um vblank. As três medidas de fps do `perf` na rodada automática viram
   SKIP com o valor medido (o fps de um emulador depende do host), e a checagem que decide é a cena desenhar (mais de
   10 quadros); a rodada de 60 s do menu continua aprovando ou reprovando o fps.
+- [ ] [P3][P] **Checagens do TestGame que ainda dependem do relógio do host:** `audio/main_block_period`,
+  `audio/bgm_block_period` e `threads/delay_1ms/10ms/100ms` comparam o tempo do processo com a duração esperada, e o
+  tempo do processo anda com o relógio do host: com o PC ocupado (outros agentes compilando) a rodada de 16/11/2026
+  (bug7) deu `delay_10ms` 344.508 us, blocos de 28,6 ms (MAIN, quer 10,667) e 22,2 ms (BGM, quer 11,610) e
+  `display_vblank_30` com vcount +77 em 1274 ms; na rodada anterior, com a CPU mais livre, só o MAIN falhou (12,189
+  ms, BGM 11,637 certo), o que pode ser um atraso real do ritmo da porta de 48 kHz. Fazer como o vblank: decidir pelo
+  contrato do console que não depende da carga (nunca antes do pedido; período médio contra o tempo de guest que a
+  própria porta consumiu) e reportar o atraso como medida; antes, separar se os 12,2 ms do MAIN com a máquina livre
+  são do ritmo do HLE de áudio. Falta também cobrir PVRTC, YUV420 e cube no `gfx` (hoje SKIP).
 - [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
   (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
   `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
@@ -2767,7 +2776,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
     222844, 5 por modo) [flash] 11,2 / 0 / 0; F1 (captura 223250, 500 quadros, 5 por modo) [black-flash] média 21,0 / 0 / 0 e [flash] 11,4 / 0 / 0. fps igual nos três
     modos (MGS 30, Killzone 30, F1 60). O MGS trava no boot a partir do `state_start.vss` em ~1/3 das execuções em
     todos os modos (o item "(3) trava" do MGS3 abaixo): essas execuções não entram nas médias.
-- [ ] [P3][P] Achados do jogo de teste VitaSDK (repositório local `VitaSharp-testgame`, 11/11/2026; 182 OK / 3 FAIL / 2 SKIP
+- [x] [P3][P] Achados do jogo de teste VitaSDK (repositório local `VitaSharp-testgame`, 11/11/2026; 182 OK / 3 FAIL / 2 SKIP
   no VitaSharp sem janela). 1) e 2) corrigidos (revalidação de 12/11/2026, `fix/revalidate-2`): o vita-headers
   (`gxm.h`) define `SCE_GXM_TEXTURE_BASE_FORMAT_ETC1 = 0x84000000` ("Requires SCE_GXM_INITIALIZE_FLAG_EXTENDED_FORMAT",
   único formato `ETC1_1BGR`), agora decodificado na CPU com o formato da Khronos (`Etc1.cs`; 16/11/2026: com cada palavra
@@ -2783,6 +2792,12 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   disputados pela compilação de shaders (e por qualquer outra carga no PC durante o teste). Não é erro de semântica:
   próximo passo é medir o atraso do despertar (FrameLedger) com a máquina livre; se repetir, olhar se a compilação
   roda numa thread que segura um núcleo emulado. Também falta cobrir PVRTC, YUV e cube no jogo de teste.
+  Confirmado (16/11/2026, bug7, fix/bug7-testgame-rerun): vpk gerado de novo no WSL a partir de
+  `tests/VitaSharp.TestGame` (com o ETC1 na ordem da SGX) e rodado sem janela (`--vulkan --seconds=90`, raiz de dados
+  de teste sem firmware, `exit_after_run`): `gfx/tex_ETC1_linear` OK 16/16 blocos, `gfx/tex_2101010_ABGR_linear` OK
+  16/16, `system/display_vblank_30` OK (vcount +30, 30 esperas no vblank seguinte, 499 ms); total 224 OK / 1 FAIL /
+  5 SKIP. O 3) já estava resolvido pela checagem nos relógios do console (15/11/2026). O FAIL que sobrou
+  (`audio/main_block_period`) e o PVRTC/YUV/cube foram para "Testes de regressão".
 - [x] Teste instável sob carga: `ThreadMgrHleTests.TimerEventsFireAndCancel` (11/11/2026) falhou 3 de 5 vezes
   isolado com o processador em 100% (7 agentes). Ele usa um timer de 20 ms e espera que um poll logo depois do wait
   não veja o evento: com a máquina carregada passa mais de um período entre as duas chamadas. Não veio da refatoração
