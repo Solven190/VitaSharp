@@ -21,9 +21,17 @@ public sealed partial class ModulemgrKernel : HleModule
     List<LoadedModule>? ModulesOf(int pid) => KernelSpace.ModulesOf(Emu, pid);
 
 
+    /// <summary>A kernel module: one of the kernel process's (the system's one kernel, whichever process loaded it).</summary>
     LoadedModule? KernelModule(int modid)
     {
-        return K.Modules.TryGetValue(modid, out var m) && m.IsKernel ? m : null;
+        Emulator kernelProcess = Emu.Vita.KernelProcess ?? Emu;
+        return kernelProcess.Kernel.Modules.TryGetValue(modid, out LoadedModule? m) && m.IsKernel ? m : null;
+    }
+
+    /// <summary>A module of the caller's process, or a kernel module.</summary>
+    LoadedModule? AnyModule(int modid)
+    {
+        return K.Modules.TryGetValue(modid, out LoadedModule? m) ? m : KernelModule(modid);
     }
 
     /// <summary>Runs module_start or module_stop: on the calling guest thread (as the firmware's module manager does),
@@ -106,7 +114,11 @@ public sealed partial class ModulemgrKernel : HleModule
             return uid;
         }
 
-        Start(K.Modules[uid], args, argp, status);
+        if (KernelModule(uid) is { } loaded)
+        {
+            Start(loaded, args, argp, status);
+        }
+
         return uid;
     }
 
@@ -332,7 +344,7 @@ public sealed partial class ModulemgrKernel : HleModule
             return SceError.ILLEGAL_ADDR;
         }
 
-        if (!K.Modules.TryGetValue(modid, out var m))
+        if (AnyModule(modid) is not { } m)
         {
             return SceError.MODULEMGR_NO_MOD;
         }

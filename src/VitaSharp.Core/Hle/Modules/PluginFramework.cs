@@ -428,7 +428,7 @@ public sealed partial class PluginFramework : HleModule
 
     void InvalidateEverywhere(uint address, uint size)
     {
-        foreach (Emulator process in Emu.Vita.Processes)
+        foreach (Emulator process in Emu.Vita.ProcessesAndKernel)
         {
             process.Code.Invalidate(address, size);
         }

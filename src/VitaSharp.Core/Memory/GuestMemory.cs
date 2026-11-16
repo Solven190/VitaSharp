@@ -521,12 +521,16 @@ public sealed unsafe partial class GuestMemory : IDisposable
     }
 
     /// <summary>Frees every block (process exec: the address space is reused for a new executable).</summary>
-    public void FreeAll()
+    public void FreeAll() => FreeAllExcept(null);
+
+    /// <summary>Frees every block except those of process <paramref name="keepOwner"/> (null: every block): a LoadExec
+    /// of the only process keeps what the kernel process owns, since the kernel outlives it.</summary>
+    public void FreeAllExcept(int? keepOwner)
     {
         Block[] all;
         lock (_lock)
         {
-            all = AllBlocks().ToArray();
+            all = AllBlocks().Where(b => keepOwner == null || b.Owner != keepOwner).ToArray();
         }
 
         foreach (Block b in all)

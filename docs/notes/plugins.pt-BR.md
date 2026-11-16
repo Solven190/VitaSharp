@@ -58,8 +58,11 @@ os outros.
   e o `module_start` deles roda na hora numa thread de kernel; um módulo cujo início não informa sucesso é descarregado
   de novo, como faz o gerenciador de módulos do firmware. O log diz o que aconteceu com cada um
   (`kernel plugin ...: loaded and started`, `... module_start of X returned 0x2, unloaded`).
-- Os módulos de `*KERNEL` carregam uma vez, com o primeiro processo da sessão (o shell quando o sistema inicia, como o
-  carregador de plugins os carrega no boot); um processo depois os encontra carregados.
+- Os módulos de `*KERNEL` carregam uma vez, no processo do kernel: o kernel único do sistema, criado no boot (com o
+  shell, ou com o primeiro jogo quando não há shell), como o carregador de plugins os carrega no boot do Vita. Todo
+  processo os vê: o shell, um app que o shell abre ao lado dele, o programa que um LoadExec inicia. Ficam até o sistema
+  terminar; um módulo de kernel que um programa carrega (o gerenciador de módulos do kernel) também é do kernel e
+  continua depois do programa.
 - Os módulos de `*ALL` e `*TITLEID` são carregados no processo de todo programa, também nos do próprio sistema (o carregador
   de plugins os carrega depois dos módulos pré-carregados do processo), e iniciam
   antes da thread principal. A seção é o ID de título do processo no kernel: `main` para o shell, o NPXS de um app do
@@ -93,8 +96,8 @@ importações que ninguém fornece. Os hooks de função são o próximo passo.
 
 ## Limites
 
-- Os módulos de kernel vivem com o processo do programa para o qual foram carregados (o kernel ainda não é um processo
-  único do sistema); são descarregados quando esse processo termina.
+- Save states não guardam as threads do próprio processo do kernel: não dá para salvar um estado enquanto roda uma
+  thread criada por um módulo de kernel (as threads em que o module_start roda somem quando ele retorna).
 - Um plugin que corrige por deslocamento o código do próprio firmware não acha código do firmware ali (o VitaSharp
   implementa ele mesmo as bibliotecas do firmware).
 - Exceções não são entregues a handlers de kernel (a CPU emulada relata uma falha do guest como queda); o mascaramento

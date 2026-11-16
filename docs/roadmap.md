@@ -2187,9 +2187,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     gameplay (`<scratchpad>/kern1/data/tests/deadspace_boot/sheet.png`), o que mostra que o ambiente de kernel serve o
     plugin; volta a rodar se um dia o taiHEN puder iniciar sem os hooks de DRM.
     Falta (próximos passos, plano):
-    - kernel único do sistema: hoje os módulos de kernel vivem no emulador do processo para o qual foram carregados e saem
-      com ele (sem eventos de processo entregues); o certo é um processo de kernel do `VitaSystem` que carrega o
-      `*KERNEL` uma vez no boot e manda create/exit/kill aos handlers de `ksceKernelRegisterProcEventHandler`.
+    - [x] (16/11/2026, feat/kernel-shared) kernel único do sistema: o processo do kernel do `VitaSystem`
+      (`VitaSystem.KernelProcess`, pid 0x10005) guarda todo módulo de kernel uma vez (o `*KERNEL` no boot, o
+      `ksceKernelLoadModule` de qualquer processo, os módulos de kernel do firmware), com a lista de módulos, o linker
+      (as importações de todo processo veem as exportações de syscall dele; um módulo carregado ou descarregado depois
+      religa as importações de todos), as threads de kernel e a memória de kernel, que um LoadExec não libera; o
+      paliativo do LoadExec (recarregar os plugins) saiu. Teste: `KernelSharedProcessTests`.
+    - [ ] eventos de processo (create/exit/kill/stop/start/switch) aos handlers de `ksceKernelRegisterProcEventHandler`
+      e save states com threads do processo do kernel vivas.
     - **[ ] aberto (exportações de kernel genéricas):** quando o kubridge.skprx real roda (hoje não roda: precisa do
       taiHEN), ele atende `kuKernelMemProtect`/`kuKernelMemReserve`/`kuKernelMemCommit`/`kuKernelMemDecommit` pulando para
       ponteiros internos do SceSysmem 3.60/3.65 que ele acha por deslocamento (`module_get_offset` no SceSysmem) e que não

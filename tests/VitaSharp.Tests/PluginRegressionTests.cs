@@ -71,7 +71,7 @@ public sealed class PluginRegressionTests(GuestMemoryFixture fixture) : IDisposa
     {
         HleHarness harness = Setup(false);
         Assert.Empty(harness.Emu.LoadPluginsIfEnabled());
-        Assert.DoesNotContain(harness.Emu.Kernel.Modules.Values, m => m.IsKernel && m.Name is "BridgePlugin" or "HookerPlugin");
+        Assert.DoesNotContain(HleHarness.KernelModules(harness.Emu).Values, m => m.IsKernel && m.Name is "BridgePlugin" or "HookerPlugin");
         uint info = harness.Alloc(0x38);
         GuestMemory.Fill(info, 0xEE, 0x38);
         GuestMemory.W32(info, 0x38);

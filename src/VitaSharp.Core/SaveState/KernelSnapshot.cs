@@ -58,7 +58,9 @@ internal static class KernelSnapshot
                 case GuestThread t:
                     if (t.Process != emu)
                     {
-                        throw new SnapshotException($"thread {t.Name} belongs to another process");
+                        throw new SnapshotException(t.Process.IsKernelProcess
+                            ? $"the kernel thread {t.Name} (a kernel plugin's) is running; save states do not hold the kernel's threads yet"
+                            : $"thread {t.Name} belongs to another process");
                     }
 
                     t.WriteSnapshot(w, kinds.TryGetValue(t, out GuestThread.SafeKind k) ? k : GuestThread.SafeKind.Dormant);
@@ -299,13 +301,26 @@ internal static class KernelSnapshot
             table.Put(o);
         }
 
+        // the kernel process's record stays (a state saved before the kernel was one process for the whole system has
+        // none: its kernel modules were the process's)
+        if (emu.Vita.KernelProcess is { } kernelProcess && table.Get<ProcessObject>(KernelSpace.KernelPid) == null)
+        {
+            emu.Vita.RegisterKernelProcess(kernelProcess);
+        }
+
         table.NextUid = next;
-        // the kernel's module list follows the UIDs the modules took
+        // the module lists follow the UIDs the modules took: the kernel modules are the kernel process's
+        Emulator kernelModules = emu.Vita.KernelProcess ?? emu;
         emu.Kernel.Modules.Clear();
+        if (!ReferenceEquals(kernelModules, emu))
+        {
+            kernelModules.Kernel.Modules.Clear();
+        }
+
         foreach (ModuleObject mo in modulesSeen)
         {
             mo.Module.Uid = mo.Uid;
-            emu.Kernel.Modules[mo.Uid] = mo.Module;
+            (mo.Module.IsKernel ? kernelModules : emu).Kernel.Modules[mo.Uid] = mo.Module;
         }
         foreach (KernelObject o in objects)
         {

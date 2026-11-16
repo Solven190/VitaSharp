@@ -94,7 +94,7 @@ public sealed class PluginLoaderTests(GuestMemoryFixture fx, Xunit.Abstractions.
                 || r.Contains("not started: no module provides", StringComparison.Ordinal), r);
         }
 
-        foreach (LoadedModule module in emu.Kernel.Modules.Values.Where(m => m.IsKernel))
+        foreach (LoadedModule module in HleHarness.KernelModules(emu).Values.Where(m => m.IsKernel))
         {
             Assert.True(module.Started, module.Name);
         }

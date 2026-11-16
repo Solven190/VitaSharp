@@ -93,7 +93,7 @@ public sealed class PluginHookTests(GuestMemoryFixture fixture) : IDisposable
     {
         (uint target, uint callsImport) = LoadTarget();
         uint[] hooks = LoadHooks(42, 43);
-        LoadedModule module = _harness.Emu.Kernel.Modules.Values.Single(m => m.Name == "HookTarget");
+        LoadedModule module = HleHarness.KernelModules(_harness.Emu).Values.Single(m => m.Name == "HookTarget");
         uint importRef = _harness.Word(0);
         uint offsetRef = _harness.Word(0);
         _harness.OnGuest(t =>

@@ -79,7 +79,7 @@ public sealed class FirmwareKernelModulesTests : IDisposable
         List<string> results = _harness.Emu.LoadPlugins();
         Assert.Equal(paths.Count, results.Count);
         Assert.All(results, r => Assert.Contains(": loaded and started (", r));
-        return paths.Select(p => _harness.Emu.Kernel.Modules.Values.Single(m => m.Path == p)).ToList();
+        return paths.Select(p => HleHarness.KernelModules(_harness.Emu).Values.Single(m => m.Path == p)).ToList();
     }
 
     /// <summary>A module's control block as kernel code reads it: its name, export and import table ranges.</summary>
@@ -234,7 +234,7 @@ public sealed class FirmwareKernelModulesTests : IDisposable
         Assert.Equal(0xE12FFF1Eu, GuestMemory.R32(entry + 4));
         Assert.False(_harness.Emu.FirmwareKernel.IsPatched(CpuForDriver, AtomicAddAndGet32));
         // the firmware module belongs to the kernel process, as the Vita's kernel modules do
-        Assert.Contains(_harness.Emu.Kernel.Modules.Values, m => m.IsKernel && m.Name == "SceSysmem");
+        Assert.Contains(HleHarness.KernelModules(_harness.Emu).Values, m => m.IsKernel && m.Name == "SceSysmem");
     }
 
     [Fact]

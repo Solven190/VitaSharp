@@ -114,6 +114,72 @@ public sealed class Linker(IImportResolver importResolver)
         target = 0;
         return false;
     }
+
+    /// <summary>The export an import binds to: one of this process's modules (<see cref="TryFindExport"/>), else one of
+    /// the system kernel's modules the importer may see (<see cref="SystemKernel"/>: a user module reaches a kernel
+    /// module's syscall export, whichever process the kernel module was loaded for).</summary>
+    private bool TryFindExportOrKernel(uint nid, uint libNid, bool kernelImporter, out uint target)
+    {
+        if (TryFindExport(nid, libNid, kernelImporter, out target))
+        {
+            return true;
+        }
+
+        return SystemKernel?.Invoke() is { } kernelLinker && !ReferenceEquals(kernelLinker, this)
+            && kernelLinker.TryGetVisibleExport(nid, libNid, kernelImporter, out target);
+    }
+
+    /// <summary>
+    /// The linker of the system's kernel (the kernel process's, <see cref="Kernel.VitaSystem.KernelProcess"/>), whose
+    /// modules every process sees, as every Vita process sees the one kernel: an import nothing of this process exports
+    /// binds to a kernel export it may see there. Null (or this linker) in the kernel process itself. Lock order: a
+    /// process's linker may ask the kernel's while it holds its own lock, never the other way round
+    /// (<see cref="ExportsChanged"/> is raised off the lock).
+    /// </summary>
+    public Func<Linker?>? SystemKernel { get; set; }
+
+    /// <summary>Raised, off the lock, after a module's function exports were registered or removed (their libraries and
+    /// NIDs): the kernel process passes them on to the other processes' linkers (<see cref="RebindKernelImports"/>).</summary>
+    public event Action<IReadOnlyList<(uint LibNid, uint Nid)>>? ExportsChanged;
+
+    /// <summary>Binds again the import stubs of the given functions (not those a hook took or that are kept) to the export
+    /// they see now (one of this process's modules, else the system kernel's), else to the HLE: a kernel module every
+    /// process sees was loaded or unloaded.</summary>
+    public void RebindKernelImports(IReadOnlyList<(uint LibNid, uint Nid)> functions)
+    {
+        if (functions.Count == 0)
+        {
+            return;
+        }
+
+        var wanted = new HashSet<(uint LibNid, uint Nid)>(functions);
+        lock (_lock)
+        {
+            foreach ((uint nid, uint libNid, string libName, uint stub, bool kernel) in _funcBindings)
+            {
+                if (!wanted.Contains((libNid, nid)) || Kept(stub))
+                {
+                    continue;
+                }
+
+                uint w0 = GuestMemory.R32(stub), w1 = GuestMemory.R32(stub + 4), w2 = GuestMemory.R32(stub + 8);
+                if (TryFindExportOrKernel(nid, libNid, kernel, out uint target))
+                {
+                    WriteJumpStub(stub, target);
+                }
+                else
+                {
+                    BindHle(stub, nid, libNid, libName);
+                }
+
+                if (GuestMemory.R32(stub) != w0 || GuestMemory.R32(stub + 4) != w1 || GuestMemory.R32(stub + 8) != w2)
+                {
+                    InvalidateCode?.Invoke(stub, 12);
+                }
+            }
+        }
+    }
+
     private readonly List<(uint nid, byte[] relocs, Dictionary<int, SegmentInfo> segs)> _varBindings = new();
     private readonly Dictionary<uint, string> _varSources = new(); // variable import NID -> "library (importing module)", for the log
 
@@ -168,7 +234,7 @@ public sealed class Linker(IImportResolver importResolver)
     {
         lock (_lock)
         {
-            return TryFindExport(nid, libNid, kernelImporter, out addr);
+            return TryFindExportOrKernel(nid, libNid, kernelImporter, out addr);
         }
     }
 
@@ -216,7 +282,7 @@ public sealed class Linker(IImportResolver importResolver)
         {
             foreach ((uint nid, uint libNid, string? libName, uint stub, bool kernel) in _funcBindings)
             {
-                if (TryFindExport(nid, libNid, kernel, out _) || Kept(stub))
+                if (TryFindExportOrKernel(nid, libNid, kernel, out _) || Kept(stub))
                 {
                     continue;
                 }
@@ -258,7 +324,7 @@ public sealed class Linker(IImportResolver importResolver)
                     continue;
                 }
 
-                if (TryFindExport(nid, libNid, kernel, out uint target))
+                if (TryFindExportOrKernel(nid, libNid, kernel, out uint target))
                 {
                     WriteJumpStub(stub, target);
                 }
@@ -285,7 +351,7 @@ public sealed class Linker(IImportResolver importResolver)
     {
         lock (_lock)
         {
-            if (TryFindExport(nid, libNid, kernel, out uint target))
+            if (TryFindExportOrKernel(nid, libNid, kernel, out uint target))
             {
                 WriteJumpStub(stub, target);
             }
@@ -354,6 +420,7 @@ public sealed class Linker(IImportResolver importResolver)
     /// <summary>Registers one exported library of <paramref name="loadedModule"/> and rebinds the import stubs that may see it.</summary>
     internal void RegisterExports(LoadedModule loadedModule, uint libNid, uint[] nids, uint[] entries, int funcCount, ExportScope scope = ExportScope.User)
     {
+        var registered = new List<(uint LibNid, uint Nid)>();
         lock (_lock)
         {
             for (int i = 0; i < nids.Length; i++)
@@ -380,6 +447,7 @@ public sealed class Linker(IImportResolver importResolver)
 
                     _funcExportsByLib[(libNid, nid)] = addr;
                     _funcExportScopesByLib[(libNid, nid)] = scope;
+                    registered.Add((libNid, nid));
                     foreach ((uint bnid, uint blib, string _, uint stub, bool kernel) in _funcBindings)
                     {
                         if (bnid != nid || blib != libNid || Kept(stub) || !Visible(scope, kernel))
@@ -418,6 +486,11 @@ public sealed class Linker(IImportResolver importResolver)
                 }
             }
         }
+
+        if (registered.Count > 0)
+        {
+            ExportsChanged?.Invoke(registered);
+        }
     }
 
     private static bool InModule(LoadedModule loadedModule, uint addr)
@@ -443,8 +516,10 @@ public sealed class Linker(IImportResolver importResolver)
     public int UnregisterModule(LoadedModule loadedModule)
     {
         int rebound = 0;
+        List<(uint LibNid, uint Nid)> removed;
         lock (_lock)
         {
+            removed = _funcExportsByLib.Where(kv => InModule(loadedModule, kv.Value)).Select(kv => kv.Key).ToList();
             // the module's own import stubs/relocations live in memory that is about to be freed
             _funcBindings.RemoveAll(b => InModule(loadedModule, b.stub));
             _varBindings.RemoveAll(b => ReferenceEquals(b.segs, loadedModule.Segments));
@@ -526,6 +601,12 @@ public sealed class Linker(IImportResolver importResolver)
                 ProcessParam = 0;
             }
         }
+
+        if (removed.Count > 0)
+        {
+            ExportsChanged?.Invoke(removed);
+        }
+
         return rebound;
     }
 }
