@@ -1,5 +1,6 @@
 using VitaSharp.Core.Hle.Audio.Atrac9;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Audio;
@@ -28,8 +29,11 @@ public sealed class ManagedAt9Decoder(byte[] config) : IAt9SuperframeDecoder
 /// The ring is addressed by stream position (bytes ever written, the header included), mapped to buffer offset
 /// position % BufferSize. Superframes enter the ring in play order: when looping, the reader is sent back to the loop
 /// start block right after the loop end block, so the decoder consumes the ring strictly sequentially.</para>
+/// <para>Save states: every field is saved (the ring positions, the playback position, the last decoded superframe and
+/// its samples); the host decoder is not, a load gives the stream a new one through <see cref="RestoreDecoder"/>.</para>
 /// </summary>
-public sealed class AtracStream
+[GenerateSnapshot, SnapshotIgnoreFields("Cfg", "_decoder")]
+public sealed partial class AtracStream
 {
     public const int ERR_DATA_SHORTAGE_IN_BUFFER = unchecked((int)0x80630010), ERR_ALL_DATA_WAS_DECODED = unchecked((int)0x80630011),
         ERR_ADDED_DATA_IS_TOO_BIG = unchecked((int)0x80630013), ERR_INVALID_SAMPLE = unchecked((int)0x80630015),
@@ -37,12 +41,25 @@ public sealed class AtracStream
     public const uint STATUS_ALL_DATA_WAS_DECODED = 1, STATUS_ALL_DATA_IS_ON_MEMORY = 2, STATUS_NONLOOP_PART_IS_ON_MEMORY = 4,
         STATUS_LOOP_PART_IS_ON_MEMORY = 8;
 
-    public readonly At9Info Info;
-    public readonly Atrac9Config Cfg;
-    readonly IAt9SuperframeDecoder _decoder;
-    public readonly uint Buffer, BufferSize;
-    public readonly bool AllOnMemory;
-    public readonly int SfBytes, SfSamples, Blocks, Channels;
+    public At9Info Info { get; private set; }
+
+    public Atrac9Config Cfg { get; private set; }
+
+    IAt9SuperframeDecoder _decoder;
+
+    public uint Buffer { get; private set; }
+
+    public uint BufferSize { get; private set; }
+
+    public bool AllOnMemory { get; private set; }
+
+    public int SfBytes { get; private set; }
+
+    public int SfSamples { get; private set; }
+
+    public int Blocks { get; private set; }
+
+    public int Channels { get; private set; }
 
     // ring (stream mode)
     long _write, _consume;
@@ -54,14 +71,25 @@ public sealed class AtracStream
     // playback
     long _pos;
     int _cachedBlock = -1, _lastDecoded = -1;
-    readonly short[][] _pcm;
-    readonly byte[] _staging;
+    short[][] _pcm;
+    byte[] _staging;
 
     public uint ReadPos { get; private set; }
     public int LoopNum { get; private set; }
     public int OutputSamples { get; set; }
     public bool Done { get; private set; }
     public int InternalError { get; private set; }
+
+    /// <summary>An empty stream a save state loads into (<see cref="AfterSnapshotLoad"/>, then
+    /// <see cref="RestoreDecoder"/>).</summary>
+    internal AtracStream()
+    {
+        Info = new At9Info();
+        Cfg = null!;
+        _decoder = null!;
+        _pcm = [];
+        _staging = [];
+    }
 
     public AtracStream(At9Info info, Atrac9Config cfg, IAt9SuperframeDecoder decoder, uint buffer, uint readSize, uint bufferSize)
     {
@@ -84,6 +112,46 @@ public sealed class AtracStream
         ReadPos = readSize;
         _pos = info.EncoderDelay;
         if (EndFull < _pos) Done = true;
+    }
+
+    /// <summary>Save state load: the codec configuration again from the saved config bytes.</summary>
+    void AfterSnapshotLoad()
+    {
+        try
+        {
+            Cfg = new Atrac9Config(Info.Config);
+        }
+        catch (Exception e) when (e is InvalidDataException or IndexOutOfRangeException)
+        {
+            throw new SnapshotException($"an ATRAC9 stream of the save state has an invalid configuration ({e.Message})");
+        }
+    }
+
+    /// <summary>
+    /// Save state load: the stream continues on a new host decoder. Its inter-frame (overlap) state is primed the way
+    /// a seek primes it: in memory, the next superframe is decoded after the previous one (as after a jump); streaming,
+    /// the last superframe the stream consumed (kept in the saved staging buffer, the ring may already hold new data
+    /// over it) is decoded once again, so the next one decodes with its overlap.
+    /// </summary>
+    internal void RestoreDecoder(IAt9SuperframeDecoder decoder)
+    {
+        _decoder = decoder;
+        if (AllOnMemory)
+        {
+            _lastDecoded = -2;
+            return;
+        }
+
+        if (_consume > Info.DataOffset && _staging.Length == SfBytes)
+        {
+            var scratch = new short[Channels][];
+            for (int c = 0; c < Channels; c++)
+            {
+                scratch[c] = new short[SfSamples];
+            }
+
+            _decoder.Decode(_staging, scratch);
+        }
     }
 
     // ---- derived positions

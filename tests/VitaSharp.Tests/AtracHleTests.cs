@@ -3,6 +3,7 @@ using System.Reflection;
 using VitaSharp.Core.Hle.Audio;
 using VitaSharp.Core.Hle.Modules;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Tests;
 
@@ -423,5 +424,146 @@ public sealed class AtracHleTests(GuestMemoryFixture fixture)
         // seek into the middle of the file: the ring restarts and is refilled by the game
         Assert.Equal(0, Call(a, "sceAtracResetNextOutputPosition", h, 6000u));
         Assert.Equal(Enumerable.Range(6050, 3000).ToList(), Stream(a, h, file));
+    }
+    /// <summary>Records which superframes a decoder decoded (the first two bytes hold the index).</summary>
+    private sealed class RecordingDecoder : IAt9SuperframeDecoder
+    {
+        private readonly FakeDecoder _inner = new();
+        public readonly List<int> Decoded = [];
+        public void Reset() => _inner.Reset();
+        public void Decode(byte[] sf, short[][] pcm)
+        {
+            Decoded.Add(BinaryPrimitives.ReadUInt16LittleEndian(sf));
+            _inner.Decode(sf, pcm);
+        }
+    }
+
+    /// <summary>Saves a module's state and loads it into <paramref name="into"/> (a save state of the module alone).</summary>
+    private static void SaveAndLoad(Atrac from, Atrac into)
+    {
+        var w = new SnapshotWriter();
+        ((ISnapshotState)from).SaveState(w);
+        var r = new SnapshotReader(w.Data.ToArray());
+        ((ISnapshotState)into).LoadState(r);
+        Assert.True(r.AtEnd, $"{r.Remaining} bytes of the Atrac state were not read back");
+    }
+
+    /// <summary>
+    /// A save state taken while a streamed .at9 with a loop plays (the game's ring half refilled, the loop not reached)
+    /// is no longer refused, and the loaded module plays on exactly: the samples after the load are the ones the stream
+    /// had left, the loop is taken, the ring positions the game reads are the same, and the new decoder is primed with
+    /// the last superframe the stream consumed before it decodes the next one.
+    /// </summary>
+    [Fact]
+    public void SaveStateWhileStreamingContinuesTheSameSamples()
+    {
+        Atrac a = NewModule();
+        byte[] file = BuildAt9(2, 9000, 50, 10, smplStart: 1550, smplEnd: 5049);
+        uint buf = Upload(file, 0xC00, 0x600);
+        int h = Call(a, "sceAtracSetDataAndAcquireHandle", buf, 0x600u, 0xC00u);
+        Assert.Equal(0, Call(a, "sceAtracSetLoopNum", h, 1));
+        Assert.Null(((ISnapshotState)a).CheckSnapshot());
+
+        // play part of it the way a game does (refill, decode), then save in the middle
+        uint si = fixture.Memory.Alloc(0x10, "si");
+        GuestMemory.W32(si, 0x10);
+        uint outBuf = fixture.Memory.Alloc(0x4000, "atracpcm"), outN = fixture.Memory.Alloc(0x10, "atracn");
+        var before = new List<int>();
+        for (int step = 0; step < 6; step++)
+        {
+            Assert.Equal(0, Call(a, "sceAtracGetStreamInfo", h, si));
+            uint wp = GuestMemory.R32(si + 4), rp = GuestMemory.R32(si + 8), n = Math.Min(GuestMemory.R32(si + 12), 0x500u);
+            file.AsSpan((int)rp, (int)n).CopyTo(GuestMemory.Span(wp, (int)n));
+            Assert.Equal(0, Call(a, "sceAtracAddStreamData", h, n));
+            int r = Call(a, "sceAtracDecode", h, outBuf, P<uint>(outN), P<uint>(outN + 4));
+            Assert.True(r == 0 || r == AtracStream.ERR_DATA_SHORTAGE_IN_BUFFER, $"decode 0x{r:X8}");
+            if (r == 0)
+            {
+                for (int i = 0; i < GuestMemory.R32(outN); i++)
+                {
+                    before.Add(GuestMemory.Read<short>(outBuf + (uint)(i * 4)));
+                }
+            }
+        }
+
+        Assert.NotEmpty(before);
+        Assert.Equal(0, Call(a, "sceAtracGetStreamInfo", h, si));
+        (uint, uint, uint) ring = (GuestMemory.R32(si + 4), GuestMemory.R32(si + 8), GuestMemory.R32(si + 12));
+        uint next = fixture.Memory.Alloc(0x10, "next");
+        Assert.Equal(0, Call(a, "sceAtracGetNextOutputPosition", h, P<uint>(next)));
+
+        var decoder = new RecordingDecoder();
+        var loaded = new Atrac { DecoderFactory = _ => decoder };
+        SaveAndLoad(a, loaded);
+
+        Assert.Equal(0, Call(loaded, "sceAtracGetStreamInfo", h, si));
+        Assert.Equal(ring, (GuestMemory.R32(si + 4), GuestMemory.R32(si + 8), GuestMemory.R32(si + 12)));
+        uint nextLoaded = fixture.Memory.Alloc(0x10, "next2");
+        Assert.Equal(0, Call(loaded, "sceAtracGetNextOutputPosition", h, P<uint>(nextLoaded)));
+        Assert.Equal(GuestMemory.R32(next), GuestMemory.R32(nextLoaded));
+        int consumed = decoder.Decoded.Count;
+        Assert.Equal(1, consumed); // primed with the last superframe the stream consumed
+
+        List<int> after = Stream(loaded, h, file);
+        Assert.Equal(Expected(50, 9000, 1500, 4999, 1), before.Concat(after).ToList());
+        Assert.Equal(decoder.Decoded[0] + 1, decoder.Decoded[1]);
+    }
+
+    /// <summary>A whole .at9 in memory, saved mid-play and loaded: playback, loop count and status go on as if no load
+    /// happened, and the new decoder primes the overlap with the superframe before the next one (as after a seek).</summary>
+    [Fact]
+    public void SaveStateWithTheFileInMemoryContinuesTheSameSamples()
+    {
+        Atrac a = NewModule();
+        byte[] file = BuildAt9(1, 5000, 0, 5, smplStart: 1000, smplEnd: 2999);
+        uint buf = Upload(file, (file.Length + 0xFF) & ~0xFF, file.Length);
+        int h = Call(a, "sceAtracSetDataAndAcquireHandle", buf, (uint)file.Length, (uint)((file.Length + 0xFF) & ~0xFF));
+        Assert.Equal(0, Call(a, "sceAtracSetLoopNum", h, 2));
+        List<int> reference = DecodeAllMono(NewModuleWithSameFile(file, 2), 0x20030000);
+
+        uint outBuf = fixture.Memory.Alloc(0x4000, "atracpcm"), outN = fixture.Memory.Alloc(0x10, "atracn");
+        var before = new List<int>();
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.Equal(0, Call(a, "sceAtracDecode", h, outBuf, P<uint>(outN), P<uint>(outN + 4)));
+            for (int k = 0; k < GuestMemory.R32(outN); k++)
+            {
+                before.Add(GuestMemory.Read<short>(outBuf + (uint)(k * 2)));
+            }
+        }
+
+        var decoder = new RecordingDecoder();
+        var loaded = new Atrac { DecoderFactory = _ => decoder };
+        SaveAndLoad(a, loaded);
+        List<int> after = DecodeAllMono(loaded, h);
+        Assert.Equal(reference, before.Concat(after).ToList());
+        Assert.True(decoder.Decoded.Count >= 2);
+        Assert.Equal(decoder.Decoded[0] + 1, decoder.Decoded[1]);
+    }
+
+    private Atrac NewModuleWithSameFile(byte[] file, int loops)
+    {
+        Atrac a = NewModule();
+        uint size = (uint)((file.Length + 0xFF) & ~0xFF);
+        uint buf = Upload(file, (int)size, file.Length);
+        int h = Call(a, "sceAtracSetDataAndAcquireHandle", buf, (uint)file.Length, size);
+        Assert.Equal(0x20030000, h);
+        Assert.Equal(0, Call(a, "sceAtracSetLoopNum", h, loops));
+        return a;
+    }
+
+    private List<int> DecodeAllMono(Atrac a, int h)
+    {
+        uint outBuf = fixture.Memory.Alloc(0x4000, "atracpcm"), outN = fixture.Memory.Alloc(0x10, "atracn");
+        var got = new List<int>();
+        while (Call(a, "sceAtracDecode", h, outBuf, P<uint>(outN), P<uint>(outN + 4)) == 0)
+        {
+            for (int k = 0; k < GuestMemory.R32(outN); k++)
+            {
+                got.Add(GuestMemory.Read<short>(outBuf + (uint)(k * 2)));
+            }
+        }
+
+        return got;
     }
 }

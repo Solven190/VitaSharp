@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Audio;
 
@@ -19,7 +20,8 @@ public enum At9ParseResult
 /// ATRAC9), a <c>fact</c> chunk (total samples + encoder delay), an optional <c>smpl</c> chunk (first loop) and the
 /// <c>data</c> chunk holding contiguous superframes.
 /// </summary>
-public sealed class At9Info
+[GenerateSnapshot]
+public sealed partial class At9Info
 {
     public int Channels, SampleRate;
     /// <summary>fmt blockAlign: bytes per superframe.</summary>
