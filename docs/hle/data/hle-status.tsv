@@ -117,7 +117,7 @@ SceLibFflMp4	vs0:vsh/common/libFflMp4.suprx	213	213	0	0	113	113	0	0	0	213
 SceLibFflVuMp4	vs0:vsh/common/libSenvuabsFFsdk.suprx	61	61	0	0	13	13	0	0	0	61
 SceLibGcc	os0:us/libkernel.suprx	20	20	0	0	0	0	0	0	0	2
 SceLibJson	vs0:sys/external/libSceJson.suprx	179	179	50	50	16	16	0	0	0	0
-SceLibKernel	os0:us/libkernel.suprx	341	333	123	123	67	67	30	0	26	0
+SceLibKernel	os0:us/libkernel.suprx	341	341	123	123	67	67	34	0	26	0
 SceLibLocation	vs0:sys/external/liblocation.suprx	33	22	5	5	25	14	0	0	0	0
 SceLibLocationExtension	vs0:sys/external/liblocation_extension.suprx	3	3	0	0	1	1	0	0	0	0
 SceLibLocationFactory	vs0:sys/external/liblocation_factory.suprx	1	1	0	0	0	0	0	0	0	1
@@ -159,7 +159,7 @@ SceNearProfile	vs0:sys/external/near_profile.suprx	8	8	0	0	8	8	0	0	0	8
 SceNearUtil	vs0:sys/external/libSceNearUtil.suprx	49	49	46	46	0	0	0	0	0	0
 SceNet	vs0:sys/external/libnet.suprx	62	62	47	47	4	4	0	0	0	0
 SceNetAdhocMatching	vs0:sys/external/adhoc_matching.suprx	14	14	13	13	0	0	0	0	0	0
-SceNetCtl	vs0:sys/external/libnetctl.suprx	112	101	16	16	76	76	0	0	0	0
+SceNetCtl	vs0:sys/external/libnetctl.suprx	112	112	16	16	76	76	0	0	0	0
 SceNetInternal	vs0:sys/external/libnet.suprx	58	9	0	0	45	8	0	0	0	0
 SceNetPsForSyscalls	os0:kd/bootimage.skprx/SceNetPs	34	34	0	0	34	34	0	0	0	0
 SceNgs	vs0:sys/external/libngs.suprx	68	68	55	55	0	0	0	0	0	0
@@ -274,7 +274,7 @@ SceUlobjDbg	vs0:sys/external/libfiber.suprx	2	2	2	2	0	0	0	0	0	0
 SceUlobjMgr	os0:kd/bootimage.skprx/SceUlobjMgr	3	3	1	1	2	2	0	0	0	0
 SceUlt	vs0:sys/external/libult.suprx	62	62	34	34	0	0	0	0	0	0
 SceUsbAudioIn	os0:kd/bootimage.skprx/SceUsbAudio	9	9	0	0	0	0	9	0	0	0
-SceUsbDevSerial	os0:kd/usbdev_serial.skprx	8	0	0	0	0	0	0	0	0	0
+SceUsbDevSerial	os0:kd/usbdev_serial.skprx	8	8	0	0	0	0	8	0	0	0
 SceUsbPspcm	os0:kd/bootimage.skprx/SceUsbPspcm	12	12	0	0	12	12	12	0	12	0
 SceUsbSerial	os0:kd/bootimage.skprx/SceUsbSerial	14	14	0	0	0	0	14	0	0	0
 SceUsbServ	os0:kd/bootimage.skprx/SceUsbServ	2	2	0	0	0	0	2	0	0	0

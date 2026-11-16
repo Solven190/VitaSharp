@@ -197,6 +197,7 @@ public sealed partial class SystemServicesVsh
     [Hle("_sceSblGcAuthMgrAdhocBB160BroadCastDecrypt", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB160BroadCastEncrypt", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB160GetKeys", Default = true)]
+    [Hle("sceSblGcAuthMgrAdhocBB160GetKeys", Nid = 0x84C75DC3, Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB160UniCastDecrypt", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB160UniCastEncrypt", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB224Auth1", Default = true)]
@@ -210,7 +211,9 @@ public sealed partial class SystemServicesVsh
     [Hle("_sceSblGcAuthMgrMsSaveBBCipherFinal", Default = true)]
     [Hle("sceSblGcAuthMgrMsSaveBBCipherFinal", Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrMsSaveBBCipherInit", Default = true)]
+    [Hle("sceSblGcAuthMgrMsSaveBBCipherInit", Nid = 0x2E05B2DC, Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrMsSaveBBCipherUpdate", Default = true)]
+    [Hle("sceSblGcAuthMgrMsSaveBBCipherUpdate", Nid = 0x56A59D4F, Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrMsSaveBBMacFinal", Default = true)]
     [Hle("_sceSblGcAuthMgrMsSaveBBMacInit", Default = true)]
     [Hle("_sceSblGcAuthMgrMsSaveBBMacUpdate", Default = true)]
@@ -228,6 +231,7 @@ public sealed partial class SystemServicesVsh
     int sceSblGcAuthMgrSecure() => SblUnsupported();
     /// <summary>The ad hoc authentication sessions: opened and closed without the secure module.</summary>
     [Hle("_sceSblGcAuthMgrAdhocBB160Init", Default = true)]
+    [Hle("sceSblGcAuthMgrAdhocBB160Init", Nid = 0x9B28E1AF, Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB160Shutdown", Default = true)]
     [Hle("sceSblGcAuthMgrAdhocBB160Shutdown", Library = "SceLibKernel", Default = true)]
     [Hle("_sceSblGcAuthMgrAdhocBB224Init", Default = true)]

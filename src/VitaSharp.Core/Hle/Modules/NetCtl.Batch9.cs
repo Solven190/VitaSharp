@@ -32,6 +32,8 @@ public sealed partial class Net
     // ---- requests without arguments (no output but the service's result)
 
     [Hle("sceNetCtl_25EE061C", Nid = 0x25EE061C, Library = "SceNetCtl")] int NetCtlSvc3B() => _netctlInited ? Svc(0x2003B) : NETCTL_NOT_INITIALIZED;
+    // NID_A0085E9F: the same request (FW 3.74 libnetctl, the code differs only in where the not-initialised result is set)
+    [Hle("sceNetCtl_A0085E9F", Nid = 0xA0085E9F, Library = "SceNetCtl")]
     [Hle("sceNetCtl_2792E1B6", Nid = 0x2792E1B6, Library = "SceNetCtl")] int NetCtlSvc2D() => _netctlInited ? Svc(0x2002D) : NETCTL_NOT_INITIALIZED;
     [Hle("sceNetCtl_2B84A67F", Nid = 0x2B84A67F, Library = "SceNetCtl")] int NetCtlSvc3A() => _netctlInited ? Svc(0x2003A) : NETCTL_NOT_INITIALIZED;
     [Hle("sceNetCtl_2FB386D9", Nid = 0x2FB386D9, Library = "SceNetCtl")] int NetCtlSvc33() => _netctlInited ? Svc(0x20033) : NETCTL_NOT_INITIALIZED;
@@ -51,6 +53,8 @@ public sealed partial class Net
     /// <summary>(void): method 0x20006 with a 0 word.</summary>
     [Hle("sceNetCtl_2CF683AD", Nid = 0x2CF683AD, Library = "SceNetCtl")] int NetCtlSvc06() => _netctlInited ? Svc(0x20006, Val(0)) : NETCTL_NOT_INITIALIZED;
     /// <summary>(void): method 0x2000A with a 0 word.</summary>
+    // NID_54EBA0FB: the same request with the same word 0 (FW 3.74 libnetctl, as NID_A0085E9F for 0x2002D)
+    [Hle("sceNetCtl_54EBA0FB", Nid = 0x54EBA0FB, Library = "SceNetCtl")]
     [Hle("sceNetCtl_DD96DA85", Nid = 0xDD96DA85, Library = "SceNetCtl")] int NetCtlSvc0A() => _netctlInited ? Svc(0x2000A, Val(0)) : NETCTL_NOT_INITIALIZED;
 
     /// <summary>(void): handler +0x28, else method 0x20011 with a 0 word.</summary>
@@ -170,6 +174,8 @@ public sealed partial class Net
         return Svc(method, [Val(a)], [Buf(p, size)]);
     }
 
+    // NID_C03B9655: the same checks and request 0x20003 (FW 3.74 libnetctl)
+    [Hle("sceNetCtl_C03B9655", Nid = 0xC03B9655, Library = "SceNetCtl")]
     [Hle("sceNetCtl_300E8877", Nid = 0x300E8877, Library = "SceNetCtl")] int NetCtlSvc03(uint a, uint p) => SvcIntOut(0x20003, a, p, 4);
     [Hle("sceNetCtl_AC00BA34", Nid = 0xAC00BA34, Library = "SceNetCtl")] int NetCtlSvc05(uint a, uint p) => SvcIntOut(0x20005, a, p, 4);
     [Hle("sceNetCtl_92EB6B1A", Nid = 0x92EB6B1A, Library = "SceNetCtl")] int NetCtlSvc12(uint a, uint p) => SvcIntOut(0x20012, a, p, 0x60, 0x2C);
@@ -289,8 +295,10 @@ public sealed partial class Net
     [Hle("sceNetCtl_326FEE96", Nid = 0x326FEE96, Library = "SceNetCtl")]
     int NetCtlSetStopHook(uint hook) { _stopHook = hook; return 0; }
 
-    /// <summary>(void): clears the shell events sceNetCtlInit registered (ten of them); the HLE init registers none.</summary>
+    /// <summary>(void): NID_F081EFF9 and NID_83184B6B run the handlers of the shell events sceNetCtlInit registered
+    /// (sceShellSvc_FB03FBC9 on each of its two lists of ten); the HLE init registers none, so nothing runs.</summary>
     [Hle("sceNetCtl_F081EFF9", Nid = 0xF081EFF9, Library = "SceNetCtl")]
+    [Hle("sceNetCtl_83184B6B", Nid = 0x83184B6B, Library = "SceNetCtl")]
     int NetCtlClearEvents() => _netctlInited ? 0 : NETCTL_NOT_INITIALIZED;
 
     /// <summary>(int kind 1..7): the SceShellSvc feature bit for the kind (10, 2, 6, 8, 12, 14, 4), else 0 without a call.</summary>

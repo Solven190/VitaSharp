@@ -2692,7 +2692,11 @@
 0x5B665588	_ZNK3sce4Json6StringeqEPKc	Json	SceLibJson	vh
 0xCCCD4BA9	_ZNK3sce4Json6StringeqERKS1_	Json	SceLibJson	vh
 0x023EAA62	NID_023EAA62	ProcessMgr	SceLibKernel	-
+0x0A4DF821	NID_0A4DF821	SystemMisc	SceLibKernel	-
+0x20E2D4B7	NID_20E2D4B7	SystemMisc	SceLibKernel	-
 0x35D20E49	NID_35D20E49	ThreadMgr	SceLibKernel	-
+0x37F4ED04	NID_37F4ED04	ThreadMgr	SceLibKernel	-
+0x6C7365C4	NID_6C7365C4	SystemMisc	SceLibKernel	-
 0x70867F93	NID_70867F93	SystemServicesVsh	SceLibKernel	-
 0xBEF71602	NID_BEF71602	ProcessMgr	SceLibKernel	-
 0xDC277B4D	NID_DC277B4D	ThreadMgr	SceLibKernel	-
@@ -3002,6 +3006,8 @@
 0x3B595E1D	sceSblGcAuthMgrAdhocBB160Auth5	SystemServicesVsh	SceLibKernel	-	default
 0xE2984A54	sceSblGcAuthMgrAdhocBB160BroadCastDecrypt	SystemServicesVsh	SceLibKernel	-	default
 0x88E72157	sceSblGcAuthMgrAdhocBB160BroadCastEncrypt	SystemServicesVsh	SceLibKernel	-	default
+0x84C75DC3	sceSblGcAuthMgrAdhocBB160GetKeys	SystemServicesVsh	SceLibKernel	-	default
+0x9B28E1AF	sceSblGcAuthMgrAdhocBB160Init	SystemServicesVsh	SceLibKernel	-	default
 0x5F9F0D61	sceSblGcAuthMgrAdhocBB160Shutdown	SystemServicesVsh	SceLibKernel	vh	default
 0x01E00CBF	sceSblGcAuthMgrAdhocBB160UniCastDecrypt	SystemServicesVsh	SceLibKernel	-	default
 0xA9002567	sceSblGcAuthMgrAdhocBB160UniCastEncrypt	SystemServicesVsh	SceLibKernel	-	default
@@ -3015,6 +3021,8 @@
 0xE633BAD1	sceSblGcAuthMgrAdhocBB224Shutdown	SystemServicesVsh	SceLibKernel	vh	default
 0xF7027E6A	sceSblGcAuthMgrGetMediaIdType01	SystemServicesVsh	SceLibKernel	vh	default
 0xEB02F15D	sceSblGcAuthMgrMsSaveBBCipherFinal	SystemServicesVsh	SceLibKernel	vh	default
+0x2E05B2DC	sceSblGcAuthMgrMsSaveBBCipherInit	SystemServicesVsh	SceLibKernel	-	default
+0x56A59D4F	sceSblGcAuthMgrMsSaveBBCipherUpdate	SystemServicesVsh	SceLibKernel	-	default
 0x774AE3CB	sceSblGcAuthMgrMsSaveBBMacFinal	SystemServicesVsh	SceLibKernel	-	default
 0x1693032E	sceSblGcAuthMgrMsSaveBBMacInit	SystemServicesVsh	SceLibKernel	-	default
 0xEE2D40F7	sceSblGcAuthMgrMsSaveBBMacUpdate	SystemServicesVsh	SceLibKernel	vh	default
@@ -5524,6 +5532,7 @@
 0x1172C5FC	sceNetCtl_1172C5FC	Net	SceNetCtl	-
 0x147B054C	sceNetCtl_147B054C	Net	SceNetCtl	-
 0x1581FABC	sceNetCtl_1581FABC	Net	SceNetCtl	-
+0x15BEEEF5	sceNetCtl_15BEEEF5	Net	SceNetCtl	-
 0x17FB44C4	sceNetCtl_17FB44C4	Net	SceNetCtl	-
 0x1A254169	sceNetCtl_1A254169	Net	SceNetCtl	-
 0x1AEEB480	sceNetCtl_1AEEB480	Net	SceNetCtl	-
@@ -5548,9 +5557,12 @@
 0x47980B9B	sceNetCtl_47980B9B	Net	SceNetCtl	-
 0x484EE0B2	sceNetCtl_484EE0B2	Net	SceNetCtl	-
 0x54848654	sceNetCtl_54848654	Net	SceNetCtl	-
+0x54EBA0FB	sceNetCtl_54EBA0FB	Net	SceNetCtl	-
 0x56C95F8F	sceNetCtl_56C95F8F	Net	SceNetCtl	-
 0x57CC3812	sceNetCtl_57CC3812	Net	SceNetCtl	-
+0x586C4DD7	sceNetCtl_586C4DD7	Net	SceNetCtl	-
 0x5AD6CBE8	sceNetCtl_5AD6CBE8	Net	SceNetCtl	-
+0x67926E00	sceNetCtl_67926E00	Net	SceNetCtl	-
 0x67DE0C31	sceNetCtl_67DE0C31	Net	SceNetCtl	-
 0x68C081D1	sceNetCtl_68C081D1	Net	SceNetCtl	-
 0x6A56FC3A	sceNetCtl_6A56FC3A	Net	SceNetCtl	-
@@ -5560,6 +5572,7 @@
 0x719DD1DA	sceNetCtl_719DD1DA	Net	SceNetCtl	-
 0x743E9FCE	sceNetCtl_743E9FCE	Net	SceNetCtl	-
 0x777FE4C2	sceNetCtl_777FE4C2	Net	SceNetCtl	-
+0x83184B6B	sceNetCtl_83184B6B	Net	SceNetCtl	-
 0x85C9CC02	sceNetCtl_85C9CC02	Net	SceNetCtl	-
 0x8B2FEFAA	sceNetCtl_8B2FEFAA	Net	SceNetCtl	-
 0x8E379B9C	sceNetCtl_8E379B9C	Net	SceNetCtl	-
@@ -5567,9 +5580,11 @@
 0x8F2C2053	sceNetCtl_8F2C2053	Net	SceNetCtl	-
 0x92EB6B1A	sceNetCtl_92EB6B1A	Net	SceNetCtl	-
 0x9629B72F	sceNetCtl_9629B72F	Net	SceNetCtl	-
+0x9AFCDAC4	sceNetCtl_9AFCDAC4	Net	SceNetCtl	-
 0x9B678FEE	sceNetCtl_9B678FEE	Net	SceNetCtl	-
 0x9CB6FEE1	sceNetCtl_9CB6FEE1	Net	SceNetCtl	-
 0x9D96400C	sceNetCtl_9D96400C	Net	SceNetCtl	-
+0xA0085E9F	sceNetCtl_A0085E9F	Net	SceNetCtl	-
 0xA25FE027	sceNetCtl_A25FE027	Net	SceNetCtl	-
 0xA59146E1	sceNetCtl_A59146E1	Net	SceNetCtl	-
 0xA840C74C	sceNetCtl_A840C74C	Net	SceNetCtl	-
@@ -5577,7 +5592,10 @@
 0xAB1462C5	sceNetCtl_AB1462C5	Net	SceNetCtl	-
 0xAC00BA34	sceNetCtl_AC00BA34	Net	SceNetCtl	-
 0xAC326DB7	sceNetCtl_AC326DB7	Net	SceNetCtl	-
+0xBB163832	sceNetCtl_BB163832	Net	SceNetCtl	-
+0xBBA99D34	sceNetCtl_BBA99D34	Net	SceNetCtl	-
 0xBC0563A0	sceNetCtl_BC0563A0	Net	SceNetCtl	-
+0xC03B9655	sceNetCtl_C03B9655	Net	SceNetCtl	-
 0xC15740E9	sceNetCtl_C15740E9	Net	SceNetCtl	-
 0xC1677C65	sceNetCtl_C1677C65	Net	SceNetCtl	-
 0xC2C30635	sceNetCtl_C2C30635	Net	SceNetCtl	-
@@ -5592,6 +5610,7 @@
 0xE63C100B	sceNetCtl_E63C100B	Net	SceNetCtl	-
 0xE8E8DF18	sceNetCtl_E8E8DF18	Net	SceNetCtl	-
 0xE99EE305	sceNetCtl_E99EE305	Net	SceNetCtl	-
+0xEA423A96	sceNetCtl_EA423A96	Net	SceNetCtl	-
 0xF081EFF9	sceNetCtl_F081EFF9	Net	SceNetCtl	-
 0xF30365D6	sceNetCtl_F30365D6	Net	SceNetCtl	-
 0xFFDC123A	sceNetCtl_FFDC123A	Net	SceNetCtl	-
@@ -10239,6 +10258,14 @@
 0xFAB27059	sceUsbAudioInInput	SystemServicesVsh	SceUsbAudioIn	vh	default
 0x00563102	sceUsbAudioInOpenDevice	SystemServicesVsh	SceUsbAudioIn	vh	default
 0xFA026651	sceUsbAudioInSetCurrentValueOfVolume	SystemServicesVsh	SceUsbAudioIn	vh	default
+0x4437FF2D	NID_4437FF2D	SystemServicesVsh	SceUsbDevSerial	-	default
+0x57FBB08C	NID_57FBB08C	SystemServicesVsh	SceUsbDevSerial	-	default
+0x6F2B3960	NID_6F2B3960	SystemServicesVsh	SceUsbDevSerial	-	default
+0x918D359E	NID_918D359E	SystemServicesVsh	SceUsbDevSerial	-	default
+0x9F497D4E	NID_9F497D4E	SystemServicesVsh	SceUsbDevSerial	-	default
+0xC0FDECAF	NID_C0FDECAF	SystemServicesVsh	SceUsbDevSerial	-	default
+0xDAE5C362	NID_DAE5C362	SystemServicesVsh	SceUsbDevSerial	-	default
+0xF0C3F3D4	NID_F0C3F3D4	SystemServicesVsh	SceUsbDevSerial	-	default
 0xEA4B99DC	sceUsbPspcmClose	SystemServicesVsh	SceUsbPspcm	vh	default
 0xF7079111	sceUsbPspcmDevctl	SystemServicesVsh	SceUsbPspcm	vh	default
 0x2A3A4A4A	sceUsbPspcmIoctlCancelWaitData	SystemServicesVsh	SceUsbPspcm	vh	default

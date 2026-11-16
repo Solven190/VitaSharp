@@ -541,28 +541,36 @@ public sealed partial class SystemMisc : HleModule
     }
 
     /// <summary>
-    /// Library exported by a module. SceKernelLibraryInfo has no documented body; the layout used is
-    /// SceKernelModuleLibraryInfo (0x120, a confirmar): +4 library_id, +8 libnid, +0xC version, +0xE flags,
-    /// +0x10 function count, +0x12 variable count, +0x18 library_name[0x100], +0x118 client_count, +0x11C owner module.
+    /// SceKernelLibraryInfo (0x1C bytes) of a library a module exports: +4 the module, +8 libnid, +0xC version, +0xE
+    /// attributes, +0x10 function count, +0x12 variable count, +0x14 the NID table and +0x18 the entry table (functions
+    /// first, then variables), as libkernel 3.74 reads it back (NID_0A4DF821 looks a variable up in those two tables).
+    /// The size word sets how much is written (<see cref="KernelInfo.Write"/>).
     /// </summary>
     [Hle]
     int sceKernelGetLibraryInfoByNID(int modid, uint libNid, uint info)
     {
-        if (!K.Modules.TryGetValue(modid, out var m)) return SceError.MODULEMGR_NO_MOD;
-        int idx = m.Exports.FindIndex(e => e.LibNid == libNid);
-        if (idx < 0) return unchecked((int)0x8002D003); // MODULEMGR_NO_LIB (a confirmar)
-        var e = m.Exports[idx];
-        Span<byte> f = stackalloc byte[0x120];
-        f.Clear();
-        KernelInfo.Put(f, 0, 0x120);
-        KernelInfo.Put(f, 4, modid);
-        KernelInfo.Put(f, 8, libNid);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(f[0x10..], (ushort)e.FuncNids.Length);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(f[0x12..], (ushort)e.VarNids.Length);
-        var name = System.Text.Encoding.UTF8.GetBytes(e.Library);
-        name.AsSpan(0, Math.Min(name.Length, 0xFF)).CopyTo(f[0x18..]);
-        KernelInfo.Put(f, 0x11C, modid);
-        return KernelInfo.Write(info, f);
+        if (!K.Modules.TryGetValue(modid, out Loader.LoadedModule? m))
+        {
+            return SceError.MODULEMGR_NO_MOD;
+        }
+
+        if (!FindExportEntry(m, libNid, out ExportEntry entry))
+        {
+            return unchecked((int)0x8002D003); // MODULEMGR_NO_LIB (a confirmar)
+        }
+
+        Span<byte> fields = stackalloc byte[LibraryInfoSize];
+        fields.Clear();
+        KernelInfo.Put(fields, 0, LibraryInfoSize);
+        KernelInfo.Put(fields, 4, modid);
+        KernelInfo.Put(fields, 8, libNid);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(fields[0xC..], entry.Version);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(fields[0xE..], entry.Attributes);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(fields[0x10..], entry.FunctionCount);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(fields[0x12..], entry.VariableCount);
+        KernelInfo.Put(fields, 0x14, entry.NidTable);
+        KernelInfo.Put(fields, 0x18, entry.EntryTable);
+        return KernelInfo.Write(info, fields);
     }
 
     [Hle]

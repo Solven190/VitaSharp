@@ -20,14 +20,56 @@ public sealed partial class Net
     [Hle("sceNetCtl_9CB6FEE1", Nid = 0x9CB6FEE1, Library = "SceNetCtl")]
     int NetAuthCtxMapPorts(uint ctx, uint a, uint port1, uint port2, uint info, uint tried, uint done)
     {
-        if (tried != 0) GuestMemory.W32(tried, 0);
-        if (done != 0) GuestMemory.W32(done, 0);
-        if (ctx == 0) return NETAUTH_INVALID_ADDR;
-        if (GuestMemory.Read<byte>(ctx) == 0) return NETAUTH_NOT_INITIALIZED;
+        if (tried != 0)
+        {
+            GuestMemory.W32(tried, 0);
+        }
+
+        if (done != 0)
+        {
+            GuestMemory.W32(done, 0);
+        }
+
+        return NetAuthUpnpMap(ctx, tried);
+    }
+
+    /// <summary>NID_9AFCDAC4(ctx *c, int a, uint16 port): the same UPnP mapping of the context for one port (the
+    /// library's second mode, without the step masks): the same checks and, with no gateway answering, the same
+    /// no-response error.</summary>
+    [Hle("sceNetCtl_9AFCDAC4", Nid = 0x9AFCDAC4, Library = "SceNetCtl")]
+    int NetAuthCtxMapPort(uint ctx, uint a, uint port)
+    {
+        return NetAuthUpnpMap(ctx, 0);
+    }
+
+    /// <summary>The shared mapping of both entries: the context must exist and be initialised; the library marks it
+    /// busy (+4 bit 0) and clears the external address (+0x12A4); then it reads the raw infrastructure state, which
+    /// must be 4 (IP obtained, as it always is here; the read fails before sceNetCtlInit), and searches the LAN for a
+    /// gateway (SSDP, step bit 0 in *tried). None answers in the emulated network.</summary>
+    int NetAuthUpnpMap(uint ctx, uint tried)
+    {
+        if (ctx == 0)
+        {
+            return NETAUTH_INVALID_ADDR;
+        }
+
+        if (GuestMemory.Read<byte>(ctx) == 0)
+        {
+            return NETAUTH_NOT_INITIALIZED;
+        }
+
+        GuestMemory.W32(ctx + 4, GuestMemory.R32(ctx + 4) | 1);
         GuestMemory.W32(ctx + 0x12A4, 0);
-        // the raw infrastructure state (its read fails before sceNetCtlInit) must be 4, IP obtained, as it always is here
-        if (!_netctlInited) return NETCTL_NOT_INITIALIZED;
-        if (tried != 0) GuestMemory.W32(tried, GuestMemory.R32(tried) | 1);
+        if (!_netctlInited)
+        {
+            return NETCTL_NOT_INITIALIZED;
+        }
+
+        if (tried != 0)
+        {
+            GuestMemory.W32(tried, GuestMemory.R32(tried) | 1);
+        }
+
         return NETAUTH_NO_RESPONSE;
     }
 

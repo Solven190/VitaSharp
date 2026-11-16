@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=321 general=287 vitasdk=0
+# firmware=3.74 games=0 system=321 general=260 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -385,25 +385,6 @@ general	SceKrm	0xE0AEAE3B	NID_E0AEAE3B	os0:kd/bootimage.skprx/SceKrm	0	0	-
 general	SceKrm	0xECE6B5F4	NID_ECE6B5F4	os0:kd/bootimage.skprx/SceKrm	0	0	-
 general	SceKrm	0xECF53237	NID_ECF53237	os0:kd/bootimage.skprx/SceKrm	0	0	-
 general	SceKrm	0xF0B626E7	NID_F0B626E7	os0:kd/bootimage.skprx/SceKrm	0	0	-
-general	SceLibKernel	0x0A4DF821	NID_0A4DF821	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x20E2D4B7	NID_20E2D4B7	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x2E05B2DC	sceSblGcAuthMgrMsSaveBBCipherInit	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x37F4ED04	NID_37F4ED04	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x56A59D4F	sceSblGcAuthMgrMsSaveBBCipherUpdate	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x6C7365C4	NID_6C7365C4	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x84C75DC3	sceSblGcAuthMgrAdhocBB160GetKeys	os0:us/libkernel.suprx	0	0	-
-general	SceLibKernel	0x9B28E1AF	sceSblGcAuthMgrAdhocBB160Init	os0:us/libkernel.suprx	0	0	-
-general	SceNetCtl	0x15BEEEF5	NID_15BEEEF5	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0x54EBA0FB	NID_54EBA0FB	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0x586C4DD7	NID_586C4DD7	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0x67926E00	NID_67926E00	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0x83184B6B	NID_83184B6B	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0x9AFCDAC4	NID_9AFCDAC4	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0xA0085E9F	NID_A0085E9F	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0xBB163832	NID_BB163832	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0xBBA99D34	NID_BBA99D34	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0xC03B9655	NID_C03B9655	vs0:sys/external/libnetctl.suprx	0	0	-
-general	SceNetCtl	0xEA423A96	NID_EA423A96	vs0:sys/external/libnetctl.suprx	0	0	-
 general	SceNetInternal	0x0F83B7A9	NID_0F83B7A9	vs0:sys/external/libnet.suprx	0	0	-
 general	SceNetInternal	0x4054D2D8	NID_4054D2D8	vs0:sys/external/libnet.suprx	0	0	-
 general	SceNetInternal	0x65AFF9BE	NID_65AFF9BE	vs0:sys/external/libnet.suprx	0	0	-
@@ -602,11 +583,3 @@ general	SceTriggerUtil	0x1B615264	NID_1B615264	vs0:sys/external/trigger_util.sup
 general	SceTriggerUtil	0x2AD6A378	NID_2AD6A378	vs0:sys/external/trigger_util.suprx	0	0	-
 general	SceTriggerUtil	0x845BF533	NID_845BF533	vs0:sys/external/trigger_util.suprx	0	0	-
 general	SceTriggerUtil	0x921FF8E1	NID_921FF8E1	vs0:sys/external/trigger_util.suprx	0	0	-
-general	SceUsbDevSerial	0x4437FF2D	NID_4437FF2D	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0x57FBB08C	NID_57FBB08C	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0x6F2B3960	NID_6F2B3960	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0x918D359E	NID_918D359E	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0x9F497D4E	NID_9F497D4E	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0xC0FDECAF	NID_C0FDECAF	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0xDAE5C362	NID_DAE5C362	os0:kd/usbdev_serial.skprx	0	0	-
-general	SceUsbDevSerial	0xF0C3F3D4	NID_F0C3F3D4	os0:kd/usbdev_serial.skprx	0	0	-

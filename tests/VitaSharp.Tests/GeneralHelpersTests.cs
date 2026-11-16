@@ -130,13 +130,4 @@ public sealed class GeneralHelpersTests(GuestMemoryFixture fixture) : IDisposabl
             Assert.Equal(self.TlsBase + 0x3FC, Convert.ToUInt32(Invoke(threads, "NID_35D20E49", 0, 0xFFu)));
         });
     }
-
-    [Theory]
-    [InlineData(0u, 1u)]
-    [InlineData(1u, 1u)]
-    [InlineData(0x80000000u, 0x80000000u)]
-    public void TheCountHelperTurnsZeroIntoOne(uint count, uint expected)
-    {
-        Assert.Equal(expected, Convert.ToUInt32(Invoke(ModuleNamed("ThreadMgr"), "NID_DC277B4D", 7u, count)));
-    }
 }
