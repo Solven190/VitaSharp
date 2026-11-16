@@ -1382,6 +1382,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Firmware e sistema
 
+- [ ] [P2][G] Exceções da CPU chegando aos handlers do SceExcpmgr (kubridge kuKernelRegisterExceptionHandler e outros plugins): estudo de 16/11/2026 (kplug, decompilado os0__kd__excpmgr.skprx.c): no firmware o vetor de abort entra na cadeia em modo abort (lr_abt = PC+8, spsr_abt = CPSR), registro {next, 3 palavras, código em +0x10}; o handler do kubridge é assembly de modo abort (SRS/push, MRC p15 DFAR/DFSR, RFE). Falta na CPU emulada: modos de exceção (CPS/SRS/RFE hoje NOP; sem SPSR nem registros banqueados abt/und/svc; MRS/MSR SPSR; subs/movs pc,lr; ldm ^; MRC DFAR/DFSR/IFAR/IFSR). Plano: P1 modos na CpuState nos dois backends (0 custo sem exceção, medir fps); P2 handler de falha do host convertendo acesso a página não mapeada em data abort do guest (só no JIT nativo; hoje a página é commitada e o guest lê zeros — mudar só quando houver handler registrado); P3 caminho do usuário do kubridge (registro + retorno por RFE). Testes sintéticos no formato do firmware em cada parte.
 - [ ] [P3] GXM: aplicar no tradutor de shaders o remapeamento de coordenadas de textura de
   `sceGxmShaderPatcherCreateFragmentProgramForGles` (tabela de 10 bytes: TEXCOORDi do fragment lê o TEXCOORD[remap[i]]
   do vertex). Hoje o programa guarda a tabela (`GxmFragmentProgram.TexcoordRemap`, fora do save state) e o gerador
