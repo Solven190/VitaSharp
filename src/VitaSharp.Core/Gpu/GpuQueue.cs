@@ -294,19 +294,19 @@ public sealed class GpuQueue : IDisposable
         }
     }
 
-    /// <summary>A process that ends with a scene open gives the GPU back.</summary>
+    /// <summary>A process ended: the backend drops what it holds of it (and the scene it left open), and a process that
+    /// ends with a scene open gives the GPU back.</summary>
     public void ReleaseScene(int pid)
     {
         if (InterleaveScenes)
         {
             // the backend drops the scene the process left open (its suspended renderings name surfaces of its memory)
-            if (_openScenes.TryRemove(pid, out _))
-            {
-                Enqueue(new ProcessEndedCommand { Pid = pid, Space = AddressSpace.Current });
-            }
-
+            bool open = _openScenes.TryRemove(pid, out _);
+            Enqueue(new ProcessEndedCommand { Pid = pid, Space = AddressSpace.Current, HadOpenScene = open });
             return;
         }
+
+        Enqueue(new ProcessEndedCommand { Pid = pid, Space = AddressSpace.Current });
         lock (_sceneLock)
         {
             if (_sceneOwner != pid)

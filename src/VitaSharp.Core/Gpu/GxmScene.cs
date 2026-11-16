@@ -41,8 +41,13 @@ public sealed class FinishCommand : GpuCommand;
 /// <summary>sceGxmMidSceneFlush: what the scene rendered so far is stored to memory, so later draws of the same scene can sample it.</summary>
 public sealed class MidSceneFlushCommand : GpuCommand;
 
-/// <summary>Process <see cref="GpuCommand.Pid"/> ended: the backend drops the scene it left open.</summary>
-public sealed class ProcessEndedCommand : GpuCommand;
+/// <summary>Process <see cref="GpuCommand.Pid"/> ended: the backend drops the scene it left open (when
+/// <see cref="HadOpenScene"/>) and what it holds of the process (its surfaces, the textures of its memory).</summary>
+public sealed class ProcessEndedCommand : GpuCommand
+{
+    /// <summary>The process had a scene open in the GPU queue's interleaved mode, which the backend must close.</summary>
+    public bool HadOpenScene;
+}
 
 public sealed class PresentCommand : GpuCommand
 {

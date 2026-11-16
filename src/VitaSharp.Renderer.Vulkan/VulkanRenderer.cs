@@ -693,7 +693,8 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
             DrainTransferInvalidations();
         }
 
-        if (GpuQueue.InterleaveScenes && command.Pid != 0)
+        // a process that ended without a scene open has no scene context to make current
+        if (GpuQueue.InterleaveScenes && command.Pid != 0 && command is not ProcessEndedCommand { HadOpenScene: false })
         {
             SwitchSceneProcess(command);
         }
@@ -702,6 +703,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         {
             case ProcessEndedCommand pe:
                 EndProcessScene(pe);
+                DropEndedProcess(pe);
                 break;
             case BeginSceneCommand b:
                 BeginScene(b);
@@ -746,6 +748,9 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
 
     private sealed class RenderTarget
     {
+        /// <summary>The process of the last scene that rendered into it (<see cref="GpuCommand.Pid"/>; 0 = host work):
+        /// its surfaces go with it when it ends (<see cref="DropEndedProcess"/>).</summary>
+        public int LastPid;
         public uint Address, Width, Height, ColorFormat, Stride;
         public Format Format;
         public Image Image;
@@ -801,6 +806,8 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
 
     private sealed class DepthTarget
     {
+        /// <summary>The process of the last scene that used it (see <see cref="RenderTarget.LastPid"/>).</summary>
+        public int LastPid;
         public uint Address, Width, Height;
         public uint StrideBytes;
         public uint StencilAddress, StencilStrideBytes; // separate S8 stencil plane (formats S8, DF32_S8, DF32M_S8)
@@ -1279,6 +1286,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         _scene = beginSceneCommand;
         _inScene = true;
         _renderTarget = beginSceneCommand.Color != null ? GetRenderTarget(beginSceneCommand.Color) : null;
+        _renderTarget?.LastPid = beginSceneCommand.Pid;
         ProfMark(ProfPhase.BsTarget);
         if (TracingScenes || s_traceVis)
         {
@@ -1350,6 +1358,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         _depth = _msaaNoDownscale
             ? GetDepthTarget(beginSceneCommand.Depth, ScaleDim(Math.Max(beginSceneCommand.Width * 2, _renderTarget!.Width), rs), ScaleDim(Math.Max(beginSceneCommand.Height * 2, _renderTarget.Height), rs), scale: rs)
             : GetDepthTarget(beginSceneCommand.Depth, ScaleDim(Math.Max(beginSceneCommand.Width, _renderTarget?.Width ?? 0), rs) * SsScale, ScaleDim(Math.Max(beginSceneCommand.Height, _renderTarget?.Height ?? 0), rs) * SsScale, SceneSamples, rs);
+        _depth.LastPid = beginSceneCommand.Pid;
         ProfMark(ProfPhase.BsDepth);
         _sceneSerial = ++_sceneSerialNext;
         _sceneRegions.Clear();
