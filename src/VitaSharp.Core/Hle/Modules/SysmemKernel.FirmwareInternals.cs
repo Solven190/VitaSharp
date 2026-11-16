@@ -50,13 +50,30 @@ public sealed partial class SysmemKernel : IFirmwareInternalFunctions
 
     public void RegisterInternalFunctions(FirmwareKernelModules firmware)
     {
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0x10CE1, (_, a) => (uint)AddressSpaceFindMemBlockByAddr(a[0], a[1], a[2], a[3]));
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0xA115, (_, a) => (uint)AllocVirPageObject(a[0], a[1]));
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0x15DAD, (_, a) => (uint)FreeVirPageObject(a[0], a[1], a[2]));
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0x149E5, (_, a) => (uint)MapVirPageCore(a[3], a[4], a[5]));
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0x148D9, (_, a) => (uint)UnmapVirPageWithOpt(a[1], a[2]));
-        firmware.RegisterInternal(Sysmem374ModuleNid, 0x15B1D, (_, a) => (uint)VirPageAllocPhyPage(a[0], a[3]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0x10CE1, (t, a) => (uint)Of(t).AddressSpaceFindMemBlockByAddr(a[0], a[1], a[2], a[3]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0xA115, (t, a) => (uint)Of(t).AllocVirPageObject(a[0], a[1]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0x15DAD, (t, a) => (uint)Of(t).FreeVirPageObject(a[0], a[1], a[2]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0x149E5, (t, a) => (uint)Of(t).MapVirPageCore(a[3], a[4], a[5]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0x148D9, (t, a) => (uint)Of(t).UnmapVirPageWithOpt(a[1], a[2]));
+        firmware.RegisterInternal(Sysmem374ModuleNid, 0x15B1D, (t, a) => (uint)Of(t).VirPageAllocPhyPage(a[0], a[3]));
         firmware.RegisterInternal(Sysmem374ModuleNid, 0xE52D, (_, _) => 0);
+    }
+
+    /// <summary>The SceSysmem of the calling thread's process: the firmware modules live in the kernel process, but the
+    /// kernel code that reaches their internal functions runs on the threads of every process (a user thread in a
+    /// kernel module's syscall export), and the address spaces, partitions and block objects it passes are the ones
+    /// that process's SceSysmem gave it.</summary>
+    SysmemKernel Of(GuestThread thread)
+    {
+        foreach (HleModule module in thread.Process.Hle.Modules)
+        {
+            if (module is SysmemKernel sysmem)
+            {
+                return sysmem;
+            }
+        }
+
+        return this;
     }
 
     /// <summary>The address space record of process <paramref name="key"/> (the kernel's for the kernel process), in
