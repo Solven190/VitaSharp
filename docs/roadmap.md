@@ -2082,6 +2082,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Código
 
+- [x] [P3][P] SceShellSvc com a tabela de tratadores de evento partida em dois módulos (16/11/2026, bug7,
+  fix/bug7-shellsvc-events): o registro (D943CE15) ficava no `ShellUtil` e o cancelamento (7CBF442B) e o disparo
+  (FB03FBC9) no `SystemFallback`, sem a tabela: cancelar não liberava a vaga (registrar de novo dava 0x80100901) e o
+  disparo sempre dava 0x80100962. Como o libshellsvc 3.74 faz (módulo descompilado, só estudo): uma vaga
+  {função, argumento} por evento abaixo de 0x80; o cancelamento zera a função; o disparo responde 0x80100910 para
+  evento inválido, 0x80100962 sem tratador e, com tratador, consulta a flag do tratador (OU, limpando o bit) e
+  devolve o que fn(evento, argumento) devolve, ou 0x80100963 com a flag baixa. Os três agora estão no `ShellUtil`,
+  com a mesma tabela. Prova: `ShellSvcEventTests` (chama pelos NIDs, seja qual for o módulo) falha sem a correção
+  (o disparo de evento inválido dava 0x80100962) e passa com ela; `HleBatch13bTests`/`HleBatch10*` sem mudança.
 - [ ] [P3][G] Refatoração, o que ficou para depois (11/11/2026, decisão do usuário: Hle, Desktop e Android outro dia). Em
   branches locais, não juntadas: estilo do Hle (`refactor/style-hle-3`, pronto, falta a suíte); nomes do Desktop
   (`refactor/naming-7`, WIP: falta build, format-check e IL incluindo `-p:Lockstep=true`); nomes do Android

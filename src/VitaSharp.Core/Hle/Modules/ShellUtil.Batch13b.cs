@@ -31,6 +31,8 @@ public sealed class ShellUtil : HleModule
     const int SVC_UNAVAILABLE = unchecked((int)0x801009FF);
     const int SVC_BAD_EVENT = unchecked((int)0x80100910), SVC_BAD_EVENT2 = unchecked((int)0x80100970),
         SVC_HANDLER_SET = unchecked((int)0x80100901), SVC_TIMEOUT = unchecked((int)0x80100904);
+    /// <summary>libshellsvc's sceShellSvc_FB03FBC9 answers: no handler registered for the event, its flag not up.</summary>
+    const int SVC_NO_HANDLER = unchecked((int)0x80100962), SVC_NOT_RAISED = unchecked((int)0x80100963);
 
     readonly object _lock = new();
     bool _init, _thread;
@@ -263,6 +265,47 @@ public sealed class ShellUtil : HleModule
         _eventFlags[ev / 32] &= ~(1u << (ev % 32));
         _eventHandlers[ev] = (fn, arg);
         return 0;
+    }
+
+    /// <summary>(event): forgets its handler, so a new one can be registered (libshellsvc clears only the function
+    /// word of the slot).</summary>
+    [Hle("sceShellSvc_7CBF442B", Nid = 0x7CBF442B, Library = "SceShellSvc")]
+    int UnregisterEvent(int ev)
+    {
+        if ((uint)ev >= 0x80)
+        {
+            return SVC_BAD_EVENT;
+        }
+
+        _eventHandlers[ev].Fn = 0;
+        return 0;
+    }
+
+    /// <summary>(event): runs the event's handler. libshellsvc answers 0x80100962 without a handler; otherwise it polls
+    /// the handler flag (OR, clearing the bit) and, when it was up, returns what fn(event, arg) returns, else
+    /// 0x80100963.</summary>
+    [Hle("sceShellSvc_FB03FBC9", Nid = 0xFB03FBC9, Library = "SceShellSvc")]
+    int DispatchEvent(int ev)
+    {
+        if ((uint)ev >= 0x80)
+        {
+            return SVC_BAD_EVENT;
+        }
+
+        (uint handler, uint argument) = _eventHandlers[ev];
+        if (handler == 0)
+        {
+            return SVC_NO_HANDLER;
+        }
+
+        uint bit = 1u << (ev % 32);
+        if ((_eventFlags[ev / 32] & bit) == 0)
+        {
+            return SVC_NOT_RAISED;
+        }
+
+        _eventFlags[ev / 32] &= ~bit;
+        return (int)GuestThread.Current!.CallGuest(handler, (uint)ev, argument);
     }
 
     /// <summary>(event): lowers its handler flag.</summary>
