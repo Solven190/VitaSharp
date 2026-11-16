@@ -126,8 +126,9 @@ public sealed class ModuleSnapshotTests(GuestMemoryFixture fixture, ITestOutputH
 
         /// <summary>Fields that only carry a value across a load (the hand-written LoadExtra sets them from other saved
         /// data and AfterSnapshotLoad applies them): they keep their resting value.</summary>
-        /// AvPlayer's player clock offset is set the same way from the saved playback time.
-        private static readonly HashSet<string> s_loadOnly = ["AvPlayer+Player.RestoreUs", "AvPlayer+Player.RestoreRunning", "AvPlayer+Player.ClockOffsetUs"];
+        /// AvPlayer's player clock offset is set the same way from the saved playback time. Rudp's count of polls being
+        /// waited on is cleared by the load (the waiting threads issue the wait again).
+        private static readonly HashSet<string> s_loadOnly = ["AvPlayer+Player.RestoreUs", "AvPlayer+Player.RestoreRunning", "AvPlayer+Player.ClockOffsetUs", "+Rudp._blockedPollWaits"];
 
         private static bool Generated(Type t) => t.GetCustomAttribute<GenerateSnapshotAttribute>() != null;
 

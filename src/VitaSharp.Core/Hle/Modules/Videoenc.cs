@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -18,7 +19,10 @@ public sealed partial class Videoenc : HleModule
     internal const uint TYPE_HW_AVCENC_GUESS = 0x2001;
     const uint LibraryMemSize = 0x40000, MaxWidth = 1920, MaxHeight = 1088;
 
-    sealed class Encoder
+    /// <summary>An encoder. Save states keep its settings, counters and the NAL units of its last picture; the FFmpeg
+    /// encoder is made again at the next picture (it starts a new GOP: the first picture after a load is a key frame).</summary>
+    [GenerateSnapshot, SnapshotIgnoreFields("Codec", "Tried")]
+    sealed partial class Encoder
     {
         public uint Width, Height, Preset;
         public long Frames, Pictures;
@@ -31,6 +35,7 @@ public sealed partial class Videoenc : HleModule
 
     readonly object _lock = new();
     readonly HashSet<uint> _libraries = new();
+    [SnapshotMissing] // states of builds before it were refused while an encoder existed: they had none
     readonly Dictionary<uint, Encoder> _encoders = new();
     uint _nextHandle = 1;
 

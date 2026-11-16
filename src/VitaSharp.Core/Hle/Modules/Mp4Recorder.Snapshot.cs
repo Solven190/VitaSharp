@@ -2,18 +2,13 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_recorders")]
-public sealed partial class Mp4Recorder : ISnapshotState
+/// <summary>Save states: every recorder with its mode and sample counts. Samples are counted and dropped (no file is
+/// written), so there is no host recording to recreate on load.</summary>
+[GenerateSnapshot]
+public sealed partial class Mp4Recorder
 {
-    string? ISnapshotState.CheckSnapshot()
-    {
-        if (_recorders.Count > 0) return "host resource MP4 recorder not supported yet";
-        return null;
-    }
-
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to recreate: the recorders are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _recorders.Clear();
     }
 }

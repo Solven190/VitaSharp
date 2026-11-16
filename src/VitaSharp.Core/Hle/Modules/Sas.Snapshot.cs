@@ -2,23 +2,14 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_engine", "_contexts")]
-public sealed partial class Sas : ISnapshotState
+/// <summary>Save states: the public mixer and every context a context variant made, whole (voices with their source,
+/// resampler and envelope positions, the effect and its delay line). The mixer is managed code over guest memory, so
+/// nothing is recreated on load.</summary>
+[GenerateSnapshot]
+public sealed partial class Sas
 {
-    string? ISnapshotState.CheckSnapshot()
-    {
-        if (_engine != null || _contexts.Count != 0)
-        {
-            return "host resource SAS audio engine not supported yet";
-        }
-
-        return null;
-    }
-
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to recreate: the engines are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _engine = null;
-        _contexts.Clear();
     }
 }

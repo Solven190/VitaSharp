@@ -2,6 +2,7 @@ using FFmpeg.AutoGen;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Media;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -19,11 +20,25 @@ public sealed unsafe partial class G729 : HleModule
     internal const int ERR_INVALID_ARGUMENT = SceError.INVALID_ARGUMENT;
     internal const int ContextSize = 0x1000, FrameSamples = 80, FrameBytes = 10;
 
-    sealed class DecState { public FrameDecoder? Codec; public bool Tried; }
-    sealed class EncState { public uint Vad; }
+    /// <summary>A decoder context. Save states keep the context; its FFmpeg decoder is made again at the next frame
+    /// (the inter-frame history of the codec is not kept, as for SceAudiodec).</summary>
+    [GenerateSnapshot, SnapshotIgnoreFields("Codec", "Tried")]
+    sealed partial class DecState
+    {
+        public FrameDecoder? Codec;
+        public bool Tried;
+    }
+
+    [GenerateSnapshot]
+    sealed partial class EncState
+    {
+        public uint Vad;
+    }
 
     readonly object _lock = new();
+    [SnapshotMissing] // states of builds before it were refused while a context existed: they had none
     readonly Dictionary<uint, DecState> _dec = new();
+    [SnapshotMissing] // the same for encoders
     readonly Dictionary<uint, EncState> _enc = new();
     readonly short[] _pcm = new short[FrameSamples * 4];
 

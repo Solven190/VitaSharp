@@ -1,5 +1,6 @@
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -21,13 +22,15 @@ public sealed partial class Mp4Recorder : HleModule
 
     static readonly (uint W, uint H)[] Modes = [(640, 368), (640, 368), (480, 272), (480, 272), (368, 208), (368, 208)];
 
-    sealed class Recorder
+    [GenerateSnapshot]
+    sealed partial class Recorder
     {
         public int Mode = -1;
         public long VideoSamples, AudioSamples;
     }
 
     readonly object _lock = new();
+    [SnapshotMissing] // states of builds before it were refused while a recorder existed: they had none
     readonly Dictionary<uint, Recorder> _recorders = new();
 
     internal (long Video, long Audio)? Counts(uint rec)

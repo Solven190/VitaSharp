@@ -2,20 +2,25 @@ using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Hle.Modules;
 
-[GenerateSnapshot, SnapshotIgnoreFields("_dec", "_enc")]
-public sealed unsafe partial class G729 : ISnapshotState
+/// <summary>Save states: the decoder and encoder contexts by address; each loaded decoder makes its FFmpeg decoder
+/// again at its next frame.</summary>
+[GenerateSnapshot]
+public sealed unsafe partial class G729
 {
-    string? ISnapshotState.CheckSnapshot()
+    /// <summary>The running session's host decoders are closed before the saved contexts replace them.</summary>
+    void BeforeSnapshotLoad()
     {
-        if (_dec.Count > 0) return "host resource G.729 decoder not supported yet";
-        if (_enc.Count > 0) return "host resource G.729 encoder not supported yet";
-        return null;
+        lock (_lock)
+        {
+            foreach (DecState state in _dec.Values)
+            {
+                state.Codec?.Dispose();
+            }
+        }
     }
 
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to read: the contexts are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _dec.Clear();
-        _enc.Clear();
     }
 }

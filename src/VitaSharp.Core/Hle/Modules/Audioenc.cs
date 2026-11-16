@@ -1,4 +1,5 @@
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -31,7 +32,8 @@ public sealed partial class Audioenc : HleModule
         8700 => (160, 22), 9900 => (80, 13), 10700 => (80, 14), 11800 => (80, 15), 12200 => (80, 16), _ => null,
     };
 
-    sealed class Encoder
+    [GenerateSnapshot]
+    sealed partial class Encoder
     {
         public uint BitRate;
         public int Samples, Bytes;
@@ -42,6 +44,7 @@ public sealed partial class Audioenc : HleModule
 
     readonly object _lock = new();
     uint _totalStreams; // 0 = library not initialized
+    [SnapshotMissing] // states of builds before it were refused while an encoder existed: they had none
     readonly Dictionary<uint, Encoder> _encoders = new();
     uint _nextHandle = 1;
 

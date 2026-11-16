@@ -1,5 +1,6 @@
 using VitaSharp.Core.Hle.Audio;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -33,6 +34,7 @@ public sealed partial class Sas : HleModule
     const int DEFAULT_GRAIN = 256, DEFAULT_VOICES = 32;
 
     readonly object _lock = new();
+    [SnapshotMissing] // states of builds before it were refused while an engine existed: they had none
     SasEngine? _engine;
     int _maxGrain;
     uint _buffer, _bufferSize;
@@ -42,18 +44,34 @@ public sealed partial class Sas : HleModule
     record struct SasConfig(int Grains, bool GrainsGiven, int Voices, int Reverbs);
 
     /// <summary>A mixer made by a context variant (sceSasInitInternal): its engine and what it was made with.</summary>
-    sealed class SasContext(SasEngine engine, int maxGrain, uint buffer, uint bufferSize)
+    [GenerateSnapshot]
+    sealed partial class SasContext
     {
-        public SasEngine Engine { get; } = engine;
+        /// <summary>A context a save state loads into.</summary>
+        public SasContext()
+            : this(new SasEngine(), 0, 0, 0)
+        {
+        }
 
-        public int MaxGrain { get; } = maxGrain;
+        public SasContext(SasEngine engine, int maxGrain, uint buffer, uint bufferSize)
+        {
+            Engine = engine;
+            MaxGrain = maxGrain;
+            Buffer = buffer;
+            BufferSize = bufferSize;
+        }
 
-        public uint Buffer { get; } = buffer;
+        public SasEngine Engine { get; private set; }
 
-        public uint BufferSize { get; } = bufferSize;
+        public int MaxGrain { get; private set; }
+
+        public uint Buffer { get; private set; }
+
+        public uint BufferSize { get; private set; }
     }
 
     /// <summary>The contexts the context variants made, by handle (the 16-byte aligned start of their buffer).</summary>
+    [SnapshotMissing] // states of builds before it were refused while a context existed: they had none
     readonly Dictionary<uint, SasContext> _contexts = new();
 
     /// <summary>The handle of a context: the firmware places it at the caller's buffer aligned to 16 bytes.</summary>

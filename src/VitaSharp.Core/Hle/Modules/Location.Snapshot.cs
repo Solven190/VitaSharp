@@ -7,18 +7,13 @@ public sealed partial class Gps
 {
 }
 
-[GenerateSnapshot, SnapshotIgnoreFields("_handles")]
-public sealed partial class Location : ISnapshotState
+/// <summary>Save states: the open handles with their methods and confirmation dialog state (no host resource
+/// behind them: the unit has no positioning hardware).</summary>
+[GenerateSnapshot]
+public sealed partial class Location
 {
-    string? ISnapshotState.CheckSnapshot()
-    {
-        if (_handles.Count > 0) return "host resource location handle not supported yet";
-        return null;
-    }
-
-    /// <summary>The saved state had none (the save is refused otherwise).</summary>
+    /// <summary>Nothing to recreate: the handles are loaded with the fields.</summary>
     void LoadExtra(SnapshotReader r)
     {
-        _handles.Clear();
     }
 }

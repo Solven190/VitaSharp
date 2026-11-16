@@ -2,6 +2,7 @@ using System.Text;
 using VitaSharp.Core.Host;
 using VitaSharp.Core.Kernel;
 using VitaSharp.Core.Memory;
+using VitaSharp.Core.SaveState;
 using VitaSharp.Core.Util;
 
 namespace VitaSharp.Core.Hle.Modules;
@@ -34,13 +35,36 @@ public sealed partial class Ime : HleModule
     /// <summary>Keyboard rectangle reported by OPEN (screen 960x544). Real height to confirm on hardware.</summary>
     internal const uint KeyboardHeight = 272;
 
-    readonly record struct Pending(uint Id, string? Text, int Caret);
+    /// <summary>An event waiting for the next sceImeUpdate.</summary>
+    [GenerateSnapshot]
+    sealed partial class Pending
+    {
+        public uint Id;
+        public string? Text;
+        public int Caret;
+
+        /// <summary>An event a save state loads into.</summary>
+        public Pending()
+        {
+        }
+
+        public Pending(uint id, string? text, int caret)
+        {
+            Id = id;
+            Text = text;
+            Caret = caret;
+        }
+    }
 
     readonly object _lock = new();
+    [SnapshotMissing] // states of builds before it were refused while an event was pending: they had none
     readonly Queue<Pending> _events = new();
     bool _open;
     int _session;
     uint _handler, _arg, _filter, _buffer, _maxLen, _option;
+    /// <summary>The keyboard type of the open session (SceImeParam.type), for the host keyboard a load reopens.</summary>
+    [SnapshotMissing]
+    uint _type;
     string _text = "";
     int _caret;
     uint _scratch;
@@ -92,6 +116,7 @@ public sealed partial class Ime : HleModule
             _open = true;
             _session++;
             _handler = handler; _arg = arg; _filter = filter; _buffer = buffer; _maxLen = maxLen; _option = option;
+            _type = type;
             _text = initial;
             _caret = initial.Length;
             _events.Clear();
@@ -112,13 +137,18 @@ public sealed partial class Ime : HleModule
         }
         else if (backend != null)
         {
-            backend.Begin(initial, (int)maxLen, (int)type, (option & OptionMultiline) != 0,
-                (t, c) => Post(session, new Pending(EVENT_UPDATE_TEXT, t, c)),
-                () => Post(session, new Pending(EVENT_PRESS_ENTER, null, 0)),
-                () => Post(session, new Pending(EVENT_PRESS_CLOSE, null, 0)));
+            BeginHostKeyboard(backend, session, initial, maxLen, type, option);
         }
         else Log.WarnOnce("ime-nokeyboard", "sceIme: no host keyboard and no --ime-text: the IME stays open without input");
         return 0;
+    }
+
+    void BeginHostKeyboard(ITextInputBackend backend, int session, string text, uint maxLen, uint type, uint option)
+    {
+        backend.Begin(text, (int)maxLen, (int)type, (option & OptionMultiline) != 0,
+            (t, c) => Post(session, new Pending(EVENT_UPDATE_TEXT, t, c)),
+            () => Post(session, new Pending(EVENT_PRESS_ENTER, null, 0)),
+            () => Post(session, new Pending(EVENT_PRESS_CLOSE, null, 0)));
     }
 
     /// <summary>Queues an event from the host keyboard (any thread); dropped when it belongs to a closed session.</summary>
