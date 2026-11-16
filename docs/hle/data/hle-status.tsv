@@ -1,5 +1,5 @@
 # HLE status per firmware library, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=57 vitasdk=7000/7006 vitasdk_default=385 vitasdk_lle=2124
+# firmware=3.74 games=57 vitasdk=7006/7006 vitasdk_default=386 vitasdk_lle=2124
 library	module	total	impl	games	games_impl	system	system_impl	default	games_default	system_default	lle
 SceAACPromoter	vs0:vsh/common/mms/AACPromoter.suprx	4	1	0	0	0	0	0	0	0	1
 SceAVConfig	os0:kd/bootimage.skprx/SceAVConfig	34	34	0	0	31	31	0	0	0	0
@@ -84,13 +84,13 @@ SceG729	vs0:sys/external/libg729.suprx	8	8	0	0	6	6	0	0	0	0
 SceGameUpdate	vs0:sys/external/libgameupdate.suprx	4	4	0	0	0	0	0	0	0	0
 SceGifPromoter	vs0:vsh/common/mms/gif_promoter.suprx	3	2	0	0	0	0	0	0	0	2
 SceGps	os0:kd/bootimage.skprx/SceGps	11	11	0	0	11	11	0	0	0	0
-SceGpuEs4ForUser	os0:kd/bootimage.skprx/SceGpuEs4	7	4	0	0	4	1	0	0	0	0
+SceGpuEs4ForUser	os0:kd/bootimage.skprx/SceGpuEs4	7	7	0	0	4	4	1	0	1	0
 SceGpuEs4User	os0:us/libgpu_es4.suprx	49	1	0	0	42	1	0	0	0	1
 SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	0	0	0	5	0	0	0	0	0
 SceGriefReportDialog	vs0:app/NPXS10065/grief_report_dialog.suprx	9	2	0	0	7	0	0	0	0	2
 SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
-SceGxmInternal	os0:us/libgxm_es4.suprx	16	13	0	0	10	10	0	0	0	0
-SceGxmInternalForGles	os0:us/libgxm_es4.suprx	1	0	0	0	0	0	0	0	0	0
+SceGxmInternal	os0:us/libgxm_es4.suprx	16	14	0	0	10	10	0	0	0	0
+SceGxmInternalForGles	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
 SceGxmInternalForReplay	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
 SceGxmInternalForTest	os0:us/libgxm_es4.suprx	15	0	0	0	0	0	0	0	0	0
 SceGxmInternalForVsh	os0:us/libgxm_es4.suprx	5	5	1	1	4	4	0	0	0	0
@@ -265,7 +265,7 @@ SceSystemSettingsCore	vs0:app/NPXS10015/system_settings_core.suprx	93	1	0	0	71	1
 SceTelephonyUtil	vs0:sys/external/libSceTelephonyUtil.suprx	3	3	0	0	2	2	0	0	0	3
 SceTeleportClient	vs0:sys/external/libSceTeleportClient.suprx	13	13	0	0	13	13	0	0	0	13
 SceTeleportServer	vs0:sys/external/libSceTeleportServer.suprx	1	1	0	0	1	1	0	0	0	1
-SceThreadmgr	os0:kd/threadmgr.skprx	184	182	54	54	102	101	0	0	0	1
+SceThreadmgr	os0:kd/threadmgr.skprx	184	183	54	54	102	102	0	0	0	1
 SceTiffPromoter	vs0:vsh/common/mms/tiff_promoter.suprx	3	2	0	0	0	0	0	0	0	2
 SceTouch	os0:kd/bootimage.skprx/SceTouch	27	27	7	7	12	12	0	0	0	0
 SceTriggerUtil	vs0:sys/external/trigger_util.suprx	19	12	0	0	12	9	0	0	0	0

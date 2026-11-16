@@ -12,10 +12,10 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,133 | 5,908 | 225 | 0 | 7,320 | 83.7% |
-| General | 8,316 | 8,105 | 211 | 0 | 9,944 | 83.6% |
-| All firmware 3.74 exports | 16,591 | 4,816 | 442 | 11,333 | 19,406 | 85.4% |
-| VitaSDK user functions | 7,000 | 4,491 | 385 | 2,124 | 7,006 | 99.9% |
+| System imports | 6,137 | 5,911 | 226 | 0 | 7,320 | 83.8% |
+| General | 8,318 | 8,107 | 211 | 0 | 9,944 | 83.6% |
+| All firmware 3.74 exports | 16,597 | 4,821 | 443 | 11,333 | 19,406 | 85.5% |
+| VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
 
@@ -359,13 +359,13 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGameUpdate | `vs0:sys/external/libgameupdate.suprx` | 4 / 4 | 100% | - | - | - |
 | SceGifPromoter | `vs0:vsh/common/mms/gif_promoter.suprx` | 2 / 3 | 66.6% | - | - | - |
 | SceGps | `os0:kd/bootimage.skprx/SceGps` | 11 / 11 | 100% | - | - | 11 / 11 |
-| SceGpuEs4ForUser | `os0:kd/bootimage.skprx/SceGpuEs4` | 4 / 7 | 57.1% | - | - | 1 / 4 |
+| SceGpuEs4ForUser | `os0:kd/bootimage.skprx/SceGpuEs4` | 7 / 7 | 100% | 1 | - | 4 / 4 |
 | SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 1 / 49 | 2% | - | - | 1 / 42 |
 | SceGpuEs4UserForVsh | `os0:us/libgpu_es4.suprx` | 0 / 5 | 0% | - | - | 0 / 5 |
 | SceGriefReportDialog | `vs0:app/NPXS10065/grief_report_dialog.suprx` | 2 / 9 | 22.2% | - | - | 0 / 7 |
 | SceGxm | `os0:us/libgxm_es4.suprx` | 267 / 267 | 100% | - | 246 / 246 | - |
-| SceGxmInternal | `os0:us/libgxm_es4.suprx` | 13 / 16 | 81.2% | - | - | 10 / 10 |
-| SceGxmInternalForGles | `os0:us/libgxm_es4.suprx` | 0 / 1 | 0% | - | - | - |
+| SceGxmInternal | `os0:us/libgxm_es4.suprx` | 14 / 16 | 87.5% | - | - | 10 / 10 |
+| SceGxmInternalForGles | `os0:us/libgxm_es4.suprx` | 1 / 1 | 100% | - | - | - |
 | SceGxmInternalForReplay | `os0:us/libgxm_es4.suprx` | 1 / 1 | 100% | - | - | - |
 | SceGxmInternalForTest | `os0:us/libgxm_es4.suprx` | 0 / 15 | 0% | - | - | - |
 | SceGxmInternalForVsh | `os0:us/libgxm_es4.suprx` | 5 / 5 | 100% | - | 1 / 1 | 4 / 4 |
@@ -540,7 +540,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceTelephonyUtil | `vs0:sys/external/libSceTelephonyUtil.suprx` | 3 / 3 | 100% | - | - | 2 / 2 |
 | SceTeleportClient | `vs0:sys/external/libSceTeleportClient.suprx` | 13 / 13 | 100% | - | - | 13 / 13 |
 | SceTeleportServer | `vs0:sys/external/libSceTeleportServer.suprx` | 1 / 1 | 100% | - | - | 1 / 1 |
-| SceThreadmgr | `os0:kd/threadmgr.skprx` | 182 / 184 | 98.9% | - | 54 / 54 | 101 / 102 |
+| SceThreadmgr | `os0:kd/threadmgr.skprx` | 183 / 184 | 99.4% | - | 54 / 54 | 102 / 102 |
 | SceTiffPromoter | `vs0:vsh/common/mms/tiff_promoter.suprx` | 2 / 3 | 66.6% | - | - | - |
 | SceTouch | `os0:kd/bootimage.skprx/SceTouch` | 27 / 27 | 100% | - | 7 / 7 | 12 / 12 |
 | SceTriggerUtil | `vs0:sys/external/trigger_util.suprx` | 12 / 19 | 63.1% | - | - | 9 / 12 |
