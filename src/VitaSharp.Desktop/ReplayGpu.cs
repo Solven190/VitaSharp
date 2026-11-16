@@ -34,6 +34,9 @@ static class ReplayGpu
         Console.WriteLine("    --compare=<dir>        compare the written frames with frame_N.png of another run (compare.txt, diff_N.png)");
         Console.WriteLine("    --window [--hold] [--speed=X|--fast]  show it in a window at the recorded pace (X times), keep it open at the end");
         Console.WriteLine("    --shader-cache=<dir> --async-shaders=on|off (default off) --no-idle --no-targets --debug-mode");
+        Console.WriteLine("    --prefetch-ahead=N     with --async-shaders=on: each command reaches the shader prefetch N presents before it runs,");
+        Console.WriteLine("                           as from a game's submitting thread (default 1; 0 = just before it runs)");
+        Console.WriteLine("    --speed=X              without --window: also keep the recorded pace (default: as fast as possible)");
         Console.WriteLine("  png-diff <dirA> <dirB> [pattern]     compare same-named PNGs of two folders (e.g. two traces' targets/): <dirA>/compare.txt, diff_*.png");
         Console.WriteLine("    --info                 header and statistics only; --recompress=<out.vsgd> [--quality=0-11] rewrites it smaller (default 9)");
     }
@@ -214,6 +217,8 @@ static class ReplayGpu
         public GpuDumpFrameIndex? Index;
         public bool Idle = true, ImportState = true;
         public double Speed = 1; // 0 = as fast as possible
+        /// <summary>Presents ahead of execution at which commands reach the shader prefetch (-1: no prefetch).</summary>
+        public int PrefetchAhead = -1;
         public string Out = "";
     }
 
@@ -293,6 +298,10 @@ static class ReplayGpu
             AsyncPipelines = Opt(options, "--async-shaders") is "on" or "1" or "true",
             FirstPresent = firstPresent,
         };
+        if (ro.AsyncShaders)
+        {
+            s.PrefetchAhead = int.TryParse(Opt(options, "--prefetch-ahead"), out int ahead) && ahead >= 0 ? ahead : 1;
+        }
 
         int rc;
         if (options.Contains("--window"))
@@ -329,7 +338,11 @@ static class ReplayGpu
         }
         else
         {
-            s.Speed = 0;
+            if (Opt(options, "--speed") == null)
+            {
+                s.Speed = 0;
+            }
+
             rc = Replay(path, header, ro, s, null);
         }
         if (thumbs.Count > 0)
@@ -353,6 +366,8 @@ static class ReplayGpu
     {
         using var memory = new GuestMemory();
         using var reader = new GpuDumpReader(path);
+        // the submitting side for the shader prefetch: the same dump read ahead of the executed commands
+        using GpuDumpReader? prefetchReader = s.PrefetchAhead >= 0 ? new GpuDumpReader(path) : null;
         var renderer = _renderer = new VulkanRenderer(ro);
         try
         {
@@ -443,7 +458,7 @@ static class ReplayGpu
                 }
 
                 return true;
-            }, cancel: () => closing?.IsSet == true);
+            }, cancel: () => closing?.IsSet == true, prefetch: prefetchReader, prefetchFrames: Math.Max(0, s.PrefetchAhead));
             long frames = st.Frames;
             EndTrace(); // a trace still open (the dump ends inside the traced scene)
             // retire every frame in flight: the last dumps are written when their frame completes

@@ -56,6 +56,8 @@ VitaSharp.Desktop replay-gpu <dump.vsgd> [options]
 | `--window [--hold] [--speed=X \| --fast]` | shows the replay in a window at the recorded pace; `--hold` keeps it open at the end |
 | `--shader-cache=<dir>` | shader cache (default `<DataRoot>/shadercache`; the title's programs pack is used) |
 | `--async-shaders=on` | background shader compilation (default off in the replay) |
+| `--prefetch-ahead=N` | with `--async-shaders=on`: a second reader hands each command to the shader/pipeline prefetch N presents before it executes, as a game's submitting thread does while the GPU thread runs a frame behind (default 1; 0 = just before it runs). Without `--async-shaders=on` there is no prefetch and every first-use pipeline is built on the GPU thread |
+| `--speed=X` (without `--window`) | keeps the recorded pace headless too (default: as fast as possible), so the prefetch workers get the time a game gives them; first-use stalls are in the `[shadercache] session` line (frames stalled >= 4 / 16.7 / 50 ms, worst) |
 | `--no-idle` | do not reproduce the recorded idle points (earlier submission of work) |
 | `--no-targets` | do not restore the render targets recorded at the start (to see what depends on them) |
 | `--info` | header, record statistics, size per frame, guest memory read per MB of address space |
