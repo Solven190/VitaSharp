@@ -2,6 +2,7 @@ using VitaSharp.Core.Gpu;
 using VitaSharp.Core.Gxm;
 using VitaSharp.Core.Gxm.Shader;
 using VitaSharp.Core.Memory;
+using VitaSharp.Renderer.Vulkan;
 
 namespace VitaSharp.Tests;
 
@@ -263,6 +264,102 @@ public sealed class GpuDumpTests(GuestMemoryFixture fixture) : IDisposable
         public void Dispose()
         {
         }
+    }
+
+    /// <summary>
+    /// replay-gpu --async-shaders=on --prefetch-ahead=N (Renderer.Vulkan PrefetchLookahead, used by GpuDumpPlayer): the
+    /// replay's submitting side hands command k of present interval p to the shader prefetch just before command k of
+    /// interval p - N executes, as a game's submitting thread runs ahead of the GPU thread. Every command is prefetched
+    /// once, in the recorded order, never after it executed, and the lead stays N presents however the intervals differ
+    /// in length; at the end of the dump the lookahead stops. Without it the replay had no prefetch at all, so the
+    /// first-use stalls it measured were those of a game whose GPU thread builds every pipeline itself.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task ReplayLookaheadPrefetchesEachCommandItsPresentsAhead(int frames)
+    {
+        uint buf = fixture.Memory.Alloc(0x1000, "gpudump lookahead");
+        GuestMemory.Fill(buf, 0x33, 0x1000);
+        using var queue = new GpuQueue();
+        queue.Backend = new FakeBackend();
+        Directory.CreateDirectory(_dir);
+        string path = Path.Combine(_dir, $"ahead{frames}.vsgd");
+        var present = new PresentCommand { Frame = new DisplayFrame(0x60000000, 960, 960, 544, 0) };
+        int[] drawsPerFrame = [3, 1, 4, 2];
+        var rec = GpuDumpRecorder.Start(new GpuDumpOptions { Path = path, MaxFrames = drawsPerFrame.Length, Header = new GpuDumpHeader { ["title-id"] = "TEST" } });
+        Assert.NotNull(rec);
+        queue.Submit(present);
+        for (int frame = 0; frame < drawsPerFrame.Length; frame++)
+        {
+            for (int k = 0; k < drawsPerFrame[frame]; k++)
+            {
+                DrawCommand draw = Draw([1, 2, 3], [], buf);
+                draw.IndexCount = (uint)(frame * 10 + k + 1); // the draw's identity in the replay
+                queue.Submit(draw);
+            }
+            queue.Submit(new PresentCommand { Frame = present.Frame });
+        }
+        queue.Submit(new PresentCommand { Frame = present.Frame });
+        GpuDumpResult result = await rec!.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Null(result.Error);
+
+        static string Name(GpuCommand command) => command is DrawCommand d ? $"draw {d.IndexCount}" : command.GetType().Name;
+        // the recorded commands, each with its present interval and its 1-based place in it (the present is the last)
+        var recorded = new List<(string Name, int Interval, int Place)>();
+        using (var plain = new GpuDumpReader(path))
+        {
+            int interval = 0, place = 0;
+            while (plain.Next())
+            {
+                if (plain.Command is not { } command)
+                {
+                    continue;
+                }
+
+                place++;
+                recorded.Add((Name(command), interval, place));
+                if (command is PresentCommand)
+                {
+                    interval++;
+                    place = 0;
+                }
+            }
+        }
+        Assert.Contains(recorded, c => c.Name.StartsWith("draw", StringComparison.Ordinal));
+
+        var prefetched = new List<string>();
+        using var main = new GpuDumpReader(path);
+        using var ahead = new GpuDumpReader(path);
+        var lookahead = new PrefetchLookahead(ahead, command => prefetched.Add(Name(command)), frames);
+        long presents = 0, frameCommands = 0;
+        int index = 0;
+        while (main.Next())
+        {
+            if (main.Command is not { } command)
+            {
+                continue;
+            }
+
+            frameCommands++;
+            lookahead.Advance(presents, frameCommands);
+            (string name, int interval, int place) = recorded[index];
+            Assert.Equal(name, Name(command));
+            // prefetched so far: every command up to place `place` of interval `interval + frames`, in the recorded order
+            int expected = recorded.Count(c => c.Interval < interval + frames || c.Interval == interval + frames && c.Place <= place);
+            Assert.True(expected > index, "the command about to execute is prefetched");
+            Assert.Equal(recorded.Take(expected).Select(c => c.Name), prefetched);
+            if (command is PresentCommand)
+            {
+                presents++;
+                frameCommands = 0;
+            }
+
+            index++;
+        }
+        Assert.Equal(recorded.Select(c => c.Name), prefetched);
+        Assert.Equal(recorded.Count, lookahead.Prefetched);
     }
 
     [Fact]
