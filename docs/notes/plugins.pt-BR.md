@@ -66,8 +66,9 @@ os outros.
 - Os handlers de eventos de processo do código de kernel (`ksceKernelRegisterProcEventHandler`) são chamados como o
   gerenciador de processos do firmware chama, na ordem de registro: create quando a thread principal do processo existe
   e antes de ele iniciar (um create que falha recusa o processo, e os handlers chamados antes dele recebem exit), exit
-  quando o processo termina sozinho, kill quando é encerrado (fechado pelo shell, uma queda). Os eventos stop, start e
-  switch ainda não são enviados.
+  quando o processo termina sozinho, kill quando é encerrado (fechado pelo shell, uma queda); stop quando é suspenso
+  (tipos 0x200 e 0x800 antes de as threads pararem, 0x1000 depois) e start quando volta (0x20000, depois 0x40000). Os
+  eventos switch ainda não são enviados.
 - Os módulos de `*ALL` e `*TITLEID` são carregados no processo de todo programa, também nos do próprio sistema (o carregador
   de plugins os carrega depois dos módulos pré-carregados do processo), e iniciam
   antes da thread principal. A seção é o ID de título do processo no kernel: `main` para o shell, o NPXS de um app do

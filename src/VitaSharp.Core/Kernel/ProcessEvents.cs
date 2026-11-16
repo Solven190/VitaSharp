@@ -20,6 +20,11 @@ public static class ProcessEvents
     /// when it is killed).</summary>
     public const int Create = 1, Exit = 2, Kill = 3, Stop = 4, Start = 5;
 
+    /// <summary>The types of the stop and start events (FW 3.74 processmgr): a suspend sends stop 0x200 and 0x800 before
+    /// the process's threads stop and 0x1000 after; a resume sends start 0x20000 before they run again and 0x40000
+    /// after.</summary>
+    public const int StopBegin = 0x200, StopThreads = 0x800, StopDone = 0x1000, StartBegin = 0x20000, StartDone = 0x40000;
+
     /// <summary>The size word processmgr writes at the start of the parameter block: 0x14 for the create event, 0x10 for
     /// the others.</summary>
     public const uint CreateParamSize = 0x14, ParamSize = 0x10;

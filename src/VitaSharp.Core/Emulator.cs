@@ -598,6 +598,19 @@ public sealed class Emulator : IDisposable
         }
     }
 
+    /// <summary>A stop or start event of type <paramref name="eventType"/>, for a process the handlers were told was
+    /// created.</summary>
+    private void TellProcessState(int eventId, int eventType)
+    {
+        lock (_processEventGate)
+        {
+            if (_toldCreated)
+            {
+                InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _, eventType);
+            }
+        }
+    }
+
     /// <summary>The exit or kill event, for a process the handlers were told was created.</summary>
     private void TellProcessEnd(int eventId)
     {
@@ -618,7 +631,7 @@ public sealed class Emulator : IDisposable
     /// thread of the kernel process, with the parameter block processmgr passes: its size word (0x14 for create, 0x10
     /// otherwise), then fields whose meaning is not known (0 here). Returns what the last handler returned.
     /// </summary>
-    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid)
+    internal int InvokeProcessEvent(int eventId, bool stopAtFailure, int stopAt, out int failedUid, int eventType = 0)
     {
         failedUid = 0;
         List<KernelData> handlers = ProcessEvents.Handlers(Vita.Objects);
@@ -643,7 +656,7 @@ public sealed class Emulator : IDisposable
             thread.KernelMode = true;
             thread.HostBody = self =>
             {
-                result = ProcessEvents.Run(self, handlers, Pid, eventId, 0, param, stopAtFailure, stopAt, out failed);
+                result = ProcessEvents.Run(self, handlers, Pid, eventId, eventType, param, stopAtFailure, stopAt, out failed);
             };
             thread.Start(0, 0);
             bool finished;
@@ -806,12 +819,16 @@ public sealed class Emulator : IDisposable
             return;
         }
 
+        // processmgr's suspend: stop events before the threads stop (types 0x200 and 0x800) and after (0x1000)
+        TellProcessState(ProcessEvents.Stop, ProcessEvents.StopBegin);
+        TellProcessState(ProcessEvents.Stop, ProcessEvents.StopThreads);
         Suspended = true;
         foreach (GuestThread t in Kernel.Threads)
         {
             t.Core.InterruptRequested = true;
         }
 
+        TellProcessState(ProcessEvents.Stop, ProcessEvents.StopDone);
         Log.Info($"Process {Describe()} suspended");
     }
 
@@ -822,11 +839,15 @@ public sealed class Emulator : IDisposable
             return;
         }
 
+        // processmgr's resume: start events before the threads run again (type 0x20000) and after (0x40000)
+        TellProcessState(ProcessEvents.Start, ProcessEvents.StartBegin);
         Suspended = false;
         foreach (GuestThread t in Kernel.Threads)
         {
             t.WakeFromSuspend();
         }
+
+        TellProcessState(ProcessEvents.Start, ProcessEvents.StartDone);
 
         Log.Info($"Process {Describe()} resumed");
     }

@@ -2196,7 +2196,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
       (depois da thread principal, antes de iniciar; um create que falha recusa o processo e os anteriores recebem
       exit), exit e kill, na ordem de registro; `ksceKernelInvokeProcEventHandler` implementado. Testes:
       `KernelSharedProcessTests`, `KernelProcessEventTests`.
-    - [ ] eventos stop/start/switch de processo (suspensão e troca de primeiro plano) e save states com threads do
+    - [x] (16/11/2026, feat/kernel-proc-stopstart) eventos stop/start na suspensão/retomada do processo, com os tipos do
+      processmgr do FW 3.74 (stop 0x200, 0x800, 0x1000; start 0x20000, 0x40000). Teste:
+      `KernelProcessEventTests.AHandlerHearsAProcessStoppedAndStartedAgain`.
+    - [ ] eventos switch (ids 0x10/0x11 do processmgr, significado ainda não estudado) e save states com threads do
       processo do kernel vivas.
     - **[ ] aberto (exportações de kernel genéricas):** quando o kubridge.skprx real roda (hoje não roda: precisa do
       taiHEN), ele atende `kuKernelMemProtect`/`kuKernelMemReserve`/`kuKernelMemCommit`/`kuKernelMemDecommit` pulando para

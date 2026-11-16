@@ -98,6 +98,44 @@ public sealed class KernelProcessEventTests : IDisposable
 
     private sealed record Handlers(Recorder Create, Recorder Exit, Recorder Kill);
 
+    /// <summary>A stop/start handler entry's record: {pid, the last type, argument, every type seen OR-ed}.</summary>
+    private sealed record StateRecorder(uint Record)
+    {
+        public uint Pid => GuestMemory.R32(Record);
+        public uint LastType => GuestMemory.R32(Record + 4);
+        public uint Argument => GuestMemory.R32(Record + 8);
+        public uint Types => GuestMemory.R32(Record + 12);
+    }
+
+    /// <summary>An A32 stop/start handler (pid, type, param, argument): stores r0, r1, r3 and ORs r1 into the record's
+    /// last word; returns 0.</summary>
+    private (uint Entry, StateRecorder Recorder) StateHandler()
+    {
+        uint record = KernelBlock(0x10);
+        uint code = KernelBlock(0x28);
+        uint[] words =
+        [
+            0xE59FC01C, // ldr r12, [pc, #28]  (the record)
+            0xE58C0000, // str r0, [r12]
+            0xE58C1004, // str r1, [r12, #4]
+            0xE58C3008, // str r3, [r12, #8]
+            0xE59C200C, // ldr r2, [r12, #12]
+            0xE1822001, // orr r2, r2, r1
+            0xE58C200C, // str r2, [r12, #12]
+            0xE3A00000, // mov r0, #0
+            0xE12FFF1E, // bx lr
+            record,
+        ];
+        for (int i = 0; i < words.Length; i++)
+        {
+            GuestMemory.W32(code + (uint)i * 4, words[i]);
+        }
+
+        return (code, new StateRecorder(record));
+    }
+
+    private StateRecorder? _stop, _start;
+
     /// <summary>Registers a handler table {0x1C, create, exit, kill, 0, 0, 0} whose create returns
     /// <paramref name="createResult"/>.</summary>
     private Handlers Register(string name, int createResult = 0)
@@ -105,12 +143,18 @@ public sealed class KernelProcessEventTests : IDisposable
         (uint create, Recorder createRecord) = Handler(createResult);
         (uint exit, Recorder exitRecord) = Handler(0);
         (uint kill, Recorder killRecord) = Handler(0);
+        (uint stop, StateRecorder stopRecord) = StateHandler();
+        (uint start, StateRecorder startRecord) = StateHandler();
+        _stop = stopRecord;
+        _start = startRecord;
         uint table = _harness.Alloc(0x1C);
         GuestMemory.Fill(table, 0, 0x1C);
         GuestMemory.W32(table, 0x1C);
         GuestMemory.W32(table + 4, create);
         GuestMemory.W32(table + 8, exit);
         GuestMemory.W32(table + 0xC, kill);
+        GuestMemory.W32(table + 0x10, stop);
+        GuestMemory.W32(table + 0x14, start);
         ProcessmgrKernel processmgr = _harness.Module<ProcessmgrKernel>();
         int uid = 0;
         _harness.OnGuest(_ => uid = HleHarness.Call(processmgr, "ksceKernelRegisterProcEventHandler", _harness.Str(name), table, (int)Argument));
@@ -179,5 +223,29 @@ public sealed class KernelProcessEventTests : IDisposable
         Assert.Equal(0u, first.Kill.Pid);
         Assert.Equal(0u, refusing.Kill.Pid);
         Assert.Null(app.Kernel.MainThread is { } main ? _shell.Vita.Objects.Get<GuestThread>(main.Uid) : null);
+    }
+
+    /// <summary>A suspended process (the shell took the screen back) hears stop, 0x200 and 0x800 before its threads
+    /// stop and 0x1000 after; resumed, start 0x20000 and then 0x40000.</summary>
+    [Fact]
+    public void AHandlerHearsAProcessStoppedAndStartedAgain()
+    {
+        Handlers handlers = Register("VsTestStates");
+        Emulator app = OpenApp("VSTS00002");
+        HleHarness.Until(() => handlers.Create.Pid == (uint)app.Pid, "the create event");
+        StateRecorder stop = _stop!, start = _start!;
+
+        app.Suspend();
+        Assert.Equal((uint)app.Pid, stop.Pid);
+        Assert.Equal((uint)(ProcessEvents.StopBegin | ProcessEvents.StopThreads | ProcessEvents.StopDone), stop.Types);
+        Assert.Equal((uint)ProcessEvents.StopDone, stop.LastType);
+        Assert.Equal(Argument, stop.Argument);
+        Assert.Equal(0u, start.Pid);
+
+        app.Resume();
+        Assert.Equal((uint)app.Pid, start.Pid);
+        Assert.Equal((uint)(ProcessEvents.StartBegin | ProcessEvents.StartDone), start.Types);
+        Assert.Equal((uint)ProcessEvents.StartDone, start.LastType);
+        Assert.Equal(Argument, start.Argument);
     }
 }
