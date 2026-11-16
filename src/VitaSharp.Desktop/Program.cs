@@ -677,15 +677,15 @@ public static class Program
     /// registration of a NID replaces an earlier one.</summary>
     /// <summary>Every NID with an [Hle] entry point; Default when every entry point of it is a documented firmware
     /// default (<see cref="HleAttribute.Default"/>), not a real implementation.</summary>
-    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids()
+    static SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)> HleImplementedNids()
         => HleImplementedNids(out _, out _);
 
     /// <summary>The same, also giving the HLE's "the firmware module serves every importer" test, from the one emulator
     /// the scan makes (only one guest memory can exist per process).</summary>
-    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleImplementedNids(out Func<string, bool> firmwareServesImporters,
+    static SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)> HleImplementedNids(out Func<string, bool> firmwareServesImporters,
         out Func<uint, bool> servedByHle)
     {
-        SortedDictionary<uint, (string Name, string Module, bool Default)> byNid = HleBindingNids();
+        SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)> byNid = HleBindingNids();
         // data exports (variables) the HLE hands to importers: the modules register them when the emulator is made
         string tmp = Path.Combine(Path.GetTempPath(), "vitasharp-hle-vars-" + Environment.ProcessId);
         Directory.CreateDirectory(tmp);
@@ -697,7 +697,7 @@ public static class Program
             servedByHle = hle.ServesFunction;
             foreach (var nid in emu.Hle.VariableNids)
             {
-                byNid.TryAdd(nid, (NidDatabase.NameOf(nid), "data", false));
+                byNid.TryAdd(nid, (NidDatabase.NameOf(nid), "data", NidDatabase.Lookup(nid)?.Library, false));
             }
         }
         finally
@@ -715,9 +715,9 @@ public static class Program
 
     /// <summary>Every NID of an [Hle] function entry point (the bindings only, no emulator); Default when every entry
     /// point of it is a documented firmware default.</summary>
-    static SortedDictionary<uint, (string Name, string Module, bool Default)> HleBindingNids()
+    static SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)> HleBindingNids()
     {
-        var byNid = new SortedDictionary<uint, (string Name, string Module, bool Default)>();
+        var byNid = new SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)>();
         foreach (var m in HleBindings.Modules)
         {
             foreach (var b in m.Bindings())
@@ -727,11 +727,14 @@ public static class Program
                     : NidDatabase.LookupName(name).Where(i => b.Library == null || i.Library == b.Library).Select(i => i.Nid).ToArray();
                 foreach (var nid in nids)
                 {
+                    // the library the [Hle] entry declares, else the NID database's (an unnamed NID is only in the
+                    // firmware's export tables, so its library is the one the entry names)
                     byNid[nid] = byNid.TryGetValue(nid, out var had) ? had with
                     {
+                        Library = had.Library ?? b.Library ?? NidDatabase.Lookup(nid)?.Library,
                         Default = had.Default && b.Default
                     }
-                        : (NidDatabase.Lookup(nid)?.Name ?? name, m.Type.Name, b.Default);
+                        : (NidDatabase.Lookup(nid)?.Name ?? name, m.Type.Name, b.Library ?? NidDatabase.Lookup(nid)?.Library, b.Default);
                 }
             }
         }
@@ -895,9 +898,9 @@ public static class Program
         return vitasdk;
     }
 
-    static string ImplementedTable(SortedDictionary<uint, (string Name, string Module, bool Default)> byNid, HashSet<uint> vitasdk) =>
+    static string ImplementedTable(SortedDictionary<uint, (string Name, string Module, string? Library, bool Default)> byNid, HashSet<uint> vitasdk) =>
         VitaSharp.Core.Firmware.HleCensusTables.Implemented(
-            byNid.Select(e => (e.Key, e.Value.Name, e.Value.Module, NidDatabase.Lookup(e.Key)?.Library, e.Value.Default)), vitasdk.Contains);
+            byNid.Select(e => (e.Key, e.Value.Name, e.Value.Module, e.Value.Library, e.Value.Default)), vitasdk.Contains);
 
     /// <summary>rco-dump &lt;file.rco&gt; [--extract=&lt;dir&gt;]: the element tree of a system RCO and, optionally, its files.</summary>
     static int RcoDump(string path, string? extractDir)

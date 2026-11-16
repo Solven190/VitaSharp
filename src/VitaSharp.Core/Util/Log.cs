@@ -236,6 +236,16 @@ public static class Log
         }
     }
 
+    /// <summary>Info-level message logged only the first time a given key is seen (a firmware default answered
+    /// without the device or service it needs).</summary>
+    public static void InfoOnce(string key, string m)
+    {
+        if (Level <= LogLevel.Info && s_once.TryAdd(key, 0))
+        {
+            Info(m);
+        }
+    }
+
     /// <summary><see cref="WarnOnce(string, string)"/> for interpolated keys: a key seen before costs no allocation and the
     /// message is only formatted the first time.</summary>
     public static void WarnOnce(ref OnceKeyHandler key, [System.Runtime.CompilerServices.InterpolatedStringHandlerArgument("key")] ref OnceMessageHandler onceMessageHandler)

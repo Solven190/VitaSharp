@@ -85,11 +85,6 @@ SceGpuEs4User	0xCCEE0336	NID_CCEE0336	os0-user	0	0	-
 SceGpuEs4User	0xD90B0707	NID_D90B0707	os0-user	0	1	-
 SceGpuEs4User	0xE98914E4	NID_E98914E4	os0-user	0	1	-
 SceGpuEs4User	0xF0CCE9DB	NID_F0CCE9DB	os0-user	0	1	-
-SceGpuEs4UserForVsh	0x010DA2CB	NID_010DA2CB	os0-user	0	1	-
-SceGpuEs4UserForVsh	0x0A9556D9	NID_0A9556D9	os0-user	0	1	-
-SceGpuEs4UserForVsh	0x3C09BFCA	NID_3C09BFCA	os0-user	0	1	-
-SceGpuEs4UserForVsh	0x3DC96093	NID_3DC96093	os0-user	0	1	-
-SceGpuEs4UserForVsh	0x8A27AB0A	NID_8A27AB0A	os0-user	0	1	-
 SceGxmInternalForTest	0x1D68FB73	NID_1D68FB73	os0-user	0	0	-
 SceGxmInternalForTest	0x2B0A5A39	NID_2B0A5A39	os0-user	0	0	-
 SceGxmInternalForTest	0x3D8863E2	NID_3D8863E2	os0-user	0	0	-
@@ -162,7 +157,6 @@ SceLibLocation	0x822BBF06	NID_822BBF06	vs0-user	0	1	-
 SceLibLocation	0x991AF2D0	NID_991AF2D0	vs0-user	0	1	-
 SceLibLocation	0xC1CFEC92	NID_C1CFEC92	vs0-user	0	5	-
 SceLibLocation	0xEFC9BD25	NID_EFC9BD25	vs0-user	0	2	-
-SceMusicExport	0xD1011570	NID_D1011570	vs0-user	0	4	-
 SceNet	0x1F0080B3	NID_1F0080B3	vs0-user	0	0	-
 SceNet	0x522D2118	NID_522D2118	vs0-user	0	0	-
 SceNet	0xD886F498	NID_D886F498	vs0-user	0	0	-
@@ -276,10 +270,6 @@ SceNpManager	0xBBCD1B6D	NID_BBCD1B6D	vs0-user	0	0	-
 SceNpManager	0xBF8921C8	NID_BF8921C8	vs0-user	0	10	-
 SceNpManager	0xC7F6ADC4	NID_C7F6ADC4	vs0-user	0	0	-
 SceNpManager	0xC80D8C3E	NID_C80D8C3E	vs0-user	0	0	-
-SceNpMatching2	0x54692CAA	NID_54692CAA	vs0-user	0	0	-
-SceNpMatching2	0xDF322C5B	NID_DF322C5B	vs0-user	0	1	-
-SceNpPartyGameUtil	0x089134D1	NID_089134D1	vs0-user	0	0	-
-SceNpPartyGameUtil	0x6370CEB6	NID_6370CEB6	vs0-user	0	0	-
 SceNpSnsFacebook	0x06A167FC	NID_06A167FC	vs0-user	0	2	-
 SceNpSnsFacebook	0x0CDD6B52	NID_0CDD6B52	vs0-user	0	0	-
 SceNpSnsFacebook	0x0FEBCA93	NID_0FEBCA93	vs0-user	0	0	-

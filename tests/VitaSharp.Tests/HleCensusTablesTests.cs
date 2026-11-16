@@ -93,4 +93,36 @@ public class HleCensusTablesTests
         string[] rows = tsv.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => !l.StartsWith('#')).Skip(1).ToArray();
         Assert.Equal(["SceK\t0x00000002\tf2\tkernel-syscall\t1\t0\t-", "SceV\t0x00000003\tf3\tvs0-user\t0\t2\tyes"], rows);
     }
+
+    /// <summary>The library column of vitasharp-implemented.tsv is the one the [Hle] entry declares (an unnamed NID
+    /// such as SceGpuEs4User's NID_F4735A47 is in no NID database, so the table printed "-" for it).</summary>
+    [Fact]
+    public void CommittedImplementedTableNamesTheLibraryTheHleEntryDeclares()
+    {
+        var libraryOf = new Dictionary<uint, string>();
+        foreach (string line in Read(HleCensusTables.ImplementedPath).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] columns = line.Split('\t');
+            libraryOf[Convert.ToUInt32(columns[0], 16)] = columns[3];
+        }
+
+        var wrong = new List<string>();
+        foreach (VitaSharp.Core.Hle.HleModuleEntry module in VitaSharp.Core.Hle.HleBindings.Modules)
+        {
+            foreach (VitaSharp.Core.Hle.HleBinding binding in module.Bindings())
+            {
+                if (binding.Nid == 0 || binding.Library == null)
+                {
+                    continue;
+                }
+
+                if (!libraryOf.TryGetValue(binding.Nid, out string? library) || library == "-")
+                {
+                    wrong.Add($"{module.Type.Name}.{binding.Method} 0x{binding.Nid:X8} {binding.Library}: {library ?? "absent"}");
+                }
+            }
+        }
+
+        Assert.Empty(wrong);
+    }
 }

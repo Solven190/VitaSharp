@@ -10,7 +10,7 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#5c8e29"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#298e29"/>
 <text x="952" y="27" font-size="11" fill="#9198a1">100%</text>
-<text x="12" y="58" font-size="13" font-weight="600" fill="#e6edf3">User (308 libraries): 96.7% implemented (18,769/19,406)</text>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#e6edf3">User (308 libraries): 96.7% implemented (18,779/19,406)</text>
 <g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="290.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#ffffff">PafWidget</text><text x="11" y="95" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="354.9" width="227.9" height="131.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="369.9" font-size="13" fill="#ffffff">PafMisc</text><text x="11" y="385.9" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
 <g><title>ScePsp2Compat: 1047/1047 (100%)</title><rect x="8" y="486.7" width="227.9" height="128.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/><text x="11" y="501.7" font-size="13" fill="#ffffff">Psp2Compat</text><text x="11" y="517.7" font-size="11" fill="#ffffff" fill-opacity=".8">100%</text></g>
@@ -78,7 +78,7 @@
 <g><title>stitch_core_prx: 57/57 (100%)</title><rect x="656.6" y="490.7" width="38" height="42" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceAppUtil: 50/56 (89.2%)</title><rect x="656.6" y="532.6" width="38" height="41.2" fill="#3f8e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceVideodecUser: 56/56 (100%)</title><rect x="656.6" y="573.9" width="38" height="41.2" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpMatching2: 53/55 (96.3%)</title><rect x="694.5" y="319.8" width="37.4" height="41.1" fill="#318e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpMatching2: 55/55 (100%)</title><rect x="694.5" y="319.8" width="37.4" height="41.1" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceBt: 54/54 (100%), 46 default</title><rect x="694.5" y="361" width="37.4" height="40.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceCommonGuiDialog: 54/54 (100%)</title><rect x="694.5" y="401.3" width="37.4" height="40.4" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceGpuEs4User: 1/49 (2%)</title><rect x="694.5" y="441.7" width="37.4" height="36.6" fill="#8e2d29" stroke="#0d1117" stroke-width="1"/></g>
@@ -173,7 +173,7 @@
 <g><title>SceUsbSerial: 14/14 (100%), 14 default</title><rect x="834.7" y="517.1" width="19.1" height="20.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>stitch_prx: 14/14 (100%)</title><rect x="834.7" y="537.6" width="19.1" height="20.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceAvcdecForPlayer: 13/13 (100%)</title><rect x="834.7" y="558.1" width="19.1" height="19" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceNpPartyGameUtil: 11/13 (84.6%)</title><rect x="834.7" y="577.1" width="19.1" height="19" fill="#488e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceNpPartyGameUtil: 13/13 (100%), 2 default</title><rect x="834.7" y="577.1" width="19.1" height="19" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceTeleportClient: 13/13 (100%)</title><rect x="834.7" y="596.1" width="19.1" height="19" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceAacenc: 12/12 (100%)</title><rect x="853.8" y="476.1" width="17.8" height="18.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceAacencInternal: 12/12 (100%)</title><rect x="871.7" y="476.1" width="17.8" height="18.8" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
@@ -233,7 +233,7 @@
 <g><title>SceDbg: 5/5 (100%)</title><rect x="913.7" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceDrmBridge: 5/5 (100%), 1 default</title><rect x="924.9" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceDrmBridgeUser: 5/5 (100%), 1 default</title><rect x="936.1" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceGpuEs4UserForVsh: 0/5 (0%)</title><rect x="947.3" y="536.2" width="11.2" height="12.5" fill="#8e2929" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceGpuEs4UserForVsh: 5/5 (100%), 5 default</title><rect x="947.3" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceGxmInternalForVsh: 5/5 (100%)</title><rect x="958.5" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceLibLocationInternal: 5/5 (100%)</title><rect x="969.6" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNpManagerTicket: 5/5 (100%)</title><rect x="980.8" y="536.2" width="11.2" height="12.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
@@ -278,7 +278,7 @@
 <g><title>SceClipboard: 2/2 (100%)</title><rect x="952.7" y="577.4" width="7.4" height="7.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceCoredump: 2/2 (100%)</title><rect x="952.7" y="584.9" width="7.4" height="7.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceDmacmgr: 2/2 (100%)</title><rect x="952.7" y="592.5" width="7.4" height="7.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>SceMusicExport: 1/2 (50%)</title><rect x="952.7" y="600" width="7.4" height="7.5" fill="#8e8e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>SceMusicExport: 2/2 (100%)</title><rect x="952.7" y="600" width="7.4" height="7.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNotificationUtil: 2/2 (100%)</title><rect x="952.7" y="607.6" width="7.4" height="7.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceNpUtilityAvatarN: 2/2 (100%)</title><rect x="960.2" y="577.4" width="8" height="7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceUlobjDbg: 2/2 (100%)</title><rect x="968.1" y="577.4" width="8" height="7" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>

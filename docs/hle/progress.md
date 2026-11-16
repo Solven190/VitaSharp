@@ -12,9 +12,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,142 | 2,136 | 6 | 0 | 2,142 | 100% |
-| System imports | 6,978 | 6,750 | 228 | 0 | 7,320 | 95.3% |
-| General | 9,649 | 9,430 | 219 | 0 | 9,944 | 97% |
-| All firmware 3.74 exports | 18,769 | 4,825 | 453 | 13,491 | 19,406 | 96.7% |
+| System imports | 6,985 | 6,752 | 233 | 0 | 7,320 | 95.4% |
+| General | 9,652 | 9,431 | 221 | 0 | 9,944 | 97% |
+| All firmware 3.74 exports | 18,779 | 4,828 | 460 | 13,491 | 19,406 | 96.7% |
 | VitaSDK user functions | 7,006 | 4,496 | 386 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
@@ -373,7 +373,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceGps | `os0:kd/bootimage.skprx/SceGps` | 11 / 11 | 100% | - | - | 11 / 11 |
 | SceGpuEs4ForUser | `os0:kd/bootimage.skprx/SceGpuEs4` | 7 / 7 | 100% | 1 | - | 4 / 4 |
 | SceGpuEs4User | `os0:us/libgpu_es4.suprx` | 1 / 49 | 2% | - | - | 1 / 42 |
-| SceGpuEs4UserForVsh | `os0:us/libgpu_es4.suprx` | 0 / 5 | 0% | - | - | 0 / 5 |
+| SceGpuEs4UserForVsh | `os0:us/libgpu_es4.suprx` | 5 / 5 | 100% | 5 | - | 5 / 5 |
 | SceGriefReportDialog | `vs0:app/NPXS10065/grief_report_dialog.suprx` | 9 / 9 | 100% | - | - | 7 / 7 |
 | SceGxm | `os0:us/libgxm_es4.suprx` | 267 / 267 | 100% | - | 246 / 246 | - |
 | SceGxmInternal | `os0:us/libgxm_es4.suprx` | 16 / 16 | 100% | - | - | 10 / 10 |
@@ -440,7 +440,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceMtpClient | `vs0:vsh/common/mtp_client.suprx` | 163 / 163 | 100% | - | - | 103 / 103 |
 | SceMtpIf | `os0:kd/bootimage.skprx/SceMtpIfDriver` | 15 / 15 | 100% | - | - | 15 / 15 |
 | SceMtpr3 | `vs0:vsh/common/mtpr3.suprx` | 7 / 7 | 100% | - | - | - |
-| SceMusicExport | `vs0:sys/external/libSceMusicExport.suprx` | 1 / 2 | 50% | - | - | 0 / 1 |
+| SceMusicExport | `vs0:sys/external/libSceMusicExport.suprx` | 2 / 2 | 100% | - | - | 1 / 1 |
 | SceNearDialogUtil | `vs0:sys/external/libSceNearDialogUtil.suprx` | 33 / 33 | 100% | - | - | - |
 | SceNearProfile | `vs0:sys/external/near_profile.suprx` | 8 / 8 | 100% | - | - | 8 / 8 |
 | SceNearUtil | `vs0:sys/external/libSceNearUtil.suprx` | 49 / 49 | 100% | - | 46 / 46 | - |
@@ -469,12 +469,12 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceNpManagerOAuth | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerSP | `vs0:sys/external/np_manager.suprx` | 1 / 1 | 100% | - | - | - |
 | SceNpManagerTicket | `vs0:sys/external/np_manager.suprx` | 5 / 5 | 100% | - | - | - |
-| SceNpMatching2 | `vs0:sys/external/np_matching2.suprx` | 53 / 55 | 96.3% | - | 44 / 44 | 2 / 3 |
+| SceNpMatching2 | `vs0:sys/external/np_matching2.suprx` | 55 / 55 | 100% | - | 44 / 44 | 3 / 3 |
 | SceNpMessage | `vs0:sys/external/np_message.suprx` | 11 / 11 | 100% | - | 10 / 10 | - |
 | SceNpMessageContacts | `vs0:sys/external/np_message_contacts.suprx` | 16 / 16 | 100% | - | - | 12 / 12 |
 | SceNpMessageDialogPlugin | `vs0:sys/external/np_message_dialog_impl.suprx` | 5 / 5 | 100% | - | - | 4 / 4 |
 | SceNpPartyAppUtil | `vs0:app/NPXS10001/np_party_app.suprx` | 15 / 15 | 100% | - | - | 15 / 15 |
-| SceNpPartyGameUtil | `vs0:sys/external/np_party.suprx` | 11 / 13 | 84.6% | - | 8 / 8 | - |
+| SceNpPartyGameUtil | `vs0:sys/external/np_party.suprx` | 13 / 13 | 100% | 2 | 8 / 8 | - |
 | SceNpScore | `vs0:sys/external/np_ranking.suprx` | 32 / 32 | 100% | - | 26 / 26 | - |
 | SceNpSignaling | `vs0:sys/external/np_signaling.suprx` | 18 / 18 | 100% | - | 12 / 12 | - |
 | SceNpSnsFacebook | `vs0:sys/external/np_sns_facebook.suprx` | 7 / 61 | 11.4% | - | 6 / 6 | 0 / 23 |

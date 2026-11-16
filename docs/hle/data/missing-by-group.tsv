@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=342 general=295 vitasdk=0
+# firmware=3.74 games=0 system=335 general=292 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -71,11 +71,6 @@ system	SceGpuEs4User	0xBDE2B9E1	NID_BDE2B9E1	os0:us/libgpu_es4.suprx	0	1	os0:us/
 system	SceGpuEs4User	0xD90B0707	NID_D90B0707	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xE98914E4	NID_E98914E4	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceGpuEs4User	0xF0CCE9DB	NID_F0CCE9DB	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceGpuEs4UserForVsh	0x010DA2CB	NID_010DA2CB	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceGpuEs4UserForVsh	0x0A9556D9	NID_0A9556D9	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceGpuEs4UserForVsh	0x3C09BFCA	NID_3C09BFCA	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceGpuEs4UserForVsh	0x3DC96093	NID_3DC96093	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
-system	SceGpuEs4UserForVsh	0x8A27AB0A	NID_8A27AB0A	os0:us/libgpu_es4.suprx	0	1	os0:us/libgxm_es4.suprx
 system	SceHttp	0x43A7CC70	NID_43A7CC70	vs0:sys/external/libhttp.suprx	0	2	os0:ue/safemode.self
 system	SceHttp	0xA9A39BA1	NID_A9A39BA1	vs0:sys/external/libhttp.suprx	0	3	vs0:app/NPXS10072/email_engine.suprx
 system	SceJpegEncArm	0x4EE1BAED	NID_4EE1BAED	vs0:sys/external/libscejpegencarm.suprx	0	5	vs0:app/NPXS10004/eboot.bin
@@ -90,7 +85,6 @@ system	SceLibLocation	0x822BBF06	NID_822BBF06	vs0:sys/external/liblocation.suprx
 system	SceLibLocation	0x991AF2D0	NID_991AF2D0	vs0:sys/external/liblocation.suprx	0	1	vs0:sys/external/liblocation_internal.suprx
 system	SceLibLocation	0xC1CFEC92	NID_C1CFEC92	vs0:sys/external/liblocation.suprx	0	5	vs0:app/NPXS10000/eboot.bin
 system	SceLibLocation	0xEFC9BD25	NID_EFC9BD25	vs0:sys/external/liblocation.suprx	0	2	vs0:sys/external/liblocation_extension.suprx
-system	SceMusicExport	0xD1011570	NID_D1011570	vs0:sys/external/libSceMusicExport.suprx	0	4	vs0:app/NPXS10003/eboot.bin
 system	SceNetInternal	0x01B090F1	NID_01B090F1	vs0:sys/external/libnet.suprx	0	1	vs0:vsh/shell/shell.self
 system	SceNetInternal	0x04E6136D	NID_04E6136D	vs0:sys/external/libnet.suprx	0	2	vs0:app/NPXS10028/eboot.bin
 system	SceNetInternal	0x0DFC23D6	NID_0DFC23D6	vs0:sys/external/libnet.suprx	0	5	vs0:app/NPXS10015/eboot.bin
@@ -149,7 +143,6 @@ system	SceNpCommon	0xD2B9BCA8	NID_D2B9BCA8	vs0:sys/external/np_common.suprx	0	27
 system	SceNpCommon	0xE2743C07	NID_E2743C07	vs0:sys/external/np_common.suprx	0	2	vs0:sys/external/np_manager.suprx
 system	SceNpManager	0x44DF26F5	NID_44DF26F5	vs0:sys/external/np_manager.suprx	0	4	vs0:app/NPXS10002/eboot.bin
 system	SceNpManager	0xBF8921C8	NID_BF8921C8	vs0:sys/external/np_manager.suprx	0	10	vs0:app/NPXS10002/eboot.bin
-system	SceNpMatching2	0xDF322C5B	NID_DF322C5B	vs0:sys/external/np_matching2.suprx	0	1	vs0:app/NPXS10001/eboot.bin
 system	SceNpSnsFacebook	0x06A167FC	NID_06A167FC	vs0:sys/external/np_sns_facebook.suprx	0	2	vs0:app/NPXS10002/eboot.bin
 system	SceNpSnsFacebook	0x18041141	NID_18041141	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
 system	SceNpSnsFacebook	0x3574800C	NID_3574800C	vs0:sys/external/np_sns_facebook.suprx	0	1	vs0:sys/external/libcdlg_np_sns_fb.suprx
@@ -469,9 +462,6 @@ general	SceNpManager	0xBA49FD24	NID_BA49FD24	vs0:sys/external/np_manager.suprx	0
 general	SceNpManager	0xBBCD1B6D	NID_BBCD1B6D	vs0:sys/external/np_manager.suprx	0	0	-
 general	SceNpManager	0xC7F6ADC4	NID_C7F6ADC4	vs0:sys/external/np_manager.suprx	0	0	-
 general	SceNpManager	0xC80D8C3E	NID_C80D8C3E	vs0:sys/external/np_manager.suprx	0	0	-
-general	SceNpMatching2	0x54692CAA	NID_54692CAA	vs0:sys/external/np_matching2.suprx	0	0	-
-general	SceNpPartyGameUtil	0x089134D1	NID_089134D1	vs0:sys/external/np_party.suprx	0	0	-
-general	SceNpPartyGameUtil	0x6370CEB6	NID_6370CEB6	vs0:sys/external/np_party.suprx	0	0	-
 general	SceNpSnsFacebook	0x0CDD6B52	NID_0CDD6B52	vs0:sys/external/np_sns_facebook.suprx	0	0	-
 general	SceNpSnsFacebook	0x0FEBCA93	NID_0FEBCA93	vs0:sys/external/np_sns_facebook.suprx	0	0	-
 general	SceNpSnsFacebook	0x1375638F	NID_1375638F	vs0:sys/external/np_sns_facebook.suprx	0	0	-

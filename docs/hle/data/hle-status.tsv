@@ -86,7 +86,7 @@ SceGifPromoter	vs0:vsh/common/mms/gif_promoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceGps	os0:kd/bootimage.skprx/SceGps	11	11	0	0	11	11	0	0	0	0
 SceGpuEs4ForUser	os0:kd/bootimage.skprx/SceGpuEs4	7	7	0	0	4	4	1	0	1	0
 SceGpuEs4User	os0:us/libgpu_es4.suprx	49	1	0	0	42	1	0	0	0	1
-SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	0	0	0	5	0	0	0	0	0
+SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	5	0	0	5	5	5	0	5	0
 SceGriefReportDialog	vs0:app/NPXS10065/grief_report_dialog.suprx	9	9	0	0	7	7	0	0	0	9
 SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
 SceGxmInternal	os0:us/libgxm_es4.suprx	16	16	0	0	10	10	0	0	0	0
@@ -153,7 +153,7 @@ SceMsvPromoter	vs0:vsh/common/mms/MsvPromoter.suprx	3	3	0	0	0	0	0	0	0	3
 SceMtpClient	vs0:vsh/common/mtp_client.suprx	163	163	0	0	103	103	0	0	0	163
 SceMtpIf	os0:kd/bootimage.skprx/SceMtpIfDriver	15	15	0	0	15	15	0	0	0	0
 SceMtpr3	vs0:vsh/common/mtpr3.suprx	7	7	0	0	0	0	0	0	0	7
-SceMusicExport	vs0:sys/external/libSceMusicExport.suprx	2	1	0	0	1	0	0	0	0	0
+SceMusicExport	vs0:sys/external/libSceMusicExport.suprx	2	2	0	0	1	1	0	0	0	0
 SceNearDialogUtil	vs0:sys/external/libSceNearDialogUtil.suprx	33	33	0	0	0	0	0	0	0	0
 SceNearProfile	vs0:sys/external/near_profile.suprx	8	8	0	0	8	8	0	0	0	8
 SceNearUtil	vs0:sys/external/libSceNearUtil.suprx	49	49	46	46	0	0	0	0	0	0
@@ -182,12 +182,12 @@ SceNpManager	vs0:sys/external/np_manager.suprx	91	82	15	15	65	63	0	0	0	0
 SceNpManagerOAuth	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerSP	vs0:sys/external/np_manager.suprx	1	1	0	0	0	0	0	0	0	1
 SceNpManagerTicket	vs0:sys/external/np_manager.suprx	5	5	0	0	0	0	0	0	0	5
-SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	53	44	44	3	2	0	0	0	0
+SceNpMatching2	vs0:sys/external/np_matching2.suprx	55	55	44	44	3	3	0	0	0	0
 SceNpMessage	vs0:sys/external/np_message.suprx	11	11	10	10	0	0	0	0	0	0
 SceNpMessageContacts	vs0:sys/external/np_message_contacts.suprx	16	16	0	0	12	12	0	0	0	16
 SceNpMessageDialogPlugin	vs0:sys/external/np_message_dialog_impl.suprx	5	5	0	0	4	4	0	0	0	5
 SceNpPartyAppUtil	vs0:app/NPXS10001/np_party_app.suprx	15	15	0	0	15	15	0	0	0	15
-SceNpPartyGameUtil	vs0:sys/external/np_party.suprx	13	11	8	8	0	0	0	0	0	0
+SceNpPartyGameUtil	vs0:sys/external/np_party.suprx	13	13	8	8	0	0	2	0	0	0
 SceNpScore	vs0:sys/external/np_ranking.suprx	32	32	26	26	0	0	0	0	0	0
 SceNpSignaling	vs0:sys/external/np_signaling.suprx	18	18	12	12	0	0	0	0	0	0
 SceNpSnsFacebook	vs0:sys/external/np_sns_facebook.suprx	61	7	6	6	23	0	0	0	0	0
