@@ -1431,11 +1431,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 ## Firmware e sistema
 
 - [ ] [P2][G] Exceções da CPU chegando aos handlers do SceExcpmgr (kubridge kuKernelRegisterExceptionHandler e outros plugins): estudo de 16/11/2026 (kplug, decompilado os0__kd__excpmgr.skprx.c): no firmware o vetor de abort entra na cadeia em modo abort (lr_abt = PC+8, spsr_abt = CPSR), registro {next, 3 palavras, código em +0x10}; o handler do kubridge é assembly de modo abort (SRS/push, MRC p15 DFAR/DFSR, RFE). Falta na CPU emulada: modos de exceção (CPS/SRS/RFE hoje NOP; sem SPSR nem registros banqueados abt/und/svc; MRS/MSR SPSR; subs/movs pc,lr; ldm ^; MRC DFAR/DFSR/IFAR/IFSR). Plano: P1 modos na CpuState nos dois backends (0 custo sem exceção, medir fps); P2 handler de falha do host convertendo acesso a página não mapeada em data abort do guest (só no JIT nativo; hoje a página é commitada e o guest lê zeros — mudar só quando houver handler registrado); P3 caminho do usuário do kubridge (registro + retorno por RFE). Testes sintéticos no formato do firmware em cada parte.
-- [ ] [P3] GXM: aplicar no tradutor de shaders o remapeamento de coordenadas de textura de
+- [x] [P3] GXM: aplicar no tradutor de shaders o remapeamento de coordenadas de textura de
   `sceGxmShaderPatcherCreateFragmentProgramForGles` (tabela de 10 bytes: TEXCOORDi do fragment lê o TEXCOORD[remap[i]]
-  do vertex). Hoje o programa guarda a tabela (`GxmFragmentProgram.TexcoordRemap`, fora do save state) e o gerador
-  ainda liga TEXCOORDi à saída i; falta o gerador usar a tabela (e a chave de cache do pipeline) e o save state
-  gravá-la, com teste de tradução.
+  do vertex). Feito (16/11/2026, rm1, fix/gxm-texcoord-remap): a tabela fica empacotada no programa
+  (`GxmTexcoordRemap`, identidade = 0) e o shader de vértice do draw a aplica (`ShaderHints.TexcoordRemap`: a
+  localização 4 + i recebe o TEXCOORD[remap[i]] do programa, uma saída pode alimentar várias, a que não é escrita
+  fica zero), com chave própria (só quando há remapeamento: as outras chaves e o GLSL da identidade não mudam),
+  receita tag 5, save state (campo gerado `_texcoordRemaps`, que estados antigos não têm = identidade) e dump da GPU
+  (versão 2: byte de flags no registro do fragment program). Prova: `TexcoordRemapRoutesTheVertexCoordinatesToTheFragmentLocations`,
+  `GpuDumpTests.CommandsRoundTripThroughAFile` e `FragmentProgramForGlesChecksTheRemapAndSharesThePlainProgram` (save
+  state) falham sem a correção; `TexcoordRemapVariantsHaveTheirOwnKeyAndLeaveOthersUnchanged` e a ida e volta das receitas.
 - [ ] [P3] NpMatching2: o Init do np_matching2 3.74 troca a porta de signaling para 0x2756 numa lista de títulos do
   próprio módulo (a porta padrão é 9305; NID_B096B7A9/NID_40585786 já a definem e leem). Reproduzir lendo a lista do
   np_matching2.suprx instalado (dados do firmware, não do emulador) quando o Matching2 tiver signaling real.

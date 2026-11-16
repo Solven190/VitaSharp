@@ -118,6 +118,18 @@ public sealed partial class Gxm : ISnapshotState
         return d;
     }
 
+    /// <summary>The ForGles texture coordinate remaps (a generated field) go back onto the programs LoadExtra rebuilt.</summary>
+    void AfterSnapshotLoad()
+    {
+        foreach (KeyValuePair<uint, ulong> entry in _texcoordRemaps)
+        {
+            if (_fragmentPrograms.TryGetValue(entry.Key, out GxmFragmentProgram? fragmentProgram))
+            {
+                fragmentProgram.TexcoordRemap = entry.Value;
+            }
+        }
+    }
+
     void LoadExtra(SnapshotReader r)
     {
         bool hadQueue = r.ReadBool();

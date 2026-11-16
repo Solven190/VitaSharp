@@ -90,10 +90,36 @@ public sealed class GxmFragmentProgram
     public uint MultisampleMode;
     public bool IsMaskUpdate;
     /// <summary>sceGxmShaderPatcherCreateFragmentProgramForGles's texture coordinate remap (fragment TEXCOORDi reads
-    /// the vertex program's TEXCOORD[remap[i]]), null for the identity.</summary>
-    public byte[]? TexcoordRemap;
+    /// the vertex program's TEXCOORD[remap[i]]), packed by <see cref="GxmTexcoordRemap"/>: 0 for the identity.</summary>
+    public ulong TexcoordRemap;
     public int RefCount = 1;
     public object? BackendData;
+}
+
+/// <summary>
+/// The 10-entry texture coordinate remap of sceGxmShaderPatcherCreateFragmentProgramForGles packed in a ulong: entry i
+/// (the vertex TEXCOORD that fragment TEXCOORDi reads) is nibble i xor i, so the identity packs to 0 and every other
+/// table, including all zeros, to a non-zero value.
+/// </summary>
+public static class GxmTexcoordRemap
+{
+    /// <summary>Entries of the table (TEXCOORD0-9).</summary>
+    public const int Length = 10;
+
+    /// <summary>The packed table; every entry must be below <see cref="Length"/>.</summary>
+    public static ulong Pack(ReadOnlySpan<byte> table)
+    {
+        ulong packed = 0;
+        for (int i = 0; i < Length; i++)
+        {
+            packed |= (ulong)(table[i] ^ i) << (4 * i);
+        }
+
+        return packed;
+    }
+
+    /// <summary>The vertex texture coordinate fragment coordinate <paramref name="index"/> reads.</summary>
+    public static int Source(ulong packed, int index) => (int)((packed >> (4 * index)) & 0xF) ^ index;
 }
 
 public sealed class GxmSyncObject

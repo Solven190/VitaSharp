@@ -196,7 +196,7 @@ public sealed unsafe partial class VulkanRenderer
     }
 
     private static ulong HintKey(GxmTextureDesc[] tex, uint used, GxmVertexAttribute[]? attrs, GxmVertexStream[]? streams, uint colorFormat, bool fetchInput = false, uint outputFormat = 0, bool tileWord1 = false,
-        bool fetchSingle = false, uint varyingMask = 0, bool scaledPointSize = false, uint[]? rtBits = null, bool floatBits = false)
+        bool fetchSingle = false, uint varyingMask = 0, bool scaledPointSize = false, uint[]? rtBits = null, bool floatBits = false, ulong texcoordRemap = 0)
     {
         ulong h = ShaderHints.Fnv.Offset;
         for (int i = 0; i < 16; i++)
@@ -245,6 +245,7 @@ public sealed unsafe partial class VulkanRenderer
             h = ShaderHints.Fnv.Mix(h, ShaderHints.FloatBitsKey);
         }
 
+        h = ShaderHints.MixTexcoordRemap(h, texcoordRemap);
         return varyingMask != 0 ? ShaderHints.Fnv.Mix(ShaderHints.Fnv.Mix(h, ShaderHints.VaryingMaskKey), varyingMask) : h;
     }
 
@@ -371,7 +372,7 @@ public sealed unsafe partial class VulkanRenderer
     /// <param name="varyingMask">the draw's <see cref="VertexVaryingMask"/> (the colour-format slot of the hints delegate)</param>
     private static ShaderHints VertexHints(DrawCommand d, uint varyingMask) => new(TextureFormats(d.VertexTextures, d.VertexProgram.Info.TexturesUsed),
         d.VertexProgram.Attributes.Select(a => ((uint)a.RegIndex, (int)a.ComponentCount, AttributeFormatKey(a, d.VertexProgram.Streams))).ToArray(), 0,
-        VaryingMask: varyingMask, ScaledPointSize: d.VertexProgram.Info.Program.WritesPointSize);
+        VaryingMask: varyingMask, ScaledPointSize: d.VertexProgram.Info.Program.WritesPointSize, TexcoordRemap: d.FragmentProgram.TexcoordRemap);
 
     private static ShaderHints FragmentHints(DrawCommand d, uint colorFormat) =>
         new(TextureFormats(d.FragmentTextures, d.FragmentProgram.Info.TexturesUsed), [], colorFormat, OutputRegisterFormat: NativeOutputFormat(d.FragmentProgram));
@@ -523,6 +524,12 @@ public sealed unsafe partial class VulkanRenderer
         GxmVertexProgram gxmVertexProgram = d.VertexProgram;
         // the cache key is computed without building the hints (thousands of draws per frame hit the cache)
         uint mask = VertexVaryingMask(d);
+        // the memo keys on the mask only: draws with a ForGles texture coordinate remap (rare) take the keyed lookup
+        if (d.FragmentProgram.TexcoordRemap != 0)
+        {
+            return GetVertexShaderKeyed(d, gxmVertexProgram, mask);
+        }
+
         ShaderMemo memo = MemoSlot(_vsMemo, gxmVertexProgram);
         if (s_shaderMemoOn && MemoHit(memo, gxmVertexProgram, mask, d.VertexTextures, gxmVertexProgram.Info.TexturesUsed))
         {
@@ -540,7 +547,8 @@ public sealed unsafe partial class VulkanRenderer
 
     private VsEntry GetVertexShaderKeyed(DrawCommand d, GxmVertexProgram gxmVertexProgram, uint mask)
     {
-        ulong hk = HintKey(d.VertexTextures, gxmVertexProgram.Info.TexturesUsed, gxmVertexProgram.Attributes, gxmVertexProgram.Streams, 0, varyingMask: mask, scaledPointSize: gxmVertexProgram.Info.Program.WritesPointSize);
+        ulong hk = HintKey(d.VertexTextures, gxmVertexProgram.Info.TexturesUsed, gxmVertexProgram.Attributes, gxmVertexProgram.Streams, 0, varyingMask: mask, scaledPointSize: gxmVertexProgram.Info.Program.WritesPointSize,
+            texcoordRemap: d.FragmentProgram.TexcoordRemap);
         if (_vsCache.TryGetValue((gxmVertexProgram, hk), out VsEntry? vsEntry))
         {
             return vsEntry;

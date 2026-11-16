@@ -193,7 +193,8 @@ public sealed unsafe partial class VulkanRenderer
 
                     GxmVertexProgram gxmVertexProgram = d.VertexProgram;
                     uint vmask = VertexVaryingMask(d);
-                    ulong vk = HintKey(d.VertexTextures, gxmVertexProgram.Info.TexturesUsed, gxmVertexProgram.Attributes, gxmVertexProgram.Streams, 0, varyingMask: vmask, scaledPointSize: gxmVertexProgram.Info.Program.WritesPointSize);
+                    ulong vk = HintKey(d.VertexTextures, gxmVertexProgram.Info.TexturesUsed, gxmVertexProgram.Attributes, gxmVertexProgram.Streams, 0, varyingMask: vmask, scaledPointSize: gxmVertexProgram.Info.Program.WritesPointSize,
+                        texcoordRemap: d.FragmentProgram.TexcoordRemap);
                     if (NeedsJob(gxmVertexProgram.Info.Program, vk))
                     {
                         Queue(gxmVertexProgram.Info.Program, vk, VertexHints(d, vmask));
