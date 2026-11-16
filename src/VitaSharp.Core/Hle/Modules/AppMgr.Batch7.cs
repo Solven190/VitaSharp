@@ -640,7 +640,7 @@ public sealed partial class AppMgr
     /// (_vshAppMgrBgdlSetQueueStatus): no downloads, 32 empty entries.</summary>
     [Hle("sceAppMgrBgdlGetQueueStatus")]
     [Hle("_sceAppMgrBgdlGetQueueStatus")]
-    int BgdlGetQueueStatus(uint status)
+    internal int BgdlGetQueueStatus(uint status)
     {
         if (status == 0) return ERR_NULL_POINTER;
         GuestMemory.Fill(status, 0, 0x700);

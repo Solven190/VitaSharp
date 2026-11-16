@@ -10,7 +10,7 @@
 <rect x="898" y="16" width="24" height="14" rx="2" fill="#9ed864"/>
 <rect x="924" y="16" width="24" height="14" rx="2" fill="#64d864"/>
 <text x="952" y="27" font-size="11" fill="#59636e">100%</text>
-<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 84.8% implemented (16,462/19,406)</text>
+<text x="12" y="58" font-size="13" font-weight="600" fill="#1f2328">User (308 libraries): 84.8% implemented (16,469/19,406)</text>
 <g><title>ScePafWidget: 2372/2372 (100%)</title><rect x="8" y="64" width="227.9" height="290.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="79" font-size="13" fill="#1f2328">PafWidget</text><text x="11" y="95" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePafMisc: 1075/1075 (100%)</title><rect x="8" y="354.9" width="227.9" height="131.8" fill="#64d864" stroke="#ffffff" stroke-width="1"/><text x="11" y="369.9" font-size="13" fill="#1f2328">PafMisc</text><text x="11" y="385.9" font-size="11" fill="#1f2328" fill-opacity=".8">100%</text></g>
 <g><title>ScePsp2Compat: 160/1047 (15.2%)</title><rect x="8" y="486.7" width="227.9" height="128.4" fill="#d88764" stroke="#ffffff" stroke-width="1"/><text x="11" y="501.7" font-size="13" fill="#1f2328">Psp2Compat</text><text x="11" y="517.7" font-size="11" fill="#1f2328" fill-opacity=".8">15.2%</text></g>
@@ -60,7 +60,7 @@
 <g><title>SceIpmi: 83/83 (100%)</title><rect x="612.6" y="333.2" width="44" height="52.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceActivityDb: 78/78 (100%)</title><rect x="612.6" y="385.9" width="44" height="49.5" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceBbmc: 77/77 (100%), 75 default</title><rect x="612.6" y="435.4" width="44" height="48.9" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceNpCommon: 48/71 (67.6%)</title><rect x="612.6" y="484.3" width="44" height="45.1" fill="#afd864" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceNpCommon: 50/71 (70.4%)</title><rect x="612.6" y="484.3" width="44" height="45.1" fill="#a9d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceNgs: 68/68 (100%)</title><rect x="612.6" y="529.4" width="44" height="43.2" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceNpTus: 67/67 (100%)</title><rect x="612.6" y="572.6" width="44" height="42.5" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceSas: 33/65 (50.7%)</title><rect x="656.6" y="278.6" width="44" height="41.2" fill="#d6d864" stroke="#ffffff" stroke-width="1"/></g>
@@ -76,9 +76,9 @@
 <g><title>libical: 58/58 (100%)</title><rect x="656.6" y="406" width="38" height="42.7" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceStitcherCoreAdapter: 0/57 (0%)</title><rect x="656.6" y="448.7" width="38" height="42" fill="#d86464" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>stitch_core_prx: 0/57 (0%)</title><rect x="656.6" y="490.7" width="38" height="42" fill="#d86464" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceAppUtil: 46/56 (82.1%)</title><rect x="656.6" y="532.6" width="38" height="41.2" fill="#8dd864" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceAppUtil: 50/56 (89.2%)</title><rect x="656.6" y="532.6" width="38" height="41.2" fill="#7dd864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceVideodecUser: 56/56 (100%)</title><rect x="656.6" y="573.9" width="38" height="41.2" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
-<g><title>SceNpMatching2: 50/55 (90.9%)</title><rect x="694.5" y="319.8" width="37.4" height="41.1" fill="#79d864" stroke="#ffffff" stroke-width="1"/></g>
+<g><title>SceNpMatching2: 51/55 (92.7%)</title><rect x="694.5" y="319.8" width="37.4" height="41.1" fill="#75d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceBt: 54/54 (100%), 46 default</title><rect x="694.5" y="361" width="37.4" height="40.4" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceCommonGuiDialog: 54/54 (100%)</title><rect x="694.5" y="401.3" width="37.4" height="40.4" fill="#64d864" stroke="#ffffff" stroke-width="1"/></g>
 <g><title>SceGpuEs4User: 1/49 (2%)</title><rect x="694.5" y="441.7" width="37.4" height="36.6" fill="#d86964" stroke="#ffffff" stroke-width="1"/></g>
