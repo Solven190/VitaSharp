@@ -562,6 +562,10 @@ public sealed class Emulator : IDisposable
     /// keeps the process).</summary>
     private bool _toldCreated;
 
+    /// <summary>Orders the create event before the end event (processmgr holds the process's lock across both): a
+    /// process ended while its create event runs hears the end once the create returned.</summary>
+    private readonly object _processEventGate = new();
+
     /// <summary>
     /// The create event (<see cref="ProcessEvents"/>): processmgr invokes it once the process's main thread exists,
     /// before the process starts. A handler that fails refuses the process: the handlers called before it hear that it
@@ -569,33 +573,44 @@ public sealed class Emulator : IDisposable
     /// </summary>
     private void TellProcessCreated(GuestThread main)
     {
-        if (_toldCreated || IsKernelProcess)
+        if (IsKernelProcess)
         {
             return;
         }
 
-        int result = InvokeProcessEvent(ProcessEvents.Create, stopAtFailure: true, stopAt: 0, out int refusedBy);
-        if (refusedBy != 0)
+        lock (_processEventGate)
         {
-            InvokeProcessEvent(ProcessEvents.Exit, stopAtFailure: false, stopAt: refusedBy, out _);
-            Kernel.DeleteThread(main);
-            Log.Warn($"{Describe()}: process event handler 0x{refusedBy:X} refused the process (0x{result:X8})");
-            throw new ProcessLoadException(result, new InvalidOperationException($"a kernel process event handler refused the process (0x{result:X8})"));
-        }
+            if (_toldCreated)
+            {
+                return;
+            }
 
-        _toldCreated = true;
+            int result = InvokeProcessEvent(ProcessEvents.Create, stopAtFailure: true, stopAt: 0, out int refusedBy);
+            if (refusedBy != 0)
+            {
+                InvokeProcessEvent(ProcessEvents.Exit, stopAtFailure: false, stopAt: refusedBy, out _);
+                Kernel.DeleteThread(main);
+                Log.Warn($"{Describe()}: process event handler 0x{refusedBy:X} refused the process (0x{result:X8})");
+                throw new ProcessLoadException(result, new InvalidOperationException($"a kernel process event handler refused the process (0x{result:X8})"));
+            }
+
+            _toldCreated = true;
+        }
     }
 
     /// <summary>The exit or kill event, for a process the handlers were told was created.</summary>
     private void TellProcessEnd(int eventId)
     {
-        if (!_toldCreated)
+        lock (_processEventGate)
         {
-            return;
-        }
+            if (!_toldCreated)
+            {
+                return;
+            }
 
-        _toldCreated = false;
-        InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _);
+            _toldCreated = false;
+            InvokeProcessEvent(eventId, stopAtFailure: false, stopAt: 0, out _);
+        }
     }
 
     /// <summary>
