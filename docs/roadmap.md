@@ -1177,9 +1177,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   overlay ("Pausado", "● REC") com os acentos certos (`and7_tools/shots/lib3.png`, `app_ajustes.png`, `app3.jpg`, `app3b.jpg`,
   `pm_main.png`). Texto dos jogos (PVF) não conferido
   Validado no celular (06/11/2026, perf/android-7): acentos certos em todas as telas do app
-- [ ] Invalidação de código no load de módulo: `Emulator.LoadModule` descarta o código traduzido do processo inteiro
+- [x] Invalidação de código no load de módulo: `Emulator.LoadModule` descarta o código traduzido do processo inteiro
   (0..4 GB) a cada módulo carregado. Basta descartar o intervalo dos segmentos novos e os stubs de import religados
   (o `Linker` já invalida os que reescreve), conferido por teste.
+  Feito (16/11/2026, rm2, fix/rm2-load-invalidate): o load descarta só os segmentos do módulo novo; os stubs religados
+  já se invalidavam; faltava o que a invalidação global escondia: os imports de variável de módulos anteriores
+  realocados de novo quando um módulo posterior exporta a variável (ou um unload a tira), que reescrevem pares
+  MOVW/MOVT no código do importador, agora descartam só as palavras escritas (`Relocation.RelocatePatchedRange`).
+  Prova: `ModuleLoadCodeInvalidationTests` (3 casos: código fora do load fica, stub religado sai e o resto do
+  importador fica, variável exportada depois invalida só os 8 bytes realocados), os 3 falham sem a correção.
 - [ ] Load de save state sem descartar todo o JIT: `SaveStates` chama `Code.Clear()` e todo o código traduzido é
   recompilado (vários segundos no celular depois de cada load). Manter os blocos cujo código do convidado não mudou
   (comparando as páginas de código do state com as atuais) e descartar só o resto, conferido por teste.

@@ -1615,7 +1615,13 @@ public sealed class Emulator : IDisposable
         }
 
         Kernel.Modules[loadedModule.Uid] = loadedModule;
-        InvalidateCode(0, uint.MaxValue);
+        // only the new module's own range holds new code; the stubs of earlier modules that the linker rewrote (and the
+        // variable imports it relocated again) dropped their translations as it wrote them
+        foreach (SegmentInfo segmentInfo in loadedModule.Segments.Values)
+        {
+            InvalidateCode(segmentInfo.Address, segmentInfo.Size);
+        }
+
         Log.Info($"Loaded {(kernel ? "kernel " : "")}module {loadedModule.Name} ({vitaPath}) start=0x{loadedModule.StartEntry:X8} imports={loadedModule.Imports.Sum(i => i.FuncNids.Length)}");
         CheckPendingVariables(loadedModule);
         return loadedModule;

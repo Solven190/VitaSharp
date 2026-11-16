@@ -18,6 +18,16 @@ public static unsafe class Relocation
     [SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
     [ThreadStatic] private static byte* t_imageBase;
 
+    /// <summary>While <see cref="RelocatePatchedRange"/> runs: the lowest and the end of the highest guest address patched.</summary>
+    [SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
+    [ThreadStatic] private static bool t_trackPatches;
+
+    [SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
+    [ThreadStatic] private static uint t_patchedLow;
+
+    [SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
+    [ThreadStatic] private static uint t_patchedEnd;
+
     private static byte* At(uint p) => t_imageBase != null ? t_imageBase + p : GuestMemory.Ptr(p);
 
     /// <summary>Applies a relocation stream to a module image in a host buffer (segments laid out at the offsets in
@@ -35,9 +45,38 @@ public static unsafe class Relocation
         }
     }
 
+    /// <summary>
+    /// <see cref="Relocate"/> on guest memory that also returns the range it wrote, [Low, End) (Low == End: nothing): a
+    /// variable import relocated again when a later module exports the variable rewrites words in the importer's code
+    /// (MOVW/MOVT pairs), and only that range's translated code is stale.
+    /// </summary>
+    public static (uint Low, uint End) RelocatePatchedRange(ReadOnlySpan<byte> data, IReadOnlyDictionary<int, SegmentInfo> segs,
+        bool isVarImport = false, uint explicitSymval = 0)
+    {
+        t_trackPatches = true;
+        t_patchedLow = uint.MaxValue;
+        t_patchedEnd = 0;
+        try
+        {
+            Relocate(data, segs, isVarImport, explicitSymval);
+        }
+        finally
+        {
+            t_trackPatches = false;
+        }
+
+        return t_patchedEnd == 0 ? (0u, 0u) : (t_patchedLow, t_patchedEnd);
+    }
+
     private static void Apply(uint p, uint code, uint s, uint a)
     {
         byte* ptr = At(p);
+        if (t_trackPatches && code is not (None or V4BX or RBase))
+        {
+            t_patchedLow = Math.Min(t_patchedLow, p);
+            t_patchedEnd = Math.Max(t_patchedEnd, p + 4);
+        }
+
         switch (code)
         {
             case None:

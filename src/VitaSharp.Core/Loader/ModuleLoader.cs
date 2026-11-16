@@ -480,7 +480,7 @@ public sealed class Linker(IImportResolver importResolver)
                     {
                         if (bnid == nid && relocs.Length > 0)
                         {
-                            Relocation.Relocate(relocs, segs, true, addr);
+                            RelocateVariable(relocs, segs, addr);
                         }
                     }
                 }
@@ -490,6 +490,17 @@ public sealed class Linker(IImportResolver importResolver)
         if (registered.Count > 0)
         {
             ExportsChanged?.Invoke(registered);
+        }
+    }
+
+    /// <summary>Points an earlier variable import at <paramref name="address"/> again and drops the translated code of
+    /// the words it rewrote (the importer's MOVW/MOVT pairs may be code that already ran).</summary>
+    private void RelocateVariable(byte[] relocs, Dictionary<int, SegmentInfo> segs, uint address)
+    {
+        (uint low, uint end) = Relocation.RelocatePatchedRange(relocs, segs, true, address);
+        if (end > low)
+        {
+            InvalidateCode?.Invoke(low, end - low);
         }
     }
 
@@ -589,7 +600,7 @@ public sealed class Linker(IImportResolver importResolver)
                 uint addr = importResolver.GetHleVariable(bnid);
                 if (addr != 0)
                 {
-                    Relocation.Relocate(relocs, segs, true, addr);
+                    RelocateVariable(relocs, segs, addr);
                 }
                 else
                 {
