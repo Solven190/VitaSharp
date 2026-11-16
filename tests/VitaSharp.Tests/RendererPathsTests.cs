@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using VitaSharp.Core.Gpu;
 using VitaSharp.Core.Memory;
@@ -378,6 +379,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
             lock (anomalies)
             {
                 anomalies.Add(kind + ": " + detail);
+                Monitor.PulseAll(anomalies);
             }
         };
         long scans = 0;
@@ -405,17 +407,21 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
             h.Emu.Gpu.WaitIdle();
             scans = (long)typeof(VulkanRenderer).GetField("_nanScans", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(r)!;
         });
-        // the anomaly handler runs on the thread pool
-        for (int i = 0; i < 40; i++)
+        // The anomaly handler runs on the thread pool, which a loaded run (the coverage job: the whole suite under
+        // coverlet on two cores) can keep busy for seconds: the test waits for the handler calls the renderer raised
+        // (its recent events that ask for a capture, recorded on the GPU thread before the handler is queued), not for
+        // a host-clock deadline. The timeout only keeps a lost call from hanging the run.
+        var events = (Queue<FrameAnomalyDetector.Event>)typeof(VulkanRenderer).GetField("_recentEvents", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(r)!;
+        int raised = events.Count(e => e.Capture);
+        var lost = Stopwatch.StartNew();
+        lock (anomalies)
         {
-            lock (anomalies)
+            while (anomalies.Count < raised && lost.Elapsed < TimeSpan.FromMinutes(2))
             {
-                if (anomalies.Count > 0)
-                {
-                    break;
-                }
+                Monitor.Wait(anomalies, TimeSpan.FromSeconds(1));
             }
-            Thread.Sleep(50);
+
+            Assert.True(anomalies.Count >= raised, $"{raised} anomalies raised, {anomalies.Count} reached the handler");
         }
         lock (anomalies)
         {
