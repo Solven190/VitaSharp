@@ -135,8 +135,6 @@ public sealed partial class Gxm : HleModule
         return 0;
     }
 
-    [Hle] uint sceGxmGetNotificationRegion() => _notificationRegion;
-
     [Hle]
     int sceGxmMapMemory(uint baseAddr, uint size, uint attribs)
     {

@@ -9354,6 +9354,7 @@
 0x33737FDC	NID_33737FDC	FirmwareConstants	-	-
 0x337910A0	NID_337910A0	EmailEngine	-	-
 0x33836375	NID_33836375	data	-	-
+0x338E3186	NID_338E3186	Gxm	-	-
 0x33C19D3B	NID_33C19D3B	data	-	-
 0x33DAF949	NID_33DAF949	data	-	-
 0x34455CAF	NID_34455CAF	data	-	-
@@ -10019,6 +10020,7 @@
 0x9F17589B	NID_9F17589B	data	-	-
 0x9F43A559	NID_9F43A559	data	-	-
 0x9F48395D	NID_9F48395D	SqliteVsh	-	-
+0x9F7503E8	NID_9F7503E8	Gxm	-	-
 0x9F8FA452	NID_9F8FA452	FirmwareConstants	-	-
 0x9FB0A34A	NID_9FB0A34A	FirmwareConstants	-	-
 0x9FDDB92F	NID_9FDDB92F	data	-	-
@@ -11523,8 +11525,8 @@
 0x0C294FAF	sceSasSetVoiceInternal	Sas	-	-
 0xEB6708B0	sceSasSetVoicePCMInternal	Sas	-	-
 0x868E1C88	sceSasSetVolumeInternal	Sas	-	-
-0x7CBF442B	sceShellSvc_7CBF442B	SystemFallback	-	-
+0x7CBF442B	sceShellSvc_7CBF442B	ShellUtil	-	-
 0xA0B067AC	sceShellSvc_A0B067AC	SystemFallback	-	-
-0xFB03FBC9	sceShellSvc_FB03FBC9	SystemFallback	-	-
+0xFB03FBC9	sceShellSvc_FB03FBC9	ShellUtil	-	-
 0x28EF51DA	sceTriggerUtil_28EF51DA	TriggerUtil	-	-
 0xF1A3690B	sceUdcd_F1A3690B	MtpIf	-	-

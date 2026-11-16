@@ -89,7 +89,7 @@ SceGpuEs4User	os0:us/libgpu_es4.suprx	49	1	0	0	42	1	0	0	0	1
 SceGpuEs4UserForVsh	os0:us/libgpu_es4.suprx	5	0	0	0	5	0	0	0	0	0
 SceGriefReportDialog	vs0:app/NPXS10065/grief_report_dialog.suprx	9	9	0	0	7	7	0	0	0	9
 SceGxm	os0:us/libgxm_es4.suprx	267	267	246	246	0	0	0	0	0	0
-SceGxmInternal	os0:us/libgxm_es4.suprx	16	14	0	0	10	10	0	0	0	0
+SceGxmInternal	os0:us/libgxm_es4.suprx	16	16	0	0	10	10	0	0	0	0
 SceGxmInternalForGles	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
 SceGxmInternalForReplay	os0:us/libgxm_es4.suprx	1	1	0	0	0	0	0	0	0	0
 SceGxmInternalForTest	os0:us/libgxm_es4.suprx	15	0	0	0	0	0	0	0	0	0

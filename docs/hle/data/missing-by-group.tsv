@@ -1,5 +1,5 @@
 # Missing functions of each HLE status group, written by VitaSharp.Desktop hle-coverage --status (build/hle-status.ps1)
-# firmware=3.74 games=0 system=342 general=297 vitasdk=0
+# firmware=3.74 games=0 system=342 general=295 vitasdk=0
 # group: games/system/general as in docs/hle/data/hle-status.tsv, vitasdk = the VitaSDK NID list; games/system: importer counts
 group	library	nid	name	module	games	system	importer
 system	SceAppUtil	0x1CFFE892	NID_1CFFE892	vs0:sys/external/apputil.suprx	0	1	vs0:sys/external/apputil_ext.suprx
@@ -356,8 +356,6 @@ general	SceGpuEs4User	0x9E8E2957	NID_9E8E2957	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xAAD85460	NID_AAD85460	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xC0D16CE5	NID_C0D16CE5	os0:us/libgpu_es4.suprx	0	0	-
 general	SceGpuEs4User	0xCCEE0336	NID_CCEE0336	os0:us/libgpu_es4.suprx	0	0	-
-general	SceGxmInternal	0x338E3186	NID_338E3186	os0:us/libgxm_es4.suprx	0	0	-
-general	SceGxmInternal	0x9F7503E8	NID_9F7503E8	os0:us/libgxm_es4.suprx	0	0	-
 general	SceGxmInternalForTest	0x1D68FB73	NID_1D68FB73	os0:us/libgxm_es4.suprx	0	0	-
 general	SceGxmInternalForTest	0x2B0A5A39	NID_2B0A5A39	os0:us/libgxm_es4.suprx	0	0	-
 general	SceGxmInternalForTest	0x3D8863E2	NID_3D8863E2	os0:us/libgxm_es4.suprx	0	0	-

@@ -90,8 +90,6 @@ SceGpuEs4UserForVsh	0x0A9556D9	NID_0A9556D9	os0-user	0	1	-
 SceGpuEs4UserForVsh	0x3C09BFCA	NID_3C09BFCA	os0-user	0	1	-
 SceGpuEs4UserForVsh	0x3DC96093	NID_3DC96093	os0-user	0	1	-
 SceGpuEs4UserForVsh	0x8A27AB0A	NID_8A27AB0A	os0-user	0	1	-
-SceGxmInternal	0x338E3186	NID_338E3186	os0-user	0	0	-
-SceGxmInternal	0x9F7503E8	NID_9F7503E8	os0-user	0	0	-
 SceGxmInternalForTest	0x1D68FB73	NID_1D68FB73	os0-user	0	0	-
 SceGxmInternalForTest	0x2B0A5A39	NID_2B0A5A39	os0-user	0	0	-
 SceGxmInternalForTest	0x3D8863E2	NID_3D8863E2	os0-user	0	0	-

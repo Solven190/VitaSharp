@@ -81,6 +81,25 @@ public sealed class GxmFlowTests : IDisposable
         _harness.Dispose();
     }
 
+    /// <summary>libgxm 3.74's notification block: NULL before sceGxmInitialize; then the public region is block + 0x20 and
+    /// the two SceGxmInternal entries give the block and block + 0x10.</summary>
+    [Fact]
+    public void NotificationRegionLiesInTheBlockTheInternalEntriesGive()
+    {
+        Assert.Equal(0u, (uint)Invoke(Gxm, "sceGxmGetNotificationRegion")!);
+        Assert.Equal(0u, (uint)Invoke(Gxm, "GxmNotificationBlock")!);
+        Assert.Equal(0u, (uint)Invoke(Gxm, "GxmNotificationBlockSecondHalf")!);
+        Init();
+        uint block = (uint)Invoke(Gxm, "GxmNotificationBlock")!;
+        Assert.NotEqual(0u, block);
+        Assert.Equal(block + 0x10, (uint)Invoke(Gxm, "GxmNotificationBlockSecondHalf")!);
+        Assert.Equal(block + 0x20, (uint)Invoke(Gxm, "sceGxmGetNotificationRegion")!);
+        Assert.Equal(0u, GuestMemory.R32(block + 0x81C)); // the 0x820 bytes are cleared
+        Call(Gxm, "sceGxmTerminate");
+        Assert.Equal(0u, (uint)Invoke(Gxm, "GxmNotificationBlock")!);
+        _harness.Dispose();
+    }
+
     private uint Out() => _harness.Word(0);
 
     private void Init()
