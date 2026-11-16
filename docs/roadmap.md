@@ -124,7 +124,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   contrato, sem depender do nome. Feito: `[Hle(Cost = HleCost...)]` por função e `HleModule.DefaultCost` por
   biblioteca, `CallbackWait = true` nas esperas com callbacks; `HleCostTests` confere as classes, o custo cobrado por
   chamada e os pares CB de cada espera.
-- [ ] [P2][M] **Revalidar as classes herdadas da regra por nome** (a migração manteve os custos idênticos): `sceCtrl*`
+- [x] [P2][M] **Revalidar as classes herdadas da regra por nome** (a migração manteve os custos idênticos): `sceCtrl*`
   (incluindo Peek, Get/Set de modo, barra de luz) e `sceTouch*` estão como espera no escalonador, mas só as leituras
   `Read*` esperam a próxima amostra; `__rtabi_*` (divisão, deslocamento de 64 bits) estão como entrada no kernel, mas
   são código de usuário de poucas instruções; os getters de prioridade de `sceIo*` estão como espera; as funções de
@@ -135,8 +135,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   esperam o event flag da amostra; Peek, modos, barra de luz, regiões e estado de amostragem pegam o mutex do driver e
   copiam/guardam: viraram entrada no kernel (12.000 -> 2.000 ciclos). `__rtabi_*` são código de usuário do libkernel
   (o export desvia direto para a rotina, sem syscall): chamada curta de usuário (2.000 -> 50). Getters/setters de
-  prioridade de `sceIo*`: entrada no kernel. Prova: `HleCostTests` (19 casos falham sem a correção). Falta: as
-  funções de libgxm/librtc que a HLE não implementa (caem em entrada no kernel) e o A/B em gameplay pelo usuário.
+  prioridade de `sceIo*`: entrada no kernel. Prova: `HleCostTests` (19 casos falham sem a correção).
+  Fechado (16/11/2026, rm1, fix/hle-cost-library-default): um NID que a HLE não implementa cobra a classe da sua
+  biblioteca quando o módulo HLE dela declara uma classe de usuário (`HleRegistry.UnimplementedCost`: biblioteca do
+  banco de NIDs, nome fixo do firmware; libgxm, librtc, libngs, libfiber, Clib são código de usuário no Vita, sem
+  syscall); as bibliotecas de serviço continuam entrada no kernel (uma função de serviço que falta não é suposta
+  espera), e módulos que discordam na mesma biblioteca também. O registro recriado ao carregar um save state passou a
+  receber a mesma declaração (antes ficava sempre entrada no kernel, mesmo implementado). Prova:
+  `HleCostTests.UnimplementedFunctionsTakeTheirLibrarysClass` (SceGxm/SceRtc/SceNgs falham sem a correção). O A/B em
+  gameplay fica para quando o usuário testar (as funções afetadas são as não implementadas, raras no caminho quente).
 - [ ] [P3][G] **CPU ARM:** cada instrução e cada modo comparado com uma referência (resultado, flags, exceções), nos três
   backends (native, IL, interpretador).
 - [ ] [P3][G] **GXM e tradução de shaders:** sequências sintéticas de comandos (cenas, sync objects, fila de display, MSAA,
