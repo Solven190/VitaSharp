@@ -340,6 +340,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Desempenho (PC)
 
+- [ ] [P3][M] Investigar reduções de memória do emulador (pedido do usuário, 17/11/2026): medir o uso de RAM do
+  processo com um jogo pesado (dotnet-counters/dotnet-gcdump) e listar onde dá para cortar (caches de shader/textura,
+  cópias da memória do Vita, buffers da GPU, heap do .NET), com o ganho estimado de cada um, sem perder fps
+
 - [x] Onde o código do guest roda (perf/il-1, 11/11/2026): linha nova `CPU tiers` no relatório do fim da execução
   (instruções executadas no código nativo, nas callouts, no backend IL e no interpretador, com o estado dos blocos
   interpretados) e os motivos de rejeição por backend. Desktop x64, cenários inteiros (boot incluído): Killzone 99,40%
@@ -1438,6 +1442,13 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
     do F1); corrigir de forma genérica e depois confirmar no celular com o bench de flicker e fps
 
 ## Controles
+
+- [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
+  as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
+  tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
+- [ ] [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
+  sair da tela de controles; ter um botão "Salvar" (e um aviso de "salvo"/"alterações não salvas") na tela de
+  controles, mantendo o salvamento ao sair
 
 - [x] Botões do mouse mapeáveis (pedido do usuário, 06/11/2026): o botão esquerdo e o direito do mouse (e o do meio)
   podem ser mapeados como qualquer botão do Vita (ex.: R para atirar e L para mirar no Killzone, junto com o mouse como
@@ -2705,6 +2716,12 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   Correção: 90f1ceb8 (merge db7044ef, 15/11/2026): o passo scripted de save/load state roda uma vez mesmo com várias threads lendo o pad. Teste: no celular, carregar um estado e logo em seguida carregar outro; o jogo não deve congelar.
 
 ## Bugs em aberto
+
+- [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
+  17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
+  silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
+  hle_errors só PollEventFlag/WaitSema de espera normal). Suspeita a confirmar no replay: iluminação dos modelos com
+  skin (constantes de luz/normais no shader dos personagens). Não é ajuste para o jogo: achar a regra genérica
 
 - [x] (16/11/2026, confirmado pelo usuário: passa dos 99% e os gráficos estão certos — plugins de kernel num kernel único do sistema fc39f7c5, funções internas do SceSysmem 3.74 77d9f5c7 + af2cba24, ETC1 com palavras little-endian 5f7680c2) [P1][M] Real Racing 3 (port RR3VITA01) parado em "Preparando los shaders… 99%" (relato do usuário, 16/11/2026; captura `RR3VITA01_20261116_013628_tudo`): a tela desenha a 60 fps a mesma imagem ("1714 preparados" não sobe), as 4 `rr3_worker` só dormem em laço (sceKernelDelayThread 100 ms), a `main` espera o semáforo `rr3_dib_vaciado` com timeout (0x80028005 x4379) e a `rr3_dibujo` segue desenhando e passa bloqueada em sceGxmDisplayQueueAddEntry — ninguém sinaliza o "desenho esvaziado". Suspeitas: a fila de exibição do GXM nunca libera a entrada que a thread de desenho espera para sinalizar, ou o libshacccg não devolveu um shader. O módulo PluginFramework (taiHEN) recusa save state, então a captura não tem estado para rerun. Primeiro passo: ler o código da rr3_dibujo em torno do sinal de rr3_dib_vaciado (lr 0x810145DD / 0x81014425) e o histórico do sema.
   16/11/2026 (kill3, rr3b): causa 1 corrigida (c3248133: plugins de kernel recarregados depois do LoadExec do processo que os tem). Causa 2, aberta: com o kubridge presente o jogo chega ao kuKernelMemProtect real e crasha (Prefetch abort em 0x0, lr=kubridge+0x15FE): o kubridge acha funções INTERNAS do SceSysmem por module_get_offset (deslocamentos de 3.65 = 3.74: 0x10CE1 busca de memblock, 0xA115/0x15DAD/0x149E5/0x148D9/0x15B1D mapa/desmapa da MMU) e mexe nos campos do memblock (+0xC tipo, +0x10, +0x20 lock, +0x24 espaço, +0x30 sub-blocos); a casca HLE do SceSysmem (FirmwareKernelModules) é pequena e PluginFramework.SegmentOffset recusa o deslocamento, o ponteiro fica 0. Plano: (a) casca do SceSysmem com o layout real do firmware instalado (seg0 0x2F280, seg1 memsz 0x7604, exports nos deslocamentos reais); (b) armadilha SVC nas funções internas sem HLE (erro com nome em vez de crash), teste sintético; (c) HLE das funções internas e dos objetos memblock/espaço de endereços no layout 3.74 (várias horas; decompilado em fw374decompos0__kd__sysmem.skprx.c). Ver também SceExcpmgr (kuKernelRegisterExceptionHandler).
