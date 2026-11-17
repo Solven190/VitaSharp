@@ -1443,6 +1443,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Controles
 
+- [ ] [P2][M] Atalho com dois botões juntos (combinação) não funciona no mapeamento (pedido do usuário, 17/11/2026):
+  ao gravar L3 + R3, o mapeamento entende L3 sozinho e depois L3 + R3 (grava cada botão conforme é apertado, em vez
+  de esperar a combinação completa); o certo é gravar só a combinação final (L3 + R3) e, no jogo, disparar só com os
+  dois apertados, sem disparar o atalho de L3 sozinho no caminho
 - [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
   as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
   tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
