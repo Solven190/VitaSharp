@@ -2210,6 +2210,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   como administrador, `--gpu-dump-at` armado antes do jogo, limite de 3 apresentações pendentes). Antes de juntar:
   medição A/B do F1 2011 e do Uncharted com a máquina quieta e conferência de travadas nos quadros gravados.
 - [x] (**16/11/2026, rm4, feat/lavapipe-windows**: lavapipe é o padrão local no Windows, SwiftShader a reserva) [P3][M]
+  16/11/2026, decisão do usuário: o lavapipe deixa os testes de renderer ~3x mais lentos (21 s -> 61 s) e não compensa; foi desinstalado da máquina local. Sem ele, SoftwareVulkan.cs cai sozinho no SwiftShader do Edge (o código de escolha continua, para quem instalar o lavapipe).
   Vulkan por software no Windows: trocar o SwiftShader pelo Mesa lavapipe (build do mesa-dist-win em
   `%LOCALAPPDATA%\VitaSharpTools`), o mesmo driver que o CI do Linux usa. Antes de trocar: conferir se ele expõe
   `VK_EXT_rasterization_order_attachment_access` (caminho de fetch passes da Mali no replay), rodar os mesmos
