@@ -1601,6 +1601,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   guarda a config em `ur0:kernel_plugins` (a3ff504b). Dead Space rodou 5 min com kubridge + fd_fix sem crash (lead,
   procdump sem exceção não tratada). Faltam: o hardware (Bluetooth, SD2Vita) e a lista de plugins públicos validados
   (um teste por exportação e cada plugin rodando).
+  Próximo passo (16/11/2026, conversa com o usuário): com as cascas dos módulos do firmware no layout real (c69d5e31/77d9f5c7), o taihen.skprx real talvez consiga instalar os 11 hooks do `hen_add_patches`. Investigar só por caminhos genéricos (nada específico do taiHEN no código): rodar o taiHEN real, ver em qual hook ele falha agora, e garantir que as verificações de licença/assinatura continuam respondendo "indisponível" pelo HLE mesmo com os hooks instalados (nenhum contorno de DRM passa a funcionar). Se iniciar: kubridge/fd_fix pelo taiHEN, Sonic Mania e o Adrenaline (jogos de PSP) voltam ao alcance.
 - [ ] [P3][G] Modelo do chip syscon para o SceSysconForDriver (311 exportações, 198 importadas pelos módulos de kernel do
   FW 3.74). 117 delas montam um pacote (comando de 16 bits, tamanho, dados) e chamam ksceSysconCmdExec/CmdExecAsync; o
   syscon.skprx decompilado está em `fw374\decomp\os0__kd__syscon.skprx.c` (só estudo). Fazer: um modelo C# do chip (os
