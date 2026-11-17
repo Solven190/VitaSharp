@@ -2721,6 +2721,14 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 
 ## Bugs em aberto
 
+- [ ] [P1][M] Assassin's Creed III Liberation (PCSE00053) trava no boot, nunca mostra o primeiro quadro (usuário,
+  17/11/2026; primeiro teste do jogo). Captura `captures/PCSE00053_20261117_012258_tudo`: 7 min no quadro 0 (0 fps,
+  só a imagem de boot), áudio aberto mas em silêncio. Os threads do motor (Gear) foram todos criados, NGS e GXM
+  iniciados, troféus ok; depois a `main` fica Running (sem esperar nada) num laço em 0x814661FC-0x8146620A (bt
+  81466A3E/814668DE recursivo, chamado de 82D7D96C/81459B16), segurando o lwmutex `GEAR_BLOCKINGLOCK_LWMUTEX`; o
+  thread `Loading` espera esse lwmutex e os TaskThread1-3/`Loading Support`/`Gear::AsynchGeneric` esperam o
+  eventflag `GEAR_EVENT`. Próximo passo: descobrir o que a `main` espera nesse laço (valor em memória que outro
+  thread ou o HLE deveria escrever) pelo `rerun` da captura e pela desmontagem do laço
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
