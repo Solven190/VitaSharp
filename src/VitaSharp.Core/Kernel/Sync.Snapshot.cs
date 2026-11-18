@@ -137,7 +137,8 @@ public sealed partial class Mutex
         {
             // a condition wait handed its mutex back that had not returned is saved as the cond wait it reissues, which
             // takes the mutex itself: the mutex is saved free
-            bool reacquiring = _granted.Exists(request => request.Reacquire && request.Thread == _owner && _owner != null);
+            GuestThread? owner = Owner;
+            bool reacquiring = owner != null && _granted.Exists(request => request.Reacquire && request.Thread == owner);
             w.Write(Attr);
             w.Write(InitCount);
             w.WriteKernelObject(reacquiring ? null : Owner);
@@ -215,8 +216,9 @@ public sealed partial class Mutex
     }
 
     /// <summary>A lightweight mutex's owner and count are its guest work area's (restored with the memory): the owner
-    /// word is rewritten without <see cref="Contended"/>, since no thread sleeps on it after a load. The waiters of a
-    /// normal mutex's saved queue get their threads back (an unlock may hand them the mutex before they reissue).</summary>
+    /// word is rewritten, flagged <see cref="Contended"/> only when the saved queue has waiters (the owner's unlock then
+    /// comes to the kernel to hand it over). The waiters of the saved queue get their threads back (an unlock may hand
+    /// them the mutex before they reissue).</summary>
     internal void Resolve(ObjectTable t)
     {
         if (IsLight)
@@ -225,6 +227,11 @@ public sealed partial class Mutex
         }
 
         Owner = _ownerUid != 0 ? t.Get<GuestThread>(_ownerUid) : null;
+        if (IsLight && _queue.Count > 0 && _ownerUid != 0)
+        {
+            Memory.GuestMemory.W32(WorkArea + LwOwnerOffset, (uint)_ownerUid | Contended);
+        }
+
         foreach (WaitRequest request in _restored)
         {
             request.Thread = t.Get<GuestThread>(request.ThreadUid);

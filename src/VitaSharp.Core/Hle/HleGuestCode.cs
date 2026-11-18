@@ -333,12 +333,13 @@ public static class HleGuestCode
     // entered with the caller's registers. Games lock and unlock thousands of times per frame (F1 2011, FIFA 13,
     // Sonic Mania's loader), almost always uncontended.
 
-    const uint LE = 0xD, GT = 0xC;
+    const uint GT = 0xC;
     const uint Dmb = 0xF57FF05B, Clrex = 0xF57FF01F;
 
-    /// <summary>sceKernelLockLwMutex(CB)(work, count, timeout) / sceKernelTryLockLwMutex(work, count)
-    /// (<paramref name="checkCount"/>: the lock's count &lt;= 0 is INVALID_ARGUMENT, the C# version's).</summary>
-    static uint[] LwMutexLock(bool checkCount)
+    /// <summary>sceKernelLockLwMutex(CB)(work, count, timeout) / sceKernelTryLockLwMutex(work, count): only a count
+    /// of 1 (threadmgr's ILLEGAL_COUNT for a count below 1, or above 1 without the recursive attribute, and the rare
+    /// recursive count above 1 are the C# version's).</summary>
+    static uint[] LwMutexLock()
     {
         var c = new List<uint>
         {
@@ -347,8 +348,9 @@ public static class HleGuestCode
             0xE590C010,                // ldr r12, [r0, #16]   UID
             0xE35C0000,                // cmp r12, #0
             0,                         // beq slow
+            0xE3510001,                // cmp r1, #1
+            0,                         // bne slow
         };
-        if (checkCount) c.AddRange([0xE3510000, 0]); // cmp r1, #0 ; ble slow
         int loop = c.Count + 2;
         c.AddRange(
         [
@@ -385,48 +387,51 @@ public static class HleGuestCode
         c.AddRange([FallbackSvc, BxLr]);
         c[1] = Branch(EQ, 1, slow);
         c[4] = Branch(EQ, 4, slow);
-        if (checkCount) c[6] = Branch(LE, 6, slow);
+        c[6] = Branch(NE, 6, slow);
         c[loop + 2] = Branch(NE, loop + 2, held);
         c[held + 3] = Branch(NE, held + 3, slow);
         c[held + 6] = Branch(EQ, held + 6, slow);
         return [.. c];
     }
 
-    /// <summary>sceKernelUnlockLwMutex(2)(work, count): the owner (no sleeper flagged) drops count; at 0 it swaps its UID
-    /// back to 0, unless a sleeper flagged the word meanwhile (then the C# version wakes it).</summary>
+    /// <summary>sceKernelUnlockLwMutex(2)(work, count): the owner (no sleeper flagged) drops a count of 1; at 0 it
+    /// swaps its UID back to 0, unless a sleeper flagged the word meanwhile (then the C# version hands the mutex to the
+    /// head of its queue). Any other count is the C# version's (ILLEGAL_COUNT, or a rare recursive unlock).</summary>
     static readonly uint[] LwMutexUnlock =
     [
         0xE3500000,                // 0  cmp r0, #0
-        Branch(EQ, 1, 29),         // 1  beq slow
+        Branch(EQ, 1, 31),         // 1  beq slow
         0xE590C010,                // 2  ldr r12, [r0, #16]
         0xE35C0000,                // 3  cmp r12, #0
-        Branch(EQ, 4, 29),         // 4  beq slow
-        0xEE1D3F70,                // 5  mrc p15, 0, r3, c13, c0, 3
-        0xE51337FC,                // 6  ldr r3, [r3, #-0x7FC]
-        0xE590C000,                // 7  ldr r12, [r0]
-        0xE15C0003,                // 8  cmp r12, r3          ours and nobody flagged
-        Branch(NE, 9, 29),         // 9  bne slow (NOT_OWNED, or a sleeper to wake)
-        0xE5902008,                // 10 ldr r2, [r0, #8]
-        0xE1510002,                // 11 cmp r1, r2
-        Branch(GT, 12, 29),        // 12 bgt slow (UNLOCK_UDF)
-        0xE0522001,                // 13 subs r2, r2, r1
-        0x15802008,                // 14 strne r2, [r0, #8]   still held
-        0x13A00000,                // 15 movne r0, #0
-        0x112FFF1E,                // 16 bxne lr
-        0xE5802008,                // 17 str r2, [r0, #8]     count 0, before the owner word frees it
-        Dmb,                       // 18 dmb ish
-        0xE190CF9F,                // 19 loop: ldrex r12, [r0]
-        0xE15C0003,                // 20 cmp r12, r3
-        Branch(NE, 21, 27),        // 21 bne contended
-        0xE180CF92,                // 22 strex r12, r2, [r0]  (r2 = 0)
-        0xE35C0000,                // 23 cmp r12, #0
-        Branch(NE, 24, 19),        // 24 bne loop
-        0xE3A00000,                // 25 mov r0, #0
-        BxLr,                      // 26
-        Clrex,                     // 27 contended: clrex
-        0xE5801008,                // 28 str r1, [r0, #8]     the count back (it was exactly r1)
-        FallbackSvc,               // 29 slow: the C# version
-        BxLr,                      // 30
+        Branch(EQ, 4, 31),         // 4  beq slow
+        0xE3510001,                // 5  cmp r1, #1
+        Branch(NE, 6, 31),         // 6  bne slow
+        0xEE1D3F70,                // 7  mrc p15, 0, r3, c13, c0, 3
+        0xE51337FC,                // 8  ldr r3, [r3, #-0x7FC]
+        0xE590C000,                // 9  ldr r12, [r0]
+        0xE15C0003,                // 10 cmp r12, r3          ours and nobody flagged
+        Branch(NE, 11, 31),        // 11 bne slow (NOT_OWNED, or a sleeper to wake)
+        0xE5902008,                // 12 ldr r2, [r0, #8]
+        0xE1510002,                // 13 cmp r1, r2
+        Branch(GT, 14, 31),        // 14 bgt slow (UNLOCK_UDF)
+        0xE0522001,                // 15 subs r2, r2, r1
+        0x15802008,                // 16 strne r2, [r0, #8]   still held
+        0x13A00000,                // 17 movne r0, #0
+        0x112FFF1E,                // 18 bxne lr
+        0xE5802008,                // 19 str r2, [r0, #8]     count 0, before the owner word frees it
+        Dmb,                       // 20 dmb ish
+        0xE190CF9F,                // 21 loop: ldrex r12, [r0]
+        0xE15C0003,                // 22 cmp r12, r3
+        Branch(NE, 23, 29),        // 23 bne contended
+        0xE180CF92,                // 24 strex r12, r2, [r0]  (r2 = 0)
+        0xE35C0000,                // 25 cmp r12, #0
+        Branch(NE, 26, 21),        // 26 bne loop
+        0xE3A00000,                // 27 mov r0, #0
+        BxLr,                      // 28
+        Clrex,                     // 29 contended: clrex
+        0xE5801008,                // 30 str r1, [r0, #8]     the count back (it was exactly r1)
+        FallbackSvc,               // 31 slow: the C# version
+        BxLr,                      // 32
     ];
 
     /// <summary>sceKernelSignalLwCond / SignalLwCondAll(work): with no waiter queued (work area +8, Kernel/Sync.cs
@@ -459,9 +464,9 @@ public static class HleGuestCode
 
     static readonly (string Name, string Library, uint[] Code)[] LwMutexRoutineTable =
     [
-        ("sceKernelLockLwMutex", LibKernel, LwMutexLock(checkCount: true)),
-        ("sceKernelLockLwMutexCB", LibKernel, LwMutexLock(checkCount: true)),
-        ("sceKernelTryLockLwMutex", LibKernel, LwMutexLock(checkCount: false)),
+        ("sceKernelLockLwMutex", LibKernel, LwMutexLock()),
+        ("sceKernelLockLwMutexCB", LibKernel, LwMutexLock()),
+        ("sceKernelTryLockLwMutex", LibKernel, LwMutexLock()),
         ("sceKernelUnlockLwMutex", LibKernel, LwMutexUnlock),
         ("sceKernelUnlockLwMutex2", LibKernel, LwMutexUnlock),
         ("sceKernelSignalLwCond", LibKernel, LwCondSignal),

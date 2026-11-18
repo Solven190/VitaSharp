@@ -64,8 +64,9 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
 
     /// <summary>A lightweight mutex keeps its state only in the guest work area (owner UID, count), as the guest-code
     /// fast paths (Hle/HleGuestCode) read and write it: a sleeper flags the owner word (bit 31) so the owner's unlock comes
-    /// to the kernel and wakes it, a lock taken by guest code in between sends the woken thread back to sleep, a dead
-    /// owner's lock can be taken, and a deleted mutex's UID word is cleared.</summary>
+    /// to the kernel, which writes the sleeper into the word as the new owner (threadmgr 3.74: never free in between,
+    /// also when guest code had taken the mutex), a dead owner's lock can be taken, and a deleted mutex's UID word is
+    /// cleared.</summary>
     [Fact]
     public void LightMutexStateLivesInTheWorkArea()
     {
@@ -85,10 +86,10 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
         Assert.Equal(SceError.LW_MUTEX_FAILED_TO_OWN, m.TryLock(waiter, 1));
         Assert.Equal(SceError.LW_MUTEX_RECURSIVE, m.TryLock(owner, 1));
         Assert.Equal(SceError.LW_MUTEX_NOT_OWNED, m.Unlock(waiter, 1));
-        Assert.Equal(SceError.LW_MUTEX_UNLOCK_UDF, m.Unlock(owner, 2));
+        Assert.Equal(SceError.ILLEGAL_COUNT, m.Unlock(owner, 2)); // above 1 without the recursive attribute
 
         int r = -1;
-        var t = new Thread(() => r = m.Lock(waiter, 2, default));
+        var t = new Thread(() => r = m.Lock(waiter, 1, default));
         t.Start();
         while (Word() != ((uint)owner.Uid | Mutex.Contended))
         {
@@ -98,12 +99,12 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
         Assert.Equal(0, m.Unlock(owner, 1));
         t.Join();
         Assert.Equal(0, r);
-        Assert.Equal(((uint)waiter.Uid, 2u), (Word(), GuestMemory.R32(work + 8))); // no other sleeper: no flag
-        Assert.Equal(0, m.Unlock(waiter, 2));
+        Assert.Equal(((uint)waiter.Uid, 1u), (Word(), GuestMemory.R32(work + 8))); // no other sleeper: no flag
+        Assert.Equal(0, m.Unlock(waiter, 1));
         Assert.Equal((0u, 0u), (Word(), GuestMemory.R32(work + 8)));
 
-        // guest code takes the free mutex; a sleeper flags it; guest code taking it back between the kernel's wake-up and
-        // the woken thread's retry sends that thread back to sleep
+        // guest code takes the free mutex; a sleeper flags it; the flagged unlock (the guest unlock's slow path) writes
+        // the sleeper in as the owner inside the call, before it runs, so guest code finds the word taken
         GuestMemory.W32(work, (uint)other.Uid);
         GuestMemory.W32(work + 8, 1);
         r = -1;
@@ -116,17 +117,9 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
 
         lock (m)
         {
-            Assert.Equal(0, m.Unlock(other, 1)); // the flagged word: the guest unlock's slow path
-            GuestMemory.W32(work, (uint)owner.Uid);
-            GuestMemory.W32(work + 8, 1); // guest code again, before the waiter runs
+            Assert.Equal(0, m.Unlock(other, 1));
+            Assert.Equal(((uint)waiter.Uid, 1u), (Word(), GuestMemory.R32(work + 8)));
         }
-        while (Word() != ((uint)owner.Uid | Mutex.Contended))
-        {
-            Thread.Sleep(1); // back to sleep, flagged again
-        }
-
-        Assert.True(t.IsAlive);
-        Assert.Equal(0, m.Unlock(owner, 1));
         t.Join();
         Assert.Equal((0, (uint)waiter.Uid), (r, Word()));
         Assert.Equal(0, m.Unlock(waiter, 1));

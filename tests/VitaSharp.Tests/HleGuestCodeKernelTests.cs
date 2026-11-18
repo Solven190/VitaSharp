@@ -211,10 +211,10 @@ public sealed unsafe class HleGuestCodeKernelTests(GuestMemoryFixture fixture)
             }
         });
     }
-    /// <summary>The lightweight mutex fast paths on the work area (Kernel/Sync.cs Mutex): an uncontended lock takes the
-    /// owner word and sets the count, a recursive one adds to it, an unlock drops it and frees the word at 0; everything
-    /// the kernel must decide (taken by another thread, a sleeper flagged, a bad count, a deleted mutex) falls back with
-    /// the arguments and the work area untouched.</summary>
+    /// <summary>The lightweight mutex fast paths on the work area (Kernel/Sync.cs Mutex): an uncontended lock of 1 takes
+    /// the owner word and sets the count, a recursive one adds to it, an unlock of 1 drops it and frees the word at 0;
+    /// everything the kernel must decide (taken by another thread, a sleeper flagged, any count other than 1, a deleted
+    /// mutex) falls back with the arguments and the work area untouched.</summary>
     [Fact]
     public void LwMutexFastPathsMatchKernel()
     {
@@ -249,11 +249,11 @@ public sealed unsafe class HleGuestCodeKernelTests(GuestMemoryFixture fixture)
                 foreach (Runner? lock_ in new[] { lk, lkcb, tl })
                 {
                     Set(0, 0);
-                    Assert.Equal(0u, lock_.Call(work, 3, 0, t));
-                    Assert.Equal((Me, 3u), State());
+                    Assert.Equal(0u, lock_.Call(work, 1, 0, t));
+                    Assert.Equal((Me, 1u), State());
                     // recursive: allowed with the attribute, else the kernel's RECURSIVE error
-                    Assert.Equal(0u, Set2(Me, 3, 2, () => lock_.Call(work, 2, 0, t)));
-                    Assert.Equal((Me, 5u), State());
+                    Assert.Equal(0u, Set2(Me, 3, 2, () => lock_.Call(work, 1, 0, t)));
+                    Assert.Equal((Me, 4u), State());
                     Set(Me, 1);
                     Assert.Null(lock_.Call(work, 1, 0, t));
                     Assert.Equal((Me, 1u), State());
@@ -269,21 +269,34 @@ public sealed unsafe class HleGuestCodeKernelTests(GuestMemoryFixture fixture)
                     Assert.Equal((0u, 0u), State());
                     Assert.Null(lock_.Call(0, 1, 0, t));
                 }
-                // a lock count <= 0 is the kernel's INVALID_ARGUMENT (TryLock takes it as it is)
-                Set(0, 0);
-                Assert.Null(lk.Call(work, 0, 0, t));
-                Assert.Null(lk.Call(work, 0xFFFFFFFF, 0, t));
-                Assert.Equal((0u, 0u), State());
-                Set(0, 0);
-                Assert.Equal(0u, tl.Call(work, 0, 0, t));
-                Assert.Equal((Me, 0u), State());
+                // any other count is the kernel's (ILLEGAL_COUNT below 1 or above 1 without the recursive attribute, a
+                // recursive count above 1), for the lock and the try-lock alike
+                foreach (Runner? lock_ in new[] { lk, lkcb, tl })
+                {
+                    foreach (uint count in new[] { 0u, 0xFFFFFFFF, 2u })
+                    {
+                        Set(0, 0, attr: 2);
+                        Assert.Null(lock_.Call(work, count, 0, t));
+                        Assert.Equal((0u, 0u), State());
+                        Set(Me, 1, attr: 2);
+                        Assert.Null(lock_.Call(work, count, 0, t));
+                        Assert.Equal((Me, 1u), State());
+                    }
+                }
                 foreach (Runner? unlock in new[] { ul, ul2 })
                 {
-                    Set(Me, 3);
+                    Set(Me, 2, attr: 2);
                     Assert.Equal(0u, unlock.Call(work, 1, 0, t, 2));
-                    Assert.Equal((Me, 2u), State());
-                    Assert.Equal(0u, unlock.Call(work, 2, 0, t, 2));
+                    Assert.Equal((Me, 1u), State());
+                    Assert.Equal(0u, unlock.Call(work, 1, 0, t, 2));
                     Assert.Equal((0u, 0u), State());
+                    // any count other than 1: the kernel
+                    foreach (uint count in new[] { 0u, 0xFFFFFFFF, 2u })
+                    {
+                        Set(Me, 3, attr: 2);
+                        Assert.Null(unlock.Call(work, count, 0, t, 2));
+                        Assert.Equal((Me, 3u), State());
+                    }
                     // not ours, freed already, more than held, a sleeper flagged, deleted, NULL: the kernel
                     Set(Other, 1);
                     Assert.Null(unlock.Call(work, 1, 0, t, 2));
@@ -291,9 +304,6 @@ public sealed unsafe class HleGuestCodeKernelTests(GuestMemoryFixture fixture)
                     Set(0, 0);
                     Assert.Null(unlock.Call(work, 1, 0, t, 2));
                     Assert.Equal((0u, 0u), State());
-                    Set(Me, 1);
-                    Assert.Null(unlock.Call(work, 2, 0, t, 2));
-                    Assert.Equal((Me, 1u), State());
                     Set(Me | 0x80000000, 1);
                     Assert.Null(unlock.Call(work, 1, 0, t, 2));
                     Assert.Equal((Me | 0x80000000, 1u), State());
@@ -314,6 +324,66 @@ public sealed unsafe class HleGuestCodeKernelTests(GuestMemoryFixture fixture)
             Set(owner, count, attr);
             return call();
         }
+    }
+
+    /// <summary>
+    /// The guest fast paths against the kernel's wait queue (FW 3.74: the unlock with waiters writes the head into the
+    /// work area): with a waiter queued the owner's fast unlock falls back to the kernel (the owner word is flagged), the
+    /// kernel hands the mutex to the waiter without ever freeing the word, so a fast lock or try-lock by anyone else
+    /// right after it falls back too and the kernel refuses it (the waiter has not run yet); once the queue is empty the
+    /// last owner's word is unflagged and its fast unlock frees it in guest code, and the next fast lock takes it.
+    /// </summary>
+    [Fact]
+    public void LwMutexFastPathsKeepTheKernelsQueue()
+    {
+        if (!HleGuestCode.Enabled)
+        {
+            return;
+        }
+
+        using var harness = new HleHarness(fixture, "gk-lw-queue");
+        VitaSharp.Core.Hle.Modules.ThreadMgr tm = harness.Module<VitaSharp.Core.Hle.Modules.ThreadMgr>();
+        ForEachBackend(_ =>
+        {
+            using var lockRoutine = new Runner(fixture, "sceKernelLockLwMutex");
+            using var tryRoutine = new Runner(fixture, "sceKernelTryLockLwMutex");
+            using var unlockRoutine = new Runner(fixture, "sceKernelUnlockLwMutex");
+            harness.OnGuest(main =>
+            {
+                uint tls = harness.Alloc(0x1000);
+                GuestMemory.W32(tls + 4, (uint)main.Uid);
+                uint t = tls + 0x800;
+                uint work = harness.Alloc(32);
+                Assert.Equal(0, HleHarness.Call(tm, "sceKernelCreateLwMutex", work, "gk-queue", 0u, 0, 0u));
+                Assert.Equal(0u, lockRoutine.Call(work, 1, 0, t)); // free: guest code takes it
+                Assert.Equal((uint)main.Uid, GuestMemory.R32(work));
+                int result = 1;
+                HleHarness.GuestRun waiter = harness.Start(_ =>
+                {
+                    result = HleHarness.Call(tm, "sceKernelLockLwMutex", work, 1, new Ptr<uint>(0));
+                    Assert.Equal(0, HleHarness.Call(tm, "sceKernelUnlockLwMutex", work, 1));
+                }, "gk-lw-waiter");
+                HleHarness.Until(() => waiter.Thread.Status == Core.Kernel.ThreadStatus.Waiting, "the waiter in the queue");
+                Assert.Equal((uint)main.Uid | Core.Kernel.Mutex.Contended, GuestMemory.R32(work));
+                Core.Kernel.Mutex mutex = harness.Emu.Kernel.Objects.Get<Core.Kernel.Mutex>((int)GuestMemory.R32(work + 16))!;
+                lock (mutex)
+                {
+                    Assert.Null(unlockRoutine.Call(work, 1, 0, t, 2)); // flagged: the kernel's
+                    Assert.Equal(0, HleHarness.Call(tm, "sceKernelUnlockLwMutex", work, 1));
+                    Assert.Equal((uint)waiter.Thread.Uid, GuestMemory.R32(work)); // handed over, never 0
+                    Assert.Null(lockRoutine.Call(work, 1, 0, t));
+                    Assert.Null(tryRoutine.Call(work, 1, 0, t));
+                    Assert.Equal(Core.Kernel.SceError.LW_MUTEX_FAILED_TO_OWN, HleHarness.Call(tm, "sceKernelTryLockLwMutex", work, 1));
+                }
+                harness.Join(waiter, 5_000);
+                Assert.Equal(0, result);
+                Assert.Equal(0u, GuestMemory.R32(work)); // the waiter's unlock with nobody queued freed it
+                Assert.Equal(0u, tryRoutine.Call(work, 1, 0, t));
+                Assert.Equal(0u, unlockRoutine.Call(work, 1, 0, t, 2));
+                Assert.Equal(0u, GuestMemory.R32(work));
+                Assert.Equal(0, HleHarness.Call(tm, "sceKernelDeleteLwMutex", work));
+            });
+        });
     }
 
     /// <summary>A lightweight cond signal with no waiter queued (work area +8) is 0 in guest code; a waiter to release,
