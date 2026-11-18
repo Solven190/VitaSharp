@@ -25,7 +25,7 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
     {
         private readonly HleHarness _h;
         private readonly Gxm _g;
-        public uint Ctx, Rt, Color, Data, Vp, Fp, FpCube, Verts, Idx;
+        public uint Ctx, Rt, Color, Data, Vp, Fp, FpCube, FpFetch, Verts, Idx, IdxPair;
         /// <summary>The cube textures among <see cref="Textures"/>: drawn with <see cref="FpCube"/>, whose unit 3 is a samplerCube.</summary>
         public readonly HashSet<uint> CubeTextures = [];
         public readonly List<uint> Textures = [];
@@ -65,6 +65,8 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
             Call(_g, "sceGxmShaderPatcherRegisterProgram", patcher, VertexProgram(h), new Ptr<uint>(vid));
             Call(_g, "sceGxmShaderPatcherRegisterProgram", patcher, SamplingFragmentProgram(h), new Ptr<uint>(fid));
             Call(_g, "sceGxmShaderPatcherRegisterProgram", patcher, SamplingFragmentProgram(h, cube: true), new Ptr<uint>(cid));
+            uint bid = h.Word(0), fb = h.Word(0);
+            Call(_g, "sceGxmShaderPatcherRegisterProgram", patcher, SamplingFragmentProgram(h, fragColor: true), new Ptr<uint>(bid));
             uint attr = h.Alloc(8), stream = h.Alloc(4), vp = h.Word(0), fp = h.Word(0), fc = h.Word(0);
             GuestMemory.Write(attr + 4, (byte)9); // F32
             GuestMemory.Write(attr + 5, (byte)4); // x, y, z, w
@@ -72,9 +74,11 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
             Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateVertexProgram", patcher, GuestMemory.R32(vid), attr, 1u, stream, 1u, new Ptr<uint>(vp)));
             Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(fid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fp)));
             Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(cid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fc)));
+            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(bid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fb)));
             Vp = GuestMemory.R32(vp);
             Fp = GuestMemory.R32(fp);
             FpCube = GuestMemory.R32(fc);
+            FpFetch = GuestMemory.R32(fb);
             Verts = h.Alloc(48);
             Idx = h.Alloc(8);
             float[] v = [-1, -1, 0.5f, 1, 3, -1, 0.5f, 1, -1, 3, 0.5f, 1]; // a triangle over the whole surface
@@ -85,6 +89,12 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
 
             GuestMemory.Write(Idx + 2, (ushort)1);
             GuestMemory.Write(Idx + 4, (ushort)2);
+            // the triangle twice: a small programmable-blending draw of two pieces (VulkanRenderer.SingleFetch.cs)
+            IdxPair = h.Alloc(12);
+            for (uint i = 0; i < 6; i++)
+            {
+                GuestMemory.Write(IdxPair + i * 2, (ushort)(i % 3));
+            }
 
             // one texture per format and layout over the same pseudo-random texels (and a palette)
             uint texels = h.Alloc(W * H * 16 * 6), palette = h.Alloc(256 * 4 + 64) + 63 & ~63u;
@@ -155,6 +165,23 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
             return frames;
         }
 
+        /// <summary>One scene with a programmable-blending draw (<see cref="FpFetch"/> reads the surface colour), drawn
+        /// as two triangles: on a one-sample scene it renders in a fetch pass (VulkanRenderer.SingleFetch.cs).</summary>
+        public void RunFetch()
+        {
+            Assert.Equal(0, Call(_g, "sceGxmBeginScene", Ctx, 0u, Rt, 0u, 0u, 0u, Color, 0u));
+            Invoke(_g, "sceGxmSetVertexProgram", Ctx, Vp);
+            Invoke(_g, "sceGxmSetFragmentProgram", Ctx, FpFetch);
+            Invoke(_g, "sceGxmSetFrontDepthFunc", Ctx, 0x00E00000u); // ALWAYS
+            Invoke(_g, "sceGxmSetCullMode", Ctx, 0u);
+            Assert.Equal(0, Call(_g, "sceGxmSetVertexStream", Ctx, 0u, Verts));
+            Assert.Equal(0, Call(_g, "sceGxmSetFragmentTexture", Ctx, 3u, Textures[0]));
+            Assert.Equal(0, Call(_g, "sceGxmDraw", Ctx, 0u, 0u, IdxPair, 6u));
+            Assert.Equal(0, Call(_g, "sceGxmEndScene", Ctx, 0u, 0u));
+            _h.Emu.Gpu.Submit(new PresentCommand { Frame = new DisplayFrame(Data, W, W, H, DisplayPixelFormat.A8B8G8R8) });
+            Assert.Equal(0, Call(_g, "sceGxmFinish", Ctx));
+        }
+
         public void Terminate() => Call(_g, "sceGxmTerminate");
     }
 
@@ -192,13 +219,14 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
     /// <summary>A fragment program without code: its only input is a non-dependent texture read of texture coordinate 0
     /// through unit 3 (a fragment varying descriptor, as stripped programs have), stored as F32 in pa0-pa3, and its
     /// output is pa0-pa3 as F32x4: the draw shows the texture.</summary>
-    internal static byte[] SamplingFragmentGxp(bool cube = false)
+    /// <param name="fragColor">the program also reads the surface colour (programmable blending)</param>
+    internal static byte[] SamplingFragmentGxp(bool cube = false, bool fragColor = false)
     {
         byte[] d = new byte[0x200];
         void W32(int o, uint v) => System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(d.AsSpan(o), v);
         W32(0, 0x00505847);
         W32(8, (uint)d.Length);
-        W32(0x14, GxpProgram.FlagFragment);
+        W32(0x14, GxpProgram.FlagFragment | (fragColor ? GxpProgram.FlagFragColorUsed : 0));
         W32(0x2C, 0x100 - 0x2C);    // varyings at 0x100
         d[0x100 + 10] = (byte)ParamType.F32;
         d[0x100 + 11] = 4;          // output: F32x4 from pa0
@@ -231,7 +259,7 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
 
     internal static uint VertexProgram(HleHarness h) => Copy(h, VertexGxp());
 
-    internal static uint SamplingFragmentProgram(HleHarness h, bool cube = false) => Copy(h, SamplingFragmentGxp(cube));
+    internal static uint SamplingFragmentProgram(HleHarness h, bool cube = false, bool fragColor = false) => Copy(h, SamplingFragmentGxp(cube, fragColor));
 
     private static VulkanRenderer NewRenderer(string frames) => new(new VulkanRendererOptions
     {

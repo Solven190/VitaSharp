@@ -150,16 +150,26 @@ public sealed record ShaderRecipe(ulong ProgramHash, ulong HintKey, bool Vertex,
 /// stays valid across <see cref="ShaderGenerator.GeneratorVersion"/> bumps. <see cref="FsUsesFragColor"/> and
 /// <see cref="FsRawColorBits"/> are what the fixed-function state was resolved against: a retranslated fragment shader
 /// that disagrees makes the record stale (it is skipped, the draw builds its pipeline normally).
+/// <para><see cref="TileWord1"/> (0 none, 1 attached, 2 attached and written: the scene's tile-word attachment) and
+/// <see cref="InputPass"/> (made for the render pass of a one-sample fetch pass) sit in spare bits of the flags byte,
+/// zero for every other pipeline: older records read the same and keep their keys, and an older reader skips the new
+/// records as unreadable instead of building them for the wrong render pass.</para>
 /// </summary>
 public sealed record PipelineRecipe(ulong VsHash, ulong VsHint, ulong FsHash, ulong FsHint, int AttachFormat, bool HasColor, bool Blend,
     byte ColorFunc, byte AlphaFunc, byte ColorSrc, byte ColorDst, byte AlphaSrc, byte AlphaDst, byte Mask,
     byte Topology, byte Polygon, byte Samples, bool FsUsesFragColor, byte FsRawColorBits,
-    GxmVertexAttribute[] Attributes, GxmVertexStream[] Streams)
+    GxmVertexAttribute[] Attributes, GxmVertexStream[] Streams, byte TileWord1 = 0, bool InputPass = false)
 {
+    /// <summary>Flags byte (offset 48): bit 0 <see cref="FsUsesFragColor"/>, bits 1-2 <see cref="FsRawColorBits"/>,
+    /// bit 3 <see cref="InputPass"/>, bits 4-5 <see cref="TileWord1"/>; bits 6-7 are zero.</summary>
+    private const int InputPassBit = 1 << 3;
+    private const int TileWord1Shift = 4;
+
     public const int HeadSize = 32 + 4 + 2 + 7 + 3 + 2 + 2 + 1;
 
     public byte[] Encode()
     {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(TileWord1, (byte)2);
         byte[] buf = new byte[HeadSize + Attributes.Length * 8 + Streams.Length * 4];
         Span<byte> s = buf.AsSpan();
         BinaryPrimitives.WriteUInt64LittleEndian(s, VsHash);
@@ -185,7 +195,7 @@ public sealed record PipelineRecipe(ulong VsHash, ulong VsHint, ulong FsHash, ul
             16 => 2,
             32 => 3,
             _ => 0
-        }) << 1);
+        }) << 1 | (InputPass ? InputPassBit : 0) | TileWord1 << TileWord1Shift);
         BinaryPrimitives.WriteUInt16LittleEndian(s[49..], checked((ushort)Attributes.Length));
         BinaryPrimitives.WriteUInt16LittleEndian(s[51..], checked((ushort)Streams.Length));
         int o = HeadSize;
@@ -209,7 +219,13 @@ public sealed record PipelineRecipe(ulong VsHash, ulong VsHint, ulong FsHash, ul
 
     public static PipelineRecipe? Decode(ReadOnlySpan<byte> s)
     {
-        if (s.Length < HeadSize || s[36] > 1 || s[37] > 1 || s[48] > 7)
+        if (s.Length < HeadSize || s[36] > 1 || s[37] > 1 || s[48] >> 6 != 0)
+        {
+            return null;
+        }
+
+        byte tileWord1 = (byte)(s[48] >> TileWord1Shift & 3);
+        if (tileWord1 > 2)
         {
             return null;
         }
@@ -243,7 +259,7 @@ public sealed record PipelineRecipe(ulong VsHash, ulong VsHint, ulong FsHash, ul
                 2 => 16,
                 3 => 32,
                 _ => 0
-            }), attrs, streams);
+            }), attrs, streams, tileWord1, (s[48] & InputPassBit) != 0);
     }
 
     /// <summary>Record key: the same pipeline always maps to the same key, whatever the generator version.</summary>

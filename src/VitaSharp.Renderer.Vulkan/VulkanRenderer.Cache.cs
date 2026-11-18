@@ -35,7 +35,9 @@ public sealed unsafe partial class VulkanRenderer
     /// 3: records carry the rasterization sample count (real MSAA).
     /// 4: <see cref="PipelineRecipe"/> records (guest vertex description instead of the resolved Vulkan layout), and
     /// the file is no longer keyed by the generator version. A version 3 list of the current generator is still
-    /// prewarmed once (<see cref="ReadLegacyPipelineList"/>) and migrates as the game uses its pipelines.</remarks>
+    /// prewarmed once (<see cref="ReadLegacyPipelineList"/>) and migrates as the game uses its pipelines.
+    /// Version 4 records later took the fetch-pass and tile-word variants in spare flag bits (see
+    /// <see cref="PipelineRecipe"/>): no bump, the existing records keep their bytes and keys.</remarks>
     private const uint PipelineFormatVersion = 4;
     private const uint LegacyPipelineFormatVersion = 3;
     /// <summary>Bump when the shader-pack record layout changes (2: vertex inputs carry the raw attribute size/count;
@@ -381,16 +383,18 @@ public sealed unsafe partial class VulkanRenderer
     private void RecordPipeline(in PipelineKey key, VsEntry vs, FsEntry fs, PrimitiveTopology topology)
     {
         BlobPack? list = _pipelineList;
-        // pipelines with the tile-word attachment are not recorded (the recipe has no field for it; rare, built on use)
-        // nor one-sample programmable-blending render pass pipelines (VulkanRenderer.SingleFetch.cs)
-        if (list == null || list.IsReadOnly || vs.Vp is not { } vp || fs.Gen == null || StaticEds || key.TileWord1 != 0 || key.InputPass)
+        // every graphics pipeline of a guest draw is recorded, also those of the tile-word attachment and of one-sample
+        // fetch passes (VulkanRenderer.TileWord1.cs, VulkanRenderer.SingleFetch.cs): left out, the replay of a dump
+        // built its 8 fetch-pass pipelines on the GPU thread in every session
+        if (list == null || list.IsReadOnly || vs.Vp is not { } vp || fs.Gen == null || StaticEds)
         {
             return;
         }
 
         byte[] rec = new PipelineRecipe(vs.ProgramHash, vs.HintKey, fs.ProgramHash, fs.HintKey, (int)key.ColorFormat, key.HasColor, key.Blend,
             key.ColorFunc, key.AlphaFunc, key.ColorSrc, key.ColorDst, key.AlphaSrc, key.AlphaDst, key.Mask,
-            (byte)topology, (byte)key.Polygon, (byte)key.Samples, fs.Gen.UsesFragColor, (byte)fs.Gen.RawColorBits, vp.Attributes, vp.Streams).Encode();
+            (byte)topology, (byte)key.Polygon, (byte)key.Samples, fs.Gen.UsesFragColor, (byte)fs.Gen.RawColorBits, vp.Attributes, vp.Streams,
+            key.TileWord1, key.InputPass).Encode();
         list.Add(PipelineRecipe.KeyOf(rec), rec);
     }
 
@@ -451,7 +455,7 @@ public sealed unsafe partial class VulkanRenderer
         var topology = (PrimitiveTopology)r.Topology;
         var key = new PipelineKey(vs.Module.Handle, fsM.Module.Handle, vs.LayoutHash, (Format)r.AttachFormat, r.HasColor, r.Blend,
             r.ColorFunc, r.AlphaFunc, r.ColorSrc, r.ColorDst, r.AlphaSrc, r.AlphaDst, r.Mask, TopologyClass(topology), (PolygonMode)r.Polygon,
-            r.Samples == 0 ? SampleCountFlags.Count1Bit : (SampleCountFlags)r.Samples);
+            r.Samples == 0 ? SampleCountFlags.Count1Bit : (SampleCountFlags)r.Samples, TileWord1: r.TileWord1, InputPass: r.InputPass);
         // whole pipelines also with pipeline libraries: with a cold driver cache, linking the 447 recorded Killzone
         // pipelines from libraries took 51 s on two workers against 20 s whole (docs/notes/pipeline-skip.md)
         return BuildSharedPipeline(key, vs, fsM.Module, topology);
