@@ -69,4 +69,17 @@ public sealed class MsSaveBBKernelTests(GuestMemoryFixture fixture) : IDisposabl
     {
         Assert.Equal(Unsupported, Call(Services, "MsSaveBBSecure"));
     }
+
+    [Fact]
+    public void TheUserFormsRunTheSameSetUpForAnyCaller()
+    {
+        uint context = _harness.Alloc(0x28);
+        Assert.Equal(0, Call(Services, "_sceSblGcAuthMgrMsSaveBBMacInit", context, 1)); // a game, not a system program
+        Assert.Equal(1u, GuestMemory.R32(context));
+        Assert.Equal(0, Call(Services, "sceSblGcAuthMgrMsSaveBBMacInit", context, 3));
+        Assert.Equal(3u, GuestMemory.R32(context));
+        Assert.Equal(0, Call(Services, "_sceSblGcAuthMgrMsSaveBBCipherFinal", context));
+        Assert.Equal(0u, GuestMemory.R32(context));
+        Assert.Equal(Invalid, Call(Services, "sceSblGcAuthMgrMsSaveBBCipherFinal", 0u));
+    }
 }
