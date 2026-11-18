@@ -395,18 +395,44 @@ public sealed class KernelExportsTests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(SceError.INVALID_UID, Call(Procmgr, "ksceKernelUnregisterProcEventHandler", uid));
     }
 
+    /// <summary>The FW 3.74 SceExcpmgr checks, in its order: the handler pointer (null or bit 1 set), its first two
+    /// words (must be zero), the kind (below 8), the priority (below 8).</summary>
     [Fact]
-    public void ExceptionHandlersChainPerKind()
+    public void ExceptionHandlerRegistrationChecksLikeTheFirmware()
     {
-        uint a = _harness.Alloc(16), b = _harness.Alloc(16);
-        Assert.Equal(SceError.INVALID_ARGUMENT, Call(Procmgr, "sceKernelRegisterExceptionHandler", 8u, 0u, a));
+        uint a = _harness.Alloc(16);
         Assert.Equal(SceError.ILLEGAL_ADDR, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 0u, 0u));
-        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 0u, a));
-        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 0u, b));
-        Assert.Equal(a, GuestMemory.R32(b)); // the new head links to the previous one
-        Assert.Equal(0u, GuestMemory.R32(a));
-        Assert.Equal([b, a], Procmgr.ExceptionHandlers(4));
+        Assert.Equal(SceError.ILLEGAL_ADDR, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 0u, a + 2));
+        GuestMemory.W32(a + 4, 1);
+        Assert.Equal(SceError.ILLEGAL_EXCPHANDLER, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 0u, a));
+        GuestMemory.W32(a + 4, 0);
+        Assert.Equal(SceError.ILLEGAL_EXCPCODE, Call(Procmgr, "sceKernelRegisterExceptionHandler", 8u, 0u, a));
+        Assert.Equal(SceError.ILLEGAL_PRIORITY, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 8u, a));
+        Assert.Empty(Procmgr.ExceptionHandlers(1));
+        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 7u, a));
+        // registered once: its next word is set now, so a second registration is refused
+        Assert.Equal(SceError.ILLEGAL_EXCPHANDLER, Call(Procmgr, "sceKernelRegisterExceptionHandler", 1u, 7u, a));
+    }
+
+    /// <summary>Each kind's chain is in priority order (0 first, the newest first among equal priorities), ends at the
+    /// default handler, and the vector enters the first handler's code at +8.</summary>
+    [Fact]
+    public void ExceptionHandlersChainPerKindInPriorityOrder()
+    {
+        uint a = _harness.Alloc(16), b = _harness.Alloc(16), c = _harness.Alloc(16), d = _harness.Alloc(16);
+        Assert.Equal(0u, Procmgr.ExceptionVector(4));
+        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 1u, a));
+        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 1u, b));
+        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 2u, c));
+        Assert.Equal(0, Call(Procmgr, "sceKernelRegisterExceptionHandler", 4u, 0u, d));
+        Assert.Equal([d, b, a, c], Procmgr.ExceptionHandlers(4));
+        Assert.Equal(b, GuestMemory.R32(d));
+        Assert.Equal(a, GuestMemory.R32(b));
+        Assert.Equal(c, GuestMemory.R32(a));
+        Assert.Equal(Procmgr.DefaultExceptionHandlerCode - 8, GuestMemory.R32(c));
+        Assert.Equal(d + 8, Procmgr.ExceptionVector(4));
         Assert.Empty(Procmgr.ExceptionHandlers(3));
+        Assert.Equal(0u, Procmgr.ExceptionVector(3));
     }
 
     [Fact]

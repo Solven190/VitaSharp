@@ -257,6 +257,7 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
         }
         finally
         {
+            FreeExceptionStacks();
             Scheduler.Release(this);
             lock (WaitLock)
             {
@@ -340,6 +341,12 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
                 case ExitReason.Breakpoint:
                     throw new GuestFaultException($"BKPT #{s->SvcImm} at 0x{s->SvcPc:X8}");
                 case ExitReason.Undefined:
+                {
+                    if (ReachedDefaultExceptionHandler(s, out string unhandled))
+                    {
+                        throw new GuestFaultException(unhandled);
+                    }
+
                     if (s->SvcPc >= GuestMemory.KernelStart && s->SvcPc < GuestMemory.KernelEnd && _emu.FirmwareKernel.HandleTrap(this, s, s->SvcPc))
                     {
                         // a call into a firmware module's code VitaSharp does not run: it returned to the caller
@@ -348,10 +355,23 @@ public sealed unsafe partial class GuestThread : KernelObject, IDisposable, Cpu.
 
                     if (!GuestMemory.IsMapped(s->SvcPc))
                     {
-                        throw new GuestFaultException($"Prefetch abort: jump to unmapped address 0x{s->SvcPc:X8} (lr=0x{s->R[14]:X8})");
+                        string prefetch = $"Prefetch abort: jump to unmapped address 0x{s->SvcPc:X8} (lr=0x{s->R[14]:X8})";
+                        if (TryDeliverException(s, ExceptionPrefetchAbort, s->SvcPc, prefetch))
+                        {
+                            break;
+                        }
+
+                        throw new GuestFaultException(prefetch);
                     }
 
-                    throw new GuestFaultException($"Undefined instruction 0x{s->SvcImm:X8} at 0x{s->SvcPc:X8} ({(s->Thumb != 0 ? "Thumb" : "ARM")})");
+                    string undefined = $"Undefined instruction 0x{s->SvcImm:X8} at 0x{s->SvcPc:X8} ({(s->Thumb != 0 ? "Thumb" : "ARM")})";
+                    if (TryDeliverException(s, ExceptionUndefined, s->SvcPc, undefined))
+                    {
+                        break;
+                    }
+
+                    throw new GuestFaultException(undefined);
+                }
                 default:
                     throw new GuestFaultException($"Unexpected CPU exit {exit}");
             }
