@@ -395,6 +395,16 @@ public sealed unsafe partial class Arm64Emitter
         bool lazy = _vlazy && _vcache && r >= VcFirst;
         if (lazy)
         {
+            // the result register can still be the cached copy of other bytes (an op storing a source register as its
+            // result, as VSWP does, possibly with another length: the cached q13 stored as d13): that entry is
+            // relabelled below, so a dirty value it holds must reach memory first, or its bytes outside
+            // [off, off + len) (the other half of a Q register) are lost
+            int own = r - VcFirst;
+            if (_vcOff[own] >= 0 && _vcDirty[own] && !(_vcOff[own] == off && _vcLen[own] == len))
+            {
+                VcFlushEntry(own);
+            }
+
             // entries this result overlaps: an exact one is superseded, a partial one must reach memory first
             for (int k = 0; k < VcCount; k++)
             {

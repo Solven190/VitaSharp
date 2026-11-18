@@ -103,6 +103,39 @@ public sealed unsafe partial class NativeJitTests
         }
     }
 
+    /// <summary>
+    /// The SIMD register cache (A64Opt.VecCache + LazyVec) with partial aliasing: a Q register held dirty in a cache
+    /// register, then a D/S op on one half of it (or on the other Q half), must keep the untouched half. The first case
+    /// is the Misc fuzz failure of seed 2707: VSWP took the cached q13 as its d26 source and relabelled it as d13
+    /// without storing the dirty d27 first.
+    /// </summary>
+    [Arm64SandboxTheory]
+    [InlineData("F3F0A0CE,F3F2A00D,EAFFFFFE")]          // vrev32.8 q13, q7; vswp d26, d13
+    [InlineData("F3F0A0CE,F3F2B00D,EAFFFFFE")]          // vrev32.8 q13, q7; vswp d27, d13
+    [InlineData("F3F0A0CE,F3B2D02A,EAFFFFFE")]          // vrev32.8 q13, q7; vswp d13, d26
+    [InlineData("F3F0A0CE,F3F2A00D,F3F2A00D,EAFFFFFE")] // vrev32.8 q13, q7; vswp d26, d13 twice
+    [InlineData("F3F0A0CE,F3F2A00D,F26AA880,EAFFFFFE")] // vrev32.8 q13, q7; vswp d26, d13; vadd.i32 d26, d26, d0
+    [InlineData("F3F0A0CE,F26AA880,EAFFFFFE")]          // vrev32.8 q13, q7; vadd.i32 d26, d26, d0
+    [InlineData("F3F0A0CE,F260B110,EAFFFFFE")]          // vrev32.8 q13, q7; vmov d27, d0
+    [InlineData("F3F0A0CE,F3F2A18D,EAFFFFFE")]          // vrev32.8 q13, q7; vzip.8 d26, d13
+    [InlineData("F260B110,F3F2A04C,EAFFFFFE")]          // vmov d27, d0; vswp q13, q6
+    [InlineData("F3B0C0CE,F3B2C000,EE0D1A10,EAFFFFFE")] // vrev32.8 q6, q7; vswp d12, d0; vmov s26, r1
+    [InlineData("F3B0C0CE,F3B2C000,EE1D0A90,EAFFFFFE")] // vrev32.8 q6, q7; vswp d12, d0; vmov r0, s27
+    public void Arm64VecCachePartialAliasMatchesInterpreter(string words)
+    {
+        EnsureGuestPages();
+        var bytes = new List<byte>();
+        foreach (string w in words.Split(','))
+        {
+            bytes.AddRange(BitConverter.GetBytes(Convert.ToUInt32(w, 16)));
+        }
+
+        bytes.ToArray().CopyTo(GuestMemory.Span(CodeBase, 0x1000));
+        Block b = BlockBuilder.Build(CodeBase, false);
+        Assert.Equal(0, NativeArm64Compiler.NewFrontend().Translate(b).Callouts); // every op inline: the cache is used
+        Arm64Smoke(false, words);
+    }
+
     [Arm64SandboxTheory]
     [InlineData(false, 1_500, 2101, false)]
     [InlineData(true, 1_500, 2102, false)]
