@@ -343,6 +343,31 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][M] Investigar reduções de memória do emulador (pedido do usuário, 17/11/2026): medir o uso de RAM do
   processo com um jogo pesado (dotnet-counters/dotnet-gcdump) e listar onde dá para cortar (caches de shader/textura,
   cópias da memória do Vita, buffers da GPU, heap do .NET), com o ganho estimado de cada um, sem perder fps
+  Medido (mgs1, 18/11/2026, Killzone Mercenary headless em gameplay, Windows + GPU desktop; soma por tipo com
+  VirtualQueryEx/QueryWorkingSetEx): pico de working set 567 MB, ~455 MB em gameplay. Divisão: memória de usuário do
+  guest 189 MB (toda residente), CDRAM 100 MB (visão compartilhada, toda residente), uma região privada de 80-150 MB
+  (heap do .NET + driver; o heap gerenciado é 55-80 MB, `PERF allocated`), DLLs ~50 MB residentes.
+  Feito: um bloco novo do guest não é mais zerado à mão (o `Span.Clear` deixava todas as páginas residentes logo no
+  boot, também as que o jogo nunca usa); os blocos privados saem por decommit + commit, que já lê zeros sem tocar nas
+  páginas (`GuestMemoryCommitTests`). Killzone: usuário 189 → 104 MB residentes, pico 567 → 471 MB, gameplay
+  455 → 415 MB. Sem custo por quadro (só na alocação). A/B em pares (antes e depois ao mesmo tempo, em metades
+  opostas da CPU, trocadas na segunda rodada; boot turbo de 3000 quadros): working set no fim 520/526 → 440/437 MB.
+  O fps não piorou: o último trecho ficou em 181/117 fps antes e 368/329 depois, mas a máquina estava carregada e
+  a variação é grande. O JIT parado por 14-65 s no boot apareceu nas duas builds (carga da máquina, não a mudança).
+  Ainda dá para cortar (estimativas):
+  - CDRAM compartilhada (até ~50-100 MB): ela ainda é zerada à mão, porque um bloco liberado ali só é descartado
+    (MEM_RESET). Com um mapa das páginas já usadas, só as reusadas seriam zeradas; o resto da seção (SEC_RESERVE) já
+    vem zerado. Risco de fps nenhum. O ganho depende de quanto da CDRAM o jogo deixa sem tocar (a GPU e as writebacks
+    escrevem os alvos lá).
+  - Heap do .NET (~10-30 MB): `GCHeapAffinitizeMask`/`GCHeapHardLimit` ou o GC de estação de trabalho não
+    concorrente. Risco: pausas de GC maiores. Medir a `pause` do `PERF allocated` antes de mudar.
+  - Caches da GPU no lado da CPU: `BcSoftware` (64 MB) e `AstcTranscoder` (32 MB) só pesam onde a GPU não decodifica
+    BC (celular). No desktop ficam vazios. Reduzir no Android custa reenvios de texturas (fps).
+  - Não vale: a tabela de páginas sujas (1 MB), a tabela de despacho do JIT (4 MB) e o código nativo (~3 MB) são
+    pequenos. O espelho da CDRAM (288 MB) e o pool de imagens ficam na VRAM, não na RAM, em GPU dedicada.
+  - Notas da medida: o `dotnet-gcdump` travou o processo do jogo (o fps caiu para 2-9 e o dump não terminou), então o
+    heap foi medido pela linha `PERF allocated`. A máquina estava carregada por outros agentes, então o fps destas
+    execuções não serve de comparação. A mudança só age na alocação de blocos, não no caminho por quadro.
 
 - [x] Onde o código do guest roda (perf/il-1, 11/11/2026): linha nova `CPU tiers` no relatório do fim da execução
   (instruções executadas no código nativo, nas callouts, no backend IL e no interpretador, com o estado dos blocos
