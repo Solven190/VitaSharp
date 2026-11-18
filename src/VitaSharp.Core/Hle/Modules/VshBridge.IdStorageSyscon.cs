@@ -213,15 +213,20 @@ public sealed partial class VshBridge
     [Hle(Default = true)] int vshIdStorageIsDirty() => Vsh ? 0 : VSH_ERR_PERM;
     [Hle(Default = true)] int vshIdStorageGetLeafSize() => Vsh ? 0x200 : VSH_ERR_PERM;
     [Hle(Default = true)] int vshIdStorageGetFreeLeaves() => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageFormat() => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageUnformat() => Vsh ? 0 : VSH_ERR_PERM;
+    /// <summary>SceIdStorage: the changes to the ID storage (format, unformat, restart, create/delete/write/update a
+    /// leaf) are for product (factory) mode only: a retail unit refuses them (SceIdStorage 3.74), and the bridge
+    /// answers what the kernel answers.</summary>
+    const int IDSTORAGE_ERR_NOT_PRODUCT_MODE = unchecked((int)0x80230000);
+
+    [Hle] int vshIdStorageFormat() => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int vshIdStorageUnformat() => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
     [Hle(Default = true)] int vshIdStorageFlush() => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageRestart(int a) => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageCreateLeaf(int leaf) => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageDeleteLeaf(int leaf) => Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageWriteLeaf(int leaf, uint buf) => buf == 0 ? ERR_BAD_ADDR : Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int vshIdStorageUpdate(int leaf, uint offset, uint buf, uint size) => buf == 0 ? ERR_BAD_ADDR : Vsh ? 0 : VSH_ERR_PERM;
-    [Hle(Default = true)] int _vshIdStorageCreateAtomicLeaves(uint leaves, int count) => Vsh ? 0 : VSH_ERR_PERM;
+    [Hle] int vshIdStorageRestart(int a) => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int vshIdStorageCreateLeaf(int leaf) => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int vshIdStorageDeleteLeaf(int leaf) => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int vshIdStorageWriteLeaf(int leaf, uint buf) => buf == 0 ? ERR_BAD_ADDR : Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int vshIdStorageUpdate(int leaf, uint offset, uint buf, uint size) => buf == 0 ? ERR_BAD_ADDR : Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
+    [Hle] int _vshIdStorageCreateAtomicLeaves(uint leaves, int count) => Vsh ? IDSTORAGE_ERR_NOT_PRODUCT_MODE : VSH_ERR_PERM;
 
     // ---- HDMI CEC (PS TV only)
     [Hle(Default = true)] int vshHdmiCecCmdForcedPollingMsg(int a) => Vsh ? VSH_ERR_NOT_DOLCE : VSH_ERR_PERM;
