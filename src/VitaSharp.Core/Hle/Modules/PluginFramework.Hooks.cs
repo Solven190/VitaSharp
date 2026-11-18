@@ -25,7 +25,7 @@ public sealed partial class PluginFramework
     const int ThumbJumpSize = 10;
 
     /// <summary>The hooks on one address of one process.</summary>
-    sealed class HookPatch : KernelObject
+    internal sealed class HookPatch : KernelObject
     {
         public int Pid;
         public uint Address;
@@ -37,6 +37,46 @@ public sealed partial class PluginFramework
         public List<uint> Records = new();
         /// <summary>The HLE function whose import stubs were taken (0: none).</summary>
         public uint RedirectedNid;
+
+        /// <summary>Save states: the record of the kernel object table (<see cref="SaveState.KernelSnapshot"/>).</summary>
+        internal void Save(SaveState.SnapshotWriter writer)
+        {
+            writer.Write(Pid);
+            writer.Write(Address);
+            writer.Write(Thumb);
+            writer.Write(Saved);
+            writer.Write(Thunk);
+            writer.Write(Trampoline);
+            writer.Write(Records.Count);
+            foreach (uint record in Records)
+            {
+                writer.Write(record);
+            }
+
+            writer.Write(RedirectedNid);
+        }
+
+        internal static HookPatch Load(SaveState.SnapshotReader reader, string name)
+        {
+            var patch = new HookPatch
+            {
+                Name = name,
+                Pid = reader.ReadInt32(),
+                Address = reader.ReadUInt32(),
+                Thumb = reader.ReadBool(),
+                Saved = reader.ReadBytes() ?? [],
+                Thunk = reader.ReadUInt32(),
+                Trampoline = reader.ReadUInt32(),
+            };
+            int records = reader.ReadInt32();
+            for (int i = 0; i < records; i++)
+            {
+                patch.Records.Add(reader.ReadUInt32());
+            }
+
+            patch.RedirectedNid = reader.ReadUInt32();
+            return patch;
+        }
     }
 
     readonly List<HookPatch> _hooks = new();
@@ -264,15 +304,28 @@ public sealed partial class PluginFramework
         }
 
         patch.RedirectedNid = redirectNid;
-        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
+        TakeImportStubs(patch);
+    }
+
+    /// <summary>The processes whose import stubs a hook on an HLE function takes: every process and the kernel.</summary>
+    IEnumerable<Emulator> RedirectedProcesses() => Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct();
+
+    /// <summary>Points every import stub of the HLE function <paramref name="patch"/> redirects, bound now or later, in
+    /// every process, at the patch's thunk (each stub written in its own process's address space).</summary>
+    void TakeImportStubs(HookPatch patch)
+    {
+        foreach (Emulator process in RedirectedProcesses())
         {
-            process.Hle.Redirect(redirectNid, patch.Thunk);
-            foreach (bool kernel in new[] { false, true })
+            process.Hle.Redirect(patch.RedirectedNid, patch.Thunk);
+            using (ProcessScope.Enter(process))
             {
-                foreach (uint stub in process.Linker.BoundStubs(redirectNid, null, kernel))
+                foreach (bool kernel in new[] { false, true })
                 {
-                    Linker.WriteJumpStub(stub, patch.Thunk);
-                    process.Code.Invalidate(stub, ArmJumpSize);
+                    foreach (uint stub in process.Linker.BoundStubs(patch.RedirectedNid, null, kernel))
+                    {
+                        Linker.WriteJumpStub(stub, patch.Thunk);
+                        process.Code.Invalidate(stub, ArmJumpSize);
+                    }
                 }
             }
         }
@@ -288,15 +341,18 @@ public sealed partial class PluginFramework
             return;
         }
 
-        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
+        foreach (Emulator process in RedirectedProcesses())
         {
             process.Hle.ClearRedirect(patch.RedirectedNid);
         }
 
         // every import stub of the function, taken at the hook or bound while it was in place, binds as it would now
-        foreach (Emulator process in Emu.Vita.ProcessesAndKernel.Append(Emu).Distinct())
+        foreach (Emulator process in RedirectedProcesses())
         {
-            process.Linker.RebindFunction(patch.RedirectedNid);
+            using (ProcessScope.Enter(process))
+            {
+                process.Linker.RebindFunction(patch.RedirectedNid);
+            }
         }
     }
 
