@@ -240,7 +240,7 @@ public class ShaderRecipeTests : IDisposable
                 InputPass = inputPass
             };
             byte[] enc = variant.Encode();
-            PipelineRecipe? back = PipelineRecipe.Decode(enc);
+            var back = PipelineRecipe.Decode(enc);
             Assert.NotNull(back);
             Assert.Equal(tileWord1, back!.TileWord1);
             Assert.Equal(inputPass, back.InputPass);
