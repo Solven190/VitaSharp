@@ -341,6 +341,8 @@ public sealed class SettingsPage : UserControl
             _k.Row("gauge", S.VSync, S.VSyncDetail, _k.Switch(_settings.VSync, v => Set(() => _settings.VSync = v))),
             _k.Row("zap", S.FastShaders, S.FastShadersDetail, _k.Switch(_settings.FastShaderCompile, v => Set(() => _settings.FastShaderCompile = v))),
             _k.Row("layers", S.AsyncShaders, S.AsyncShadersDetail, _k.Switch(_settings.BackgroundShaderCompile, v => Set(() => _settings.BackgroundShaderCompile = v))),
+            _k.Row("layers", S.PrecompileShaders, S.PrecompileShadersGlobalDetail, _k.Switch(_settings.PrecompileShaders, v => Set(() => _settings.PrecompileShaders = v)),
+                tip: S.PrecompileShadersTip),
             _k.Row("alert", S.Validation, S.ValidationDetail, _k.Switch(_settings.Validation, v => Set(() => _settings.Validation = v)))));
         s.Children.Add(_k.Wrap(S.PerGameGraphicsNote, 12.5).Also(t => t.Margin = new Thickness(6, 2, 0, 0)));
 

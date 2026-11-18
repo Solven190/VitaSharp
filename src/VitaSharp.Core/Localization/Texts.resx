@@ -3153,4 +3153,22 @@
   <data name="FwUninstalled" xml:space="preserve">
     <value>Firmware uninstalled (removed: {0}).</value>
   </data>
+  <data name="PrecompileShaders" xml:space="preserve">
+    <value>Precompile shaders</value>
+  </data>
+  <data name="PrecompileShadersDetail" xml:space="preserve">
+    <value>Before this game starts, builds the shaders and pipelines it used in earlier sessions</value>
+  </data>
+  <data name="PrecompileShadersGlobalDetail" xml:space="preserve">
+    <value>Before a game starts, builds the shaders and pipelines it used in earlier sessions (games can change it on their page)</value>
+  </data>
+  <data name="PrecompileShadersTip" xml:space="preserve">
+    <value>On (default): when you start a game, its shaders and pipelines from earlier sessions are built first, with a progress bar (Cancel starts the game right away). Then the game does not stutter the first time it shows each effect again. The first session of a game has nothing recorded and starts at once; after a graphics driver update the wait can take a few seconds. Off: they build in the background while the game runs.</value>
+  </data>
+  <data name="PrecompileProgress" xml:space="preserve">
+    <value>Precompiling shaders: {0} of {1}</value>
+  </data>
+  <data name="PrecompileCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>
