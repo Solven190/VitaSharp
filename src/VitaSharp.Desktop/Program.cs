@@ -1018,7 +1018,7 @@ public static class Program
         Console.WriteLine("  version                              print the version and commit of this build");
         Console.WriteLine("  update [--channel=builds|releases] [--feed=URL|folder] [--apply]  check the GitHub releases for a newer emulator; --apply installs it");
         Console.WriteLine("  ui-snapshot <out-dir>               render Settings > Controles driven by a simulated DualSense (use a scratch --data)");
-        Console.WriteLine("  ui-render <out-dir> [--title=ID] [--launch=ID|shell] [--install-pkg=P [--license=zRIF]]  render every launcher page to PNGs without a window (use a scratch --data)");
+        Console.WriteLine("  ui-render <out-dir> [--title=ID] [--launch=ID|shell] [--install-pkg=P [--license=zRIF]] [--mem]  render every launcher page to PNGs without a window (use a scratch --data); --mem: memory after each page");
         Console.WriteLine("  toast-preview <out.png> [TITLEID] [--sound=<out.wav>]  draw the trophy notification; write the trophy sound");
         Console.WriteLine("  ime-preview <out.png> [title] [text] [--max=N] [--multiline] [--password]  draw the IME text entry overlay");
         Console.WriteLine("  msg-preview <out.png> [message] [--buttons=A,B] [--selected=N] [--progress=N]  draw the message dialog overlay");

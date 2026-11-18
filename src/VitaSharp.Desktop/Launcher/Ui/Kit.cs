@@ -398,6 +398,23 @@ public sealed class Kit
         }
     }
 
+    /// <summary>Decoded images in the cache and their pixel memory (4 bytes per pixel), for the memory report.</summary>
+    public static (int Count, long Bytes) ImageCacheStats()
+    {
+        lock (Images)
+        {
+            long bytes = 0;
+            foreach (Bitmap? bitmap in Images.Values)
+            {
+                if (bitmap != null)
+                {
+                    bytes += 4L * bitmap.PixelSize.Width * bitmap.PixelSize.Height;
+                }
+            }
+            return (Images.Count, bytes);
+        }
+    }
+
     public static void ForgetImages(string folder)
     {
         lock (Images)
