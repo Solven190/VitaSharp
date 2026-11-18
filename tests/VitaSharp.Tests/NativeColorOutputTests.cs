@@ -111,6 +111,66 @@ public class NativeColorOutputTests
         Assert.DoesNotContain("bitfieldInsert", fetch);
     }
 
+    // Assassin's Creed III Liberation G-buffer tail (fs 256C5AF9CD46C573, declared half4, created with HALF4, F32F32
+    // surface): pa0.x = VPCK.U8.F16 albedo, pa0.y = two VPCK.S8.F16 normal halves, o0..o1 = VMOV pa0..pa1
+    private static readonly ulong[] s_gbufferWords = [0x40810A3EA01D8000, 0x40810A4EA0250100, 0x40810A72A0270102, 0x3880054183000000];
+
+    private static GeneratedShader GenerateOn(ulong[] code, uint colorFormat, uint outputFormat) =>
+        ShaderGenerator.Generate(Program(code), new ShaderHints([], [], colorFormat, false, outputFormat));
+
+    [Fact]
+    public void PackedWordsOnF32F32SurfaceAreStoredAsRawBits()
+    {
+        // the 64-bit output register goes to the 8-byte pixel unconverted: the game samples the surface back as
+        // U8U8U8U8 albedo at +0 and S8S8S8S8 normal at +4. Read as bytes of o0.x into a float view, the albedo became
+        // two floats and the normal was dropped (cyan/yellow noise over the whole scene)
+        GeneratedShader gen = GenerateOn(s_gbufferWords, 0x11000000, 5);
+        Assert.Equal(32, gen.RawColorBits);
+        Assert.Contains("uvec4 raw_words = uvec4(uvec2(floatBitsToUint(o[0].x), floatBitsToUint(o[0].y)), 0u, 0u);", gen.Glsl);
+        Assert.Contains("out_raw = raw_words;", gen.Glsl);
+    }
+
+    [Fact]
+    public void FetchedWordsOnF32F32SurfaceAreTheRawRegisterWords()
+    {
+        // the decal blend programs of the same G-buffer (fs E75AC07A68CC79A1) read the pixel and SOP2 its packed
+        // bytes: the fetch must give back o0.x/o0.y as the surface's words, not as four halves, and the blended words
+        // go out raw too (the bushes/decals were blue-green noise)
+        GeneratedShader gen = ShaderGenerator.Generate(Program(s_gbufferWords, GxpProgram.FlagFragColorUsed), new ShaderHints([], [], 0x11000000, false, 5));
+        string fetch = string.Join("\n", gen.Glsl.Split('\n').SkipWhile(l => !l.Contains("last_frag_tex, ivec2")).Take(6));
+        Assert.DoesNotContain("packHalf2x16", fetch);
+        Assert.Matches(@"o\[0\]\.x = t\d+\.x;", fetch);
+        Assert.Matches(@"o\[0\]\.y = t\d+\.y;", fetch);
+        Assert.Equal(32, gen.RawColorBits);
+        Assert.Contains("out_raw = raw_words;", gen.Glsl);
+    }
+
+    [Theory]
+    [InlineData(0x11000000u, 7u, 2)] // FLOAT2 on F32F32: two words
+    [InlineData(0x10800000u, 1u, 1)] // UCHAR4 on F32: one word
+    [InlineData(0x10800000u, 6u, 1)] // HALF2 on F32: one word
+    [InlineData(0x10800000u, 8u, 1)] // FLOAT on F32: one word
+    public void RegisterThatFillsAFloatChannelPixelIsStoredAsRawBits(uint colorFormat, uint outputFormat, int words)
+    {
+        GeneratedShader gen = GenerateOn(s_gbufferWords, colorFormat, outputFormat);
+        Assert.Equal(32, gen.RawColorBits);
+        string expected = words == 2 ? "uvec4(uvec2(floatBitsToUint(o[0].x), floatBitsToUint(o[0].y)), 0u, 0u)" : "uvec4(floatBitsToUint(o[0].x), 0u, 0u, 0u)";
+        Assert.Contains($"uvec4 raw_words = {expected};", gen.Glsl);
+    }
+
+    [Theory]
+    [InlineData(0x11000000u, 1u)] // UCHAR4 (4 bytes) on F32F32 (8 bytes): sizes differ
+    [InlineData(0x10800000u, 5u)] // HALF4 (8 bytes) on F32 (4 bytes)
+    [InlineData(0x00000000u, 5u)] // U8U8U8U8 surface: converted colour, as before
+    [InlineData(0x01000000u, 5u)] // F16F16F16F16 surface: converted colour, as before
+    [InlineData(0x11000000u, 0u)] // not created with an explicit register format: declared type, as before
+    public void OtherSurfacesAndRegisterSizesKeepTheConvertedColour(uint colorFormat, uint outputFormat)
+    {
+        GeneratedShader gen = GenerateOn(s_gbufferWords, colorFormat, outputFormat);
+        Assert.Equal(0, gen.RawColorBits);
+        Assert.DoesNotContain("out_raw", gen.Glsl);
+    }
+
     [Fact]
     public void OutputFormatChangesTheHintKeyOnlyWhenSet()
     {
