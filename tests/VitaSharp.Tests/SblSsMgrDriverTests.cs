@@ -53,6 +53,10 @@ public sealed class SblSsMgrDriverTests(GuestMemoryFixture fixture) : IDisposabl
     [InlineData(0x1901CB5Eu, false)]
     [InlineData(0x82B5DCEFu, false)]
     [InlineData(0x7D46768Cu, false)]
+    [InlineData(0xEB3AF9B5u, false)]
+    [InlineData(0x6704D985u, false)]
+    [InlineData(0x92E37656u, false)]
+    [InlineData(0x79F38554u, false)]
     [InlineData(0x01BE0374u, true)]
     [InlineData(0x8B4700CBu, true)]
     [InlineData(0x37DD5CBFu, true)]
@@ -127,17 +131,52 @@ public sealed class SblSsMgrDriverTests(GuestMemoryFixture fixture) : IDisposabl
         Assert.Equal(0, Call(Services, "ksceSblDmac5AesEcbDecNP", dst, back, 16u, key, 0x80u, 0u, 1));
         Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(s_plain));
 
-        uint iv = Bytes(Convert.FromHexString("000102030405060708090A0B0C0D0E0F"));
+        byte[] cbcIv = Convert.FromHexString("000102030405060708090A0B0C0D0E0F");
+        uint iv = Bytes(cbcIv);
         Assert.Equal(0, Call(Services, "ksceSblDmac5AesCbcEnc", src, dst, 16u, key, 0x80u, iv, 1));
         Assert.Equal("7649ABAC8119B246CEE98E9B12E9197D", Convert.ToHexString(GuestMemory.ReadSpan(dst, 16)));
-        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCbcDecNP", dst, back, 16u, key, 0x80u, iv, 0u, 1));
+        Assert.Equal("7649ABAC8119B246CEE98E9B12E9197D", Convert.ToHexString(GuestMemory.ReadSpan(iv, 16))); // chained
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCbcDecNP", dst, back, 16u, key, 0x80u, Bytes(cbcIv), 0u, 1));
         Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(s_plain));
 
-        uint counter = Bytes(Convert.FromHexString("F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF"));
+        byte[] ctrStart = Convert.FromHexString("F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF");
+        uint counter = Bytes(ctrStart);
         Assert.Equal(0, Call(Services, "ksceSblDmac5AesCtrEnc", src, dst, 16u, key, 0x80u, counter, 1));
         Assert.Equal("874D6191B620E3261BEF6864990DB6CE", Convert.ToHexString(GuestMemory.ReadSpan(dst, 16)));
-        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCtrDec", dst, back, 16u, key, 0x80u, counter, 1));
+        Assert.Equal("F0F1F2F3F4F5F6F7F8F9FAFBFCFDFF00", Convert.ToHexString(GuestMemory.ReadSpan(counter, 16))); // next block
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCtrDec", dst, back, 16u, key, 0x80u, Bytes(ctrStart), 1));
         Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(s_plain));
+    }
+
+    /// <summary>SHA-1 (FIPS 180 "abc"), HMAC-SHA1 (RFC 2202 case 1) and HMAC-SHA256 (RFC 4231 case 1): the 20-byte
+    /// keys of the RFC cases are the engine's 0x20-byte key padded with zeros, which HMAC treats alike.</summary>
+    [Fact]
+    public void HashesOfOneCallMatchTheKnownVectors()
+    {
+        uint abc = Bytes("abc"u8.ToArray()), hiThere = Bytes("Hi There"u8.ToArray()), digest = _harness.Alloc(0x20);
+        byte[] rfcKey = new byte[0x20];
+        Array.Fill(rfcKey, (byte)0x0B, 0, 20);
+        uint key = Bytes(rfcKey);
+        Assert.Equal(0, Call(Services, "ksceSblDmac5Sha1", abc, digest, 3u, 0u, 1, 0u));
+        Assert.Equal("A9993E364706816ABA3E25717850C26C9CD0D89D", Convert.ToHexString(GuestMemory.ReadSpan(digest, 20)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5Sha1HmacTransform", hiThere, digest, 8u, key, 0u, 1, 0u));
+        Assert.Equal("B617318655057264E28BC0B6FB378C8EF146BE00", Convert.ToHexString(GuestMemory.ReadSpan(digest, 20)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5Sha1HmacNP", hiThere, digest, 8u, key, 0u, 0u, 1, 0u));
+        Assert.Equal("B617318655057264E28BC0B6FB378C8EF146BE00", Convert.ToHexString(GuestMemory.ReadSpan(digest, 20)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5Sha256Hmac", hiThere, digest, 8u, key, 0u, 1, 0u));
+        Assert.Equal("B0344C61D8DB38535CA8AFCEAF0BF12B881DC200C9833DA726E9376C2E32CFF7",
+            Convert.ToHexString(GuestMemory.ReadSpan(digest, 0x20)));
+    }
+
+    [Fact]
+    public void ChainingContextsAndDerivedKeysNeedTheSecureSide()
+    {
+        uint data = Bytes(s_plain), digest = _harness.Alloc(0x20), key = Bytes(new byte[0x20]);
+        Assert.Equal(Unavailable, Call(Services, "ksceSblDmac5Sha1", data, digest, 16u, _harness.Alloc(0x28), 1, 0x400u));
+        Assert.Equal(Unavailable, Call(Services, "ksceSblDmac5Sha256Hmac", data, digest, 16u, key, _harness.Alloc(0x28), 1, 0x800u));
+        Assert.Equal(Dmac5Invalid, Call(Services, "ksceSblDmac5Sha256Hmac", data, digest, 16u, 0u, 0u, 1, 0u));
+        Assert.Equal(Unavailable, Call(Services, "ksceSblDmac5Sha1HmacNP", data, digest, 16u, key, 0u, 0x10000u, 1, 0u));
+        Assert.Equal(Unavailable, Call(Services, "ksceSblDmac5AesEcbEncNP", data, digest, 16u, key, 0x80u, 0x20001u, 1));
     }
 
     [Fact]

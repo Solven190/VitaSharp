@@ -6,7 +6,9 @@ namespace VitaSharp.Core.Hle.Modules;
 // SceSblSsMgrForDriver (os0:kd/ss_mgr.skprx 3.74, read in the module, study only), first part: the unit's identity
 // words, the random number generators and the DMAC5 AES operations with a key in memory. DMAC5 is the crypto DMA
 // engine: the key is given in bits (64, 128, 192 or 256; anything else 0x800F1516) and the engine runs the cipher
-// from src to dst; the "NP" forms also load the key into a key id first. The forms with a key slot use a key the
+// from src to dst; the "NP" forms load the key through the authenticator first, under a key id: id 0 is the key as
+// given, the other ids (0x10000, 0x10001, 0x20000, 0x20001) derive it in the secure processor (0x80020004 here).
+// CBC and CTR leave the chaining value (the last cipher block, the next counter) in the IV. The forms with a key slot use a key the
 // secure processor put in the engine, which the emulated unit does not have: 0x80020004.
 public sealed partial class SystemServicesVsh
 {
@@ -178,9 +180,18 @@ public sealed partial class SystemServicesVsh
                     aes.DecryptCbc(input.AsSpan(0, blocks), chain, output.AsSpan(0, blocks), PaddingMode.None);
                 }
 
+                if (blocks != 0)
+                {
+                    // the engine leaves the chaining value in the IV: the last cipher block
+                    byte[] cipher = encrypt ? output : input;
+                    cipher.AsSpan(blocks - 16, 16).CopyTo(GuestMemory.Span(iv, 16));
+                }
+
                 break;
             case Dmac5Mode.Ctr:
-                Dmac5Ctr(aes, input, output, GuestMemory.ReadSpan(iv, 16).ToArray());
+                byte[] counter = GuestMemory.ReadSpan(iv, 16).ToArray();
+                Dmac5Ctr(aes, input, output, counter);
+                counter.CopyTo(GuestMemory.Span(iv, 16)); // the next block's counter
                 blocks = length;
                 break;
         }
@@ -244,6 +255,11 @@ public sealed partial class SystemServicesVsh
     [Hle(Nid = 0x0F7D28AF, Library = "SceSblSsMgrForDriver")]
     int ksceSblDmac5AesEcbEncNP(uint src, uint dst, uint size, uint key, uint keyBits, uint keyId, int mask)
     {
+        if (keyId != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
         return Dmac5Aes(src, dst, size, key, keyBits, 0, Dmac5Mode.Ecb, encrypt: true);
     }
 
@@ -251,6 +267,11 @@ public sealed partial class SystemServicesVsh
     [Hle(Nid = 0x197ACF6F, Library = "SceSblSsMgrForDriver")]
     int ksceSblDmac5AesEcbDecNP(uint src, uint dst, uint size, uint key, uint keyBits, uint keyId, int mask)
     {
+        if (keyId != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
         return Dmac5Aes(src, dst, size, key, keyBits, 0, Dmac5Mode.Ecb, encrypt: false);
     }
 
@@ -272,6 +293,11 @@ public sealed partial class SystemServicesVsh
     [Hle(Nid = 0x711C057A, Library = "SceSblSsMgrForDriver")]
     int ksceSblDmac5AesCbcEncNP(uint src, uint dst, uint size, uint key, uint keyBits, uint iv, uint keyId, int mask)
     {
+        if (keyId != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
         return Dmac5Aes(src, dst, size, key, keyBits, iv, Dmac5Mode.Cbc, encrypt: true);
     }
 
@@ -279,6 +305,11 @@ public sealed partial class SystemServicesVsh
     [Hle(Nid = 0x1901CB5E, Library = "SceSblSsMgrForDriver")]
     int ksceSblDmac5AesCbcDecNP(uint src, uint dst, uint size, uint key, uint keyBits, uint iv, uint keyId, int mask)
     {
+        if (keyId != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
         return Dmac5Aes(src, dst, size, key, keyBits, iv, Dmac5Mode.Cbc, encrypt: false);
     }
 
@@ -294,6 +325,87 @@ public sealed partial class SystemServicesVsh
     int ksceSblDmac5AesCtrDec(uint src, uint dst, uint size, uint key, uint keyBits, uint iv, int mask)
     {
         return Dmac5Aes(src, dst, size, key, keyBits, iv, Dmac5Mode.Ctr, encrypt: false);
+    }
+
+    // ---- DMAC5 hashes: one call over the whole input gives the digest. The chaining forms (flags 0x400: return the
+    // engine's intermediate state instead of a digest; 0x800: continue from such a state) carry the engine's own
+    // register image (SceSblDmac5HashTransformContext), whose meaning the module does not show: not available here
+    // (0x80020004).
+
+    /// <summary>The hash flags that ask for a chaining context.</summary>
+    const uint Dmac5HashChainFlags = 0x400 | 0x800;
+
+    /// <summary>The HMAC key the hash commands take: 0x20 bytes.</summary>
+    const int Dmac5HmacKeySize = 0x20;
+
+    enum Dmac5Hash
+    {
+        Sha1,
+        HmacSha1,
+        HmacSha256,
+    }
+
+    static int Dmac5Digest(uint src, uint dst, uint length, uint key, uint flags, Dmac5Hash hash)
+    {
+        if ((flags & Dmac5HashChainFlags) != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
+        if (hash != Dmac5Hash.Sha1 && key == 0)
+        {
+            return DMAC5_ERR_INVALID_ARGUMENT;
+        }
+
+        ReadOnlySpan<byte> input = GuestMemory.ReadSpan(src, (int)length);
+        byte[] digest = hash switch
+        {
+            Dmac5Hash.Sha1 => SHA1.HashData(input),
+            Dmac5Hash.HmacSha1 => HMACSHA1.HashData(GuestMemory.ReadSpan(key, Dmac5HmacKeySize), input),
+            _ => HMACSHA256.HashData(GuestMemory.ReadSpan(key, Dmac5HmacKeySize), input),
+        };
+        if (dst != 0)
+        {
+            digest.CopyTo(GuestMemory.Span(dst, digest.Length));
+        }
+
+        return 0;
+    }
+
+    /// <summary>ksceSblDmac5Sha1 (0xEB3AF9B5)(src, dst 0x14, length, ctx, mask, flags): the SHA-1 of the input.</summary>
+    [Hle(Nid = 0xEB3AF9B5, Library = "SceSblSsMgrForDriver")]
+    int ksceSblDmac5Sha1(uint src, uint dst, uint length, uint context, int mask, uint flags)
+    {
+        return Dmac5Digest(src, dst, length, 0, flags, Dmac5Hash.Sha1);
+    }
+
+    /// <summary>ksceSblDmac5Sha1HmacTransform (0x6704D985)(src, dst 0x14, length, key 0x20, ctx, mask, flags): HMAC-SHA1
+    /// with the caller's key.</summary>
+    [Hle(Nid = 0x6704D985, Library = "SceSblSsMgrForDriver")]
+    int ksceSblDmac5Sha1HmacTransform(uint src, uint dst, uint length, uint key, uint context, int mask, uint flags)
+    {
+        return Dmac5Digest(src, dst, length, key, flags, Dmac5Hash.HmacSha1);
+    }
+
+    /// <summary>ksceSblDmac5Sha1HmacNP (0x92E37656)(src, dst 0x14, length, key 0x20, ctx, keyId, mask, flags):
+    /// HMAC-SHA1 with the key loaded under a key id (0: as given; the others are derived by the secure processor).</summary>
+    [Hle(Nid = 0x92E37656, Library = "SceSblSsMgrForDriver")]
+    int ksceSblDmac5Sha1HmacNP(uint src, uint dst, uint length, uint key, uint context, uint keyId, int mask, uint flags)
+    {
+        if (keyId != 0)
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
+        return Dmac5Digest(src, dst, length, key, flags, Dmac5Hash.HmacSha1);
+    }
+
+    /// <summary>ksceSblDmac5Sha256Hmac (0x79F38554)(src, dst 0x20, length, key 0x20, ctx, mask, flags): HMAC-SHA256
+    /// with the caller's key.</summary>
+    [Hle(Nid = 0x79F38554, Library = "SceSblSsMgrForDriver")]
+    int ksceSblDmac5Sha256Hmac(uint src, uint dst, uint length, uint key, uint context, int mask, uint flags)
+    {
+        return Dmac5Digest(src, dst, length, key, flags, Dmac5Hash.HmacSha256);
     }
 
     // ---- DMAC5 with a key slot (the secure processor's keys)
