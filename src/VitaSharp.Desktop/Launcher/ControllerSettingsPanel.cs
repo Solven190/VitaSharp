@@ -44,6 +44,9 @@ public sealed class ControllerSettingsPanel : UserControl
 
     readonly ComboBox _device;
     readonly TextBlock _deviceInfo, _status, _hint;
+    /// <summary>Save button and its "saved" / "unsaved changes" note (<see cref="RefreshSaveState"/>).</summary>
+    readonly Button _save;
+    readonly TextBlock _saveState;
     readonly VitaLayoutView _layout;
     readonly StackPanel _bindingRows;
     readonly CheckBox _swap, _triggers, _touchpad, _invertL, _invertR, _motion;
@@ -112,6 +115,11 @@ public sealed class ControllerSettingsPanel : UserControl
         };
         var reset = new Button { Content = Loc.Get("CsResetDefault"), VerticalAlignment = VerticalAlignment.Center };
         reset.Click += (_, _) => ResetProfile();
+        // saving is also done when the screen is left (SettingsPage.SaveControls); this makes it visible
+        _save = new Button { Content = Loc.Get("CsSave"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        ToolTip.SetTip(_save, Loc.Get("CsSaveTip"));
+        _save.Click += (_, _) => SaveNow();
+        _saveState = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(0, 0, 10, 0) };
         _deviceInfo = new TextBlock { Foreground = LauncherTheme.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
 
         var deviceRow = new DockPanel { LastChildFill = true };
@@ -119,9 +127,14 @@ public sealed class ControllerSettingsPanel : UserControl
         DockPanel.SetDock(deviceLabel, Dock.Left);
         DockPanel.SetDock(_device, Dock.Left);
         DockPanel.SetDock(reset, Dock.Right);
+        DockPanel.SetDock(_save, Dock.Right);
+        DockPanel.SetDock(_saveState, Dock.Right);
         deviceRow.Children.Add(deviceLabel);
         deviceRow.Children.Add(_device);
         deviceRow.Children.Add(reset);
+        deviceRow.Children.Add(_save);
+        deviceRow.Children.Add(_saveState);
+        RefreshSaveState();
         deviceRow.Children.Add(new Border());
 
         _layout = new VitaLayoutView { MinHeight = 300 };
@@ -493,6 +506,7 @@ public sealed class ControllerSettingsPanel : UserControl
         _reset.Remove(_profile.Id);
         RefreshBindings();
         RefreshDeviceInfo();
+        RefreshSaveState();
         Changed?.Invoke();
     }
 
@@ -515,6 +529,7 @@ public sealed class ControllerSettingsPanel : UserControl
         RefreshOptions();
         RefreshBindings();
         RefreshDeviceInfo();
+        RefreshSaveState();
         _status.Text = Loc.Get("CsResetDone");
         Changed?.Invoke();
     }
@@ -1078,7 +1093,29 @@ public sealed class ControllerSettingsPanel : UserControl
         _dirty.Clear();
         _reset.Clear();
         RefreshDeviceInfo();
+        RefreshSaveState();
+    }
+
+    /// <summary>The Save button: writes input.json now and says so.</summary>
+    public void SaveNow()
+    {
+        Save();
+        _status.Text = Loc.Get("CsSaveDone");
     }
 
     public bool HasChanges => _dirty.Count > 0 || _reset.Count > 0;
+
+    /// <summary>The note next to the Save button ("saved" / "unsaved changes").</summary>
+    public string SaveStateText => _saveState.Text ?? "";
+
+    /// <summary>The Save button can be clicked (there is something to save).</summary>
+    public bool CanSave => _save.IsEnabled;
+
+    void RefreshSaveState()
+    {
+        bool changes = HasChanges;
+        _save.IsEnabled = changes;
+        _saveState.Text = Loc.Get(changes ? "CsSaveUnsaved" : "CsSaveSaved");
+        _saveState.Foreground = changes ? new SolidColorBrush(Color.Parse("#FFB547")) : LauncherTheme.Muted;
+    }
 }

@@ -1461,6 +1461,9 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
   sair da tela de controles; ter um botão "Salvar" (e um aviso de "salvo"/"alterações não salvas") na tela de
   controles, mantendo o salvamento ao sair
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): botão "Salvar" ao lado de "Restaurar padrão", com o aviso
+  "Salvo" / "Alterações não salvas" (o botão só fica ativo com alterações); sair da tela continua salvando
+  (`ControlsScreenTests`).
 
 - [x] Botões do mouse mapeáveis (pedido do usuário, 06/11/2026): o botão esquerdo e o direito do mouse (e o do meio)
   podem ser mapeados como qualquer botão do Vita (ex.: R para atirar e L para mirar no Killzone, junto com o mouse como
