@@ -1,0 +1,136 @@
+using VitaSharp.Core.Hle;
+using VitaSharp.Core.Hle.Modules;
+using VitaSharp.Core.Memory;
+using Xunit;
+using static VitaSharp.Tests.HleHarness;
+
+namespace VitaSharp.Tests;
+
+/// <summary>
+/// SceSblSsMgrForDriver (ss_mgr.skprx 3.74), first part: the identity words (the same ones the bridge reports), the
+/// random generators, SsMemset, and the DMAC5 AES operations with a key in memory, checked against the NIST SP 800-38A
+/// vectors; the key slot forms need the secure processor's keys (0x80020004).
+/// </summary>
+[Collection("guest")]
+public sealed class SblSsMgrDriverTests(GuestMemoryFixture fixture) : IDisposable
+{
+    private const int Dmac5Invalid = unchecked((int)0x800F1516), AimgrInvalid = unchecked((int)0x800F0C16);
+    private const int Unavailable = unchecked((int)0x80020004);
+
+    private static readonly byte[] Key128 = Convert.FromHexString("2B7E151628AED2A6ABF7158809CF4F3C");
+    private static readonly byte[] Plain = Convert.FromHexString("6BC1BEE22E409F96E93D7E117393172A");
+
+    private readonly HleHarness _harness = new(fixture, "ssmgrd");
+
+    public void Dispose() => _harness.Dispose();
+
+    private SystemServicesVsh Services => _harness.Module<SystemServicesVsh>();
+
+    private uint Bytes(byte[] value)
+    {
+        uint address = _harness.Alloc((uint)value.Length);
+        value.CopyTo(GuestMemory.Span(address, value.Length));
+        return address;
+    }
+
+    [Theory]
+    [InlineData(0xFC6CDD68u, false)]
+    [InlineData(0xA5B5D269u, false)]
+    [InlineData(0xE0DC2587u, false)]
+    [InlineData(0x9A9676D0u, false)]
+    [InlineData(0x04843835u, true)]
+    [InlineData(0x4DD1B2E5u, false)]
+    [InlineData(0xAC57F4F0u, false)]
+    [InlineData(0x4F9BFBE5u, false)]
+    [InlineData(0xCD98CC92u, false)]
+    [InlineData(0xC517770Du, false)]
+    [InlineData(0x7C978BE7u, false)]
+    [InlineData(0x0F7D28AFu, false)]
+    [InlineData(0x197ACF6Fu, false)]
+    [InlineData(0xE6E1AD15u, false)]
+    [InlineData(0x121FA69Fu, false)]
+    [InlineData(0x711C057Au, false)]
+    [InlineData(0x1901CB5Eu, false)]
+    [InlineData(0x82B5DCEFu, false)]
+    [InlineData(0x7D46768Cu, false)]
+    [InlineData(0x01BE0374u, true)]
+    [InlineData(0x8B4700CBu, true)]
+    [InlineData(0x37DD5CBFu, true)]
+    [InlineData(0x8EAFB18Au, true)]
+    [InlineData(0x05B38698u, true)]
+    [InlineData(0x926BCCF0u, true)]
+    [InlineData(0xEA6ACB6Du, true)]
+    public void EveryEntryIsBound(uint nid, bool isDefault)
+    {
+        var bindings = HleBindings.Modules.SelectMany(m => m.Bindings())
+            .Where(b => b.Nid == nid && b.Library == "SceSblSsMgrForDriver").ToList();
+        Assert.Single(bindings);
+        Assert.Equal(isDefault, bindings[0].Default);
+    }
+
+    [Fact]
+    public void TheIdentityIsTheOneTheBridgeReports()
+    {
+        uint kernel = _harness.Alloc(16), bridge = _harness.Alloc(16), pscode = _harness.Alloc(8);
+        Assert.Equal(AimgrInvalid, Call(Services, "ksceSblAimgrGetConsoleId", 0u));
+        Assert.Equal(0, Call(Services, "ksceSblAimgrGetConsoleId", kernel));
+        _harness.Emu.IsSystemProgram = true;
+        Assert.Equal(0, Call(_harness.Module<VshBridge>(), "_vshSblAimgrGetConsoleId", bridge));
+        Assert.True(GuestMemory.ReadSpan(kernel, 16).SequenceEqual(GuestMemory.ReadSpan(bridge, 16)));
+
+        Assert.Equal(0, Call(Services, "ksceSblAimgrGetOpenPsId", kernel));
+        Assert.True(GuestMemory.ReadSpan(kernel, 16).SequenceEqual(ConsoleIdentity.OpenPsId));
+
+        Assert.Equal(0, Call(Services, "ksceSblAimgrGetPscode", pscode));
+        Assert.Equal(ConsoleIdentity.CompanyCode, GuestMemory.Read<ushort>(pscode));
+        Assert.Equal(ConsoleIdentity.ProductCode, GuestMemory.Read<ushort>(pscode + 2));
+        Assert.Equal(ConsoleIdentity.ProductSubCode, GuestMemory.Read<ushort>(pscode + 4));
+        Assert.Equal(unchecked((int)0x800F0C29), Call(Services, "ksceSblAimgrGetPscode2", pscode)); // retail: no product mode
+        Assert.Equal(AimgrInvalid, Call(Services, "ksceSblAimgrGetPscode2", 0u));
+        Assert.Equal(0, Call(Services, "ksceSblAimgrGetVisibleId", _harness.Alloc(0x20)));
+    }
+
+    [Fact]
+    public void RandomNumbersAndMemset()
+    {
+        uint buffer = _harness.Alloc(0x80);
+        Assert.Equal(Dmac5Invalid, Call(Services, "ksceSblDmac5Rnd", buffer, 0x41u, 1));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5Rnd", buffer, 0x40u, 1));
+        Assert.Equal(0, Call(Services, "ksceSblRngGenuineRandomNumber", buffer));
+        Assert.Equal(0, Call(Services, "ksceSblRngPseudoRandomNumber", buffer, 0x80u));
+        Assert.False(GuestMemory.ReadSpan(buffer, 0x40).SequenceEqual(new byte[0x40]));
+        Assert.Equal(buffer, (uint)Invoke(Services, "ksceSblSsMemset", buffer, 0x5A, 0x80u)!);
+        Assert.All(GuestMemory.ReadSpan(buffer, 0x80).ToArray(), b => Assert.Equal(0x5A, b));
+    }
+
+    [Fact]
+    public void AesEcbCbcAndCtrMatchTheNistVectors()
+    {
+        uint key = Bytes(Key128), src = Bytes(Plain), dst = _harness.Alloc(16), back = _harness.Alloc(16);
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesEcbEnc", src, dst, 16u, key, 0x80u, 1));
+        Assert.Equal("3AD77BB40D7A3660A89ECAF32466EF97", Convert.ToHexString(GuestMemory.ReadSpan(dst, 16)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesEcbDecNP", dst, back, 16u, key, 0x80u, 0u, 1));
+        Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(Plain));
+
+        uint iv = Bytes(Convert.FromHexString("000102030405060708090A0B0C0D0E0F"));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCbcEnc", src, dst, 16u, key, 0x80u, iv, 1));
+        Assert.Equal("7649ABAC8119B246CEE98E9B12E9197D", Convert.ToHexString(GuestMemory.ReadSpan(dst, 16)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCbcDecNP", dst, back, 16u, key, 0x80u, iv, 0u, 1));
+        Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(Plain));
+
+        uint counter = Bytes(Convert.FromHexString("F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF"));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCtrEnc", src, dst, 16u, key, 0x80u, counter, 1));
+        Assert.Equal("874D6191B620E3261BEF6864990DB6CE", Convert.ToHexString(GuestMemory.ReadSpan(dst, 16)));
+        Assert.Equal(0, Call(Services, "ksceSblDmac5AesCtrDec", dst, back, 16u, key, 0x80u, counter, 1));
+        Assert.True(GuestMemory.ReadSpan(back, 16).SequenceEqual(Plain));
+    }
+
+    [Fact]
+    public void TheEngineChecksTheKey()
+    {
+        uint key = Bytes(Key128), src = Bytes(Plain), dst = _harness.Alloc(16);
+        Assert.Equal(Dmac5Invalid, Call(Services, "ksceSblDmac5AesEcbEnc", src, dst, 16u, 0u, 0x80u, 1));
+        Assert.Equal(Dmac5Invalid, Call(Services, "ksceSblDmac5AesEcbEnc", src, dst, 16u, key, 0x90u, 1));
+        Assert.Equal(Unavailable, Call(Services, "Dmac5WithKeyslot"));
+    }
+}

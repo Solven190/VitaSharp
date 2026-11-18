@@ -83,19 +83,7 @@ public sealed partial class VshBridge
             return ERR_BAD_ADDR;
         }
 
-        Span<byte> b = stackalloc byte[16];
-        b.Clear();
-        b[3] = 1;
-        b[4] = 0x01;
-        b[5] = 0x04;
-        b[7] = 0x10;
-        b[8] = 0x04;
-        for (int i = 9; i < 16; i++)
-        {
-            b[i] = (byte)(0x10 + i); // the OpenPSID bytes of sceKernelGetOpenPsId
-        }
-
-        b.CopyTo(GuestMemory.Span(id, 16));
+        ConsoleIdentity.ConsoleId.CopyTo(GuestMemory.Span(id, 16));
         return 0;
     }
 
