@@ -259,6 +259,9 @@ public sealed partial class CondVar
     internal void Resolve(ObjectTable t) => Mutex = t.Get<Mutex>(_mutexUid) ?? throw new SnapshotException($"condition variable {Name}: its mutex 0x{_mutexUid:X} is missing");
 }
 
+// A message pipe keeps its buffer and its wait queue: the order the pipe serves its waiters, how far each one got,
+// and the waiters served or released that had not returned. A waiter's buffers are guest addresses, so a waiter the
+// pipe reaches before its thread reissues the call is still served from them.
 public sealed partial class MsgPipe
 {
     internal void Save(SnapshotWriter w)
@@ -269,7 +272,52 @@ public sealed partial class MsgPipe
         w.Write(_deleted);
         lock (this)
         {
-            w.Write(_data.ToArray());
+            byte[] held = new byte[_held];
+            for (int i = 0; i < _held; i++)
+            {
+                held[i] = _ring![(_readPos + i) % BufferSize];
+            }
+
+            w.Write(held);
+            // added 18/11/2026; states of builds before it have no queue: their calls are reissued as new ones, as
+            // those builds did ([SnapshotMissing] for this hand-written record: the empty queue)
+            List<Transfer> kept = new();
+            foreach (Transfer transfer in _ended)
+            {
+                if (transfer.ThreadUid != 0)
+                {
+                    kept.Add(transfer);
+                }
+            }
+            foreach (Transfer transfer in _queue)
+            {
+                if (transfer.ThreadUid != 0 || transfer.Completed != null)
+                {
+                    kept.Add(transfer);
+                }
+            }
+            w.Write(kept.Count);
+            foreach (Transfer transfer in kept)
+            {
+                w.Write(transfer.ThreadUid);
+                w.Write(transfer.Completed != null);
+                w.Write(transfer.Send);
+                w.Write(transfer.Full);
+                w.Write(transfer.Peek);
+                w.Write(transfer.Priority);
+                w.Write(transfer.Total);
+                w.Write(transfer.Left);
+                w.Write(transfer.Served);
+                w.Write(transfer.Error);
+                w.Write(transfer.Result.Address);
+                w.Write(transfer.Buffers.Addrs.Length);
+                for (int i = 0; i < transfer.Buffers.Addrs.Length; i++)
+                {
+                    w.Write(transfer.Buffers.Addrs[i]);
+                    w.Write(transfer.Buffers.Sizes[i]);
+                }
+            }
+            w.Write(_headPartial);
         }
     }
 
@@ -279,11 +327,63 @@ public sealed partial class MsgPipe
         BufferSize = r.ReadInt32();
         CreatorThreadUid = r.ReadInt32();
         _deleted = r.ReadBool();
-        _data.Clear();
-        foreach (byte b in r.ReadBytes() ?? [])
+        byte[] held = r.ReadBytes() ?? [];
+        _ring = held.Length > 0 ? new byte[BufferSize] : null;
+        held.CopyTo(_ring.AsSpan());
+        _readPos = 0;
+        _held = held.Length;
+        _writePos = BufferSize > 0 ? _held % BufferSize : 0;
+        _queue.Clear();
+        _ended.Clear();
+        _restored.Clear();
+        _headPartial = false;
+        int saved = r.AtEnd ? 0 : r.ReadInt32();
+        for (int i = 0; i < saved; i++)
         {
-            _data.Enqueue(b);
+            var transfer = new Transfer { ThreadUid = r.ReadInt32() };
+            bool later = r.ReadBool();
+            transfer.Send = r.ReadBool();
+            transfer.Full = r.ReadBool();
+            transfer.Peek = r.ReadBool();
+            transfer.Priority = r.ReadInt32();
+            transfer.Total = r.ReadInt32();
+            transfer.Left = r.ReadInt32();
+            transfer.Served = r.ReadBool();
+            transfer.Error = r.ReadInt32();
+            transfer.Result = new Memory.Ptr<uint>(r.ReadUInt32());
+            int count = r.ReadInt32();
+            uint[] addrs = new uint[count];
+            int[] sizes = new int[count];
+            for (int j = 0; j < count; j++)
+            {
+                addrs[j] = r.ReadUInt32();
+                sizes[j] = r.ReadInt32();
+            }
+
+            transfer.Buffers = new Segments(addrs, sizes);
+            if (later)
+            {
+                transfer.Completed = NoCompletion; // the process's count of queued requests starts again at 0
+                _queue.Add(transfer);
+                continue;
+            }
+
+            _restored.Add(transfer);
+            if (transfer.Served || transfer.Error != 0)
+            {
+                _ended.Add(transfer);
+            }
+            else
+            {
+                _queue.Add(transfer); // saved in queue order
+            }
         }
+        _headPartial = !r.AtEnd && r.ReadBool();
+    }
+
+    /// <summary>A restored DONT_WAIT request's end: nothing to count.</summary>
+    private static void NoCompletion()
+    {
     }
 }
 

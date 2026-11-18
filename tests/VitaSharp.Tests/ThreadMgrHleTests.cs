@@ -1465,7 +1465,7 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             GuestMemory.W32(info, 0x3C); // the syscall form wrote its smaller size there
             // FULL that does not fit: the Try form sends nothing and fails, the blocking one times out with nothing sent
             Assert.Equal(SceError.MPP_FULL, Call(Tm, "sceKernelTrySendMsgPipe", p, src + 0xFF4, 16u, MsgPipe.WaitAll, new Ptr<uint>(res)));
-            Assert.Equal(0u, GuestMemory.R32(res));
+            Assert.Equal(0xFF4u, GuestMemory.R32(res)); // refused before any byte moves: no count written
             Assert.Equal(SceError.WAIT_TIMEOUT, Call(Tm, "sceKernelSendMsgPipe", p, src + 0xFF4, 16u, MsgPipe.WaitAll, new Ptr<uint>(res), new Ptr<uint>(_h.Word(1000))));
             Assert.Equal(0u, GuestMemory.R32(res));
             Assert.Equal(0, Call(Tm, "sceKernelGetMsgPipeInfo", p, info));
@@ -1481,7 +1481,9 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             Assert.Equal(0, Call(Tm, "sceKernelReceiveMsgPipe", p, dst, 10u, MsgPipe.WaitAsap, new Ptr<uint>(res), new Ptr<uint>(0)));
             Assert.Equal(10u, GuestMemory.R32(res));
             Assert.True(GuestMemory.ReadSpan(dst, 10).SequenceEqual(GuestMemory.ReadSpan(src, 10)));
-            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1100u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
+            // a receive larger than the pipe's buffer is refused too (threadmgr checks every buffer list against it)
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1001u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
+            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1000u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
             Assert.Equal(0xFF6u, GuestMemory.R32(res));
             Assert.True(GuestMemory.ReadSpan(dst, 0xFF6).SequenceEqual(GuestMemory.ReadSpan(src + 10, 0xFF6)));
             Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 4u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
@@ -2007,8 +2009,8 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             GuestMemory.W32(vec, buf);
             GuestMemory.W32(vec + 4, 8);
             Assert.Equal(SceError.ILLEGAL_MODE, Call(Tm, "sceKernelReceiveMsgPipeVector", pipe, vec, 1u, 0x20u | MsgPipe.DontWait, new Ptr<uint>(0), new Ptr<uint>(0)));
-            // the poll form keeps failing at once
-            Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", pipe, buf, 8u, MsgPipe.DontWait, new Ptr<uint>(0)));
+            // the poll form accepts only FULL and DONT_REMOVE (threadmgr 3.74 0x81016D30)
+            Assert.Equal(SceError.ILLEGAL_MODE, Call(Tm, "sceKernelTryReceiveMsgPipe", pipe, buf, 8u, MsgPipe.DontWait, new Ptr<uint>(0)));
             // a process may have 0x100 transfers queued, then the kernel refuses
             for (int i = 0; i < ThreadMgr.MaxLaterTransfers; i++)
             {

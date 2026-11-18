@@ -927,40 +927,54 @@ public sealed partial class ThreadMgr : HleModule
         return KernelInfo.Write(info, f);
     }
 
-    /// <summary>Reads a MsgPipeVector array ({void *base; SceSize size;} x count). NULL array or any NULL base →
-    /// ILLEGAL_ADDR, count 0 → ILLEGAL_COUNT.</summary>
+    /// <summary>Reads a MsgPipeVector array ({void *base; SceSize size;} x count): NULL array → ILLEGAL_ADDR, count 0
+    /// → ILLEGAL_COUNT (threadmgr's first checks; the entries are checked by the pipe, after the mode).</summary>
     static int ReadVector(uint vec, uint count, out MsgPipe.Segments segs)
     {
         segs = default;
-        if (vec == 0) return SceError.ILLEGAL_ADDR;
-        if (count == 0) return SceError.ILLEGAL_COUNT;
+        if (vec == 0)
+        {
+            return SceError.ILLEGAL_ADDR;
+        }
+
+        if (count == 0)
+        {
+            return SceError.ILLEGAL_COUNT;
+        }
+
         var addrs = new uint[count];
         var sizes = new int[count];
         for (uint i = 0; i < count; i++)
         {
             addrs[i] = GuestMemory.R32(vec + i * 8);
             sizes[i] = (int)GuestMemory.R32(vec + i * 8 + 4);
-            if (addrs[i] == 0) return SceError.ILLEGAL_ADDR;
         }
         segs = new MsgPipe.Segments(addrs, sizes);
         return 0;
     }
 
+    /// <summary>A vector send or receive. An error before any byte moves writes no count (threadmgr); a wait that
+    /// ends in an error reports what it moved.</summary>
     int MsgPipeVector(int uid, uint vec, uint count, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool send, bool poll)
     {
-        var p = Obj<MsgPipe>(uid);
-        if (p == null) { if (poll) result.TrySet(0); return SceError.UNKNOWN_MSG_PIPE_ID; }
-        int e = ReadVector(vec, count, out var segs);
-        if (e != 0) { if (poll) result.TrySet(0); return e; }
-        if (!poll && (mode & MsgPipe.DontWait) != 0)
+        MsgPipe? pipe = Obj<MsgPipe>(uid);
+        if (pipe == null)
         {
-            return TransferLater(p, send, segs, mode, result);
+            return SceError.UNKNOWN_MSG_PIPE_ID;
         }
 
-        if (segs.Total == 0) { result.TrySet(0); return 0; }
-        int r = send ? p.Send(segs, mode, result, timeout, poll) : p.Receive(segs, mode, result, timeout, poll);
-        if (r < 0 && (poll || r is SceError.WAIT_TIMEOUT or SceError.WAIT_DELETE or SceError.WAIT_CANCEL)) result.TrySet(0);
-        return r;
+        int error = ReadVector(vec, count, out MsgPipe.Segments segments);
+        if (error != 0)
+        {
+            return error;
+        }
+
+        if (!poll && (mode & MsgPipe.DontWait) != 0)
+        {
+            return TransferLater(pipe, send, segments, mode, result);
+        }
+
+        return send ? pipe.Send(segments, mode, result, timeout, poll) : pipe.Receive(segments, mode, result, timeout, poll);
     }
 
     /// <summary>How many DONT_WAIT transfers one process may have queued (threadmgr counts them per process).</summary>
