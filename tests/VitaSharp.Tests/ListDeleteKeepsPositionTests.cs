@@ -94,7 +94,7 @@ public sealed class ListDeleteKeepsPositionTests : IDisposable
         File.WriteAllText(Path.Combine(data, "launcher.json"), "{ \"CheckUpdates\": false }");
         Environment.SetEnvironmentVariable(EnvVars.Data, data);
         LauncherApp.SetupHeadless();
-        LauncherSettings settings = LauncherSettings.Load();
+        var settings = LauncherSettings.Load();
         settings.View = LauncherSettings.ViewGrid;
         return settings;
     }
@@ -119,7 +119,7 @@ public sealed class ListDeleteKeepsPositionTests : IDisposable
             Assert.Equal(700, before.Y);
 
             // a game on screen at that position: its page, then "Desinstalar"
-            List<string> order = main.ListOrderForTests.ToList();
+            var order = main.ListOrderForTests.ToList();
             Control target = order.Select(id => main.ListItemForTests(id)!).First(c => c.TranslatePoint(default, scroll) is { Y: > 40 } p && p.Y < scroll.Viewport.Height - 300);
             string targetId = order.First(id => main.ListItemForTests(id) == target);
             string expectedNext = order[order.IndexOf(targetId) + 1];
@@ -205,7 +205,7 @@ public sealed class ListDeleteKeepsPositionTests : IDisposable
             Assert.True(scroll.Extent.Height > scroll.Viewport.Height + 800, $"the captures must scroll ({scroll.Extent.Height} / {scroll.Viewport.Height})");
             scroll.Offset = new Vector(0, 800);
             Pump();
-            List<string> order = main.ListOrderForTests.ToList();
+            var order = main.ListOrderForTests.ToList();
             string target = order.First(path => main.ListItemForTests(path)!.TranslatePoint(default, scroll) is { Y: > 40 } p && p.Y < scroll.Viewport.Height - 200);
             string expectedNext = order[order.IndexOf(target) + 1];
 

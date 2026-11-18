@@ -529,7 +529,7 @@ public static class SaveStates
         }
 
         var spaces = new SnapshotWriter();
-        var blockSpacePids = new int[blocks.Count];
+        int[] blockSpacePids = new int[blocks.Count];
         spaces.Write(blocks.Count);
         for (int i = 0; i < blocks.Count; i++)
         {
@@ -1314,7 +1314,7 @@ public static class SaveStates
         emu.BgmPriority = Math.Max(0, sys.ReadInt32());
 
         // the other processes' own records: the ids were checked (SavedProcesses), the main thread follows the objects
-        var mainThreads = new int[processes.Count];
+        int[] mainThreads = new int[processes.Count];
         mainThreads[0] = mainUid;
         for (int index = 1; index < processes.Count; index++)
         {
