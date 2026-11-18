@@ -2721,6 +2721,36 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 
 ## Bugs em aberto
 
+- [ ] [P1][M] PSVitaAlive (PSVAS1178, homebrew vita2d), bug gráfico no teclado de busca (usuário, 17/11/2026; captura
+  `captures/PSVAS1178_20261117_215911_tudo`, 41 achados [flash]): em quadros isolados faltam as teclas e parte do
+  texto ("9/12" em vez de "9/128") e triângulos saem do canto superior esquerdo. Causa (replay do gpu.vsgd, quadro
+  7692, draws 379+): os draws leem os vértices do quadro seguinte (o programa de cor recebe dados com coordenadas de
+  textura, o de texto recebe cores). A cena num buffer ainda na tela espera na GPU a troca de quadro (sync object de
+  fragmento) e o GPU worker executa vértice e fragmento juntos; no console só o fragmento espera, os vértices são
+  lidos no kick (sceGxmEndScene/MidSceneFlush), e o vita2d reaproveita o pool de vértices a cada quadro. Correção
+  feita (fix/psm1), ainda não confirmada: os draws enfileirados atrás de uma espera de exibição copiam no kick os
+  índices, os vertex streams e os uniform buffers vinculados (`GeometrySnapshot`, `DisplayHold`), e o worker lê a
+  cópia; teste `GxmFlowTests.DrawsBehindADisplayHoldReadTheGeometryOfTheirKick`. Teste do usuário: PSVitaAlive,
+  abrir "Buscar no catálogo" e digitar várias letras pelo toque; não pode piscar nem faltar tecla.
+- [ ] [P1][M] PSM: "0 fps / não dá para jogar" (usuário, 17/11/2026; captura `captures/PCSI00011_20261117_225840_tudo`).
+  O que foi aberto foi o próprio PSM Runtime Package (PCSI00011), sem jogo: o main do runtime 2.01 (estudo do eboot
+  decifrado) carrega libmono_bridge/libmono/libpsm, pede o parâmetro (sceAppMgrGetAppParam, "ux0:psm/<id>"), monta
+  106/107 com os 9 últimos caracteres; sem parâmetro a montagem falha, ele descarrega tudo e termina no abort da libc
+  (o bt ScePsm+2F50 do log). No console o runtime não tem bolha (o shell 3.74 o registra sem ícone no app.db, como o
+  app.db do usuário mostra) e só é aberto por um título PSM. Correção feita (fix/psm1), ainda não confirmada: a
+  Biblioteca não lista o runtime (`InstalledContent.IsPsmRuntime`, pelo runtime_version.txt); teste
+  `FirmwareLayoutTests.ThePsmRuntimeIsNotListedButStartsThePsmTitles`. Os jogos PSM instalados (NPNA00228 Front Wars,
+  NPOA00239 Cave Squid, NPPA00120 Merum) abrem pelo runtime com o parâmetro; daí em diante o que falta é a ativação
+  PSM (scePsmDrmGetActInfo: act.dat do console, processador de segurança; item abaixo).
+- [ ] [P1][G] PSM: chave do conteúdo a partir da licença instalada (pedido do usuário, 18/11/2026). Feito (fix/psm1):
+  scePsmDrmGetRifKey devolve o conjunto de chaves (0x200 bytes em +0x100 da licença de 0x400) quando a licença o traz
+  em claro (área de assinatura 0x300-0x3FF vazia, a forma das licenças instaladas pelo usuário); licença assinada da
+  loja continua recusada (0x80020004, só o processador de segurança abre); scePsmDrmGetRifInfo lê ID de conteúdo,
+  conta e datas. Formato PSSE (`PsseFile`: cabeçalho, IV do arquivo sob a chave de cabeçalho do runtime, blocos de
+  0x8000 em AES-128-CBC com IV = bloco XOR IV, assinatura a cada 0x80000, MD5) e o leitor pss_crypto_* do HLE da
+  mono_bridge abre os arquivos com a chave da licença de RO/License (sem licença: 0x80870005). Falta: a ativação PSM
+  (scePsmDrmGetActInfo) depende do act.dat e do processador de segurança e continua recusada; com ela recusada o
+  runtime mostra 0x808F04FF e para antes de abrir o conteúdo. Decisão do lead/usuário: como tratar a ativação.
 - [ ] [P3][P] Ao apagar um item da lista (biblioteca de jogos do launcher), a rolagem volta para o topo (pedido do
   usuário, 17/11/2026): manter a posição da rolagem onde estava, com o foco no item seguinte ao apagado; o mesmo nas
   outras listas com apagar (saves, capturas) e no app Android quando ele voltar

@@ -37,6 +37,14 @@ public static class InstalledContent
 
             foreach (string dir in Directory.GetDirectories(root).Order(StringComparer.OrdinalIgnoreCase))
             {
+                // the PSM runtime is not a title one starts: the shell gives it no bubble (no icon in app.db) and
+                // starts it only with a PSM title's folder as its parameter; started on its own it finds no title to
+                // mount and ends (its main unloads Mono and returns, and libc aborts)
+                if (folder.Kind != ContentKind.PsmTitle && IsPsmRuntime(dir))
+                {
+                    continue;
+                }
+
                 if (Read(fsRoot, folder, dir, locale) is { } title)
                 {
                     list.Add(title);
@@ -45,6 +53,11 @@ public static class InstalledContent
         }
         return list;
     }
+
+    /// <summary>Whether the application in <paramref name="dir"/> is the PSM runtime: its eboot.bin with
+    /// <see cref="FirmwareLayout.PsmRuntimeVersion"/> next to it.</summary>
+    public static bool IsPsmRuntime(string dir) =>
+        File.Exists(Vfs.ResolveCaseInsensitive(dir, "eboot.bin")) && File.Exists(Vfs.ResolveCaseInsensitive(dir, FirmwareLayout.PsmRuntimeVersion));
 
     /// <summary>The title in <paramref name="dir"/>, a folder of <paramref name="folder"/>; null when it is not one.</summary>
     public static LibraryTitle? Read(string fsRoot, FirmwareFolder folder, string dir, string? locale = null) =>
@@ -199,7 +212,7 @@ public static class InstalledContent
 
             foreach (string dir in Directory.GetDirectories(root).Order(StringComparer.OrdinalIgnoreCase))
             {
-                if (File.Exists(Vfs.ResolveCaseInsensitive(dir, "eboot.bin")) && File.Exists(Vfs.ResolveCaseInsensitive(dir, FirmwareLayout.PsmRuntimeVersion)))
+                if (IsPsmRuntime(dir))
                 {
                     return dir;
                 }

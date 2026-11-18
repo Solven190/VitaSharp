@@ -53,8 +53,24 @@ public sealed class GxmFlowTests : IDisposable
             {
                 Draws++;
                 LastDraw = (d.IndexAddress, d.IndexCount, d.PrimitiveType, d.InstanceCount);
+                if (d.Streams[0] != 0 && d.IndexCount > 0)
+                {
+                    // what a renderer reads of the draw's geometry: its indices and the vertices they use (F32 x3)
+                    ushort[] indices = GuestMemory.ReadSpan<ushort>(d.IndexAddress, (int)d.IndexCount).ToArray();
+                    uint last = 0;
+                    foreach (ushort index in indices)
+                    {
+                        last = Math.Max(last, index);
+                    }
+
+                    float[] vertices = GuestMemory.ReadSpan<float>(d.Streams[0], (int)(last + 1) * 3).ToArray();
+                    Geometry.Enqueue((indices, vertices, d.Geometry != null));
+                }
             }
         }
+        /// <summary>The indices and vertices each draw with a stream read on the GPU worker, and whether they came from
+        /// a copy taken at the scene's kick.</summary>
+        public readonly ConcurrentQueue<(ushort[] Indices, float[] Vertices, bool Copied)> Geometry = new();
         /// <summary>Runs on the GPU worker at each <see cref="IGpuBackend.Idle"/> (also inside a sync object wait).</summary>
         public Action? OnIdle;
         public void Idle()
@@ -1162,6 +1178,99 @@ public sealed class GxmFlowTests : IDisposable
     /// the scene into buffer A before the flip that shows A's previous frame (a cleared or half drawn picture, as in F1
     /// 2011's black frames).
     /// </summary>
+    /// <summary>Writes a triangle (indices 0, 1, 2; three F32 x3 vertices from <paramref name="first"/> on) into a vertex
+    /// pool slot, as vita2d does for each draw.</summary>
+    private static void WriteTriangle(uint indices, uint vertices, float first)
+    {
+        for (uint i = 0; i < 3; i++)
+        {
+            GuestMemory.Write(indices + i * 2, (ushort)i);
+        }
+
+        for (uint i = 0; i < 9; i++)
+        {
+            GuestMemory.Write(vertices + i * 4, first + i);
+        }
+    }
+
+    private void DrawTriangle(uint ctx, uint vp, uint fp, uint indices, uint vertices)
+    {
+        Invoke(Gxm, "sceGxmSetVertexProgram", ctx, vp);
+        Invoke(Gxm, "sceGxmSetFragmentProgram", ctx, fp);
+        Assert.Equal(0, Call(Gxm, "sceGxmSetVertexStream", ctx, 0u, vertices));
+        Assert.Equal(0, Call(Gxm, "sceGxmDraw", ctx, 0u, 0u, indices, 3u));
+    }
+
+    /// <summary>
+    /// A scene into a buffer still being shown is held on the GPU until the flip away from it (its fragment sync
+    /// object), but on the console only its fragment phase waits: the vertex phase reads the indices and vertex streams
+    /// when the scene is kicked (sceGxmEndScene / sceGxmMidSceneFlush), and the game reuses that memory for its next
+    /// frame right after (vita2d resets its vertex pool at every sceGxmBeginScene). The draws of the held scene, of the
+    /// part before a mid-scene flush, and of a later scene queued behind the hold all read what the memory held at their
+    /// kick, not the next frame's data (PSVitaAlive: triangles shot out of the screen's corner, keyboard keys missing,
+    /// 17/11/2026). A scene that is not held reads guest memory as before (no copy).
+    /// </summary>
+    [Fact]
+    public void DrawsBehindADisplayHoldReadTheGeometryOfTheirKick()
+    {
+        using var rewritten = new ManualResetEventSlim();
+        // frame 0's flip (buffer A shown) waits until the game reused its vertex pool: A stays held until then
+        TwoBuffers d = TwoBufferDisplay(flip => Assert.True(flip != 1 || rewritten.Wait(10_000), "the game did not reuse its pool"), _ => { });
+        (uint vp, uint fp, _) = Programs();
+        uint entryA = _harness.Word(d.DataA), entryB = _harness.Word(d.DataB);
+        uint pool = _harness.Alloc(0x400);
+        uint i0 = pool, v0 = pool + 0x10, i1 = pool + 0x40, v1 = pool + 0x50, i2 = pool + 0x80, v2 = pool + 0x90;
+        uint i3 = pool + 0xC0, v3 = pool + 0xD0;
+        _harness.OnGuest(_ =>
+        {
+            // frame 0 (A, one draw, not held) and frame 1 (B), each queued for display
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            WriteTriangle(i0, v0, 1);
+            DrawTriangle(d.Ctx, vp, fp, i0, v0);
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncB, d.ColorB, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncA, d.SyncB, entryB));
+            // frame 2 into A, held: a draw, a mid-scene flush, a draw; then an off-screen scene queued behind it
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, d.SyncA, d.ColorA, 0u));
+            WriteTriangle(i1, v1, 10);
+            DrawTriangle(d.Ctx, vp, fp, i1, v1);
+            Assert.Equal(0, Call(Gxm, "sceGxmMidSceneFlush", d.Ctx, 0u, 0u, 0u));
+            WriteTriangle(i2, v2, 20);
+            DrawTriangle(d.Ctx, vp, fp, i2, v2);
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            Assert.Equal(0, Call(Gxm, "sceGxmBeginScene", d.Ctx, 0u, d.Rt, 0u, 0u, 0u, d.ColorB, 0u));
+            WriteTriangle(i3, v3, 30);
+            DrawTriangle(d.Ctx, vp, fp, i3, v3);
+            Assert.Equal(0, Call(Gxm, "sceGxmEndScene", d.Ctx, 0u, 0u));
+            // the next frame reuses the pool: other indices and vertices in the same memory
+            for (uint slot = 1; slot < 4; slot++)
+            {
+                uint indices = pool + slot * 0x40;
+                WriteTriangle(indices, indices + 0x10, 100 + slot);
+                GuestMemory.Write(indices, (ushort)2);
+                GuestMemory.Write(indices + 4, (ushort)0);
+            }
+
+            rewritten.Set();
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueAddEntry", d.SyncB, d.SyncA, entryA));
+            Assert.Equal(0, Call(Gxm, "sceGxmDisplayQueueFinish"));
+            Finish();
+        });
+        _harness.Emu.Running = false;
+        (ushort[] Indices, float[] Vertices, bool Copied)[] draws = _rec.Geometry.ToArray();
+        Assert.Equal(4, draws.Length);
+        Assert.False(draws[0].Copied, "a scene that was not held must read guest memory");
+        float[] firsts = [1, 10, 20, 30];
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.Equal(new ushort[] { 0, 1, 2 }, draws[i].Indices);
+            Assert.Equal(Enumerable.Range(0, 9).Select(n => firsts[i] + n).ToArray(), draws[i].Vertices);
+        }
+        Assert.True(draws[1].Copied && draws[2].Copied && draws[3].Copied, "the draws behind the hold read a copy");
+    }
+
     [Fact]
     public void FlipsSubmittedJustBeforeTheReleaseRunBeforeTheHeldScene()
     {

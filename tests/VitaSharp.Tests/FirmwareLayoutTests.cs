@@ -230,6 +230,34 @@ public sealed partial class FirmwareLayoutTests : IDisposable
         File.WriteAllBytes(Path.Combine(dir, "sce_sys", "icon0.png"), [0x89, (byte)'P', (byte)'N', (byte)'G']);
     }
 
+    /// <summary>
+    /// The PSM runtime application (its eboot.bin with runtime_version.txt next to it) gets no bubble on the console:
+    /// FW 3.74's shell registers it without an icon in app.db and starts it only for a PSM title, with the title's folder
+    /// as the launch parameter. Started on its own, its main finds no parameter, mounts nothing, unloads Mono and ends in
+    /// libc's abort (the user's "0 fps", 17/11/2026). The library leaves it out, and a PSM title still starts with it.
+    /// </summary>
+    [Fact]
+    public void ThePsmRuntimeIsNotListedButStartsThePsmTitles()
+    {
+        App(FirmwareLayout.Applications, "PCSE99901", "Installed Game");
+        App(FirmwareLayout.Applications, "PCSI99911", "Runtime Package");
+        File.WriteAllText(Path.Combine(FirmwareLayout.Applications.Host(_fs, "PCSI99911"), FirmwareLayout.PsmRuntimeVersion), "2.01");
+        string pkg = Path.Combine(_fs, "psm.pkg");
+        File.WriteAllBytes(pkg, PsmPkgInstallTests.Package());
+        byte[] rif = new byte[PsmPkgInstaller.RifSize];
+        Encoding.ASCII.GetBytes("EP0000-NPXX99999_00-0000000000000001").CopyTo(rif, PsmPkgInstaller.RifContentIdOffset);
+        InstalledTitle psm = PkgInstaller.Install(pkg, rif, Path.Combine(_fs, "ux0"));
+
+        List<LibraryTitle> listed = InstalledContent.Scan(_fs);
+
+        Assert.Equal(["PCSE99901", "NPXX99999"], listed.Select(t => t.TitleId));
+        Assert.True(InstalledContent.IsPsmRuntime(FirmwareLayout.Applications.Host(_fs, "PCSI99911")));
+        Assert.False(InstalledContent.IsPsmRuntime(FirmwareLayout.Applications.Host(_fs, "PCSE99901")));
+        (string ProgramDir, string Self, string Param) launch = InstalledContent.PsmLaunch(_fs, psm.Path)!.Value;
+        Assert.Equal((FirmwareLayout.Applications.Host(_fs, "PCSI99911"), "eboot.bin", FirmwareLayout.PsmTitles.Guest("NPXX99999")),
+            (Path.TrimEndingDirectorySeparator(launch.ProgramDir), launch.Self, launch.Param));
+    }
+
     [Fact]
     public void OneTitleOfEachKindIsListedAndOpenedByTheSamePath()
     {

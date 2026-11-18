@@ -289,8 +289,20 @@ public sealed unsafe partial class GuestMemory : IDisposable
     }
 
     /// <summary>Read-only view of guest memory (the pages are not marked written).</summary>
+    /// <remarks>On the GPU worker, a draw kicked while the worker was held reads the ranges of its
+    /// <see cref="Gpu.GeometrySnapshot"/> from that copy (one flag check when no snapshot is alive).</remarks>
     public static ReadOnlySpan<byte> ReadSpan(uint addr, int length)
     {
+        if (Gpu.GeometrySnapshot.AnyAlive && Gpu.GeometrySnapshot.Current is { } snapshot && snapshot.TryGet(addr, length, out ReadOnlySpan<byte> copy))
+        {
+            if (Gpu.GpuDumpRecorder.TapEnabled)
+            {
+                Gpu.GpuDumpRecorder.TapCopy(addr, copy);
+            }
+
+            return copy;
+        }
+
         if (Gpu.GpuDumpRecorder.TapEnabled)
         {
             Gpu.GpuDumpRecorder.Tap(addr, length); // GPU dump recording (one flag check when off)
@@ -301,6 +313,16 @@ public sealed unsafe partial class GuestMemory : IDisposable
     /// <inheritdoc cref="ReadSpan(uint, int)"/>
     public static ReadOnlySpan<T> ReadSpan<T>(uint addr, int count) where T : unmanaged
     {
+        if (Gpu.GeometrySnapshot.AnyAlive && Gpu.GeometrySnapshot.Current is { } snapshot && snapshot.TryGet(addr, (long)count * sizeof(T), out ReadOnlySpan<byte> copy))
+        {
+            if (Gpu.GpuDumpRecorder.TapEnabled)
+            {
+                Gpu.GpuDumpRecorder.TapCopy(addr, copy);
+            }
+
+            return System.Runtime.InteropServices.MemoryMarshal.Cast<byte, T>(copy);
+        }
+
         if (Gpu.GpuDumpRecorder.TapEnabled)
         {
             Gpu.GpuDumpRecorder.Tap(addr, (long)count * sizeof(T));

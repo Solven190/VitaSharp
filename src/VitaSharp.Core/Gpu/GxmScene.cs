@@ -232,6 +232,13 @@ public sealed class SceneGate
     /// <summary>The scene-end sweep once the scene ended, else <see cref="uint.MaxValue"/> (no bound yet).</summary>
     public uint ReadBound => SceneEnded && SweepEpoch is var e and not 0 ? e : uint.MaxValue;
 
+    /// <summary>The display-release hold the scene's draws are queued behind (its own fragment sync object wait, or an
+    /// earlier scene's the worker has not passed yet); null: none.</summary>
+    public DisplayHold? Hold;
+
+    /// <summary>With <see cref="Hold"/>: the draws submitted into this scene, snapshot at its kick (guest thread only).</summary>
+    public List<DrawCommand>? HeldDraws;
+
     public void End()
     {
         if (_ended)
@@ -336,7 +343,16 @@ public sealed class DrawCommand : GpuCommand
 
         VertexUniforms = FragmentUniforms = [];
         VertexUniformsOffset = FragmentUniformsOffset = 0;
+        if (Geometry is { } geometry)
+        {
+            Geometry = null;
+            geometry.Release();
+        }
     }
+
+    /// <summary>The geometry this draw reads, copied when the guest kicked its scene while the GPU worker was held
+    /// (<see cref="DisplayHold"/>); null: the draw reads guest memory.</summary>
+    public GeometrySnapshot? Geometry;
     /// <summary>Guest addresses of the uniform buffers (index 0-14) bound for this draw.</summary>
     public readonly uint[] VertexUniformAddrs = new uint[15], FragmentUniformAddrs = new uint[15];
     /// <summary>The bound uniform buffers (0-13) are still to be copied from guest memory, by the GPU worker right
@@ -358,6 +374,11 @@ public sealed class DrawCommand : GpuCommand
         VisAddress = 0;
         VisIncrement = false;
         InstanceCount = 1;
+        if (Geometry is { } geometry)
+        {
+            Geometry = null;
+            geometry.Release();
+        }
     }
     public readonly GxmTextureDesc[] VertexTextures = new GxmTextureDesc[16];
     public readonly GxmTextureDesc[] FragmentTextures = new GxmTextureDesc[16];

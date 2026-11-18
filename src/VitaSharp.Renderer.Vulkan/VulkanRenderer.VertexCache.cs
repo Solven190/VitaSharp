@@ -1,4 +1,5 @@
 using Silk.NET.Vulkan;
+using VitaSharp.Core.Gpu;
 using VitaSharp.Core.Memory;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
@@ -39,6 +40,12 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>The guest range as a vertex/index buffer: a cached copy when it is unchanged, else the upload ring.</summary>
     private (Buffer Buffer, ulong Offset) UploadRange(uint addr, uint length, ulong align = 4)
     {
+        // geometry copied at its scene's kick (the worker was held): not what guest memory holds now, so not cached
+        if (GeometrySnapshot.Serves(addr, length))
+        {
+            return UploadSpan(GuestMemory.ReadSpan(addr, (int)length), align);
+        }
+
         if (!s_vertexCacheOn || length < MinBytes)
         {
             if (s_smallCacheOn && s_vertexCacheOn && length >= s_smallMinBytes)

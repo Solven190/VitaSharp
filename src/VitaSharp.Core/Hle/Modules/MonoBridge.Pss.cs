@@ -11,7 +11,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// wrappers over the kernel, sceIo* (with the PSM path roots), sceNet* (sockets get the name "pss_socket"), the Mono
 /// thread-control calls of SceKernelForMono, executable memory from sceKernelAllocMemBlockForVM, and time in the units
 /// Mono's platform layer uses (milliseconds for the 32-bit tick, 100 ns for the 64-bit ones and FILETIMEs). The
-/// encrypted-file reader reads the files as they are (PSM's edata decryption needs the console's keys). The USB
+/// encrypted-file reader opens the title's PSSE files with the content key of its installed license. The USB
 /// transport is the link to the PSM SDK's debugger on a PC, which the emulator does not have (default).
 /// </summary>
 public sealed unsafe partial class MonoBridge
@@ -256,11 +256,79 @@ public sealed unsafe partial class MonoBridge
     [Hle("pss_io_getstat", Library = Lib)] int PssIoGetstat(uint path, uint stat) => Io.sceIoGetstat(PsmPath(Utf8(path)), stat);
     [Hle("pss_io_chstat", Library = Lib)] int PssIoChstat(uint path, uint stat, int bits) => Io.sceIoChstat(PsmPath(Utf8(path)), stat, bits);
 
-    /// <summary>pss_crypto_open(path): the program's (edata) file opened for reading; its descriptor or an error.</summary>
-    [Hle("pss_crypto_open", Library = Lib)] int PssCryptoOpen(uint path) => Io.sceIoOpen(PsmPath(Utf8(path)), SCE_O_RDONLY, 0);
-    [Hle("pss_crypto_close", Library = Lib)] int PssCryptoClose(int fd) => Io.sceIoClose(fd);
+    const int NPDRM_ERR_NO_LICENSE = unchecked((int)0x80870005);
+
+    /// <summary>The PSSE files open through pss_crypto_open, decrypted (by descriptor): reads are served from them.</summary>
+    readonly Dictionary<int, (byte[] Data, int Position)> _psseFiles = new();
+
+    /// <summary>
+    /// pss_crypto_open(path): the program's file opened for reading; its descriptor or an error. A PSSE file (the
+    /// title's protected files, RO/Application/psse.list) is opened with the content key of the title's installed
+    /// license (<see cref="Package.PsmLicense.FindContentKey"/>, as scePsmDrmGetRifKey gives it): without a usable
+    /// license, 0x80870005 (no license); any other file reads as it is.
+    /// </summary>
+    [Hle("pss_crypto_open", Library = Lib)]
+    int PssCryptoOpen(uint path)
+    {
+        string guest = PsmPath(Utf8(path));
+        int fd = Io.sceIoOpen(guest, SCE_O_RDONLY, 0);
+        if (fd < 0 || Emu.Vfs.Resolve(guest) is not { } host || !File.Exists(host))
+        {
+            return fd;
+        }
+
+        byte[] file = File.ReadAllBytes(host);
+        if (!Package.PsseFile.IsPsse(file))
+        {
+            return fd;
+        }
+
+        string? titleId = Emu.Hle.Modules.OfType<AppMgr>().FirstOrDefault()?.PsmTitleId;
+        byte[]? key = titleId != null ? Package.PsmLicense.FindContentKey(Emu.Options.FsRoot, titleId, Package.PsseFile.ContentId(file)) : null;
+        byte[]? plain = key != null ? Package.PsseFile.Decrypt(file, key) : null;
+        if (plain == null)
+        {
+            Io.sceIoClose(fd);
+            Log.WarnOnce("pss-crypto-license", $"pss_crypto_open: {guest} is protected and no installed license of {(titleId ?? "the PSM title")} opens it");
+            return NPDRM_ERR_NO_LICENSE;
+        }
+
+        lock (_psseFiles)
+        {
+            _psseFiles[fd] = (plain, 0);
+        }
+
+        return fd;
+    }
+
+    [Hle("pss_crypto_close", Library = Lib)]
+    int PssCryptoClose(int fd)
+    {
+        lock (_psseFiles)
+        {
+            _psseFiles.Remove(fd);
+        }
+
+        return Io.sceIoClose(fd);
+    }
+
     /// <summary>pss_crypto_read(fd, buf, size): bytes read or an error.</summary>
-    [Hle("pss_crypto_read", Library = Lib)] int PssCryptoRead(int fd, uint buf, uint size) => Io.sceIoRead(fd, buf, size);
+    [Hle("pss_crypto_read", Library = Lib)]
+    int PssCryptoRead(int fd, uint buf, uint size)
+    {
+        lock (_psseFiles)
+        {
+            if (_psseFiles.TryGetValue(fd, out (byte[] Data, int Position) open))
+            {
+                int n = (int)Math.Min(size, (uint)(open.Data.Length - open.Position));
+                open.Data.AsSpan(open.Position, n).CopyTo(GuestMemory.Span(buf, n));
+                _psseFiles[fd] = (open.Data, open.Position + n);
+                return n;
+            }
+        }
+
+        return Io.sceIoRead(fd, buf, size);
+    }
 
     /// <summary>pss_crypto_fread(buf, size, count, fd): fread's shape, the number of whole items read.</summary>
     [Hle("pss_crypto_fread", Library = Lib)]
@@ -272,7 +340,7 @@ public sealed unsafe partial class MonoBridge
         uint got = 0;
         while (got < total)
         {
-            int r = Io.sceIoRead(fd, buf + got, (uint)total - got);
+            int r = PssCryptoRead(fd, buf + got, (uint)total - got);
             if (r <= 0) break;
             got += (uint)r;
         }

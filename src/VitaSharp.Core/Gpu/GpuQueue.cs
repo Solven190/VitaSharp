@@ -853,6 +853,13 @@ public sealed class GpuQueue : IDisposable
         }
         GpuDumpRecorder? dump = GpuDumpRecorder.Current; // GPU dump recording (null when off)
         dump?.BeforeExecute(cmd);
+        // a draw kicked while the worker was held reads its geometry from the copy taken at the kick
+        GeometrySnapshot? geometry = (cmd as DrawCommand)?.Geometry;
+        if (geometry != null)
+        {
+            GeometrySnapshot.Current = geometry;
+        }
+
         try
         {
             _executing = cmd;
@@ -883,6 +890,11 @@ public sealed class GpuQueue : IDisposable
         {
             Log.WarnOnce("gpu-" + cmd.GetType().Name + e.GetType().Name, $"GPU backend failed on {cmd.GetType().Name}: {e}");
         }
+        if (geometry != null)
+        {
+            GeometrySnapshot.Current = null;
+        }
+
         if (dump != null)
         {
             lock (_backendLock)
