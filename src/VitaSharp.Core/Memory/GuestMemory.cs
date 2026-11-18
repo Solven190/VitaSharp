@@ -524,9 +524,24 @@ public sealed unsafe partial class GuestMemory : IDisposable
     {
         bool shared = IsSharedRegion(region);
         byte* host = space.Base + addr; // a shared region is the same memory in every space
-        HostVirtualMemory.Commit(host, size);
+        if (shared && SeparateSpaces)
+        {
+            // a view of shared memory: freed pages were only discarded (Free), so their old content is cleared here
+            HostVirtualMemory.Commit(host, size);
+            new Span<byte>(host, (int)size).Clear();
+        }
+        else
+        {
+            // fresh zero pages without touching them: clearing a block by hand made every page of it resident at once,
+            // also the parts the game never uses (a game takes its whole heap at boot). Dropping whatever the range
+            // still holds (pages a stray access committed after a free) and committing again reads back as zeros:
+            // Windows decommits (MEM_DECOMMIT), Linux, Android and macOS map fresh anonymous pages over the range
+            // (mmap MAP_FIXED, not madvise, which does not zero on macOS) and clear the partial host pages at its edges.
+            HostVirtualMemory.Decommit(host, size);
+            HostVirtualMemory.Commit(host, size);
+        }
+
         SetMapped(shared ? _sharedMapped : space._mappedPages, addr, size, true);
-        new Span<byte>(host, (int)size).Clear();
         DirtyPages.MarkRange(space.Base, addr, size);
         var block = new Block(addr, size, name, region, Kernel.ProcessScope.CurrentPid, shared ? null : space);
         if (shared)
