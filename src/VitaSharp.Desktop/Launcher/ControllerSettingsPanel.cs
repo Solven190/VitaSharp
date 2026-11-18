@@ -74,6 +74,8 @@ public sealed class ControllerSettingsPanel : UserControl
     DeviceItem? _current;
     ControllerProfile _profile;
     CompiledProfile _compiled;
+    /// <summary>The keyboard profile of this screen compiled (<see cref="KeyboardCompiled"/>); null = rebuild.</summary>
+    CompiledProfile? _keyboardCompiled;
     readonly PadSnapshot _snap = new(), _baseline = new();
     VitaControl? _listen;
     ListenMode _listenMode;
@@ -461,6 +463,22 @@ public sealed class ControllerSettingsPanel : UserControl
 
     // ------------------------------------------------------------------ editing
 
+    /// <summary>The keyboard profile as edited on this screen (the stored one until it is changed), compiled.</summary>
+    CompiledProfile KeyboardCompiled()
+    {
+        if (_keyboardCompiled == null)
+        {
+            if (!_working.TryGetValue(ControllerProfile.KeyboardId, out ControllerProfile? keyboard))
+            {
+                keyboard = _store.KeyboardProfile();
+            }
+
+            _keyboardCompiled = new CompiledProfile(keyboard);
+        }
+
+        return _keyboardCompiled;
+    }
+
     void Edit(Action<ControllerProfile> change)
     {
         if (_updatingUi)
@@ -470,6 +488,7 @@ public sealed class ControllerSettingsPanel : UserControl
 
         change(_profile);
         _compiled = new CompiledProfile(_profile);
+        _keyboardCompiled = null;
         _dirty.Add(_profile.Id);
         _reset.Remove(_profile.Id);
         RefreshBindings();
@@ -490,6 +509,7 @@ public sealed class ControllerSettingsPanel : UserControl
             : DefaultMappings.For(_profile.Id, _profile.Name, d.Pad?.Kind ?? d.Kind, d.Pad?.IsGamepad ?? d.IsGamepad);
         _working[d.Id] = _profile = p;
         _compiled = new CompiledProfile(p);
+        _keyboardCompiled = null;
         _reset.Add(p.Id);
         _dirty.Remove(p.Id);
         RefreshOptions();
@@ -800,11 +820,13 @@ public sealed class ControllerSettingsPanel : UserControl
                 return;
             }
         }
-        if (name != null && _current?.IsKeyboard == true)
+        if (name != null)
         {
+            // the keyboard drives the Vita together with the controller (as in the game): its keys always count
             _keys.Add(name);
             // keep the arrow keys / space from moving the focus while the keyboard is being tested
-            if (e.Source is not TextBox && e.Source is not Slider && e.Source is not ComboBox)
+            bool keyboardInput = _current?.IsKeyboard == true || KeyboardCompiled().Profile.Bindings.Values.Any(list => list.Contains("key:" + name));
+            if (keyboardInput && e.Source is not TextBox && e.Source is not Slider && e.Source is not ComboBox)
             {
                 e.Handled = true;
             }
@@ -957,7 +979,10 @@ public sealed class ControllerSettingsPanel : UserControl
             }
         }
 
-        var m = InputMapper.Map(_compiled, pad, keys);
+        // the live picture is what the game would get: the keyboard's keys and the selected controller summed
+        var m = _current?.IsKeyboard == true
+            ? InputMapper.Map(_compiled, pad, keys)
+            : InputMapper.MapTogether(KeyboardCompiled(), _keys, _compiled, pad);
         float V(VitaControl c) => InputMapper.Value(_compiled, c, pad, keys);
         var rawL = (V(VitaControl.LStickRight) - V(VitaControl.LStickLeft), V(VitaControl.LStickDown) - V(VitaControl.LStickUp));
         var rawR = (V(VitaControl.RStickRight) - V(VitaControl.RStickLeft), V(VitaControl.RStickDown) - V(VitaControl.RStickUp));

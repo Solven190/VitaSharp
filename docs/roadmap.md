@@ -1454,6 +1454,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 - [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
   as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
   tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): no jogo o `HostInput` já somava teclado e controles
+  (conferido no `pad-test`); a tela de controles mostrava só o dispositivo escolhido. Agora a prévia ao vivo soma as
+  teclas do perfil do teclado com o controle escolhido, como o jogo recebe (`InputMapper.MapTogether`,
+  `InputMappingTests.KeyboardKeysKeepWorkingWhileAControllerIsInUse`).
 - [ ] [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
   sair da tela de controles; ter um botão "Salvar" (e um aviso de "salvo"/"alterações não salvas") na tela de
   controles, mantendo o salvamento ao sair
