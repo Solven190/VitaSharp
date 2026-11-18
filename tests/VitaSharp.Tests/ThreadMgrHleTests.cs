@@ -1465,7 +1465,7 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             GuestMemory.W32(info, 0x3C); // the syscall form wrote its smaller size there
             // FULL that does not fit: the Try form sends nothing and fails, the blocking one times out with nothing sent
             Assert.Equal(SceError.MPP_FULL, Call(Tm, "sceKernelTrySendMsgPipe", p, src + 0xFF4, 16u, MsgPipe.WaitAll, new Ptr<uint>(res)));
-            Assert.Equal(0u, GuestMemory.R32(res));
+            Assert.Equal(0xFF4u, GuestMemory.R32(res)); // refused before any byte moves: no count written
             Assert.Equal(SceError.WAIT_TIMEOUT, Call(Tm, "sceKernelSendMsgPipe", p, src + 0xFF4, 16u, MsgPipe.WaitAll, new Ptr<uint>(res), new Ptr<uint>(_h.Word(1000))));
             Assert.Equal(0u, GuestMemory.R32(res));
             Assert.Equal(0, Call(Tm, "sceKernelGetMsgPipeInfo", p, info));
@@ -1481,7 +1481,9 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             Assert.Equal(0, Call(Tm, "sceKernelReceiveMsgPipe", p, dst, 10u, MsgPipe.WaitAsap, new Ptr<uint>(res), new Ptr<uint>(0)));
             Assert.Equal(10u, GuestMemory.R32(res));
             Assert.True(GuestMemory.ReadSpan(dst, 10).SequenceEqual(GuestMemory.ReadSpan(src, 10)));
-            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1100u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
+            // a receive larger than the pipe's buffer is refused too (threadmgr checks every buffer list against it)
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1001u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
+            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 0x1000u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
             Assert.Equal(0xFF6u, GuestMemory.R32(res));
             Assert.True(GuestMemory.ReadSpan(dst, 0xFF6).SequenceEqual(GuestMemory.ReadSpan(src + 10, 0xFF6)));
             Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 4u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
@@ -1647,79 +1649,27 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
         });
     }
 
-    /// <summary>A pipe created with size 0 has no buffer (FW 3.74 threadmgr: no memory block, no size check on a send):
-    /// a send hands its data straight to a waiting receiver, and a receiver, a polling one too, takes it from a sender
-    /// waiting with it. Before, the pipe had a 1-byte buffer and refused every larger message with ILLEGAL_SIZE.</summary>
+    /// <summary>threadmgr 3.74 refuses a message pipe whose size rounds to no 4 KB page (0x81015DB4: (size + 0xFFF)
+    /// &gt;&gt; 12 == 0 → ILLEGAL_SIZE, before anything is allocated), on every create route: the library call and the
+    /// syscall form with the size in its option block. Size 1 already makes a one-page pipe. Before, size 0 made a pipe
+    /// "without a buffer" the console does not have.</summary>
     [Fact]
-    public void MsgPipeWithoutABufferHandsDataStraightBetweenSenderAndReceiver()
+    public void MsgPipeOfSizeZeroIsRefusedOnEveryCreateRoute()
     {
         _h.OnGuest(_ =>
         {
-            int p = Call(Tm, "sceKernelCreateMsgPipe", "mpp0", 0x40u, 0u, 0u, 0u);
-            uint src = _h.Alloc(0x100), dst = _h.Alloc(0x100), res = _h.Word(0), recvRes = _h.Word(0), info = Info(0x3C);
-            for (uint i = 0; i < 0x100; i++)
-            {
-                GuestMemory.Write(src + i, (byte)(i + 1));
-            }
-
-            Assert.Equal(0, Call(Tm, "sceKernelGetMsgPipeInfo", p, info));
-            Assert.Equal(0u, GuestMemory.R32(info + 0x2C)); // no buffer
-            Assert.Equal(0u, GuestMemory.R32(info + 0x30));
-
-            // nobody receives: a Try send moves nothing
-            Assert.Equal(SceError.MPP_FULL, Call(Tm, "sceKernelTrySendMsgPipe", p, src, 16u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
-            Assert.Equal(0u, GuestMemory.R32(res));
-
-            // a receiver waits: a Try send of 16 bytes goes straight to it
-            int received = 1;
-            GuestRun receiver = _h.Start(_ => received = Call(Tm, "sceKernelReceiveMsgPipe", p, dst, 16u, MsgPipe.WaitAll, new Ptr<uint>(recvRes), new Ptr<uint>(0)), "mpp0-recv");
-            Until(() => receiver.Thread.Status == ThreadStatus.Waiting, "the receive wait");
-            Assert.Equal(0, Call(Tm, "sceKernelTrySendMsgPipe", p, src, 16u, MsgPipe.WaitAsap, new Ptr<uint>(res)));
-            Assert.Equal(16u, GuestMemory.R32(res));
-            _h.Join(receiver);
-            Assert.Equal(0, received);
-            Assert.Equal(16u, GuestMemory.R32(recvRes));
-            Assert.True(GuestMemory.ReadSpan(dst, 16).SequenceEqual(GuestMemory.ReadSpan(src, 16)));
-
-            // a FULL sender waits with 32 bytes; a polling receiver takes 10 of them from it, a blocking one the rest
-            int sendResult = 1;
-            GuestRun sender = _h.Start(_ => sendResult = Call(Tm, "sceKernelSendMsgPipe", p, src + 0x20, 32u, MsgPipe.WaitAll, new Ptr<uint>(res), new Ptr<uint>(0)), "mpp0-send");
-            Until(() => sender.Thread.Status == ThreadStatus.Waiting, "the send wait");
-            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst + 0x40, 10u, MsgPipe.WaitAsap, new Ptr<uint>(recvRes)));
-            Assert.Equal(10u, GuestMemory.R32(recvRes));
-            Assert.Equal(0, Call(Tm, "sceKernelReceiveMsgPipe", p, dst + 0x4A, 22u, MsgPipe.WaitAll, new Ptr<uint>(recvRes), new Ptr<uint>(0)));
-            Assert.Equal(22u, GuestMemory.R32(recvRes));
-            _h.Join(sender);
-            Assert.Equal(0, sendResult);
-            Assert.Equal(32u, GuestMemory.R32(res));
-            Assert.True(GuestMemory.ReadSpan(dst + 0x40, 32).SequenceEqual(GuestMemory.ReadSpan(src + 0x20, 32)));
-
-            // nothing is left in the pipe
-            Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 4u, MsgPipe.WaitAsap, new Ptr<uint>(recvRes)));
-            Assert.Equal(0, Call(Tm, "sceKernelDeleteMsgPipe", p));
-        });
-    }
-
-    /// <summary>A sender waiting on a pipe without a buffer that times out or is cancelled keeps the part a receiver
-    /// took and reports it; nothing it offered stays behind for a later receiver.</summary>
-    [Fact]
-    public void MsgPipeWithoutABufferSenderTimeoutLeavesNothingBehind()
-    {
-        _h.OnGuest(_ =>
-        {
-            int p = Call(Tm, "sceKernelCreateMsgPipe", "mpp0t", 0x40u, 0u, 0u, 0u);
-            uint src = _h.Alloc(0x40), dst = _h.Alloc(0x40), res = _h.Word(0), recvRes = _h.Word(0), info = Info(0x3C);
-            int sendResult = 0;
-            GuestRun sender = _h.Start(_ => sendResult = Call(Tm, "sceKernelSendMsgPipe", p, src, 8u, MsgPipe.WaitAll, new Ptr<uint>(res), new Ptr<uint>(0)), "mpp0t-send");
-            Until(() => sender.Thread.Status == ThreadStatus.Waiting, "the send wait");
-            Assert.Equal(0, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 3u, MsgPipe.WaitAsap, new Ptr<uint>(recvRes)));
-            Assert.Equal(3u, GuestMemory.R32(recvRes));
-            Assert.Equal(0, Call(Tm, "sceKernelCancelMsgPipe", p, new Ptr<int>(0), new Ptr<int>(0)));
-            _h.Join(sender);
-            Assert.Equal(SceError.WAIT_CANCEL, sendResult);
-            Assert.Equal(3u, GuestMemory.R32(res));
-            Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", p, dst, 8u, MsgPipe.WaitAsap, new Ptr<uint>(recvRes)));
-            Assert.Equal(0, Call(Tm, "sceKernelDeleteMsgPipe", p));
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "sceKernelCreateMsgPipe", "mpp0", 0x40u, 0u, 0u, 0u));
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "sceKernelCreateMsgPipeWithLR", "mpp0lr", 0x40u, 0u, 0u, 0u));
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "sceKernelCreateMsgPipe", "mppwrap", 0x40u, 0u, 0xFFFFF001u, 0u));
+            uint opt = _h.Alloc(12);
+            GuestMemory.W32(opt, 0);
+            Assert.Equal(SceError.ILLEGAL_SIZE, Call(Tm, "_sceKernelCreateMsgPipeWithLR", "mpp0sys", 0x40u, 0u, opt));
+            Assert.DoesNotContain(Emu.Kernel.Objects.All<MsgPipe>(), p => p.Name.StartsWith("mpp0", StringComparison.Ordinal));
+            int one = Call(Tm, "sceKernelCreateMsgPipe", "mpp1", 0x40u, 0u, 1u, 0u);
+            Assert.True(one > 0);
+            uint info = Info(0x3C);
+            Assert.Equal(0, Call(Tm, "sceKernelGetMsgPipeInfo", one, info));
+            Assert.Equal(0x1000u, GuestMemory.R32(info + 0x2C));
         });
     }
 
@@ -2059,8 +2009,8 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             GuestMemory.W32(vec, buf);
             GuestMemory.W32(vec + 4, 8);
             Assert.Equal(SceError.ILLEGAL_MODE, Call(Tm, "sceKernelReceiveMsgPipeVector", pipe, vec, 1u, 0x20u | MsgPipe.DontWait, new Ptr<uint>(0), new Ptr<uint>(0)));
-            // the poll form keeps failing at once
-            Assert.Equal(SceError.MPP_EMPTY, Call(Tm, "sceKernelTryReceiveMsgPipe", pipe, buf, 8u, MsgPipe.DontWait, new Ptr<uint>(0)));
+            // the poll form accepts only FULL and DONT_REMOVE (threadmgr 3.74 0x81016D30)
+            Assert.Equal(SceError.ILLEGAL_MODE, Call(Tm, "sceKernelTryReceiveMsgPipe", pipe, buf, 8u, MsgPipe.DontWait, new Ptr<uint>(0)));
             // a process may have 0x100 transfers queued, then the kernel refuses
             for (int i = 0; i < ThreadMgr.MaxLaterTransfers; i++)
             {

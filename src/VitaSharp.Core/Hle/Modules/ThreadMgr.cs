@@ -856,13 +856,24 @@ public sealed partial class ThreadMgr : HleModule
 
     // ------------------------------------------------------------------ message pipes
 
+    /// <summary>Every create route (sceKernelCreateMsgPipe / WithLR in SceLibKernel, the _sceKernelCreateMsgPipeWithLR
+    /// syscall at 0x8102AC28 and ksceKernelCreateMsgPipe at 0x81016200) ends in one threadmgr 3.74 function
+    /// (0x81015D10), which refuses a size that rounds to no 4 KB page before it allocates anything: 0x81015DA8-0x81015DB6
+    /// compute (size + 0xFFF) &gt;&gt; 12 and branch to 0x81015E62, ILLEGAL_SIZE, when it is 0 (also when the
+    /// addition wraps past 4 GB). A pipe always has a buffer.</summary>
     [Hle]
     int sceKernelCreateMsgPipe(string name, uint type, uint attr, uint bufSize, uint opt)
-        => K.Objects.Register(new MsgPipe { Name = name, Attr = attr, BufferSize = MsgPipeCapacity(bufSize), CreatorThreadUid = Self.Uid });
+    {
+        if ((uint)(bufSize + 0xFFFu) >> 12 == 0)
+        {
+            return SceError.ILLEGAL_SIZE;
+        }
+
+        return K.Objects.Register(new MsgPipe { Name = name, Attr = attr, BufferSize = MsgPipeCapacity(bufSize), CreatorThreadUid = Self.Uid });
+    }
 
     /// <summary>threadmgr backs a message pipe with a memory block of the size rounded up to whole 4 KB pages and uses
-    /// all of it as the buffer (its capacity field is the rounded size). Size 0 allocates no block: the pipe has no
-    /// buffer and data goes straight from a sender to a receiver (<see cref="MsgPipe"/>).</summary>
+    /// all of it as the buffer (its capacity field is the rounded size).</summary>
     internal static int MsgPipeCapacity(uint bufSize) => (int)Math.Min((bufSize + 0xFFFul) & ~0xFFFul, int.MaxValue & ~0xFFF);
 
     /// <summary>Same arguments as sceKernelCreateMsgPipe; the "LR" (caller address kept for debugging) is not used.</summary>
@@ -916,40 +927,54 @@ public sealed partial class ThreadMgr : HleModule
         return KernelInfo.Write(info, f);
     }
 
-    /// <summary>Reads a MsgPipeVector array ({void *base; SceSize size;} x count). NULL array or any NULL base →
-    /// ILLEGAL_ADDR, count 0 → ILLEGAL_COUNT.</summary>
+    /// <summary>Reads a MsgPipeVector array ({void *base; SceSize size;} x count): NULL array → ILLEGAL_ADDR, count 0
+    /// → ILLEGAL_COUNT (threadmgr's first checks; the entries are checked by the pipe, after the mode).</summary>
     static int ReadVector(uint vec, uint count, out MsgPipe.Segments segs)
     {
         segs = default;
-        if (vec == 0) return SceError.ILLEGAL_ADDR;
-        if (count == 0) return SceError.ILLEGAL_COUNT;
+        if (vec == 0)
+        {
+            return SceError.ILLEGAL_ADDR;
+        }
+
+        if (count == 0)
+        {
+            return SceError.ILLEGAL_COUNT;
+        }
+
         var addrs = new uint[count];
         var sizes = new int[count];
         for (uint i = 0; i < count; i++)
         {
             addrs[i] = GuestMemory.R32(vec + i * 8);
             sizes[i] = (int)GuestMemory.R32(vec + i * 8 + 4);
-            if (addrs[i] == 0) return SceError.ILLEGAL_ADDR;
         }
         segs = new MsgPipe.Segments(addrs, sizes);
         return 0;
     }
 
+    /// <summary>A vector send or receive. An error before any byte moves writes no count (threadmgr); a wait that
+    /// ends in an error reports what it moved.</summary>
     int MsgPipeVector(int uid, uint vec, uint count, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool send, bool poll)
     {
-        var p = Obj<MsgPipe>(uid);
-        if (p == null) { if (poll) result.TrySet(0); return SceError.UNKNOWN_MSG_PIPE_ID; }
-        int e = ReadVector(vec, count, out var segs);
-        if (e != 0) { if (poll) result.TrySet(0); return e; }
-        if (!poll && (mode & MsgPipe.DontWait) != 0)
+        MsgPipe? pipe = Obj<MsgPipe>(uid);
+        if (pipe == null)
         {
-            return TransferLater(p, send, segs, mode, result);
+            return SceError.UNKNOWN_MSG_PIPE_ID;
         }
 
-        if (segs.Total == 0) { result.TrySet(0); return 0; }
-        int r = send ? p.Send(segs, mode, result, timeout, poll) : p.Receive(segs, mode, result, timeout, poll);
-        if (r < 0 && (poll || r is SceError.WAIT_TIMEOUT or SceError.WAIT_DELETE or SceError.WAIT_CANCEL)) result.TrySet(0);
-        return r;
+        int error = ReadVector(vec, count, out MsgPipe.Segments segments);
+        if (error != 0)
+        {
+            return error;
+        }
+
+        if (!poll && (mode & MsgPipe.DontWait) != 0)
+        {
+            return TransferLater(pipe, send, segments, mode, result);
+        }
+
+        return send ? pipe.Send(segments, mode, result, timeout, poll) : pipe.Receive(segments, mode, result, timeout, poll);
     }
 
     /// <summary>How many DONT_WAIT transfers one process may have queued (threadmgr counts them per process).</summary>

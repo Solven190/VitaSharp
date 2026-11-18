@@ -1929,49 +1929,153 @@ public sealed partial class CondVar : KernelObject
     }
 }
 
+/// <summary>
+/// sceKernel*MsgPipe, as threadmgr does it (FW 3.74: the blocking send 0x81013DFC and receive 0x8101456C, the Try forms
+/// 0x810165E8 / 0x81016D30, cancel 0x8101738C and the class's wait handlers 0x81013964 / 0x81013C30, studied in the
+/// decompiled module): a ring buffer of whole 4 KB pages and ONE wait queue, whose waiters are senders or receivers,
+/// first come first served or, with <see cref="AttrSendPriority"/> (senders) / <see cref="AttrReceivePriority"/>
+/// (receivers), by thread priority (arrival order among equal priorities).
+/// <list type="bullet">
+/// <item>A send hands its bytes straight to the waiting receivers, in queue order, inside the call: an ASAP receiver is
+/// served by the first bytes it gets, a FULL one stays at the head until it has all it asked for. The rest goes into the
+/// buffer: ASAP what fits, FULL all of it or nothing.</item>
+/// <item>A receive takes the buffer's bytes, then the waiting senders' bytes in queue order, each sender putting its
+/// rest into the buffer (ASAP: what fits; FULL: all or nothing) and being served when done, up to the first one that
+/// stays.</item>
+/// <item>A send or receive does not go ahead of a waiter of its own kind (FIFO: any; TH_PRIO: one of equal or higher
+/// priority), and nothing goes ahead of a head that already moved part of its bytes.</item>
+/// <item>ASAP returns once it moved something, FULL once it moved everything; the byte count is written after every
+/// step, so a wait that ends in an error reports what it moved.</item>
+/// <item>A waiter whose guest-time timeout passes leaves the queue (WAIT_TIMEOUT) and the senders behind it are tried
+/// again; a cancel empties the buffer and releases every waiter (WAIT_CANCEL); a delete releases them (WAIT_DELETE).</item>
+/// <item>DONT_WAIT on a blocking form is one of the kernel's "SceKernelMsgPipeAsync" requests: a waiter at the caller's
+/// priority that no guest thread waits on (<see cref="TransferLater"/>).</item>
+/// </list>
+/// </summary>
 public sealed partial class MsgPipe : KernelObject
 {
     public override int UidClass => 7;
     /// <summary>SCE_KERNEL_MSG_PIPE_MODE_*: ASAP (0, move what fits / what is there) or FULL (1, the whole size),
     /// plus DONT_WAIT (0x10): on the blocking forms the kernel does the transfer later and the call returns at once
-    /// (<see cref="TransferLater"/>). Not the PSP's order (there 0 was \"all\"): Jak and Daxter's renderer thread
+    /// (<see cref="TransferLater"/>). Not the PSP's order (there 0 was "all"): Jak and Daxter's renderer thread
     /// receives with mode 0 into a 0x600-byte buffer and waited forever for 12-byte messages.</summary>
     public const uint WaitAsap = 0, WaitAll = 1, DontWait = 0x10;
 
-    /// <summary>The mode bits threadmgr accepts (any other: ILLEGAL_MODE).</summary>
+    /// <summary>SCE_KERNEL_MSG_PIPE_MODE_DONT_REMOVE: a receive that copies the bytes and leaves them in the pipe.</summary>
+    public const uint DontRemove = 0x100;
+
+    /// <summary>The mode bits a DONT_WAIT request may carry (any other: ILLEGAL_MODE).</summary>
     public const uint ValidModes = WaitAll | DontWait;
 
-    /// <summary>A transfer the kernel does later for a DONT_WAIT call (one of threadmgr's "SceKernelMsgPipeAsync"
-    /// requests).</summary>
-    private sealed class LaterTransfer(bool send, Segments buffers, uint mode, Ptr<uint> result, Action completed)
-    {
-        public readonly bool Send = send;
-        public readonly Segments Buffers = buffers;
-        public readonly bool Asap = (mode & WaitAll) == 0;
-        public readonly Ptr<uint> Result = result;
-        public readonly Action Completed = completed;
-        public int Done;
-    }
+    /// <summary>The mode bits sceKernelTrySendMsgPipe and sceKernelTryReceiveMsgPipe accept (threadmgr 0x810165E8 /
+    /// 0x81016D30; any other: ILLEGAL_MODE).</summary>
+    public const uint TrySendModes = WaitAll, TryReceiveModes = WaitAll | DontRemove;
 
-    private readonly List<LaterTransfer> _later = new();
+    /// <summary>SCE_KERNEL_MSG_PIPE_ATTR_TH_PRIO_S / _R: senders / receivers queue by thread priority.</summary>
+    public const uint AttrSendPriority = 0x1, AttrReceivePriority = 0x2;
+
     public uint Attr;
     public int BufferSize;
     /// <summary>UID of the thread that created the pipe (sceKernelGetMsgPipeCreatorId).</summary>
     public int CreatorThreadUid;
-    private readonly Queue<byte> _data = new();
-    public int SendWaiters, RecvWaiters;
+    private bool _deleted;
+    private int _cancelled;
+
+    /// <summary>The ring buffer (allocated at the first byte), its read and write positions and the bytes it holds.</summary>
+    private byte[]? _ring;
+    private int _readPos, _writePos, _held;
+
+    /// <summary>One send or receive in the wait queue (or one being tried).</summary>
+    private sealed class Transfer
+    {
+        public bool Send;
+        public Segments Buffers;
+        public int Total;
+        public int Left;
+        public bool Full;
+        public bool Peek;
+        public int Priority;
+        public int ThreadUid;
+        public Ptr<uint> Result;
+        /// <summary>Done: the thread returns OK whenever it runs again.</summary>
+        public bool Served;
+        /// <summary>Off the queue without being done: WAIT_CANCEL, WAIT_DELETE or WAIT_TIMEOUT.</summary>
+        public int Error;
+        /// <summary>Guest time at the wait and its limit in microseconds (-1: none).</summary>
+        public long StartTicks;
+        public long LimitUs = -1;
+        /// <summary>A DONT_WAIT request: run when it ends (no thread waits on it).</summary>
+        public Action? Completed;
+
+        public int Moved => Total - Left;
+
+        /// <summary>What ends it: FULL all of its bytes, ASAP any.</summary>
+        public bool Done => Full ? Left == 0 : Left < Total;
+
+        /// <summary>It moved part of its bytes: as the head it keeps the first place.</summary>
+        public bool KeepsPlace => Left != Total;
+
+        /// <summary>Writes the byte count (a DONT_WAIT request's only when it ends: its kernel thread runs later).</summary>
+        public void Report()
+        {
+            if (Completed == null)
+            {
+                Result.TrySet((uint)Moved);
+            }
+        }
+    }
+
+    /// <summary>The wait queue, in the order the pipe serves it.</summary>
+    private readonly List<Transfer> _queue = new();
+
+    /// <summary>Waiters off the queue whose threads have not returned yet.</summary>
+    private readonly List<Transfer> _ended = new();
+
+    /// <summary>Waiters of a loaded save state whose threads have not issued their call again yet: the reissued call
+    /// takes its place (and its outcome, if the pipe served or released it meanwhile).</summary>
+    private readonly List<Transfer> _restored = new();
+
+    /// <summary>The head of the queue moved part of its bytes (threadmgr's +0x4C): no send or receive goes ahead of it.</summary>
+    private bool _headPartial;
+
+    /// <summary>Bytes the buffer can still take.</summary>
     public int FreeSize
     {
         get
         {
             lock (this)
             {
-                return Math.Max(0, BufferSize - _data.Count);
+                ReleaseExpired();
+                return BufferSize - _held;
             }
         }
     }
-    private bool _deleted;
-    private int _cancelled;
+
+    /// <summary>Senders in the queue (SceKernelMppInfo.numSendWaitThreads; DONT_WAIT requests count: the kernel's
+    /// async threads wait there).</summary>
+    public int SendWaiters => CountWaiters(true);
+
+    /// <summary>Receivers in the queue (SceKernelMppInfo.numReceiveWaitThreads).</summary>
+    public int RecvWaiters => CountWaiters(false);
+
+    private int CountWaiters(bool send)
+    {
+        lock (this)
+        {
+            ReleaseExpired();
+            int count = 0;
+            foreach (Transfer transfer in _queue)
+            {
+                if (transfer.Send == send)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
     /// <summary>Deleted while a handle opened by name was still open (<see cref="ObjectTable.Delete(MsgPipe)"/>).</summary>
     public bool IsDeleted
     {
@@ -1989,319 +2093,639 @@ public sealed partial class MsgPipe : KernelObject
     {
         public readonly uint[] Addrs = addrs;
         public readonly int[] Sizes = sizes;
-        public int Total => Sizes.Sum();
+
+        public int Total
+        {
+            get
+            {
+                long total = 0;
+                foreach (int size in Sizes)
+                {
+                    total += (uint)size;
+                }
+
+                return (int)Math.Min(total, int.MaxValue);
+            }
+        }
+
         public static Segments One(uint addr, int size) => new([addr], [size]);
 
-        /// <summary>Visits the guest spans covering [offset, offset + count).</summary>
-        public void ForEach(int offset, int count, Action<uint, int> f)
+        /// <summary>The guest run at <paramref name="offset"/>: its address and length, at most <paramref name="max"/>
+        /// (0 past the end).</summary>
+        public int Run(int offset, int max, out uint address)
         {
-            for (int i = 0; i < Addrs.Length && count > 0; i++)
+            for (int i = 0; i < Addrs.Length; i++)
             {
                 if (offset >= Sizes[i])
                 {
                     offset -= Sizes[i];
                     continue;
                 }
-                int n = Math.Min(Sizes[i] - offset, count);
-                f(Addrs[i] + (uint)offset, n);
-                count -= n;
-                offset = 0;
+
+                address = Addrs[i] + (uint)offset;
+                return Math.Min(Sizes[i] - offset, max);
             }
+
+            address = 0;
+            return 0;
+        }
+
+        /// <summary>threadmgr's check of the buffer list: an entry without a base is ILLEGAL_ADDR, an entry or a
+        /// running total larger than the pipe's buffer ILLEGAL_SIZE.</summary>
+        public int Check(int capacity)
+        {
+            long total = 0;
+            for (int i = 0; i < Addrs.Length; i++)
+            {
+                if (Addrs[i] == 0)
+                {
+                    return SceError.ILLEGAL_ADDR;
+                }
+
+                total += (uint)Sizes[i];
+                if ((uint)Sizes[i] > (uint)capacity || total > capacity)
+                {
+                    return SceError.ILLEGAL_SIZE;
+                }
+            }
+
+            return SceError.OK;
         }
     }
+
+    private static int CurrentPriority() => GuestThread.Current?.Priority ?? 0;
+
+    // ---------------------------------------------------------------- byte moves
+
+    /// <summary>Copies <paramref name="count"/> bytes from a sender's buffers to a receiver's, at their positions.</summary>
+    private static void CopyBetween(Transfer from, Transfer to, int count)
+    {
+        int fromOffset = from.Moved;
+        int toOffset = to.Moved;
+        while (count > 0)
+        {
+            int length = from.Buffers.Run(fromOffset, count, out uint source);
+            length = to.Buffers.Run(toOffset, length, out uint destination);
+            if (length <= 0)
+            {
+                break;
+            }
+
+            GuestMemory.Span(source, length).CopyTo(GuestMemory.Span(destination, length));
+            fromOffset += length;
+            toOffset += length;
+            count -= length;
+        }
+    }
+
+    /// <summary>Puts <paramref name="count"/> of a sender's bytes, from its position, at the buffer's end.</summary>
+    private void RingWrite(Transfer from, int count)
+    {
+        _ring ??= new byte[BufferSize];
+        int offset = from.Moved;
+        while (count > 0)
+        {
+            int length = from.Buffers.Run(offset, Math.Min(count, BufferSize - _writePos), out uint source);
+            if (length <= 0)
+            {
+                break;
+            }
+
+            GuestMemory.Span(source, length).CopyTo(_ring.AsSpan(_writePos, length));
+            _writePos = (_writePos + length) % BufferSize;
+            _held += length;
+            offset += length;
+            count -= length;
+        }
+    }
+
+    /// <summary>Takes <paramref name="count"/> bytes from the buffer's start into a receiver's buffers, at its position.</summary>
+    private void RingRead(Transfer to, int count)
+    {
+        int offset = to.Moved;
+        while (count > 0 && _ring != null)
+        {
+            int length = to.Buffers.Run(offset, Math.Min(count, BufferSize - _readPos), out uint destination);
+            if (length <= 0)
+            {
+                break;
+            }
+
+            _ring.AsSpan(_readPos, length).CopyTo(GuestMemory.Span(destination, length));
+            _readPos = (_readPos + length) % BufferSize;
+            _held -= length;
+            offset += length;
+            count -= length;
+        }
+    }
+
+    /// <summary>A receiver takes what the buffer holds, up to what it wants; a peek leaves the buffer as it was.</summary>
+    private void TakeFromRing(Transfer receiver)
+    {
+        int readWas = _readPos;
+        int heldWas = _held;
+        int count = Math.Min(receiver.Left, _held);
+        RingRead(receiver, count);
+        receiver.Left -= count;
+        if (receiver.Peek)
+        {
+            _readPos = readWas;
+            _held = heldWas;
+        }
+    }
+
+    /// <summary>A sender puts its rest into the buffer: ASAP what fits, FULL all of it or nothing.</summary>
+    private void Fill(Transfer sender)
+    {
+        int count = Math.Min(sender.Left, BufferSize - _held);
+        if (count <= 0 || (sender.Full && count < sender.Left))
+        {
+            return;
+        }
+
+        RingWrite(sender, count);
+        sender.Left -= count;
+    }
+
+    // ---------------------------------------------------------------- the queue
+
+    private bool ByPriority(bool send) => (Attr & (send ? AttrSendPriority : AttrReceivePriority)) != 0;
+
+    private Transfer? First(bool send)
+    {
+        foreach (Transfer transfer in _queue)
+        {
+            if (transfer.Send == send)
+            {
+                return transfer;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>A send (or receive) of this priority may move bytes now: no waiter of its kind is ahead of it.</summary>
+    private bool GoesFirst(bool send, int priority)
+    {
+        Transfer? head = First(send);
+        if (head == null)
+        {
+            return true;
+        }
+
+        return ByPriority(send) && head.Priority > priority && !_headPartial;
+    }
+
+    /// <summary>Queues a waiter: at the end, or by priority with the side's TH_PRIO attribute (behind its equals); a
+    /// head that keeps its place stays first.</summary>
+    private void Enqueue(Transfer transfer)
+    {
+        if (!ByPriority(transfer.Send))
+        {
+            _queue.Add(transfer);
+            return;
+        }
+
+        int index = 0;
+        while (index < _queue.Count && _queue[index].Priority <= transfer.Priority)
+        {
+            index++;
+        }
+
+        if (index == 0 && _queue.Count > 0 && _headPartial)
+        {
+            index = 1;
+        }
+
+        _queue.Insert(index, transfer);
+    }
+
+    /// <summary>Takes a waiter off the queue, served (<paramref name="error"/> 0) or released with an error, and lets
+    /// the next head take its turn (threadmgr's wait-end handler).</summary>
+    private void End(Transfer transfer, int error)
+    {
+        _queue.Remove(transfer);
+        if (error == 0)
+        {
+            transfer.Served = true;
+        }
+        else
+        {
+            transfer.Error = error;
+        }
+
+        transfer.Report();
+        if (transfer.Completed != null)
+        {
+            transfer.Result.TrySet((uint)transfer.Moved);
+            transfer.Completed();
+        }
+        else
+        {
+            _ended.Add(transfer);
+        }
+
+        HeadChanged();
+    }
+
+    /// <summary>The queue lost a waiter: a sender head keeps its place if it moved part of its bytes; a receiver head
+    /// takes what the buffer holds (threadmgr 0x81013C30).</summary>
+    private void HeadChanged()
+    {
+        _headPartial = false;
+        if (_queue.Count == 0)
+        {
+            return;
+        }
+
+        Transfer head = _queue[0];
+        if (head.Send)
+        {
+            _headPartial = head.KeepsPlace;
+            return;
+        }
+
+        TakeFromRing(head);
+        head.Report();
+        _headPartial = head.Left != 0 && head.KeepsPlace;
+    }
+
+    /// <summary>A send moves its bytes: straight to the waiting receivers in queue order, then its rest into the
+    /// buffer. True when it is done.</summary>
+    private bool Give(Transfer sender)
+    {
+        Transfer? receiver;
+        while (sender.Left > 0 && (receiver = First(false)) != null)
+        {
+            int count = Math.Min(receiver.Left, sender.Left);
+            CopyBetween(sender, receiver, count);
+            receiver.Left -= count;
+            if (!receiver.Peek)
+            {
+                sender.Left -= count;
+            }
+
+            receiver.Report();
+            if (receiver.Full && receiver.Left > 0)
+            {
+                _headPartial = receiver.KeepsPlace;
+                break;
+            }
+
+            _headPartial = false;
+            End(receiver, SceError.OK);
+        }
+
+        Fill(sender);
+        sender.Report();
+        return sender.Done;
+    }
+
+    /// <summary>A receive moves bytes: the buffer's, then the waiting senders' in queue order, each one putting its
+    /// rest into the buffer, up to the first sender that stays. A peek takes them all as copies. True when it is done.</summary>
+    private bool Take(Transfer receiver)
+    {
+        int writeWas = _writePos;
+        int readWas = _readPos;
+        int heldWas = _held;
+        TakeFromRing(receiver);
+        Transfer? sender;
+        while ((sender = First(true)) != null)
+        {
+            int count = Math.Min(receiver.Left, sender.Left);
+            CopyBetween(sender, receiver, count);
+            receiver.Left -= count;
+            if (receiver.Peek)
+            {
+                break; // a peek frees nothing
+            }
+
+            sender.Left -= count;
+            Fill(sender);
+            sender.Report();
+            if (!sender.Done)
+            {
+                _headPartial = sender.KeepsPlace;
+                break;
+            }
+
+            _headPartial = false;
+            End(sender, SceError.OK);
+        }
+
+        if (receiver.Peek)
+        {
+            _writePos = writeWas;
+            _readPos = readWas;
+            _held = heldWas;
+        }
+
+        receiver.Report();
+        return receiver.Done;
+    }
+
+    /// <summary>The waiting senders put what they can into the buffer, in queue order, up to the first one that stays
+    /// (threadmgr 0x81013964, after a waiter left the queue).</summary>
+    private void Serve()
+    {
+        Transfer? sender;
+        while ((sender = First(true)) != null)
+        {
+            Fill(sender);
+            sender.Report();
+            if (!sender.Done)
+            {
+                return;
+            }
+
+            End(sender, SceError.OK);
+        }
+    }
+
+    /// <summary>
+    /// The kernel's timers at the waiters' guest-time deadlines: a waiter whose timeout has passed is off the queue
+    /// (WAIT_TIMEOUT), however late its host thread is to notice, in the order the deadlines came, and the senders
+    /// behind it are tried again. Called before every operation that looks at the queue.
+    /// </summary>
+    private void ReleaseExpired()
+    {
+        bool changed = false;
+        while (true)
+        {
+            Transfer? earliest = null;
+            foreach (Transfer transfer in _queue)
+            {
+                if (transfer.LimitUs < 0 || !Wait.Expired(transfer.StartTicks, transfer.LimitUs))
+                {
+                    continue;
+                }
+
+                if (earliest == null || Deadline(transfer) < Deadline(earliest))
+                {
+                    earliest = transfer;
+                }
+            }
+            if (earliest == null)
+            {
+                break;
+            }
+
+            End(earliest, SceError.WAIT_TIMEOUT);
+            Serve();
+            changed = true;
+        }
+        if (changed)
+        {
+            Monitor.PulseAll(this);
+        }
+    }
+
+    private static double Deadline(Transfer transfer) => transfer.StartTicks + (double)transfer.LimitUs * System.Diagnostics.Stopwatch.Frequency / 1_000_000 / TimeScale.Wait;
+
+    /// <summary>The place a loaded save state kept for the calling thread's call, if any.</summary>
+    private Transfer? TakeRestored(GuestThread? self, bool send)
+    {
+        if (_restored.Count == 0 || self == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < _restored.Count; i++)
+        {
+            if (_restored[i].ThreadUid == self.Uid && _restored[i].Send == send)
+            {
+                Transfer transfer = _restored[i];
+                _restored.RemoveAt(i);
+                return transfer;
+            }
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------------- calls
 
     public int Send(uint src, int size, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool poll)
         => Send(Segments.One(src, size), mode, result, timeout, poll);
 
     public int Send(Segments src, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool poll)
-    {
-        int size = src.Total;
-        lock (this)
-        {
-            if (_deleted)
-            {
-                result.TrySet(0);
-                return SceError.MPP_DELETED;
-            }
-
-            // threadmgr refuses a message larger than the pipe's buffer, in either mode; a pipe without a buffer takes
-            // any size (FW 3.74 send, 0x81013DFC: the size check is skipped for capacity 0)
-            if (!Unbuffered && size > BufferSize)
-            {
-                return SceError.ILLEGAL_SIZE;
-            }
-
-            int gen = _cancelled;
-            int sent = 0;
-            bool asap = (mode & WaitAll) == 0;
-            SendWaiters++;
-            try
-            {
-                if (Unbuffered)
-                {
-                    return SendUnbuffered(src, size, asap, result, timeout, poll, gen);
-                }
-
-                while (sent < size)
-                {
-                    // ASAP moves what fits; FULL goes into the buffer only whole (threadmgr copies the rest of a FULL
-                    // message only when all of it fits, and the Try form fails with MPP_FULL without sending any)
-                    int free = BufferSize - _data.Count;
-                    if (asap ? free > 0 : free >= size - sent)
-                    {
-                        int n = Math.Min(free, size - sent);
-                        src.ForEach(sent, n, (a, len) =>
-                        {
-                            foreach (byte b in GuestMemory.Span(a, len))
-                            {
-                                _data.Enqueue(b);
-                            }
-                        });
-                        sent += n;
-                        WakeWaiters();
-                        if (asap)
-                        {
-                            break;
-                        }
-
-                        continue;
-                    }
-                    if (poll)
-                    {
-                        break;
-                    }
-
-                    int need = asap ? 1 : size - sent;
-                    int r = Wait.Until(this, (p: this, gen, need), static t => t.p.BufferSize - t.p._data.Count >= t.need, timeout,
-                        static t => t.p._deleted ? SceError.WAIT_DELETE : t.p._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
-                    if (r != SceError.OK)
-                    {
-                        result.TrySet((uint)sent);
-                        return r;
-                    }
-                }
-            }
-            finally
-            {
-                SendWaiters--;
-            }
-            result.TrySet((uint)sent);
-            ServeLater();
-            if (asap ? sent == 0 && size > 0 : sent < size)
-            {
-                return SceError.MPP_FULL;
-            }
-
-            return SceError.OK;
-        }
-    }
+        => Transmit(true, src, mode, result, timeout, poll);
 
     public int Receive(uint dst, int size, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool poll)
         => Receive(Segments.One(dst, size), mode, result, timeout, poll);
 
     public int Receive(Segments dst, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool poll)
+        => Transmit(false, dst, mode, result, timeout, poll);
+
+    /// <summary>
+    /// A send or receive, blocking or Try (<paramref name="poll"/>). threadmgr's order: the Try forms' mode
+    /// (ILLEGAL_MODE), the buffer list (ILLEGAL_ADDR / ILLEGAL_SIZE), the deleted pipe (MPP_DELETED), then nothing to
+    /// move (OK, 0 bytes). A Try FULL send that the buffer and the waiting receivers cannot take whole, or a Try FULL
+    /// receive that the buffer and the waiting senders cannot fill, fails without moving or writing anything; one that
+    /// waiters of its kind are ahead of fails the same way.
+    /// </summary>
+    private int Transmit(bool send, Segments buffers, uint mode, Ptr<uint> result, Ptr<uint> timeout, bool poll)
     {
-        int size = dst.Total;
+        if (poll && (mode & ~(send ? TrySendModes : TryReceiveModes)) != 0)
+        {
+            return SceError.ILLEGAL_MODE;
+        }
+
+        int result0;
+        bool woken;
         lock (this)
         {
+            int check = buffers.Check(BufferSize);
+            if (check != SceError.OK)
+            {
+                return check;
+            }
+
             if (_deleted)
             {
-                result.TrySet(0);
                 return SceError.MPP_DELETED;
             }
-            int gen = _cancelled;
-            int got = 0;
-            bool asap = (mode & WaitAll) == 0;
-            RecvWaiters++;
+
+            int size = buffers.Total;
+            if (size == 0)
+            {
+                result.TrySet(0);
+                return SceError.OK;
+            }
+
+            ReleaseExpired();
+            GuestThread? self = GuestThread.Current;
+            Transfer? transfer = poll ? null : TakeRestored(self, send);
+            if (transfer != null && (transfer.Served || transfer.Error != 0))
+            {
+                _ended.Remove(transfer);
+                transfer.Result = result;
+                transfer.Report();
+                ObserveSignal();
+                return transfer.Served ? SceError.OK : transfer.Error;
+            }
+
+            int priority = self?.Priority ?? 0;
+            bool full = (mode & WaitAll) != 0;
+            if (transfer == null)
+            {
+                transfer = new Transfer
+                {
+                    Send = send,
+                    Buffers = buffers,
+                    Total = size,
+                    Left = size,
+                    Full = full,
+                    Peek = !send && (mode & DontRemove) != 0,
+                    Priority = priority,
+                    ThreadUid = self?.Uid ?? 0,
+                    Result = result,
+                };
+                bool first = GoesFirst(send, priority);
+                if (poll)
+                {
+                    if (!first || (full && size > (send ? SendRoom() : ReceivableBytes())))
+                    {
+                        return send ? SceError.MPP_FULL : SceError.MPP_EMPTY;
+                    }
+
+                    bool done = send ? Give(transfer) : Take(transfer);
+                    WakeWaiters();
+                    ObserveSignal();
+                    return done ? SceError.OK : send ? SceError.MPP_FULL : SceError.MPP_EMPTY;
+                }
+
+                if (first)
+                {
+                    bool done = send ? Give(transfer) : Take(transfer);
+                    if (done)
+                    {
+                        WakeWaiters();
+                        return SceError.OK;
+                    }
+
+                    // it tried first: as the new head it keeps its place if it moved part of its bytes
+                    _headPartial = transfer.KeepsPlace;
+                }
+                else
+                {
+                    result.TrySet(0);
+                }
+
+                Enqueue(transfer);
+                WakeWaiters();
+            }
+            else
+            {
+                transfer.Result = result;
+                transfer.Buffers = buffers;
+            }
+
+            transfer.StartTicks = GuestClock.Ticks;
+            transfer.LimitUs = timeout.IsNull ? -1 : timeout.Value;
             try
             {
-                while (got < size)
-                {
-                    if (_data.Count > 0 || OfferedBytes > 0)
-                    {
-                        int n = Math.Min(_data.Count, size - got);
-                        dst.ForEach(got, n, (a, len) =>
-                        {
-                            Span<byte> span = GuestMemory.Span(a, len);
-                            for (int i = 0; i < len; i++)
-                            {
-                                span[i] = _data.Dequeue();
-                            }
-                        });
-                        got += n;
-                        // a pipe without a buffer: the rest straight from the senders waiting with their data
-                        got += TakeOffered(dst, got, size - got);
-                        WakeWaiters();
-                        if (asap)
-                        {
-                            break;
-                        }
-
-                        continue;
-                    }
-                    if (poll)
-                    {
-                        break;
-                    }
-
-                    // a waiting receiver of a pipe without a buffer is where a sender's data can go
-                    int demand = Unbuffered ? size - got : 0;
-                    _receiveDemand += demand;
-                    if (demand > 0)
-                    {
-                        ServeLater();
-                        WakeWaiters();
-                    }
-
-                    int r = Wait.Until(this, (p: this, gen), static t => t.p._data.Count > 0 || t.p.OfferedBytes > 0, timeout,
-                        static t => t.p._deleted ? SceError.WAIT_DELETE : t.p._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
-                    _receiveDemand -= demand;
-                    if (r != SceError.OK)
-                    {
-                        result.TrySet((uint)got);
-                        return r;
-                    }
-                }
+                result0 = Wait.UntilGranted(this, transfer, static t => t.Served, timeout, static t => t.Served ? 0 : t.Error,
+                    WaitDescription, out woken);
             }
             finally
             {
-                RecvWaiters--;
-            }
-            result.TrySet((uint)got);
-            ServeLater();
-            if (got == 0 && size > 0)
-            {
-                return SceError.MPP_EMPTY;
-            }
-
-            return SceError.OK;
-        }
-    }
-
-    /// <summary>
-    /// A pipe created with size 0 has no buffer (FW 3.74 threadmgr allocates no memory block for it and skips the size
-    /// check of a send): a send hands its data straight to receivers. Here the bytes the waiting receivers asked for
-    /// go through <see cref="_data"/> at once (only those receivers can take them), and a sender that has more waits
-    /// with the rest offered (<see cref="Offer"/>), which a receiver, a polling one too, copies from the sender's own
-    /// buffers.
-    /// </summary>
-    private bool Unbuffered => BufferSize == 0;
-
-    /// <summary>Bytes the receivers blocked on a pipe without a buffer still want.</summary>
-    private int _receiveDemand;
-
-    /// <summary>The rest of a blocked send on a pipe without a buffer, taken by receivers from the sender's buffers.</summary>
-    private sealed class Offer(Segments source, int start, int size)
-    {
-        public readonly Segments Source = source;
-        public readonly int Start = start;
-        public readonly int Size = size;
-        public int Taken;
-    }
-
-    private readonly List<Offer> _offers = new();
-
-    private int OfferedBytes
-    {
-        get
-        {
-            int total = 0;
-            foreach (Offer offer in _offers)
-            {
-                total += offer.Size - offer.Taken;
-            }
-
-            return total;
-        }
-    }
-
-    /// <summary>Copies up to <paramref name="count"/> offered bytes, oldest sender first, to <paramref name="dst"/> at
-    /// <paramref name="offset"/>; returns how many.</summary>
-    private int TakeOffered(Segments dst, int offset, int count)
-    {
-        int moved = 0;
-        foreach (Offer offer in _offers)
-        {
-            int n = Math.Min(offer.Size - offer.Taken, count - moved);
-            if (n <= 0)
-            {
-                continue;
-            }
-
-            byte[] bytes = System.Buffers.ArrayPool<byte>.Shared.Rent(n);
-            int read = 0;
-            offer.Source.ForEach(offer.Start + offer.Taken, n, (address, length) =>
-            {
-                GuestMemory.Span(address, length).CopyTo(bytes.AsSpan(read));
-                read += length;
-            });
-            int written = 0;
-            dst.ForEach(offset + moved, n, (address, length) =>
-            {
-                bytes.AsSpan(written, length).CopyTo(GuestMemory.Span(address, length));
-                written += length;
-            });
-            System.Buffers.ArrayPool<byte>.Shared.Return(bytes);
-            offer.Taken += n;
-            moved += n;
-        }
-
-        return moved;
-    }
-
-    /// <summary>A send on a pipe without a buffer (<see cref="Unbuffered"/>): what the waiting receivers asked for goes
-    /// at once; a blocking send then waits with the rest offered until a receiver took some (ASAP) or all (FULL) of it.
-    /// The Try forms move only what waiting receivers asked for (MPP_FULL when that is nothing, or, FULL, not all).</summary>
-    private int SendUnbuffered(Segments src, int size, bool asap, Ptr<uint> result, Ptr<uint> timeout, bool poll, int gen)
-    {
-        int room = Math.Max(0, _receiveDemand - _data.Count);
-        // a Try FULL send moves its message only whole, as on a pipe with a buffer
-        int sent = poll && !asap && room < size ? 0 : Math.Min(room, size);
-        if (sent > 0)
-        {
-            src.ForEach(0, sent, (address, length) =>
-            {
-                foreach (byte value in GuestMemory.Span(address, length))
+                if (transfer.Served || transfer.Error != 0)
                 {
-                    _data.Enqueue(value);
+                    _ended.Remove(transfer);
                 }
-            });
-            WakeWaiters();
+                else if (_queue.Contains(transfer))
+                {
+                    // its own timeout (or the thread's end): the turn goes on to the ones behind it
+                    End(transfer, SceError.WAIT_TIMEOUT);
+                    _ended.Remove(transfer);
+                    Serve();
+                    Monitor.PulseAll(this);
+                }
+            }
+            transfer.Report();
+            if (transfer.Served)
+            {
+                result0 = SceError.OK; // a timeout or cancel that came after the bytes does not undo them
+            }
+            else if (transfer.Error == SceError.WAIT_TIMEOUT)
+            {
+                result0 = SceError.WAIT_TIMEOUT;
+                timeout.TrySet(0);
+            }
+        }
+        if (woken && result0 == SceError.OK)
+        {
+            Wait.WakeLatency();
         }
 
-        if (sent < size && !(asap && sent > 0) && !poll)
+        return result0;
+    }
+
+    /// <summary>What a FULL Try send can hand over at once: the buffer's free bytes, plus what the waiting receivers
+    /// want (threadmgr 0x810165E8).</summary>
+    private int SendRoom()
+    {
+        long room = BufferSize - _held;
+        foreach (Transfer transfer in _queue)
         {
-            var offer = new Offer(src, sent, size - sent);
-            _offers.Add(offer);
-            WakeWaiters();
-            int r = Wait.Until(this, (p: this, offer, asap, gen), static t => t.asap ? t.offer.Taken > 0 : t.offer.Taken == t.offer.Size, timeout,
-                static t => t.p._deleted ? SceError.WAIT_DELETE : t.p._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
-            _offers.Remove(offer);
-            sent += offer.Taken;
-            if (r != SceError.OK)
+            if (!transfer.Send)
             {
-                result.TrySet((uint)sent);
-                return r;
+                room += transfer.Left;
             }
         }
 
-        result.TrySet((uint)sent);
-        if (asap ? sent == 0 && size > 0 : sent < size)
-        {
-            return SceError.MPP_FULL;
-        }
-
-        return SceError.OK;
+        return (int)Math.Min(room, int.MaxValue);
     }
 
+    /// <summary>What a FULL Try receive can get at once: the buffer's bytes, plus the waiting senders' rest.</summary>
+    private int ReceivableBytes()
+    {
+        long bytes = _held;
+        foreach (Transfer transfer in _queue)
+        {
+            if (transfer.Send)
+            {
+                bytes += transfer.Left;
+            }
+        }
+
+        return (int)Math.Min(bytes, int.MaxValue);
+    }
+
+    /// <summary>sceKernelCancelMsgPipe: the buffer is emptied and every waiter returns WAIT_CANCEL with what it moved;
+    /// numSend / numRecv get how many senders / receivers waited (threadmgr 0x8101738C).</summary>
     public int Cancel(Ptr<int> numSend, Ptr<int> numRecv)
     {
         lock (this)
         {
-            numSend.TrySet(SendWaiters + _later.Count(t => t.Send));
-            numRecv.TrySet(RecvWaiters + _later.Count(t => !t.Send));
+            if (_deleted)
+            {
+                return SceError.MPP_DELETED;
+            }
+
+            ReleaseExpired();
+            int senders = 0;
+            int receivers = 0;
+            foreach (Transfer transfer in _queue)
+            {
+                if (transfer.Send)
+                {
+                    senders++;
+                }
+                else
+                {
+                    receivers++;
+                }
+            }
+
+            _readPos = 0;
+            _writePos = 0;
+            _held = 0;
+            ReleaseAll(SceError.WAIT_CANCEL);
             _cancelled++;
-            EndLater();
+            numSend.TrySet(senders);
+            numRecv.TrySet(receivers);
             WakeWaiters();
         }
         return SceError.OK;
@@ -2312,128 +2736,90 @@ public sealed partial class MsgPipe : KernelObject
         lock (this)
         {
             _deleted = true;
-            EndLater();
+            ReleaseAll(SceError.WAIT_DELETE);
             WakeWaiters();
         }
     }
 
+    private void ReleaseAll(int error)
+    {
+        while (_queue.Count > 0)
+        {
+            End(_queue[0], error);
+        }
+
+        _headPartial = false;
+    }
+
     /// <summary>
     /// DONT_WAIT on a blocking send or receive (FW 3.74 threadmgr, the vector forms at 0x81015004 / 0x8101533C): the
-    /// kernel copies the buffer list, queues the transfer for its "SceKernelMsgPipeAsync" threads (which run it as a
-    /// blocking call at the caller's priority) and the call returns at once with success; the data moves when the
-    /// pipe allows, as the blocking call would have moved it. <paramref name="result"/> (null for none) gets the bytes
-    /// moved when the transfer ends; <paramref name="completed"/> runs then, also when a cancel or delete ends it.
+    /// kernel copies the buffer list and queues the transfer for its "SceKernelMsgPipeAsync" threads, which run it as a
+    /// blocking call at the caller's priority; the call returns at once with success. Here it is that call's waiter,
+    /// with no guest thread behind it: tried at once, then queued. <paramref name="result"/> (null for none) gets the
+    /// bytes moved; <paramref name="completed"/> runs when it ends, also when a cancel or delete ends it.
     /// </summary>
     public void TransferLater(bool send, Segments buffers, uint mode, Ptr<uint> result, Action completed)
     {
         lock (this)
         {
-            if (_deleted)
+            int size = buffers.Total;
+            if (_deleted || buffers.Check(BufferSize) != SceError.OK || size == 0)
             {
                 result.TrySet(0);
                 completed();
                 return;
             }
 
-            _later.Add(new LaterTransfer(send, buffers, mode, result, completed));
-            ServeLater();
+            ReleaseExpired();
+            int priority = CurrentPriority();
+            var transfer = new Transfer
+            {
+                Send = send,
+                Buffers = buffers,
+                Total = size,
+                Left = size,
+                Full = (mode & WaitAll) != 0,
+                Priority = priority,
+                Result = result,
+                Completed = completed,
+            };
+            if (GoesFirst(send, priority))
+            {
+                if (send ? Give(transfer) : Take(transfer))
+                {
+                    WakeWaiters();
+                    result.TrySet((uint)transfer.Moved);
+                    completed();
+                    return;
+                }
+
+                _headPartial = transfer.KeepsPlace;
+            }
+
+            Enqueue(transfer);
+            WakeWaiters();
         }
     }
 
-    /// <summary>The transfers queued by <see cref="TransferLater"/> still waiting for the pipe.</summary>
+    /// <summary>The DONT_WAIT transfers still in the queue.</summary>
     public int LaterCount
     {
         get
         {
             lock (this)
             {
-                return _later.Count;
-            }
-        }
-    }
-
-    /// <summary>Moves what the queued transfers can move now, in queue order, until none can go further.</summary>
-    private void ServeLater()
-    {
-        bool moved = true;
-        while (moved && _later.Count > 0)
-        {
-            moved = false;
-            foreach (LaterTransfer transfer in _later.ToList())
-            {
-                int size = transfer.Buffers.Total;
-                int count = transfer.Send ? SendNow(transfer, size) : ReceiveNow(transfer, size);
-                if (count == 0)
+                int count = 0;
+                foreach (Transfer transfer in _queue)
                 {
-                    continue;
+                    if (transfer.Completed != null)
+                    {
+                        count++;
+                    }
                 }
 
-                transfer.Done += count;
-                moved = true;
-                if (transfer.Asap || transfer.Done >= size)
-                {
-                    _later.Remove(transfer);
-                    transfer.Result.TrySet((uint)transfer.Done);
-                    transfer.Completed();
-                }
-            }
-            if (moved)
-            {
-                WakeWaiters();
+                return count;
             }
         }
-    }
-
-    /// <summary>A queued send's bytes that fit now (FULL: only the whole rest at once, as the blocking send).</summary>
-    private int SendNow(LaterTransfer transfer, int size)
-    {
-        int free = (Unbuffered ? _receiveDemand : BufferSize) - _data.Count;
-        int rest = size - transfer.Done;
-        if (rest <= 0 || (transfer.Asap ? free <= 0 : free < rest))
-        {
-            return 0;
-        }
-
-        int count = Math.Min(free, rest);
-        transfer.Buffers.ForEach(transfer.Done, count, (address, length) =>
-        {
-            foreach (byte value in GuestMemory.Span(address, length))
-            {
-                _data.Enqueue(value);
-            }
-        });
-        return count;
-    }
-
-    /// <summary>A queued receive's bytes that are there now (FULL keeps taking until it has them all).</summary>
-    private int ReceiveNow(LaterTransfer transfer, int size)
-    {
-        int count = Math.Min(_data.Count, size - transfer.Done);
-        if (count <= 0)
-        {
-            return 0;
-        }
-
-        transfer.Buffers.ForEach(transfer.Done, count, (address, length) =>
-        {
-            Span<byte> span = GuestMemory.Span(address, length);
-            for (int i = 0; i < length; i++)
-            {
-                span[i] = _data.Dequeue();
-            }
-        });
-        return count;
-    }
-
-    /// <summary>A cancel or delete ends the queued transfers with what they moved.</summary>
-    private void EndLater()
-    {
-        foreach (LaterTransfer transfer in _later)
-        {
-            transfer.Result.TrySet((uint)transfer.Done);
-            transfer.Completed();
-        }
-        _later.Clear();
     }
 
     // ---- sceKernelWaitEvent / PollEvent on a message pipe (SCE_KERNEL_EVENT_*): IN while data can be received, OUT
@@ -2446,8 +2832,8 @@ public sealed partial class MsgPipe : KernelObject
     public const uint EventReceivable = 0x10000, EventSendable = 0x20000;
     private uint _latched;
 
-    private uint Pattern => (_data.Count > 0 || OfferedBytes > 0 ? EventIn | EventReceivable : 0)
-        | (_data.Count < (Unbuffered ? _receiveDemand : BufferSize) ? EventOut | EventSendable : 0)
+    private uint Pattern => (ReceivableBytes() > 0 ? EventIn | EventReceivable : 0)
+        | (_held < BufferSize ? EventOut | EventSendable : 0)
         | (_deleted ? EventBits.Delete : 0) | _latched;
 
     /// <summary>A handle to the pipe was opened or closed (<see cref="EventOpen"/>, <see cref="EventClose"/>).</summary>
