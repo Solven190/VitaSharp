@@ -100,7 +100,7 @@ public sealed partial class MainWindow
 
                 rows.Children.Add(CaptureRow(c, compact: false));
             }
-            body = new ScrollViewer { Content = _k.Card(rows, 18, new Thickness(0, 4)).Also(c => c.Margin = new Thickness(0, 0, 0, 24)), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            body = PageScroll(new ScrollViewer { Content = _k.Card(rows, 18, new Thickness(0, 4)).Also(c => c.Margin = new Thickness(0, 0, 0, 24)), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         }
         page.Children.Add(Kit.At(body, row: 2));
         return page;
@@ -137,6 +137,10 @@ public sealed partial class MainWindow
         var acts = _k.HStack(6, _k.Secondary("", "folder", () => Reveal(c.Path), 36, tip: S.ShowInFolder), _k.Secondary("", "trash", () => _ = DeleteCaptures([c]), 36, static p => p.Danger, tip: S.Delete));
         acts.VerticalAlignment = VerticalAlignment.Center;
         r.Children.Add(Kit.At(acts, col: col));
+        r.Background = Kit.Fixed(Colors.Transparent);
+        r.GotFocus += (_, _) => r.Background = Kit.B(static p => p.Highlight);
+        r.LostFocus += (_, _) => r.Background = Kit.Fixed(Colors.Transparent);
+        ListItem(c.Path, r);
         return r;
     }
 
@@ -152,6 +156,8 @@ public sealed partial class MainWindow
             return;
         }
 
+        // the list stays where it was, with the focus on the capture that followed the (first) deleted one
+        KeepListPosition(NextListItem(files.Select(f => f.Path).ToList()));
         int done = 0;
         await Task.Run(() =>
         {

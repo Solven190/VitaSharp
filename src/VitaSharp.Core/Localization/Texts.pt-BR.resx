@@ -465,6 +465,21 @@
   <data name="CsReturnTip" xml:space="preserve">
     <value>Tempo para a alavanca voltar ao centro quando o mouse para.</value>
   </data>
+  <data name="CsSave" xml:space="preserve">
+    <value>Salvar</value>
+  </data>
+  <data name="CsSaveDone" xml:space="preserve">
+    <value>Mapeamento salvo.</value>
+  </data>
+  <data name="CsSaveSaved" xml:space="preserve">
+    <value>Salvo</value>
+  </data>
+  <data name="CsSaveTip" xml:space="preserve">
+    <value>Grava o mapeamento agora (ele também é salvo ao sair desta tela)</value>
+  </data>
+  <data name="CsSaveUnsaved" xml:space="preserve">
+    <value>Alterações não salvas</value>
+  </data>
   <data name="CsSavedProfile" xml:space="preserve">
     <value>Perfil salvo · GUID {0} · conecte o controle para testá-lo.</value>
   </data>

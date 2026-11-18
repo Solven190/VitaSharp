@@ -91,6 +91,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   reproduzem com a CPU livre, o ritmo do HLE de áudio está certo. Falta: PVRTC, YUV420 e cube no `gfx`; o cube
   precisa de um fragment shader com `samplerCUBE`, e o TestGame só tem os shaders pré-compilados do vita2d (sem
   compilador de shader no VitaSDK).
+  Feito (16/11/2026, rm5, test/rm5-testgame-gfx; junto em 18/11/2026, feat/pend1, a confirmar pelo usuário):
+  `gfx/tex_PVRT4BPP_swizzled` (PVRTC 4 bpp, os quatro pesos de modulação do modo padrão entre as cores A e B, 96
+  texels) e `gfx/tex_YUV420P2_CSC0`, `tex_YVU420P2_CSC0`, `tex_YUV420P3_CSC0`, `tex_YVU420P3_CSC0` (16 blocos com luma
+  e croma próprios, BT.601 padrão). Rodada headless: `# done ok=230 fail=0 skip=5`; um VPK com U/V e as cores A/B
+  trocadas dá FAIL nos dois casos (`16/16 wrong`, `96/96 wrong`). O cube fica como limitação (SKIP `tex_cube`):
+  amostrar precisa de um fragment program com `samplerCUBE` e nenhum compilador redistribuível gera um (o `psp2cgc` e o
+  `libshacccg` são da Sony); a amostragem de cube do renderizador segue coberta pelos testes de renderizador da suíte.
+  O CSC1 também não entra: a libgxm 3.74 começa o CSC1 como BT.709 padrão (`GxmContext.YuvProfile`), mas o
+  `TextureDecoder` o converte como BT.601 de faixa cheia e não lê o `sceGxmSetYuvProfile`; a conferir num item próprio.
 - [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
   (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
   `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
@@ -133,9 +142,21 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   need < 1 = INVALID_ARGUMENT antes do UID. A fila (ordem e servidos ainda sem retorno) entra no save state; estados
   antigos carregam com a fila vazia. Eram bugs (`WaitSema` sem fila), corrigidos no mesmo hash. Faltam mutex, lwmutex,
   cond, msgpipe, eventos e callbacks.
+  Mutex (normal) coberto (16/11/2026, sync2, test/sync-mutex; junto em 18/11/2026, feat/pend1, a confirmar):
+  `MutexInterleavingTests`, conferido no threadmgr 3.74: fila FIFO ou por prioridade com
+  `SCE_KERNEL_MUTEX_ATTR_TH_PRIO`; o unlock que libera passa o mutex à cabeça da fila com a contagem pedida, dentro da
+  chamada; lock e try-lock não passam na frente da fila; contagem < 1 (ou > 1 sem RECURSIVE) é ILLEGAL_COUNT em todas
+  as chamadas (o `ThreadMgrHleTests.MutexOwnershipAndCounts` esperava INVALID_ARGUMENT, corrigido); prazo em tempo de
+  guest tira a espera da fila; cancel e delete soltam a fila inteira; a fila entra no save state. Eram bugs (sem fila,
+  cada espera disputava o dono), corrigidos no mesmo merge. Faltam lwmutex, cond, msgpipe, eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
+  Em andamento (16/11/2026, sched1, test/sched-contracts-1; junto em 18/11/2026, feat/pend1): ordem de prontos do
+  threadmgr 3.74 no `Scheduler` (o núcleo livre vai ao primeiro da maior prioridade, por chegada dentro da prioridade;
+  quem é preemptado por uma prioridade maior volta à frente da sua, quem cede a um igual vai para trás) e
+  `SchedulerContractTests` (6 casos, ordem forçada por portões e `Scheduler.IsWaitingForCore`). Falta: afinidade, o tempo
+  de guest por chamada HLE e por espera, e quem acorda quem.
 - [x] **Custos do HLE:** a classe de custo de cada função (código de usuário, entrada no kernel, espera) testada como
   contrato, sem depender do nome. Feito: `[Hle(Cost = HleCost...)]` por função e `HleModule.DefaultCost` por
   biblioteca, `CallbackWait = true` nas esperas com callbacks; `HleCostTests` confere as classes, o custo cobrado por
@@ -329,6 +350,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   NetAdhocMatching (Soul Sacrifice Delta, Army Corps of Hell, Table Top Tanks e outros) e Ime (LittleBigPlanet,
   Shinobido 2 e outros) são importados, mas não ficam em uso no começo do jogo num cenário curto sem janela.
 - [ ] [P3][M] Sob o shell do Vita (vários processos) o salvamento é recusado
+  Feito (16/11/2026, rm5, feat/rm5-savestate-multiprocess; junto em 18/11/2026, feat/pend1, a confirmar pelo
+  usuário): o estado guarda todos os processos do sistema (o shell e os aplicativos que ele abriu) em volta do kernel
+  único: cada processo com suas seções (`process<N>/system`, `hle.functions`, `hle:<Módulo>`), a lista `processes` e
+  o espaço de endereço de cada bloco (`memory.spaces`, `mem:<endereço>@<pid>`); as threads voltam para o processo dono,
+  as listas de módulos e os timers também. O load exige os mesmos processos rodando (pid, aplicativo, título,
+  suspenso/na tela) e recusa antes de parar qualquer coisa. Estado de um processo só mantém o formato de antes
+  (`SaveStateLegacyTests` passa). Testes: `SaveStateMultiProcessTests` (shell e app sintéticos no mesmo endereço; sem
+  a mudança o save falha com "save states support a game run directly"). Falta confirmar numa sessão real do shell.
 - [x] Não validado (06/11/2026): o device lost do Tearaway na janela (o relato de 04/11 não reproduziu em 3 cargas
   sem janela; não houve teste com janela); o teclado do sistema (ImeDialog) aberto num save: o Sakatsuku
   (`st_game2`, 7000 quadros) não chegou ao teclado, e o Invizimals não foi testado
@@ -1447,12 +1476,23 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   ao gravar L3 + R3, o mapeamento entende L3 sozinho e depois L3 + R3 (grava cada botão conforme é apertado, em vez
   de esperar a combinação completa); o certo é gravar só a combinação final (L3 + R3) e, no jogo, disparar só com os
   dois apertados, sem disparar o atalho de L3 sozinho no caminho
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): num controle, a gravação de um atalho (clicar na linha,
+  "+" ou o botão de combinação) espera a combinação inteira: guarda o maior conjunto de botões apertados juntos e só
+  termina com todos soltos por 400 ms (um clique de analógico que escapa no meio não encerra), e clicar na linha troca
+  tudo o que o atalho tinha pela combinação. `BindingRecorder` (Core/Input), `BindingRecorderTests`.
 - [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
   as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
   tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): no jogo o `HostInput` já somava teclado e controles
+  (conferido no `pad-test`); a tela de controles mostrava só o dispositivo escolhido. Agora a prévia ao vivo soma as
+  teclas do perfil do teclado com o controle escolhido, como o jogo recebe (`InputMapper.MapTogether`,
+  `InputMappingTests.KeyboardKeysKeepWorkingWhileAControllerIsInUse`).
 - [ ] [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
   sair da tela de controles; ter um botão "Salvar" (e um aviso de "salvo"/"alterações não salvas") na tela de
   controles, mantendo o salvamento ao sair
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): botão "Salvar" ao lado de "Restaurar padrão", com o aviso
+  "Salvo" / "Alterações não salvas" (o botão só fica ativo com alterações); sair da tela continua salvando
+  (`ControlsScreenTests`).
 
 - [x] Botões do mouse mapeáveis (pedido do usuário, 06/11/2026): o botão esquerdo e o direito do mouse (e o do meio)
   podem ser mapeados como qualquer botão do Vita (ex.: R para atirar e L para mirar no Killzone, junto com o mouse como
@@ -2756,6 +2796,11 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 - [ ] [P3][P] Ao apagar um item da lista (biblioteca de jogos do launcher), a rolagem volta para o topo (pedido do
   usuário, 17/11/2026): manter a posição da rolagem onde estava, com o foco no item seguinte ao apagado; o mesmo nas
   outras listas com apagar (saves, capturas) e no app Android quando ele voltar
+  Feito no desktop (18/11/2026, feat/pend1, a confirmar pelo usuário): desinstalar um jogo (pela página dele) volta à
+  biblioteca na rolagem de antes, com o foco no jogo seguinte (grade e lista); voltar da página de um jogo também
+  mantém a rolagem; apagar uma captura (página Capturas e lista da página do jogo) mantém a rolagem com o foco na
+  captura seguinte (`ListDeleteKeepsPositionTests`). Não há lista de saves com apagar no launcher. Falta: o app
+  Android (pausado).
 - [ ] [P1][M] Assassin's Creed III Liberation (PCSE00053) trava no boot, nunca mostra o primeiro quadro (usuário,
   17/11/2026; primeiro teste do jogo). Captura `captures/PCSE00053_20261117_012258_tudo`: 7 min no quadro 0 (0 fps,
   só a imagem de boot), áudio aberto mas em silêncio. Os threads do motor (Gear) foram todos criados, NGS e GXM

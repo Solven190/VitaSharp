@@ -114,7 +114,7 @@ public sealed partial class MainWindow
         page.Children.Add(cols);
 
         root.Children.Add(page);
-        return new ScrollViewer { Content = root, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        return PageScroll(new ScrollViewer { Content = root, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
     }
 
     /// <summary>

@@ -5,22 +5,18 @@ using VitaSharp.Core.SaveState;
 namespace VitaSharp.Core.Memory;
 
 /// <summary>
-/// Save states: the block table and the contents of every block of a single-process system (the first address space
-/// plus the shared CDRAM / kernel regions). Contents are stored page by page with a bitmap of the pages that are not
-/// all zero, so untouched heaps cost nothing.
+/// Save states: the block table and the contents of every block: the shared CDRAM / kernel regions and the private
+/// blocks of every process's address space (the shell and an application it opened hold user blocks at the same
+/// addresses, each in its own space; <see cref="Block.Space"/> says which). Contents are stored page by page with a
+/// bitmap of the pages that are not all zero, so untouched heaps cost nothing.
 /// </summary>
 public sealed unsafe partial class GuestMemory
 {
-    /// <summary>Every block, by address (the caller has stopped every guest thread).</summary>
+    /// <summary>Every block of every space, by address (the caller has stopped every guest thread).</summary>
     internal List<Block> SnapshotBlocks()
     {
         lock (_lock)
         {
-            if (_spaces.Any(s => !ReferenceEquals(s, Primary) && s._blocks.Count > 0))
-            {
-                throw new SnapshotException("save states support one process only (another address space is in use)");
-            }
-
             return AllBlocks().OrderBy(b => b.Address).ToList();
         }
     }
@@ -170,28 +166,50 @@ public sealed unsafe partial class GuestMemory
     }
 
     /// <summary>
-    /// Makes the block table exactly <paramref name="saved"/>: blocks that are not in it are freed, missing ones are
-    /// committed (all in the first address space), and the free lists are rebuilt from the result. Returns the blocks
-    /// as they now are, in the saved order. Contents are not touched (<see cref="ReadContents"/> follows).
+    /// Makes the block table exactly <paramref name="saved"/> with every private block in the first address space (a
+    /// state of one process).
     /// </summary>
-    internal List<Block> RestoreBlocks(List<Block> saved)
+    internal List<Block> RestoreBlocks(List<Block> saved) => RestoreBlocks(saved, null);
+
+    /// <summary>
+    /// Makes the block table exactly <paramref name="saved"/>: blocks that are not in it are freed, missing ones are
+    /// committed, and the free lists are rebuilt from the result. <paramref name="spaces"/> gives, by index, the address
+    /// space of each saved private block (null, or a null entry: the first space); CDRAM and kernel blocks are in every
+    /// space. Returns the blocks as they now are, in the saved order. Contents are not touched
+    /// (<see cref="RestoreContents"/> follows).
+    /// </summary>
+    internal List<Block> RestoreBlocks(List<Block> saved, IReadOnlyList<AddressSpace?>? spaces)
     {
+        if (spaces != null && spaces.Count != saved.Count)
+        {
+            throw new SnapshotException($"the memory table names the space of {spaces.Count} blocks, it has {saved.Count}");
+        }
+
         lock (_lock)
         {
-            var want = saved.ToDictionary(b => b.Address);
+            AddressSpace SpaceOf(int index) => spaces?[index] ?? Primary;
+            var want = new Dictionary<(AddressSpace? Space, uint Address), Block>();
+            for (int i = 0; i < saved.Count; i++)
+            {
+                Block s = saved[i];
+                want[(IsSharedRegion(s.Region) ? null : SpaceOf(i), s.Address)] = s;
+            }
+
             foreach (Block? b in AllBlocks().ToList())
             {
-                if (!want.TryGetValue(b.Address, out Block? s) || s.Size != b.Size || s.Region != b.Region || (b.Space != null && !ReferenceEquals(b.Space, Primary)))
+                if (!want.TryGetValue((b.Space, b.Address), out Block? s) || s.Size != b.Size || s.Region != b.Region)
                 {
                     Free(b);
                 }
             }
 
             var result = new List<Block>(saved.Count);
-            foreach (Block s in saved)
+            for (int i = 0; i < saved.Count; i++)
             {
+                Block s = saved[i];
                 bool shared = IsSharedRegion(s.Region);
-                Dictionary<uint, Block> dict = shared ? _shared : Primary._blocks;
+                AddressSpace space = SpaceOf(i);
+                Dictionary<uint, Block> dict = shared ? _shared : space._blocks;
                 if (dict.TryGetValue(s.Address, out Block? cur))
                 {
                     Block keep = cur with
@@ -203,14 +221,17 @@ public sealed unsafe partial class GuestMemory
                     result.Add(keep);
                     continue;
                 }
+
                 using (Kernel.ProcessScope.Enter(s.Owner))
                 {
-                    Commit(Primary, s.Address, s.Size, s.Name, s.Region);
+                    Commit(space, s.Address, s.Size, s.Name, s.Region);
                 }
 
                 result.Add(dict[s.Address]);
             }
-            // the free lists: each region whole, minus every block in it
+
+            // the free lists: each region whole, minus every block in it (user blocks of several spaces may cover the
+            // same range: the user list holds what no space uses)
             _freeUser.Clear();
             _freeUser.Add(UserStart, UserEnd - UserStart);
             _freeCdram.Clear();
@@ -224,18 +245,30 @@ public sealed unsafe partial class GuestMemory
                     continue;
                 }
 
-                SortedList<uint, uint> free = FreeList(b.Region);
-                for (int i = 0; i < free.Count; i++)
-                {
-                    uint fs = free.Keys[i], fl = free.Values[i];
-                    if (b.Address >= fs && (ulong)b.Address + b.Size <= (ulong)fs + fl)
-                    {
-                        Carve(free, fs, fl, b.Address, b.Size);
-                        break;
-                    }
-                }
+                RemoveFromFree(FreeList(b.Region), b.Address, (ulong)b.Address + b.Size);
             }
+
             return result;
+        }
+    }
+
+    /// <summary>Takes [<paramref name="start"/>, <paramref name="end"/>) out of <paramref name="free"/>, whatever free
+    /// ranges it overlaps.</summary>
+    private static void RemoveFromFree(SortedList<uint, uint> free, uint start, ulong end)
+    {
+        for (int i = free.Count - 1; i >= 0; i--)
+        {
+            uint freeStart = free.Keys[i];
+            uint freeLength = free.Values[i];
+            ulong freeEnd = (ulong)freeStart + freeLength;
+            if (freeEnd <= start || freeStart >= end)
+            {
+                continue;
+            }
+
+            uint overlapStart = Math.Max(freeStart, start);
+            uint overlapEnd = (uint)Math.Min(freeEnd, end);
+            Carve(free, freeStart, freeLength, overlapStart, overlapEnd - overlapStart);
         }
     }
 }

@@ -465,6 +465,21 @@
   <data name="CsReturnTip" xml:space="preserve">
     <value>Time for the stick to go back to the center when the mouse stops.</value>
   </data>
+  <data name="CsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CsSaveDone" xml:space="preserve">
+    <value>Mapping saved.</value>
+  </data>
+  <data name="CsSaveSaved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="CsSaveTip" xml:space="preserve">
+    <value>Writes the mapping now (it is also saved when you leave this screen)</value>
+  </data>
+  <data name="CsSaveUnsaved" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
   <data name="CsSavedProfile" xml:space="preserve">
     <value>Saved profile · GUID {0} · connect the controller to test it.</value>
   </data>

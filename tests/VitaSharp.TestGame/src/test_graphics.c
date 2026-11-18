@@ -640,6 +640,256 @@ static void run_texture_case(Offscreen *target, const TextureCase *testCase, uin
     }
 }
 
+/*
+ * PVRTC 4 bpp (PowerVR's format, as the SGX543 samples it): a 64-bit word per 4x4 block, the low 32 bits two
+ * modulation bits per texel (texel (x, y) at bit 2 * (y * 4 + x)), the high 32 bits the colours: bit 0 the modulation
+ * mode, bits 1-15 colour A (opaque flag in bit 15, RGB554), bits 16-31 colour B (opaque flag in bit 31, RGB555).
+ * Every block carries the same colours, so the bilinear blend of the neighbouring blocks' colours gives those colours
+ * at every texel whatever the block order is, and the four modulation values of the standard mode (A, 5/8 A + 3/8 B,
+ * 3/8 A + 5/8 B, B) are checked one per texel column.
+ */
+#define PVRTC_A_RED 31
+#define PVRTC_A_GREEN 16
+#define PVRTC_A_BLUE4 0
+#define PVRTC_B_RED 0
+#define PVRTC_B_GREEN 8
+#define PVRTC_B_BLUE 31
+
+static void check_pvrtc(Offscreen *target)
+{
+    memset(g_textureMemory, 0, TEXTURE_MEMORY_SIZE);
+    uint32_t modulation = 0;
+    for (int y = 0; y < 4; y++)
+    {
+        for (int x = 0; x < 4; x++)
+        {
+            modulation |= (uint32_t)x << (2 * (y * 4 + x));
+        }
+    }
+    uint32_t colourA = 0x8000u | (PVRTC_A_RED << 10) | (PVRTC_A_GREEN << 5) | (PVRTC_A_BLUE4 << 1);
+    uint32_t colourB = 0x8000u | (PVRTC_B_RED << 10) | (PVRTC_B_GREEN << 5) | PVRTC_B_BLUE;
+    uint32_t colours = (colourB << 16) | colourA;
+    int blockCount = (TEX_SIZE / 4) * (TEX_SIZE / 4);
+    for (int block = 0; block < blockCount; block++)
+    {
+        memcpy(&g_textureMemory[block * 8], &modulation, 4);
+        memcpy(&g_textureMemory[block * 8 + 4], &colours, 4);
+    }
+
+    SceGxmTexture texture;
+    int initResult =
+        sceGxmTextureInitSwizzled(&texture, g_textureMemory, SCE_GXM_TEXTURE_FORMAT_PVRT4BPP_ABGR, TEX_SIZE, TEX_SIZE, 0);
+    if (initResult < 0)
+    {
+        result_add(AREA, "tex_PVRT4BPP_swizzled", RESULT_FAIL, "texture init 0x%08X", (unsigned int)initResult);
+        return;
+    }
+    sceGxmTextureSetMinFilter(&texture, SCE_GXM_TEXTURE_FILTER_POINT);
+    sceGxmTextureSetMagFilter(&texture, SCE_GXM_TEXTURE_FILTER_POINT);
+    gfx_offscreen_begin(target);
+    gfx_clear(RGBA(1, 2, 3, 4));
+    gfx_set_blend(BLEND_NONE);
+    draw_textured_quad(0, 0, TEX_SIZE, TEX_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, &texture);
+    gfx_offscreen_end(target);
+
+    /* the colours as 8-bit values; blue of A has 4 bits, widened to 5 by repeating its top bit */
+    float aRed = PVRTC_A_RED * 255.0f / 31.0f;
+    float aGreen = PVRTC_A_GREEN * 255.0f / 31.0f;
+    float aBlue = ((PVRTC_A_BLUE4 << 1) | (PVRTC_A_BLUE4 >> 3)) * 255.0f / 31.0f;
+    float bRed = PVRTC_B_RED * 255.0f / 31.0f;
+    float bGreen = PVRTC_B_GREEN * 255.0f / 31.0f;
+    float bBlue = PVRTC_B_BLUE * 255.0f / 31.0f;
+    static const int WEIGHTS[4] = {0, 3, 5, 8};
+    int mismatches = 0;
+    int checked = 0;
+    uint32_t firstActual = 0;
+    int firstWanted[3] = {0, 0, 0};
+    int firstX = -1;
+    int firstY = -1;
+    for (int blockY = 0; blockY < TEX_SIZE / 4; blockY += 5)
+    {
+        for (int blockX = 0; blockX < TEX_SIZE / 4; blockX += 3)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                float weight = WEIGHTS[column] / 8.0f;
+                int wanted[3] = {
+                    (int)(aRed + (bRed - aRed) * weight + 0.5f),
+                    (int)(aGreen + (bGreen - aGreen) * weight + 0.5f),
+                    (int)(aBlue + (bBlue - aBlue) * weight + 0.5f),
+                };
+                int x = blockX * 4 + column;
+                int y = blockY * 4 + 1;
+                uint32_t actual = gfx_offscreen_pixel(target, x, y);
+                checked++;
+                if (!color_near(actual, wanted[0], wanted[1], wanted[2], 255, 10))
+                {
+                    if (firstX < 0)
+                    {
+                        firstX = x;
+                        firstY = y;
+                        firstActual = actual;
+                        memcpy(firstWanted, wanted, sizeof(firstWanted));
+                    }
+                    mismatches++;
+                }
+            }
+        }
+    }
+    if (mismatches == 0)
+    {
+        result_add(AREA, "tex_PVRT4BPP_swizzled", RESULT_OK, "%d/%d texels (4 modulation weights)", checked, checked);
+    }
+    else
+    {
+        result_add(AREA, "tex_PVRT4BPP_swizzled", RESULT_FAIL, "%d/%d wrong; (%d,%d) got %08X want FF%02X%02X%02X",
+                   mismatches, checked, firstX, firstY, (unsigned int)firstActual, firstWanted[2], firstWanted[1],
+                   firstWanted[0]);
+    }
+}
+
+/*
+ * YUV 4:2:0 (video frames): a 64x64 luma plane, then the chroma at half size in each direction, either interleaved
+ * in one plane (P2, U then V; V then U for YVU) or in two planes (P3, the U plane then the V plane; V first for YVU).
+ * The texture unit converts to RGB with the colour space converter the format names; CSC0 starts as BT.601 standard
+ * (studio range: luma 16-235, chroma 16-240), libgxm's default until sceGxmSetYuvProfile changes it. Each 16x16 block
+ * carries its own luma and chroma.
+ */
+typedef struct YuvCase
+{
+    const char *name;
+    SceGxmTextureFormat format;
+    bool threePlanes;
+    bool vFirst;
+} YuvCase;
+
+static const YuvCase YUV_CASES[] = {
+    {"tex_YUV420P2_CSC0", SCE_GXM_TEXTURE_FORMAT_YUV420P2_CSC0, false, false},
+    {"tex_YVU420P2_CSC0", SCE_GXM_TEXTURE_FORMAT_YVU420P2_CSC0, false, true},
+    {"tex_YUV420P3_CSC0", SCE_GXM_TEXTURE_FORMAT_YUV420P3_CSC0, true, false},
+    {"tex_YVU420P3_CSC0", SCE_GXM_TEXTURE_FORMAT_YVU420P3_CSC0, true, true},
+};
+
+static void yuv_block_samples(int block, int *luma, int *blueDifference, int *redDifference)
+{
+    *luma = 40 + block * 12;
+    *blueDifference = 64 + (block % 4) * 40;
+    *redDifference = 200 - (block / 4) * 40;
+}
+
+static int round_to_byte(float value)
+{
+    return clamp_byte((int)floorf(value + 0.5f));
+}
+
+static void run_yuv_case(Offscreen *target, const YuvCase *testCase)
+{
+    memset(g_textureMemory, 0, TEXTURE_MEMORY_SIZE);
+    const int chromaSize = TEX_SIZE / 2;
+    uint8_t *lumaPlane = g_textureMemory;
+    uint8_t *chromaPlanes = g_textureMemory + TEX_SIZE * TEX_SIZE;
+    for (int y = 0; y < TEX_SIZE; y++)
+    {
+        for (int x = 0; x < TEX_SIZE; x++)
+        {
+            int luma;
+            int blueDifference;
+            int redDifference;
+            yuv_block_samples((y / BLOCK_SIZE) * BLOCKS_PER_ROW + (x / BLOCK_SIZE), &luma, &blueDifference,
+                              &redDifference);
+            lumaPlane[y * TEX_SIZE + x] = (uint8_t)luma;
+        }
+    }
+    for (int y = 0; y < chromaSize; y++)
+    {
+        for (int x = 0; x < chromaSize; x++)
+        {
+            int luma;
+            int blueDifference;
+            int redDifference;
+            yuv_block_samples((y * 2 / BLOCK_SIZE) * BLOCKS_PER_ROW + (x * 2 / BLOCK_SIZE), &luma, &blueDifference,
+                              &redDifference);
+            uint8_t first = (uint8_t)(testCase->vFirst ? redDifference : blueDifference);
+            uint8_t second = (uint8_t)(testCase->vFirst ? blueDifference : redDifference);
+            if (testCase->threePlanes)
+            {
+                chromaPlanes[y * chromaSize + x] = first;
+                chromaPlanes[chromaSize * chromaSize + y * chromaSize + x] = second;
+            }
+            else
+            {
+                chromaPlanes[y * TEX_SIZE + x * 2] = first;
+                chromaPlanes[y * TEX_SIZE + x * 2 + 1] = second;
+            }
+        }
+    }
+
+    SceGxmTexture texture;
+    int initResult = sceGxmTextureInitLinear(&texture, g_textureMemory, testCase->format, TEX_SIZE, TEX_SIZE, 0);
+    if (initResult < 0)
+    {
+        result_add(AREA, testCase->name, RESULT_FAIL, "texture init 0x%08X", (unsigned int)initResult);
+        return;
+    }
+    sceGxmTextureSetMinFilter(&texture, SCE_GXM_TEXTURE_FILTER_POINT);
+    sceGxmTextureSetMagFilter(&texture, SCE_GXM_TEXTURE_FILTER_POINT);
+    gfx_offscreen_begin(target);
+    gfx_clear(RGBA(1, 2, 3, 4));
+    gfx_set_blend(BLEND_NONE);
+    draw_textured_quad(0, 0, TEX_SIZE, TEX_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, &texture);
+    gfx_offscreen_end(target);
+
+    int mismatches = 0;
+    int firstBlock = -1;
+    uint32_t firstActual = 0;
+    int firstWanted[3] = {0, 0, 0};
+    for (int block = 0; block < BLOCK_COUNT; block++)
+    {
+        int luma;
+        int blueDifference;
+        int redDifference;
+        yuv_block_samples(block, &luma, &blueDifference, &redDifference);
+        float scaledLuma = 1.164f * (float)(luma - 16);
+        float blue = (float)(blueDifference - 128);
+        float red = (float)(redDifference - 128);
+        int wanted[3] = {
+            round_to_byte(scaledLuma + 1.596f * red),
+            round_to_byte(scaledLuma - 0.391f * blue - 0.813f * red),
+            round_to_byte(scaledLuma + 2.018f * blue),
+        };
+        int x = (block % BLOCKS_PER_ROW) * BLOCK_SIZE + BLOCK_SIZE / 2;
+        int y = (block / BLOCKS_PER_ROW) * BLOCK_SIZE + BLOCK_SIZE / 2;
+        uint32_t actual = gfx_offscreen_pixel(target, x, y);
+        if (!color_near(actual, wanted[0], wanted[1], wanted[2], 255, 4))
+        {
+            if (firstBlock < 0)
+            {
+                firstBlock = block;
+                firstActual = actual;
+                memcpy(firstWanted, wanted, sizeof(firstWanted));
+            }
+            mismatches++;
+        }
+    }
+    if (mismatches == 0)
+    {
+        result_add(AREA, testCase->name, RESULT_OK, "16/16 blocks");
+    }
+    else
+    {
+        result_add(AREA, testCase->name, RESULT_FAIL, "%d/16 wrong; b%d got %08X want FF%02X%02X%02X", mismatches,
+                   firstBlock, (unsigned int)firstActual, firstWanted[2], firstWanted[1], firstWanted[0]);
+    }
+}
+
+static void check_yuv420(Offscreen *target)
+{
+    for (size_t index = 0; index < ARRAY_COUNT(YUV_CASES); index++)
+    {
+        run_yuv_case(target, &YUV_CASES[index]);
+    }
+}
+
 static void check_textures(Offscreen *target)
 {
     /* The palette lives after the texel data in the same GPU block (64-byte aligned). */
@@ -648,7 +898,10 @@ static void check_textures(Offscreen *target)
     {
         run_texture_case(target, &TEXTURE_CASES[index], palette);
     }
-    result_add(AREA, "tex_PVRT_YUV_cube", RESULT_SKIP, "not covered yet (PVRTC, YUV420, cube maps)");
+    check_pvrtc(target);
+    check_yuv420(target);
+    result_add(AREA, "tex_cube", RESULT_SKIP,
+               "needs a samplerCUBE fragment program; no freely distributable shader compiler builds one");
 }
 
 static void check_clear_and_primitives(Offscreen *target)

@@ -432,6 +432,20 @@ public static class InputMapper
     }
 
     private static byte Further(byte a, byte b) => Math.Abs(b - 128) > Math.Abs(a - 128) ? b : a;
+
+    /// <summary>The Vita pad the keyboard and a controller drive together, as the game gets it: the held keys through
+    /// the keyboard profile and the controller through its own profile, summed (<see cref="Combine"/>). Neither device
+    /// switches the other off; a controller profile never reads keys and the keyboard profile never reads the pad.</summary>
+    public static MappedInput MapTogether(CompiledProfile keyboard, IReadOnlySet<string>? keys, CompiledProfile? controller, PadSnapshot? pad)
+    {
+        MappedInput mapped = Map(keyboard, null, keys);
+        if (controller != null && pad != null)
+        {
+            mapped = Combine(mapped, Map(controller, pad, null));
+        }
+
+        return mapped;
+    }
 }
 
 /// <summary>

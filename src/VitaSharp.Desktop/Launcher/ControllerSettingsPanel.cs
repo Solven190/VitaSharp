@@ -44,6 +44,9 @@ public sealed class ControllerSettingsPanel : UserControl
 
     readonly ComboBox _device;
     readonly TextBlock _deviceInfo, _status, _hint;
+    /// <summary>Save button and its "saved" / "unsaved changes" note (<see cref="RefreshSaveState"/>).</summary>
+    readonly Button _save;
+    readonly TextBlock _saveState;
     readonly VitaLayoutView _layout;
     readonly StackPanel _bindingRows;
     readonly CheckBox _swap, _triggers, _touchpad, _invertL, _invertR, _motion;
@@ -74,13 +77,15 @@ public sealed class ControllerSettingsPanel : UserControl
     DeviceItem? _current;
     ControllerProfile _profile;
     CompiledProfile _compiled;
+    /// <summary>The keyboard profile of this screen compiled (<see cref="KeyboardCompiled"/>); null = rebuild.</summary>
+    CompiledProfile? _keyboardCompiled;
     readonly PadSnapshot _snap = new(), _baseline = new();
     VitaControl? _listen;
     ListenMode _listenMode;
     readonly Queue<VitaControl> _sequence = new();
     DateTime _listenUntil, _listenSince;
-    /// <summary>Buttons pressed so far while recording a combination (in the order they were pressed).</summary>
-    readonly List<InputBinding> _comboParts = new();
+    /// <summary>The controller recording in progress (a hotkey waits for its whole combination), null otherwise.</summary>
+    BindingRecorder? _recorder;
     TextBlock? _hotkeyRowsHeader;
 
     /// <summary>Raised whenever a profile changes (the dialog's Save button saves them).</summary>
@@ -110,6 +115,11 @@ public sealed class ControllerSettingsPanel : UserControl
         };
         var reset = new Button { Content = Loc.Get("CsResetDefault"), VerticalAlignment = VerticalAlignment.Center };
         reset.Click += (_, _) => ResetProfile();
+        // saving is also done when the screen is left (SettingsPage.SaveControls); this makes it visible
+        _save = new Button { Content = Loc.Get("CsSave"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        ToolTip.SetTip(_save, Loc.Get("CsSaveTip"));
+        _save.Click += (_, _) => SaveNow();
+        _saveState = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(0, 0, 10, 0) };
         _deviceInfo = new TextBlock { Foreground = LauncherTheme.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
 
         var deviceRow = new DockPanel { LastChildFill = true };
@@ -117,9 +127,14 @@ public sealed class ControllerSettingsPanel : UserControl
         DockPanel.SetDock(deviceLabel, Dock.Left);
         DockPanel.SetDock(_device, Dock.Left);
         DockPanel.SetDock(reset, Dock.Right);
+        DockPanel.SetDock(_save, Dock.Right);
+        DockPanel.SetDock(_saveState, Dock.Right);
         deviceRow.Children.Add(deviceLabel);
         deviceRow.Children.Add(_device);
         deviceRow.Children.Add(reset);
+        deviceRow.Children.Add(_save);
+        deviceRow.Children.Add(_saveState);
+        RefreshSaveState();
         deviceRow.Children.Add(new Border());
 
         _layout = new VitaLayoutView { MinHeight = 300 };
@@ -461,6 +476,22 @@ public sealed class ControllerSettingsPanel : UserControl
 
     // ------------------------------------------------------------------ editing
 
+    /// <summary>The keyboard profile as edited on this screen (the stored one until it is changed), compiled.</summary>
+    CompiledProfile KeyboardCompiled()
+    {
+        if (_keyboardCompiled == null)
+        {
+            if (!_working.TryGetValue(ControllerProfile.KeyboardId, out ControllerProfile? keyboard))
+            {
+                keyboard = _store.KeyboardProfile();
+            }
+
+            _keyboardCompiled = new CompiledProfile(keyboard);
+        }
+
+        return _keyboardCompiled;
+    }
+
     void Edit(Action<ControllerProfile> change)
     {
         if (_updatingUi)
@@ -470,10 +501,12 @@ public sealed class ControllerSettingsPanel : UserControl
 
         change(_profile);
         _compiled = new CompiledProfile(_profile);
+        _keyboardCompiled = null;
         _dirty.Add(_profile.Id);
         _reset.Remove(_profile.Id);
         RefreshBindings();
         RefreshDeviceInfo();
+        RefreshSaveState();
         Changed?.Invoke();
     }
 
@@ -490,11 +523,13 @@ public sealed class ControllerSettingsPanel : UserControl
             : DefaultMappings.For(_profile.Id, _profile.Name, d.Pad?.Kind ?? d.Kind, d.Pad?.IsGamepad ?? d.IsGamepad);
         _working[d.Id] = _profile = p;
         _compiled = new CompiledProfile(p);
+        _keyboardCompiled = null;
         _reset.Add(p.Id);
         _dirty.Remove(p.Id);
         RefreshOptions();
         RefreshBindings();
         RefreshDeviceInfo();
+        RefreshSaveState();
         _status.Text = Loc.Get("CsResetDone");
         Changed?.Invoke();
     }
@@ -560,7 +595,8 @@ public sealed class ControllerSettingsPanel : UserControl
     string ListeningText => _listenMode switch
     {
         ListenMode.Add => Loc.Get("CsListenAdd"),
-        ListenMode.Combo => _comboParts.Count == 0 ? Loc.Get("CsListenCombo") : string.Join(" + ", _comboParts.Select(b => ControlNames.Describe(b, _current?.Kind ?? ControllerKind.Generic))) + "\u2026",
+        _ when _recorder is { RecordsCombination: true, Parts.Count: > 0 } recorder => string.Join(" + ", recorder.Parts.Select(b => ControlNames.Describe(b, _current?.Kind ?? ControllerKind.Generic))) + "\u2026",
+        ListenMode.Combo => Loc.Get("CsListenCombo"),
         _ => Loc.Get("CsListen"),
     };
 
@@ -692,7 +728,6 @@ public sealed class ControllerSettingsPanel : UserControl
 
         _listen = c;
         _listenMode = mode;
-        _comboParts.Clear();
         _listenUntil = DateTime.UtcNow.AddSeconds(8);
         _listenSince = DateTime.UtcNow;
         _layout.ListeningControl = c;
@@ -706,7 +741,15 @@ public sealed class ControllerSettingsPanel : UserControl
             _baseline.Clear();
         }
 
-        _status.Text = Loc.Format("CsListenStatus", ControlNames.Label(c), Loc.Get(_current?.IsKeyboard == true ? "CsPressKey" : mode == ListenMode.Combo ? "CsHoldCombo" : "CsPressButton"));
+        RecordMode recordMode = mode switch
+        {
+            ListenMode.Add => RecordMode.Add,
+            ListenMode.Combo => RecordMode.Combo,
+            _ => RecordMode.Replace,
+        };
+        _recorder = _current is { IsKeyboard: false } ? new BindingRecorder(c, recordMode, controller: true, _baseline) : null;
+        bool holdCombo = _recorder is { RecordsCombination: true };
+        _status.Text = Loc.Format("CsListenStatus", ControlNames.Label(c), Loc.Get(_current?.IsKeyboard == true ? "CsPressKey" : holdCombo ? "CsHoldCombo" : "CsPressButton"));
         RefreshBindings();
         Focus();
     }
@@ -719,6 +762,7 @@ public sealed class ControllerSettingsPanel : UserControl
         }
 
         _listen = null;
+        _recorder = null;
         _sequence.Clear();
         _layout.ListeningControl = null;
         RefreshBindings();
@@ -729,6 +773,7 @@ public sealed class ControllerSettingsPanel : UserControl
         var c = _listen!.Value;
         var mode = _listenMode;
         _listen = null;
+        _recorder = null;
         _layout.ListeningControl = null;
         Edit(p =>
         {
@@ -753,23 +798,21 @@ public sealed class ControllerSettingsPanel : UserControl
         }
     }
 
-    /// <summary>A combination was recorded (all its buttons released): added to the control's bindings; a single
-    /// button is added as a plain binding.</summary>
-    void BoundCombo()
+    /// <summary>A controller recording finished: a single input goes through <see cref="Bound"/>; a combination
+    /// (every button released) replaces or joins the control's bindings as the recording's mode says.</summary>
+    void Recorded(RecordedInput recorded)
     {
-        var c = _listen!.Value;
-        var parts = _comboParts.ToArray();
-        _comboParts.Clear();
-        if (parts.Length == 1)
+        if (recorded.Combo is not { } combo)
         {
-            _listenMode = ListenMode.Add;
-            Bound(parts[0]);
+            _listenMode = recorded.Replace ? ListenMode.Replace : ListenMode.Add;
+            Bound(recorded.Single!.Value);
             return;
         }
+        var c = _listen!.Value;
         _listen = null;
+        _recorder = null;
         _layout.ListeningControl = null;
-        var combo = new InputCombo(parts);
-        Edit(p => p.AddCombo(c, combo));
+        Edit(p => BindingRecorder.Apply(p, c, recorded));
         _status.Text = Loc.Format("CsHeldTogether", ControlNames.Label(c), ControlNames.Describe(combo, _current?.Kind ?? ControllerKind.Generic));
     }
 
@@ -792,11 +835,13 @@ public sealed class ControllerSettingsPanel : UserControl
                 return;
             }
         }
-        if (name != null && _current?.IsKeyboard == true)
+        if (name != null)
         {
+            // the keyboard drives the Vita together with the controller (as in the game): its keys always count
             _keys.Add(name);
             // keep the arrow keys / space from moving the focus while the keyboard is being tested
-            if (e.Source is not TextBox && e.Source is not Slider && e.Source is not ComboBox)
+            bool keyboardInput = _current?.IsKeyboard == true || KeyboardCompiled().Profile.Bindings.Values.Any(list => list.Contains("key:" + name));
+            if (keyboardInput && e.Source is not TextBox && e.Source is not Slider && e.Source is not ComboBox)
             {
                 e.Handled = true;
             }
@@ -932,41 +977,27 @@ public sealed class ControllerSettingsPanel : UserControl
                 CancelListen();
                 _status.Text = Loc.Get("CsNoInput");
             }
-            else if (_listenMode == ListenMode.Combo)
+            else if (pad != null && _recorder is { } recorder)
             {
-                if (pad != null)
+                // a pad binding of the other view (raw vs gamepad) would never fire: InputCapture follows the device.
+                // A hotkey waits for its whole combination (every button released): L3, then R3 is "L3 + R3" only.
+                int partsBefore = recorder.Parts.Count;
+                if (recorder.Update(pad, Environment.TickCount64) is { } recorded)
                 {
-                    // the combination is every button pressed until all are released again
-                    var held = InputCapture.Held(_baseline, pad);
-                    bool grew = false;
-                    foreach (var h in held)
-                    {
-                        if (!_comboParts.Contains(h))
-                        {
-                            _comboParts.Add(h);
-                            grew = true;
-                        }
-                    }
-
-                    if (grew)
-                    {
-                        _listenUntil = DateTime.UtcNow.AddSeconds(8);
-                        RefreshBindings();
-                    }
-                    if (held.Count == 0 && _comboParts.Count > 0)
-                    {
-                        BoundCombo();
-                    }
+                    Recorded(recorded);
                 }
-            }
-            else if (pad != null && InputCapture.Detect(_baseline, pad) is { } b)
-            {
-                // a pad binding of the other view (raw vs gamepad) would never fire: InputCapture follows the device
-                Bound(b);
+                else if (recorder.Parts.Count != partsBefore)
+                {
+                    _listenUntil = DateTime.UtcNow.AddSeconds(8);
+                    RefreshBindings();
+                }
             }
         }
 
-        var m = InputMapper.Map(_compiled, pad, keys);
+        // the live picture is what the game would get: the keyboard's keys and the selected controller summed
+        var m = _current?.IsKeyboard == true
+            ? InputMapper.Map(_compiled, pad, keys)
+            : InputMapper.MapTogether(KeyboardCompiled(), _keys, _compiled, pad);
         float V(VitaControl c) => InputMapper.Value(_compiled, c, pad, keys);
         var rawL = (V(VitaControl.LStickRight) - V(VitaControl.LStickLeft), V(VitaControl.LStickDown) - V(VitaControl.LStickUp));
         var rawR = (V(VitaControl.RStickRight) - V(VitaControl.RStickLeft), V(VitaControl.RStickDown) - V(VitaControl.RStickUp));
@@ -1062,7 +1093,29 @@ public sealed class ControllerSettingsPanel : UserControl
         _dirty.Clear();
         _reset.Clear();
         RefreshDeviceInfo();
+        RefreshSaveState();
+    }
+
+    /// <summary>The Save button: writes input.json now and says so.</summary>
+    public void SaveNow()
+    {
+        Save();
+        _status.Text = Loc.Get("CsSaveDone");
     }
 
     public bool HasChanges => _dirty.Count > 0 || _reset.Count > 0;
+
+    /// <summary>The note next to the Save button ("saved" / "unsaved changes").</summary>
+    public string SaveStateText => _saveState.Text ?? "";
+
+    /// <summary>The Save button can be clicked (there is something to save).</summary>
+    public bool CanSave => _save.IsEnabled;
+
+    void RefreshSaveState()
+    {
+        bool changes = HasChanges;
+        _save.IsEnabled = changes;
+        _saveState.Text = Loc.Get(changes ? "CsSaveUnsaved" : "CsSaveSaved");
+        _saveState.Foreground = changes ? new SolidColorBrush(Color.Parse("#FFB547")) : LauncherTheme.Muted;
+    }
 }

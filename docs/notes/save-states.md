@@ -1,6 +1,7 @@
 # Save states
 
-Saving and loading the whole emulated machine of a game run directly (one process, not under the Vita shell).
+Saving and loading the whole emulated machine: a game run directly (one process) or the Vita shell with the
+applications it opened (several processes, saved together; see "Several processes").
 Code: `src/VitaSharp.Core/SaveState`, the `*.Snapshot.cs` parts next to each class, the generator
 `src/VitaSharp.Core.Generators/SnapshotGenerator.cs`. Module coverage: the inventory in `dev-snapshots.md`.
 
@@ -19,7 +20,23 @@ Code: `src/VitaSharp.Core/SaveState`, the `*.Snapshot.cs` parts next to each cla
 `"VSSTATE\0"`, format version (2), uncompressed header (emulator version, `SnapshotSchema.Hash` = the version of
 the hand-written layouts, title id/name, app version, time, guest seconds, PNG picture), then Brotli sections:
 `layouts` (first, so a slot list checks it cheaply), `system`, `hle.functions`, `kernel.objects`, `hle:<Module>`,
-`memory.blocks`, `mem:<address>` (a bitmap of the non-zero pages, then those pages).
+`memory.blocks`, `mem:<address>` (a bitmap of the non-zero pages, then those pages). Since several processes are
+saved: `processes` (each process's pid, application id, title id, suspended, on screen; the first process first),
+`process<N>/system`, `process<N>/hle.functions` and `process<N>/hle:<Module>` for the other processes, and
+`memory.spaces` (before `memory.blocks`: the pid of the process whose address space holds each block, 0 for CDRAM
+and kernel memory); a block in another process's space than the first one's is `mem:<address>@<pid>`. A state of
+one process has the sections of the builds before.
+
+### Several processes
+
+Under the Vita shell every process has its own user address space (the shell and a game are both linked at
+0x81000000), its threads, HLE function table and modules, around the one kernel the system shares (the kernel object
+table, the kernel process, CDRAM and kernel memory). A save holds them all: every process's threads are held at
+their safe points (a GPU scene open in any process waits), each private block is saved with the process whose space
+holds it, and blocks that a process that ended left behind are not saved. A load needs the same processes running
+(same pids, application ids and titles, each suspended or on screen as when saved: open the same applications in the
+same session, then load); otherwise it is refused before anything stops, with the difference in the message. Covered
+by `SaveStateMultiProcessTests` (a synthetic shell and application at the same addresses).
 
 ### States of other builds
 
@@ -111,4 +128,5 @@ picture continues from the saved point, frame rate as before the load.
 Modules in use at the save (16/11/2026): Final Fantasy X HD's launcher (Sas) and PCSG00845 (Atrac, its music)
 save and load with the sound going on from the saved point. Audioenc/Videoenc/Mp4Recorder, G729, Location,
 NetAdhocMatching/Rudp, TriggerUtil and Ime are covered by `SaveStateModulesInUseTests` only (no installed game reaches
-them in a short run). The Vita shell is still refused.
+them in a short run). The Vita shell with its applications saves and loads since 16/11/2026 (see "Several
+processes"); not yet confirmed in a real shell session.

@@ -377,6 +377,34 @@ public class InputMappingTests
     }
 
     [Fact]
+    public void KeyboardKeysKeepWorkingWhileAControllerIsInUse()
+    {
+        var keyboard = new CompiledProfile(DefaultMappings.Keyboard());
+        var controller = new CompiledProfile(DefaultMappings.Gamepad("g", "n", ControllerKind.PlayStation));
+        PadSnapshot pad = Gamepad();
+        pad.Buttons[(int)PadButton.South] = true;
+        pad.Axes[(int)PadAxis.RightX] = 1f;
+
+        // Enter (Start) and A (left stick left) on the keyboard, Cross and the right stick on the controller: summed
+        MappedInput both = InputMapper.MapTogether(keyboard, new HashSet<string> { "Enter", "A" }, controller, pad);
+        Assert.Equal(VitaButtons.Start | VitaButtons.Cross, both.State.Buttons);
+        Assert.Equal((byte)0, both.State.Lx);
+        Assert.Equal((byte)255, both.State.Rx);
+
+        // the controller idle: the keys alone still drive the Vita
+        MappedInput keysOnly = InputMapper.MapTogether(keyboard, new HashSet<string> { "V" }, controller, Gamepad());
+        Assert.Equal(VitaButtons.Triangle, keysOnly.State.Buttons);
+        Assert.Equal((byte)128, keysOnly.State.Lx);
+
+        // the same Vita button from both devices is one press; the controller alone, no keys held
+        MappedInput same = InputMapper.MapTogether(keyboard, new HashSet<string> { "X" }, controller, pad);
+        Assert.Equal(VitaButtons.Cross, same.State.Buttons & VitaButtons.Cross);
+        MappedInput padOnly = InputMapper.MapTogether(keyboard, null, controller, pad);
+        Assert.Equal(VitaButtons.Cross, padOnly.State.Buttons);
+        Assert.Equal((byte)255, padOnly.State.Rx);
+    }
+
+    [Fact]
     public void CaptureDetectsTheMovedInput()
     {
         PadSnapshot baseline = Gamepad();

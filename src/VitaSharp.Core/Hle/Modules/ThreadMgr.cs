@@ -626,14 +626,12 @@ public sealed partial class ThreadMgr : HleModule
         if (m == null || m.IsLight) return SceError.UNKNOWN_MUTEX_ID;
         Span<byte> f = stackalloc byte[0x3C];
         f.Clear();
-        lock (m)
-        {
-            KernelInfo.Header(f, uid, m.Name, m.Attr);
-            KernelInfo.Put(f, 0x2C, m.InitCount);
-            KernelInfo.Put(f, 0x30, m.LockCount);
-            KernelInfo.Put(f, 0x34, m.Owner?.Uid ?? 0);
-            KernelInfo.Put(f, 0x38, m.Waiters);
-        }
+        (int count, int waiters, GuestThread? owner) = m.Info();
+        KernelInfo.Header(f, uid, m.Name, m.Attr);
+        KernelInfo.Put(f, 0x2C, m.InitCount);
+        KernelInfo.Put(f, 0x30, count);
+        KernelInfo.Put(f, 0x34, owner?.Uid ?? 0);
+        KernelInfo.Put(f, 0x38, waiters);
         return KernelInfo.Write(info, f);
     }
 

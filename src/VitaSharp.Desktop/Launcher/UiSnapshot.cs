@@ -370,6 +370,8 @@ static class UiSnapshot
         pads.SetVirtual(v, PadButton.Back, false);
         pads.SetVirtual(v, PadButton.Start, false);
         pads.Flush();
+        panel.Pump(); // every button released: the recording waits BindingRecorder.SettleMs for more
+        await Task.Delay((int)BindingRecorder.SettleMs + 100);
         panel.Pump(); // records the combination (the rows are rebuilt)
         await Task.Delay(100);
         panel.ShowHotkeys();

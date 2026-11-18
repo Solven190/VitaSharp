@@ -1137,8 +1137,8 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             // not recursive: locking again fails
             Assert.Equal(SceError.MUTEX_RECURSIVE, Call(Tm, "sceKernelTryLockMutex", m, 1));
             Assert.Equal(SceError.MUTEX_RECURSIVE, Call(Tm, "sceKernelLockMutex", m, 1, new Ptr<uint>(0)));
-            Assert.Equal(SceError.INVALID_ARGUMENT, Call(Tm, "sceKernelLockMutex", m, 0, new Ptr<uint>(0)));
-            Assert.Equal(SceError.MUTEX_UNLOCK_UDF, Call(Tm, "sceKernelUnlockMutex", m, 2));
+            Assert.Equal(SceError.ILLEGAL_COUNT, Call(Tm, "sceKernelLockMutex", m, 0, new Ptr<uint>(0))); // threadmgr 3.74: count < 1
+            Assert.Equal(SceError.ILLEGAL_COUNT, Call(Tm, "sceKernelUnlockMutex", m, 2)); // count > 1 on a plain mutex
             // another thread cannot take it or unlock it
             GuestRun other = _h.Start(_ =>
             {
@@ -1174,7 +1174,7 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
 
             // cancel: a count above 1 needs a recursive mutex; a count hands it to the caller
             Assert.Equal(SceError.ILLEGAL_COUNT, Call(Tm, "sceKernelCancelMutex", m, 2, new Ptr<int>(0)));
-            Assert.Equal(SceError.ILLEGAL_COUNT, Call(Tm, "sceKernelCancelMutex", m, -2, new Ptr<int>(0)));
+            // a negative count is the initial count (threadmgr 3.74): MutexInterleavingTests.ACancelReleasesTheQueueWithoutHandingItOver
             uint n = _h.Word(0xFF);
             Assert.Equal(0, Call(Tm, "sceKernelCancelMutex", m, 1, new Ptr<int>(n)));
             Assert.Equal(0u, GuestMemory.R32(n));
