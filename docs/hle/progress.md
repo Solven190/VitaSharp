@@ -12,10 +12,10 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 | Group | Covered | Real | Default | LLE | Total | % |
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,207 | 2,199 | 8 | 0 | 2,207 | 100% |
-| System imports | 7,277 | 6,886 | 391 | 0 | 7,277 | 100% |
-| General | 9,922 | 9,542 | 380 | 0 | 9,922 | 100% |
-| All firmware 3.74 exports | 19,406 | 5,136 | 779 | 13,491 | 19,406 | 100% |
-| VitaSDK user functions | 7,006 | 4,506 | 376 | 2,124 | 7,006 | 100% |
+| System imports | 7,277 | 6,889 | 388 | 0 | 7,277 | 100% |
+| General | 9,922 | 9,543 | 379 | 0 | 9,922 | 100% |
+| All firmware 3.74 exports | 19,406 | 5,140 | 775 | 13,491 | 19,406 | 100% |
+| VitaSDK user functions | 7,006 | 4,509 | 373 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
 
@@ -164,19 +164,19 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 1,286 | 1,190 | 96 | 3,918 | 32.8% |
-| Imported | 665 | - | - | 2,062 | 32.2% |
+| All | 1,368 | 1,245 | 123 | 3,918 | 34.9% |
+| Imported | 718 | - | - | 2,062 | 34.8% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
-| SceAVConfigForDriver | 0 / 6 | 0% | - | 0 / 2 |
+| SceAVConfigForDriver | 6 / 6 | 100% | - | 2 / 2 |
 | SceAppMgrForDriver | 3 / 76 | 3.9% | - | 0 / 24 |
 | SceAudioForDriver | 3 / 20 | 15% | - | 1 / 11 |
 | SceAudioInForDriver | 4 / 10 | 40% | - | 1 / 6 |
 | SceAvcodecForDriver | 23 / 105 | 21.9% | - | 0 / 1 |
 | SceBacktraceForDriver | 3 / 3 | 100% | - | - |
 | SceBbmcForDriver | 0 / 63 | 0% | - | 0 / 14 |
-| SceBtForDriver | 52 / 54 | 96.2% | 45 | 16 / 17 |
+| SceBtForDriver | 54 / 54 | 100% | 47 | 17 / 17 |
 | SceBusErrorForKernel | 1 / 1 | 100% | 1 | - |
 | SceCameraForDriver | 0 / 25 | 0% | - | 0 / 2 |
 | SceCdramForDriver | 3 / 3 | 100% | 2 | - |
@@ -188,9 +188,9 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceCoredumpForDriver | 0 / 21 | 0% | - | 0 / 19 |
 | SceCpuForDriver | 104 / 104 | 100% | - | 35 / 35 |
 | SceCpuForKernel | 39 / 39 | 100% | - | 6 / 6 |
-| SceCsiForDriver | 0 / 6 | 0% | - | 0 / 6 |
-| SceCtrlForDriver | 11 / 40 | 27.5% | - | 2 / 23 |
-| SceDebugForDriver | 13 / 16 | 81.2% | - | 6 / 8 |
+| SceCsiForDriver | 6 / 6 | 100% | 6 | 6 / 6 |
+| SceCtrlForDriver | 21 / 40 | 52.5% | - | 8 / 23 |
+| SceDebugForDriver | 16 / 16 | 100% | - | 8 / 8 |
 | SceDebugForKernel | 17 / 17 | 100% | - | 6 / 6 |
 | SceDebugLedForDriver | 9 / 9 | 100% | - | 3 / 3 |
 | SceDipswForDriver | 4 / 4 | 100% | - | 2 / 2 |
@@ -199,10 +199,10 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceDsiForDriver | 0 / 15 | 0% | - | 0 / 10 |
 | SceExcpmgrForKernel | 1 / 17 | 5.8% | - | 1 / 6 |
 | SceFios2KernelForDriver | 0 / 20 | 0% | - | 0 / 9 |
-| SceGpioForDriver | 0 / 10 | 0% | - | 0 / 7 |
+| SceGpioForDriver | 10 / 10 | 100% | - | 7 / 7 |
 | SceGpsForDriver | 0 / 7 | 0% | - | 0 / 6 |
 | SceGpuEs4ForDriver | 0 / 31 | 0% | - | 0 / 28 |
-| SceGrabForDriver | 0 / 8 | 0% | - | 0 / 5 |
+| SceGrabForDriver | 8 / 8 | 100% | 8 | 5 / 5 |
 | SceHdmiForDriver | 0 / 25 | 0% | - | 0 / 19 |
 | SceHidForDriver | 30 / 30 | 100% | 1 | 1 / 1 |
 | SceHpremoteForDriver | 0 / 11 | 0% | - | 0 / 6 |
@@ -217,7 +217,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceLcdForDriver | 0 / 23 | 0% | - | 0 / 13 |
 | SceLedForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceMagicGateForDriver | 0 / 48 | 0% | - | 0 / 37 |
-| SceModulemgrForDriver | 9 / 15 | 60% | - | 9 / 13 |
+| SceModulemgrForDriver | 13 / 15 | 86.6% | - | 13 / 13 |
 | SceModulemgrForKernel | 5 / 48 | 10.4% | - | 1 / 24 |
 | SceMotionDevForDriver | 9 / 23 | 39.1% | 3 | 2 / 9 |
 | SceMsifForDriver | 0 / 12 | 0% | - | 0 / 8 |
@@ -250,7 +250,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSblGcAuthMgrDrmBBForDriver | 0 / 20 | 0% | - | 0 / 7 |
 | SceSblGcAuthMgrGcAuthForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceSblGcAuthMgrMlnpsnlForDriver | 0 / 2 | 0% | - | 0 / 2 |
-| SceSblGcAuthMgrMsSaveBBForDriver | 0 / 6 | 0% | - | 0 / 6 |
+| SceSblGcAuthMgrMsSaveBBForDriver | 6 / 6 | 100% | 4 | 6 / 6 |
 | SceSblGcAuthMgrPkgForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceSblGcAuthMgrPsmactForDriver | 1 / 1 | 100% | 1 | 1 / 1 |
 | SceSblGcAuthMgrSclkForDriver | 0 / 2 | 0% | - | - |
@@ -258,30 +258,30 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSblPostSsMgrForDriver | 5 / 44 | 11.3% | 5 | 0 / 25 |
 | SceSblSmCommForKernel | 4 / 4 | 100% | 2 | 4 / 4 |
 | SceSblSmSchedProxyForKernel | 16 / 16 | 100% | 2 | 9 / 9 |
-| SceSblSsMgrForDriver | 35 / 40 | 87.5% | 9 | 28 / 33 |
+| SceSblSsMgrForDriver | 40 / 40 | 100% | 10 | 33 / 33 |
 | SceSblSsMgrForKernel | 5 / 5 | 100% | - | 5 / 5 |
 | SceSdifForDriver | 0 / 59 | 0% | - | 0 / 31 |
 | SceSysclibForDriver | 51 / 51 | 100% | - | 31 / 31 |
 | SceSysconForDriver | 38 / 311 | 12.2% | - | 21 / 198 |
-| SceSysmemForDriver | 52 / 114 | 45.6% | - | 52 / 79 |
+| SceSysmemForDriver | 53 / 114 | 46.4% | - | 53 / 79 |
 | SceSysmemForKernel | 8 / 169 | 4.7% | - | 8 / 77 |
 | SceSysrootForDriver | 124 / 181 | 68.5% | - | 65 / 111 |
 | SceSysrootForKernel | 48 / 143 | 33.5% | - | 16 / 67 |
 | SceSystimerForDriver | 0 / 14 | 0% | - | 0 / 8 |
 | SceThreadmgrForDriver | 107 / 248 | 43.1% | - | 80 / 135 |
 | SceThreadmgrForKernel | 0 / 64 | 0% | - | 0 / 15 |
-| SceTouchForDriver | 15 / 29 | 51.7% | - | 1 / 9 |
+| SceTouchForDriver | 19 / 29 | 65.5% | - | 3 / 9 |
 | SceUartForKernel | 4 / 4 | 100% | 3 | 1 / 1 |
 | SceUdcdForDriver | 3 / 47 | 6.3% | - | 2 / 33 |
 | SceUlobjMgrForDriver | 0 / 19 | 0% | - | 0 / 12 |
-| SceUsbAudioForDriver | 0 / 5 | 0% | - | - |
-| SceUsbEtherRtlForDriver | 0 / 3 | 0% | - | - |
+| SceUsbAudioForDriver | 5 / 5 | 100% | 3 | - |
+| SceUsbEtherRtlForDriver | 3 / 3 | 100% | 3 | - |
 | SceUsbMassForDriver | 0 / 6 | 0% | - | 0 / 6 |
 | SceUsbMtpForDriver | 0 / 12 | 0% | - | 0 / 12 |
-| SceUsbServForDriver | 2 / 7 | 28.5% | 2 | 2 / 6 |
+| SceUsbServForDriver | 7 / 7 | 100% | 2 | 6 / 6 |
 | SceUsbdForDriver | 0 / 21 | 0% | - | 0 / 20 |
 | SceUsbstorForDriver | 0 / 9 | 0% | - | 0 / 7 |
-| SceWlanBtForDriver | 0 / 4 | 0% | - | 0 / 2 |
+| SceWlanBtForDriver | 4 / 4 | 100% | - | 2 / 2 |
 | SceZlibForDriver | 0 / 65 | 0% | - | 0 / 6 |
 
 ## Per library (308)
@@ -404,7 +404,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceLibFflVuMp4 | `vs0:vsh/common/libSenvuabsFFsdk.suprx` | 61 / 61 | 100% | - | - | 13 / 13 |
 | SceLibGcc | `os0:us/libkernel.suprx` | 20 / 20 | 100% | - | - | - |
 | SceLibJson | `vs0:sys/external/libSceJson.suprx` | 179 / 179 | 100% | - | 54 / 54 | 15 / 15 |
-| SceLibKernel | `os0:us/libkernel.suprx` | 341 / 341 | 100% | 34 | 123 / 123 | 67 / 67 |
+| SceLibKernel | `os0:us/libkernel.suprx` | 341 / 341 | 100% | 32 | 123 / 123 | 67 / 67 |
 | SceLibLocation | `vs0:sys/external/liblocation.suprx` | 33 / 33 | 100% | 5 | 11 / 11 | 19 / 19 |
 | SceLibLocationExtension | `vs0:sys/external/liblocation_extension.suprx` | 3 / 3 | 100% | - | - | 1 / 1 |
 | SceLibLocationFactory | `vs0:sys/external/liblocation_factory.suprx` | 1 / 1 | 100% | - | - | - |
@@ -519,7 +519,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceSblACMgr | `os0:kd/acmgr.skprx` | 1 / 1 | 100% | - | - | 1 / 1 |
 | SceSblAimgr | `os0:kd/ss_mgr.skprx` | 1 / 1 | 100% | - | - | 1 / 1 |
 | SceSblDmac5Mgr | `os0:kd/ss_mgr.skprx` | 4 / 4 | 100% | 3 | 1 / 1 | 3 / 3 |
-| SceSblGcAuthMgr | `os0:kd/gcauthmgr.skprx` | 34 / 34 | 100% | 34 | - | 34 / 34 |
+| SceSblGcAuthMgr | `os0:kd/gcauthmgr.skprx` | 34 / 34 | 100% | 32 | - | 34 / 34 |
 | SceSblLicMgr | `os0:kd/bootimage.skprx/SceSblPostSsMgr` | 8 / 8 | 100% | 8 | - | 1 / 1 |
 | SceSblPmMgr | `os0:kd/bootimage.skprx/SceSblPostSsMgr` | 5 / 5 | 100% | 4 | - | 1 / 1 |
 | SceSblQafMgr | `os0:kd/ss_mgr.skprx` | 18 / 18 | 100% | 7 | - | 8 / 8 |
