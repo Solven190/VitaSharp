@@ -229,10 +229,6 @@ public sealed partial class SysMem : HleModule
     [Hle] int sceKernelGetModel() => 0x10000;          // PS Vita (not PS TV)
     [Hle] int sceKernelGetModelForCDialog() => 0x10000;
     [Hle] int sceKernelIsPSVitaTV() => 0;
-    /// <summary>SceDebugLed: sets the development-kit GPO debug LEDs; retail units have none (Vita3K: no-op).</summary>
-    [Hle] int sceKernelSetGPO(uint state) => 0;
-    /// <summary>SceDebugLed: reads the development-kit GPI switches; a retail unit has none and reads 0.</summary>
-    [Hle] uint sceKernelGetGPI() => 0;
 
     /// <summary>
     /// SceCpu: the core the calling thread runs on (the firmware reads MPIDR). Threads are not pinned to emulated

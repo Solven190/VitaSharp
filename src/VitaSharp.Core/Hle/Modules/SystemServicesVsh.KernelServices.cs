@@ -196,10 +196,6 @@ public sealed partial class SystemServicesVsh
     /// <summary>(int mask): the CPUs the process may run on; the emulator schedules guest threads itself.</summary>
     [Hle] int sceKernelChangeActiveCpuMask(int mask) => mask == 0 ? KERNEL_ERR_INVALID_ARGUMENT : 0;
 
-    // SceDebugLed (sysmem): the development kit's debug LEDs; a retail unit has none to light.
-    [Hle] int sceDebugLedInvokeHandle0(uint a, uint b, uint c) => 0;
-    [Hle] int sceDebugLedInvokeHandle1(uint a, uint b, uint c) => 0;
-
     // ------------------------------------------------------------------ SceDipsw (sysmem): the debug switches
     [SnapshotMissing] // states of builds before it: the call did not exist, so it was never set
     readonly uint[] _dipsw = new uint[4];
