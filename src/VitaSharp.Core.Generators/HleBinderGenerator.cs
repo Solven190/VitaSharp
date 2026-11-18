@@ -11,8 +11,9 @@ namespace VitaSharp.Core.Generators;
 /// Emits <c>HleBindings.GeneratedModules()</c>: one entry per concrete <c>HleModule</c> subclass (with a factory) and,
 /// for each of its instance methods marked <c>[Hle]</c>, a binding with the attribute data and an invoker factory.
 /// The invoker reads the arguments exactly like the former System.Linq.Expressions binder (AAPCS-VFP as used by the
-/// Vita: 32-bit integers, pointers, strings and bools in r0-r3 then the stack, 64-bit integers and doubles in an even
-/// register pair or 8-byte aligned stack slot, floats in s0-s15, <c>VarArgs</c> starting at the next core register,
+/// Vita: 32-bit integers, pointers, strings and bools in r0-r3 then the stack, 64-bit integers in an even register pair
+/// or 8-byte aligned stack slot, floats in s0-s15 and doubles in d0-d7 with back-filling (a float takes the lowest free
+/// single, a double the lowest free even pair), <c>VarArgs</c> starting at the next core register,
 /// <c>HleContext</c> passed through) and converts the return value to the matching <c>HleContext.Return</c> overload.
 /// Private methods are called through <c>[UnsafeAccessor]</c>, so modules need no changes. Each binding also carries
 /// a layout string (see <see cref="Layout"/>) that tests compare against a reflection-based reference binder.
@@ -215,7 +216,8 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
         error = null;
         var sbLayout = new StringBuilder();
         var args = new List<string>();
-        int gpr = 0, stack = 0, fpr = 0;
+        int gpr = 0, stack = 0;
+        uint vfpUsed = 0; // one bit per single-precision register s0-s15
         const string Ctx = "global::VitaSharp.Core.Hle.HleContext";
         foreach (IParameterSymbol p in m.Parameters)
         {
@@ -244,14 +246,29 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
                 sbLayout.Append($"va@{gpr}");
                 continue;
             }
-            if (t.SpecialType == SpecialType.System_Single)
+            if (t.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
             {
-                args.Add($"{Ctx}.ArgF32(ctx, {fpr})");
-                sbLayout.Append($"s{fpr}=float");
-                fpr++;
+                bool isDouble = t.SpecialType == SpecialType.System_Double;
+                int single = AllocateVfp(ref vfpUsed, isDouble ? 2 : 1);
+                if (single < 0)
+                {
+                    layout = "";
+                    error = $"parameter {p.Name}: the VFP argument registers (s0-s15) are exhausted";
+                    return false;
+                }
+                if (isDouble)
+                {
+                    args.Add($"{Ctx}.ArgF64(ctx, {single / 2})");
+                    sbLayout.Append($"d{single / 2}=double");
+                }
+                else
+                {
+                    args.Add($"{Ctx}.ArgF32(ctx, {single})");
+                    sbLayout.Append($"s{single}=float");
+                }
                 continue;
             }
-            bool wide = t.SpecialType is SpecialType.System_Int64 or SpecialType.System_UInt64 or SpecialType.System_Double;
+            bool wide = t.SpecialType is SpecialType.System_Int64 or SpecialType.System_UInt64;
             if (wide)
             {
                 if ((gpr & 1) != 0)
@@ -349,6 +366,26 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
         return true;
     }
 
+    /// <summary>
+    /// AAPCS-VFP register allocation for a float (one single) or a double (an even-aligned pair, d0-d7): the lowest
+    /// free slot, so a float after a double back-fills the single a double left (f(float a, double b, float c): a s0,
+    /// b d1, c s1). Returns the first single register, or -1 when none is free.
+    /// </summary>
+    public static int AllocateVfp(ref uint used, int singles)
+    {
+        for (int i = 0; i + singles <= 16; i += singles)
+        {
+            uint mask = (singles == 2 ? 3u : 1u) << i;
+            if ((used & mask) == 0)
+            {
+                used |= mask;
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private static bool IsPtr(ITypeSymbol t) => t is INamedTypeSymbol { IsGenericType: true } n && n.ConstructedFrom.ToDisplayString() == PtrName;
 
     private static bool TryConvert(string raw, string rawType, ITypeSymbol t, out string expr, out string conv)
@@ -373,11 +410,6 @@ public sealed class HleBinderGenerator : IIncrementalGenerator
         if (IsPtr(t))
         {
             expr = $"new {Fq(t)}({raw})";
-            return true;
-        }
-        if (t.SpecialType == SpecialType.System_Double)
-        {
-            expr = $"global::System.BitConverter.UInt64BitsToDouble({raw})";
             return true;
         }
         if (t.TypeKind == TypeKind.Enum && t is INamedTypeSymbol { EnumUnderlyingType: { } u })

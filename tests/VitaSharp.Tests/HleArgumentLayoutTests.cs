@@ -98,6 +98,24 @@ public sealed unsafe class HleArgumentLayoutTests(GuestMemoryFixture fixture)
         return (int)GuestMemory.R32(id);
     }
 
+    /// <summary>libpaf's sce_paf_fmod(double, double) and sce_paf_floor(double) under the hard-float convention: the
+    /// arguments are in d0 and d1, the result goes back in d0. The binder used to read doubles from r0:r1 and r2:r3.</summary>
+    [Fact]
+    public void DoubleArgumentsAreReadFromTheVfpRegisters()
+    {
+        var libc = new Libc();
+        var call = new GuestCall { UseDouble = true };
+        call.Core[0] = 0xDEADBEEF;
+        call.Core[1] = 0x40000000;
+        call.Core[2] = 0x12345678;
+        call.Core[3] = 0x3FF00000;
+        call.Double[0] = 7.5;
+        call.Double[1] = 2.0;
+        Assert.Equal(1.5, Run(libc, "sce_paf_fmod", call).D0);
+        call.Double[0] = 3.75;
+        Assert.Equal(3.0, Run(libc, "sce_paf_floor", call).D0);
+    }
+
     /// <summary>sceLocationStartHeadingCallback(handle, float difference, callback, userdata) (FW 3.74 SceLibLocation: the
     /// difference is a float, checked against 0-180, so it is in s0 and the callback in r1, the userdata in r2). Reading
     /// four core registers took the userdata (r2) as the callback: a null userdata was refused as a null callback.</summary>
