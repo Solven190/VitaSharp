@@ -144,9 +144,25 @@ public sealed partial class Location : HleModule
         return ERR_DISABLE_APPLICATION;
     }
 
+    /// <summary>sceLocationStartHeadingCallback(handle, float difference, callback, userdata): FW 3.74's SceLibLocation
+    /// takes the difference (degrees, 0 through 180) as a float, so it travels in s0 and the callback and userdata in
+    /// r1 and r2. A null callback is refused before the handle is looked up. (Reading four core registers took the
+    /// userdata as the callback.)</summary>
     [Hle]
-    int sceLocationStartHeadingCallback(uint handle, uint difference, uint callback, uint userdata) =>
-        Get(handle) == null ? ERR_INVALID_HANDLE : callback == 0 ? ERR_INVALID_ADDRESS : ERR_DISABLE_APPLICATION;
+    int sceLocationStartHeadingCallback(uint handle, float difference, uint callback, uint userdata)
+    {
+        if (callback == 0)
+        {
+            return ERR_INVALID_ADDRESS;
+        }
+
+        if (Get(handle) == null)
+        {
+            return ERR_INVALID_HANDLE;
+        }
+
+        return ERR_DISABLE_APPLICATION;
+    }
 
     [Hle] int sceLocationStopHeadingCallback(uint handle) => Get(handle) == null ? ERR_INVALID_HANDLE : ERR_NOT_RUNNING_CALLBACK;
 

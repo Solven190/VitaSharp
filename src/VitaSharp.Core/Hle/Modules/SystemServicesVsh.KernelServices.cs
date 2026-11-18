@@ -418,15 +418,132 @@ public sealed partial class Ngs
 
 public sealed partial class Fios2User
 {
-    // ---- the FIOS2 kernel overlay syscalls of FW 3.x libfios2 (the "02" set): the same overlay table
+    // ---- the FIOS2 kernel overlay syscalls of the "02" set (SceFios2Kernel02, FW 3.74 os0:bootimage SceFios2Kernel):
+    // the same overlay table, but the output arguments travel in an option structure (psp2/fios2kernel02.h). The
+    // SceFios2User exports of driver_us (sceFiosOverlayGetList02, ...) take the expanded arguments and build that
+    // structure on their stack before the syscall; these entries are the syscalls themselves.
+
+    /// <summary>SCE_KERNEL_ERROR: a buffer size above the syscall's kernel buffer, or an input path without its
+    /// terminator inside 0x400 bytes.</summary>
+    const int ERR_KERNEL_BUFFER = unchecked((int)0x8002710B);
+    const uint OverlayListBufferSize = 0x200, OverlayPathBufferSize = 0x400;
+
+    /// <summary>(pid, min_order, max_order, opt): opt (0x18) = { out_ids, max_ids, SceSize *actual_ids,
+    /// out_ids_buffer_size, reserved[2] }. The ids are listed into a zeroed 0x200-byte buffer and exactly
+    /// out_ids_buffer_size bytes of it are copied to out_ids; actual_ids, when given, gets the number of matches.</summary>
     [Hle]
-    int sceFiosKernelOverlayGetList02(int pid, uint minOrder, uint maxOrder, uint outIds, uint maxIds, Ptr<uint> actual) =>
-        sceFiosOverlayGetList02(pid, minOrder, maxOrder, outIds, maxIds, actual);
+    int sceFiosKernelOverlayGetList02(int pid, uint minOrder, uint maxOrder, uint opt)
+    {
+        if (opt == 0)
+        {
+            return ERR_FIOS;
+        }
+
+        uint outIds = GuestMemory.R32(opt);
+        uint maxIds = GuestMemory.R32(opt + 4);
+        uint actual = GuestMemory.R32(opt + 8);
+        uint copySize = GuestMemory.R32(opt + 0xC);
+        if (outIds != 0 && copySize > OverlayListBufferSize)
+        {
+            return ERR_KERNEL_BUFFER;
+        }
+
+        Span<byte> ids = stackalloc byte[(int)OverlayListBufferSize];
+        ids.Clear();
+        uint count = 0;
+        lock (_overlays)
+        {
+            foreach (Overlay overlay in _overlays)
+            {
+                if (overlay.Order < (minOrder & 0xFF) || overlay.Order > (maxOrder & 0xFF))
+                {
+                    continue;
+                }
+
+                if (count < maxIds && (count + 1) * 4 <= OverlayListBufferSize)
+                {
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(ids[(int)(count * 4)..], overlay.Id);
+                }
+                count++;
+            }
+        }
+        if (outIds != 0)
+        {
+            ids[..(int)copySize].CopyTo(GuestMemory.Span(outIds, (int)copySize));
+        }
+
+        if (actual != 0)
+        {
+            GuestMemory.W32(actual, count);
+        }
+
+        return 0;
+    }
+
+    /// <summary>(scheduler_count, partially_resolved_path, opt): opt (8 bytes) is copied in and not used.</summary>
     [Hle] int sceFiosKernelOverlayGetRecommendedScheduler02(int param, string path) => sceFiosOverlayGetRecommendedScheduler02(param, path);
+
+    /// <summary>(pid, resolve_for_write, in_path, opt): opt (0x18) = { out_path, max_path, reserved0,
+    /// out_path_buffer_size, reserved1[2] }.</summary>
     [Hle]
-    int sceFiosKernelOverlayResolveSync02(int pid, int mode, string inPath, uint outPath, uint maxPath) =>
-        sceFiosOverlayResolveSync02(pid, mode, inPath, outPath, maxPath);
+    int sceFiosKernelOverlayResolveSync02(int pid, int mode, uint inPath, uint opt)
+    {
+        if (opt == 0)
+        {
+            return ERR_FIOS;
+        }
+
+        return ResolveIntoOption(inPath, GuestMemory.R32(opt), GuestMemory.R32(opt + 4), GuestMemory.R32(opt + 0xC), 0, uint.MaxValue);
+    }
+
+    /// <summary>(pid, resolve_for_write, in_path, opt): opt (0x1C) = { out_path, max_path, u8 min_order, u8 max_order,
+    /// reserved0[2], reserved1, out_path_buffer_size, reserved2[2] }.</summary>
     [Hle]
-    int sceFiosKernelOverlayResolveWithRangeSync02(int pid, int mode, string inPath, uint outPath, uint maxPath, uint minOrder, uint maxOrder) =>
-        sceFiosOverlayResolveWithRangeSync02(pid, mode, inPath, outPath, maxPath, minOrder, maxOrder);
+    int sceFiosKernelOverlayResolveWithRangeSync02(int pid, int mode, uint inPath, uint opt)
+    {
+        if (opt == 0)
+        {
+            return ERR_FIOS;
+        }
+
+        uint minOrder = GuestMemory.Read<byte>(opt + 8);
+        uint maxOrder = GuestMemory.Read<byte>(opt + 9);
+        return ResolveIntoOption(inPath, GuestMemory.R32(opt), GuestMemory.R32(opt + 4), GuestMemory.R32(opt + 0x10), minOrder, maxOrder);
+    }
+
+    /// <summary>The 02 resolve syscalls: the input path must end inside 0x400 bytes; the result is built in a zeroed
+    /// 0x400-byte buffer (at most max_path bytes, terminator included) and exactly out_path_buffer_size bytes of it
+    /// are copied to out_path. A null out_path resolves without output.</summary>
+    int ResolveIntoOption(uint inPath, uint outPath, uint maxPath, uint copySize, uint minOrder, uint maxOrder)
+    {
+        string path = "";
+        if (inPath != 0)
+        {
+            path = GuestMemory.ReadCString(inPath, (int)OverlayPathBufferSize);
+            if (path.Length >= OverlayPathBufferSize)
+            {
+                return ERR_KERNEL_BUFFER;
+            }
+        }
+        if (outPath == 0)
+        {
+            return 0;
+        }
+
+        if (copySize > OverlayPathBufferSize)
+        {
+            return ERR_KERNEL_BUFFER;
+        }
+
+        Span<byte> buffer = stackalloc byte[(int)OverlayPathBufferSize];
+        buffer.Clear();
+        int limit = (int)Math.Min(maxPath, OverlayPathBufferSize);
+        if (limit > 0)
+        {
+            byte[] resolved = System.Text.Encoding.UTF8.GetBytes(Resolve(path, minOrder, maxOrder));
+            resolved.AsSpan(0, Math.Min(resolved.Length, limit - 1)).CopyTo(buffer);
+        }
+        buffer[..(int)copySize].CopyTo(GuestMemory.Span(outPath, (int)copySize));
+        return 0;
+    }
 }

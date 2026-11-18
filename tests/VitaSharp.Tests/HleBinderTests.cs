@@ -24,6 +24,7 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
     private static readonly MethodInfo s_argU64StackMethod = typeof(HleContext).GetMethod(nameof(HleContext.ArgU64Stack))!;
     private static readonly MethodInfo s_argStackMethod = typeof(HleContext).GetMethod(nameof(HleContext.ArgStack))!;
     private static readonly MethodInfo s_argF32Method = typeof(HleContext).GetMethod(nameof(HleContext.ArgF32))!;
+    private static readonly MethodInfo s_argF64Method = typeof(HleContext).GetMethod(nameof(HleContext.ArgF64))!;
     private static readonly MethodInfo s_argStringMethod = typeof(HleContext).GetMethod(nameof(HleContext.ArgString))!;
 
     private sealed record RefBinding(string Method, string? Name, uint Nid, string? Library, string Layout, MethodInfo Info);
@@ -47,7 +48,8 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
     private static string Layout(MethodInfo mi)
     {
         var parts = new List<string>();
-        int gpr = 0, stack = 0, fpr = 0;
+        int gpr = 0, stack = 0;
+        uint vfpUsed = 0;
         foreach (ParameterInfo p in mi.GetParameters())
         {
             Type t = p.ParameterType;
@@ -63,10 +65,15 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
             }
             if (t == typeof(float))
             {
-                parts.Add($"s{fpr++}=float");
+                parts.Add($"s{ReferenceVfp(ref vfpUsed, 1)}=float");
                 continue;
             }
-            bool wide = t == typeof(long) || t == typeof(ulong) || t == typeof(double);
+            if (t == typeof(double))
+            {
+                parts.Add($"d{ReferenceVfp(ref vfpUsed, 2) / 2}=double");
+                continue;
+            }
+            bool wide = t == typeof(long) || t == typeof(ulong);
             string token;
             if (wide)
             {
@@ -111,6 +118,23 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
             ret = rt == norm ? Name(norm) : rt.IsGenericType && rt.GetGenericTypeDefinition() == typeof(Ptr<>) ? $"{Name(norm)}<-ptr" : $"{Name(norm)}<-{Name(rt)}";
         }
         return string.Join(",", parts) + "->" + ret;
+    }
+
+    /// <summary>AAPCS-VFP: a float takes the lowest free single of s0-s15, a double the lowest free even pair (d0-d7),
+    /// so a float after a double back-fills the single the double skipped.</summary>
+    private static int ReferenceVfp(ref uint used, int singles)
+    {
+        for (int i = 0; i + singles <= 16; i += singles)
+        {
+            uint mask = (singles == 2 ? 3u : 1u) << i;
+            if ((used & mask) == 0)
+            {
+                used |= mask;
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("VFP argument registers exhausted");
     }
 
     private static string Name(Type t)
@@ -192,7 +216,8 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
     {
         ParameterExpression ctx = Expression.Parameter(typeof(HleContext), "ctx");
         var args = new List<Expression>();
-        int gpr = 0, stack = 0, fpr = 0;
+        int gpr = 0, stack = 0;
+        uint vfpUsed = 0;
         foreach (ParameterInfo p in mi.GetParameters())
         {
             Type t = p.ParameterType;
@@ -208,10 +233,15 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
             }
             if (t == typeof(float))
             {
-                args.Add(Expression.Call(s_argF32Method, ctx, Expression.Constant(fpr++)));
+                args.Add(Expression.Call(s_argF32Method, ctx, Expression.Constant(ReferenceVfp(ref vfpUsed, 1))));
                 continue;
             }
-            bool wide = t == typeof(long) || t == typeof(ulong) || t == typeof(double);
+            if (t == typeof(double))
+            {
+                args.Add(Expression.Call(s_argF64Method, ctx, Expression.Constant(ReferenceVfp(ref vfpUsed, 2) / 2)));
+                continue;
+            }
+            bool wide = t == typeof(long) || t == typeof(ulong);
             Expression raw;
             if (wide)
             {
@@ -435,6 +465,24 @@ public sealed unsafe class HleBinderTests(GuestMemoryFixture fixture)
 
     private static (uint R0, uint R1, ulong D0) Result(CpuState* s) => (s->R[0], s->R[1], ((ulong*)s->D)[0]);
 
+    /// <summary>AAPCS-VFP (the Vita's hard-float calling convention): floats in s0-s15, doubles in d0-d7, a float after
+    /// a double back-filling the single the double skipped, and neither taking a core register. The generator used to
+    /// put doubles in a core register pair (r0:r1/r2:r3) like 64-bit integers, so sce_paf_floor/sce_paf_fmod read
+    /// whatever the caller left in r0-r3.</summary>
+    [Fact]
+    public void FloatsAndDoublesUseTheVfpRegistersWithBackfill()
+    {
+        var entry = VitaSharp.Generated.HleLocalBindings.Modules().Single(e => e.Type == typeof(ProbeModule));
+        string Layout(string name) => entry.Bindings().Single(b => b.Name == name).Layout;
+        Assert.Equal("s0=float,d1=double,s1=float,r0=uint,d2=double,s6=float->double", Layout("probeVfpBackfill"));
+        Assert.Equal("d0=double,s2=float->double", Layout("probeDouble"));
+        Assert.Equal("r0r1=ulong,r2=uint,r3=uint,d0=double,sp0=uint->ulong", Layout("probeWide2"));
+        Assert.Equal("s0=float,r0=uint,s1=float,r2r3=long,s2=float,d2=double->float", Layout("probeFloats"));
+
+        Assert.Equal("d0=double->double", HleBindings.For(typeof(VitaSharp.Core.Hle.Modules.Libc))!.Single(b => b.Method == "sce_paf_floor").Layout);
+        Assert.Equal("d0=double,d1=double->double", HleBindings.For(typeof(VitaSharp.Core.Hle.Modules.Libc))!.Single(b => b.Method == "sce_paf_fmod").Layout);
+    }
+
     [Fact]
     public void GeneratedInvokersMarshalLikeTheReflectionBinder()
     {
@@ -631,5 +679,11 @@ public sealed class ProbeModule : HleModule
     {
         Log(a);
         return a + 1;
+    }
+    [Hle("probeVfpBackfill", Nid = 0x12)]
+    private double VfpBackfill(float a, double b, float c, uint d, double e, float f)
+    {
+        Log(a, b, c, d, e, f);
+        return Seed * 0.5;
     }
 }
