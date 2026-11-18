@@ -417,48 +417,81 @@ public sealed partial class VshBridge
         return 0;
     }
 
-    // ---- controller settings (SceCtrl through the bridge)
-    int _portAssign0 = 0, _portAssign1 = 1, _vibration = 1, _turnOffInterval;
+    // ---- controller settings (SceCtrl through the bridge): each form checks the caller is a system program
+    // (0x80010058) and calls the SceCtrlForDriver entry, whose state lives in the kernel (SceVshBridge 3.74)
 
-    /// <summary>(int port, int newAssign): the controller-to-port assignment of a PS TV with DualShocks; the handheld
-    /// keeps the assignment it is told.</summary>
+    /// <summary>(int port1, int port2): ksceCtrlChangePortAssign, the virtual controller driver's (0x80340021 on the
+    /// handheld, where no driver registers).</summary>
     [Hle]
-    int vshCtrlChangePortAssign(int port, int assign)
+    int vshCtrlChangePortAssign(uint port, uint assign)
     {
-        if (port == 0)
-        {
-            _portAssign0 = assign;
-        }
-        else
-        {
-            _portAssign1 = assign;
-        }
-        return 0;
+        return Vsh ? KernelServices.ksceCtrlChangePortAssign(port, assign) : VSH_ERR_PERM;
     }
-    /// <summary>(int enable): the "vibration" system setting for external controllers, kept.</summary>
+
+    /// <summary>(int enable): ksceCtrlSetVibrationSetting, kept in the kernel.</summary>
     [Hle]
     int vshCtrlSetVibrationSetting(int enable)
     {
-        _vibration = enable;
-        return 0;
+        return Vsh ? KernelServices.ksceCtrlSetVibrationSetting(enable) : VSH_ERR_PERM;
     }
-    /// <summary>(int seconds): the external controllers' auto turn-off time, kept.</summary>
+
+    /// <summary>(int seconds): ksceCtrlSetTurnOffInterval, the virtual controller driver's (0x80340021 on the
+    /// handheld).</summary>
     [Hle]
-    int vshCtrlSetTurnOffInterval(int interval)
+    int vshCtrlSetTurnOffInterval(uint interval)
     {
-        _turnOffInterval = interval;
-        return 0;
+        return Vsh ? KernelServices.ksceCtrlSetTurnOffInterval(interval) : VSH_ERR_PERM;
     }
-    /// <summary>The port the user is using: 0, the handheld's own buttons (a PS TV with a DualShock reports 1).</summary>
-    [Hle] int vshCtrlGetActiveControllerPort() => 0;
+
+    /// <summary>ksceCtrlGetActiveControllerPort: the virtual controller driver's answer; the handheld loads no such
+    /// driver (SceDs3 is in psp2config_dolce only), so the kernel answers 0x80340021.</summary>
+    [Hle]
+    int vshCtrlGetActiveControllerPort()
+    {
+        return Vsh ? KernelServices.ksceCtrlGetActiveControllerPort() : VSH_ERR_PERM;
+    }
+
     /// <summary>A Blu-ray remote (PS TV only): for system programs (0x80010058), ksceCtrlIsBdRemoconConnected.</summary>
     [Hle]
     int vshCtrlIsBdRemoconConnected()
     {
         return Vsh ? KernelServices.ksceCtrlIsBdRemoconConnected() : VSH_ERR_PERM;
     }
-    /// <summary>(SceUID cb): undoes vshCtrlRegisterNotifyCallBack (which keeps nothing).</summary>
-    [Hle] int vshCtrlUnregisterNotifyCallBack(int cb) => 0;
+
+    /// <summary>(SceUID cb): the caller's callback handle made a kernel one (an unknown handle: that error with bit 30
+    /// set), then ksceCtrlRegisterNotifyCallBack.</summary>
+    [Hle]
+    int vshCtrlRegisterNotifyCallBack(int callback)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        if (Emu.Kernel.Objects.Get<KernelObject>(callback) == null)
+        {
+            return SceError.INVALID_UID | 0x40000000;
+        }
+
+        return KernelServices.ksceCtrlRegisterNotifyCallBack(callback);
+    }
+
+    /// <summary>(SceUID cb): as vshCtrlRegisterNotifyCallBack, then ksceCtrlUnregisterNotifyCallBack.</summary>
+    [Hle]
+    int vshCtrlUnregisterNotifyCallBack(int callback)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        if (Emu.Kernel.Objects.Get<KernelObject>(callback) == null)
+        {
+            return SceError.INVALID_UID | 0x40000000;
+        }
+
+        return KernelServices.ksceCtrlUnregisterNotifyCallBack(callback);
+    }
 
     /// <summary>(SceTouchEmulationData *data 0x90): the touch emulation data PS TV's controller-to-touch mapping
     /// feeds; the handheld has real touch panels, the data is accepted and not used.</summary>
