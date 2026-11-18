@@ -6,6 +6,8 @@ namespace VitaSharp.Core.Hle.Modules;
 /// sceKernelAtomic* (SceLibKernel, psp2/kernel/cpu.h): read-modify-write operations on guest memory. On hardware they
 /// are LDREX/STREX loops inside the library; here a compare-and-swap on the value (8/16-bit operations swap the
 /// containing aligned word). "XAndGet" returns the new value, "GetAndX" the old one; 8/16-bit results are sign-extended.
+/// CompareAndSet8/16 compare the sign-extended old value with the whole 32-bit expected register (FW 3.74: LDREXB +
+/// SXTB + TEQ r1), so a zero-extended 0x80-0xFF expected value never matches.
 /// </summary>
 public sealed partial class Atomic : HleModule
 {
@@ -62,11 +64,11 @@ public sealed partial class Atomic : HleModule
     }
 
     /// <summary>Vita behaviour (Vita3K: "despite the name"): sum = old + v (32-bit wrap below 64 bits); when sum &gt;= limit
-    /// stores limit and returns 1, else stores sum and returns 0.</summary>
+    /// stores limit and returns 1, else stores sum and returns 0. FW 3.74 libkernel (SXTAB/SXTAH + CMP) adds the
+    /// sign-extended old value to the whole 32-bit <paramref name="v"/> register and compares the whole 32-bit
+    /// <paramref name="limit"/>: the 8/16-bit operands are not narrowed first.</summary>
     internal static int AddUnless(uint p, int bytes, long v, long limit)
     {
-        v = Narrow(v, bytes);
-        limit = Narrow(limit, bytes);
         var (old, _) = Rmw(p, bytes, o => Sum(o, v, bytes) is var s && s >= limit ? limit : s);
         return Sum(old, v, bytes) >= limit ? 1 : 0;
     }
@@ -89,7 +91,7 @@ public sealed partial class Atomic : HleModule
     [Hle] int sceKernelAtomicGetAndSet8(uint p, int v) => (int)Rmw(p, 1, o => v).Old;
     [Hle] void sceKernelAtomicSet8(uint p, int v) => Rmw(p, 1, o => v);
     [Hle] void sceKernelAtomicClearMask8(uint p, int v) => Rmw(p, 1, o => o & ~v);
-    [Hle] int sceKernelAtomicCompareAndSet8(uint p, int v, int nv) => (int)Rmw(p, 1, o => o == Narrow(v, 1) ? nv : null).Old;
+    [Hle] int sceKernelAtomicCompareAndSet8(uint p, int v, int nv) => (int)Rmw(p, 1, o => o == v ? nv : null).Old;
     [Hle] int sceKernelAtomicAddUnless8(uint p, int v, int limit) => AddUnless(p, 1, v, limit);
     [Hle] int sceKernelAtomicDecIfPositive8(uint p) => (int)Rmw(p, 1, o => o >= 0 ? o - 1 : null).Old;
     // ---- 16-bit
@@ -108,7 +110,7 @@ public sealed partial class Atomic : HleModule
     [Hle] int sceKernelAtomicGetAndSet16(uint p, int v) => (int)Rmw(p, 2, o => v).Old;
     [Hle] void sceKernelAtomicSet16(uint p, int v) => Rmw(p, 2, o => v);
     [Hle] void sceKernelAtomicClearMask16(uint p, int v) => Rmw(p, 2, o => o & ~v);
-    [Hle] int sceKernelAtomicCompareAndSet16(uint p, int v, int nv) => (int)Rmw(p, 2, o => o == Narrow(v, 2) ? nv : null).Old;
+    [Hle] int sceKernelAtomicCompareAndSet16(uint p, int v, int nv) => (int)Rmw(p, 2, o => o == v ? nv : null).Old;
     [Hle] int sceKernelAtomicAddUnless16(uint p, int v, int limit) => AddUnless(p, 2, v, limit);
     [Hle] int sceKernelAtomicDecIfPositive16(uint p) => (int)Rmw(p, 2, o => o >= 0 ? o - 1 : null).Old;
     // ---- 32-bit
