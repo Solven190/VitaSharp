@@ -190,6 +190,7 @@ public sealed partial class MainWindow : Window
     public void Navigate(string page, GameEntry? game = null)
     {
         LeavePage();
+        KeepLibraryReturn(_page, page, game);
         _page = page;
         _pageGame = game ?? (page == PageGame ? _pageGame : null);
         RebuildSidebar();
@@ -199,6 +200,8 @@ public sealed partial class MainWindow : Window
     void ShowPage()
     {
         CloseOverlay();
+        ClearListItems();
+        _pageScroll = null;
         if (_page == PageGame && _pageGame != null && !_all.Any(g => g.TitleId == _pageGame.TitleId))
         {
             _page = PageLibrary;
@@ -877,6 +880,11 @@ public sealed partial class MainWindow : Window
 
     async Task<bool> Confirm(string message, string? yesText = null, bool danger = false)
     {
+        if (ConfirmForTests is { } answer)
+        {
+            return answer(message);
+        }
+
         bool result = false;
         var dlg = (Window?)null;
         var yes = danger ? _k.Secondary(yesText ?? S.Yes, null, () => { result = true; dlg?.Close(); }, 40, static p => p.Danger)

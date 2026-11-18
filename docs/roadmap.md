@@ -2735,6 +2735,11 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 - [ ] [P3][P] Ao apagar um item da lista (biblioteca de jogos do launcher), a rolagem volta para o topo (pedido do
   usuário, 17/11/2026): manter a posição da rolagem onde estava, com o foco no item seguinte ao apagado; o mesmo nas
   outras listas com apagar (saves, capturas) e no app Android quando ele voltar
+  Feito no desktop (18/11/2026, feat/pend1, a confirmar pelo usuário): desinstalar um jogo (pela página dele) volta à
+  biblioteca na rolagem de antes, com o foco no jogo seguinte (grade e lista); voltar da página de um jogo também
+  mantém a rolagem; apagar uma captura (página Capturas e lista da página do jogo) mantém a rolagem com o foco na
+  captura seguinte (`ListDeleteKeepsPositionTests`). Não há lista de saves com apagar no launcher. Falta: o app
+  Android (pausado).
 - [ ] [P1][M] Assassin's Creed III Liberation (PCSE00053) trava no boot, nunca mostra o primeiro quadro (usuário,
   17/11/2026; primeiro teste do jogo). Captura `captures/PCSE00053_20261117_012258_tudo`: 7 min no quadro 0 (0 fps,
   só a imagem de boot), áudio aberto mas em silêncio. Os threads do motor (Gear) foram todos criados, NGS e GXM

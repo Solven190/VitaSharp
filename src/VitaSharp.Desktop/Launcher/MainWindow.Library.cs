@@ -161,6 +161,7 @@ public sealed partial class MainWindow
 
     void RebuildResults()
     {
+        ClearListItems();
         var games = VisibleGames();
         if (_settings.View == LauncherSettings.ViewHome && _settings.RecreatedHome)
         {
@@ -203,7 +204,7 @@ public sealed partial class MainWindow
         }
 
         var scroll = new ScrollViewer { Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        _resultsHost.Child = scroll;
+        _resultsHost.Child = PageScroll(scroll);
     }
 
     Control SectionHeader(string title, string? link, Action? open = null)
@@ -404,6 +405,7 @@ public sealed partial class MainWindow
         };
         Kit.LightShadow(card, "0 2 8 0 #14000000");
         HookCard(card, hover, g, p => running ? p.Ok : p.Border);
+        ListItem(g.TitleId, card);
         return card;
     }
 
@@ -412,6 +414,9 @@ public sealed partial class MainWindow
     {
         card.PointerEntered += (_, _) => { hover.IsVisible = true; card.BorderBrush = Kit.B(static p => p.Accent); };
         card.PointerExited += (_, _) => { hover.IsVisible = false; card.BorderBrush = Kit.B(border); };
+        // the keyboard focus (the game that followed an uninstalled one) shows like the mouse over it
+        card.GotFocus += (_, _) => card.BorderBrush = Kit.B(static p => p.Accent);
+        card.LostFocus += (_, _) => card.BorderBrush = Kit.B(border);
         card.ContextFlyout = GameFoldersMenu(g); // right click: the game's folders
         card.Tapped += (_, e) =>
         {
@@ -514,6 +519,9 @@ public sealed partial class MainWindow
             };
             row.PointerEntered += (_, _) => { acts.IsVisible = true; row.Background = Kit.B(static p => p.Highlight); row.BorderBrush = Kit.B(static p => p.HighlightBorder); };
             row.PointerExited += (_, _) => { acts.IsVisible = false; row.Background = Kit.B(zebra); row.BorderBrush = Kit.Fixed(Colors.Transparent); };
+            row.GotFocus += (_, _) => row.BorderBrush = Kit.B(static p => p.HighlightBorder);
+            row.LostFocus += (_, _) => row.BorderBrush = Kit.Fixed(Colors.Transparent);
+            ListItem(g.TitleId, row);
             row.Tapped += (_, e) =>
             {
                 if (!FromButton(e))

@@ -583,6 +583,8 @@ public sealed partial class MainWindow
             return;
         }
 
+        // the library comes back where it was, with the focus on the game that followed this one
+        string? next = ListPosition.NextAfterRemoval(VisibleGames().Select(game => game.TitleId).ToList(), [g.TitleId]);
         try
         {
             await Task.Run(() => Directory.Delete(g.Path, true));
@@ -595,7 +597,13 @@ public sealed partial class MainWindow
         }
         if (_page == PageGame)
         {
+            KeepLibraryReturn(PageGame, PageLibrary, null);
             _page = PageLibrary;
+            _keptFocus = next;
+        }
+        else if (_page == PageLibrary)
+        {
+            KeepListPosition(next);
         }
 
         Refresh();
