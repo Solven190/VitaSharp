@@ -38,9 +38,82 @@ public sealed partial class SystemServicesVsh
     [Hle("_sceNpDrmPackageDecrypt", Default = true)]
     [Hle("_sceNpDrmPackageTransform", Default = true)]
     [Hle("scePsmDrmGetActInfo", Default = true)]
-    [Hle("scePsmDrmGetRifInfo", Default = true)]
-    [Hle("scePsmDrmGetRifKey", Default = true)]
     int NpDrmSecure(uint a) => a == 0 ? NPDRM_ERR_INVALID : KERNEL_ERR_UNSUP;
+
+    /// <summary>Writes a license's start and expiration times through a {start, end} pointer pair (either may be NULL):
+    /// the license's own times, a zero expiration meaning none (0x7FFFFFFFFFFFFFFF, the firmware's "no expiration").</summary>
+    static void WriteLicenseTimes(ReadOnlySpan<byte> license, uint times)
+    {
+        ulong start = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(license[0x20..]);
+        ulong end = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(license[0x28..]);
+        if (GuestMemory.R32(times) is var startOut and not 0)
+        {
+            GuestMemory.Write(startOut, start);
+        }
+
+        if (GuestMemory.R32(times + 4) is var endOut and not 0)
+        {
+            GuestMemory.Write(endOut, end == 0 ? 0x7FFFFFFFFFFFFFFFUL : end);
+        }
+    }
+
+    /// <summary>
+    /// (const ScePsmDrmLicense *license, ScePsmDrmKeySet *keydata, int *versionFlag, ScePsmDrmExpireTime *times): the key
+    /// set of a PSM license (0x200 bytes: HMAC key, AES content key, signature), which the PSM runtime opens its PSSE
+    /// files with (<see cref="Package.PsseFile"/>). The runtime passes the license it read from its title's
+    /// RO/License folder. A signed license (from the store) has its key set encrypted for the account's activation and
+    /// only the security processor opens it: refused as the other secure calls (0x80020004). A license with no
+    /// signature carries the key set in clear (<see cref="Package.PsmLicense"/>): copied out as it is, as VitaSharp
+    /// reads a PS Vita license's klicensee.
+    /// </summary>
+    [Hle("scePsmDrmGetRifKey")]
+    int PsmDrmGetRifKey(uint license, uint keydata, uint versionFlag, uint times)
+    {
+        if (license == 0 || keydata == 0 || times == 0)
+        {
+            return NPDRM_ERR_INVALID;
+        }
+
+        ReadOnlySpan<byte> rif = GuestMemory.ReadSpan(license, Package.PsmLicense.Size);
+        if (!Package.PsmLicense.KeySetInClear(rif))
+        {
+            return KERNEL_ERR_UNSUP;
+        }
+
+        rif.Slice(Package.PsmLicense.KeySetOffset, Package.PsmLicense.KeySetSize).CopyTo(GuestMemory.Span(keydata, Package.PsmLicense.KeySetSize));
+        if (versionFlag != 0)
+        {
+            GuestMemory.W32(versionFlag, 0);
+        }
+
+        WriteLicenseTimes(rif, times);
+        return 0;
+    }
+
+    /// <summary>(const ScePsmDrmLicense *license, char contentId[0x30], SceUInt64 *accountId, ScePsmDrmGetRifInfoOpt *opt):
+    /// the plain fields of a PSM license: its content ID (0x50), account ID (0x10) and times (0x20/0x28).</summary>
+    [Hle("scePsmDrmGetRifInfo")]
+    int PsmDrmGetRifInfo(uint license, uint contentId, uint accountId, uint opt)
+    {
+        if (license == 0 || opt == 0)
+        {
+            return NPDRM_ERR_INVALID;
+        }
+
+        ReadOnlySpan<byte> rif = GuestMemory.ReadSpan(license, Package.PsmLicense.Size);
+        if (contentId != 0)
+        {
+            rif.Slice(0x50, 0x30).CopyTo(GuestMemory.Span(contentId, 0x30));
+        }
+
+        if (accountId != 0)
+        {
+            GuestMemory.Write(accountId, System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(rif[0x10..]));
+        }
+
+        WriteLicenseTimes(rif, opt);
+        return 0;
+    }
 
     /// <summary>
     /// (const void *rif, SceSize size, int checkSign, void *outs[10]): the fields of a license file. The library call has
