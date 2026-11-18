@@ -225,7 +225,7 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ASetAfterTheDeadlineDoesNotSatisfyALateWaiter()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(_ =>
         {
             const uint LimitUs = 50_000;
@@ -256,7 +256,7 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ASetBeforeTheDeadlineSatisfiesALateWaiter()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(_ =>
         {
             const uint LimitUs = 50_000, BeforeSetUs = 20_000;

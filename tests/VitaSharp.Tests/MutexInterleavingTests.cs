@@ -244,7 +244,7 @@ public sealed class MutexInterleavingTests(GuestMemoryFixture fixture) : IDispos
     [InlineData(false)]
     public void AnUnlockAfterTheDeadlineSkipsTheTimedOutWaiter(bool waiterBehind)
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;

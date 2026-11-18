@@ -227,7 +227,7 @@ public sealed class LwMutexInterleavingTests(GuestMemoryFixture fixture) : IDisp
     [InlineData(false)]
     public void AnUnlockAfterTheDeadlineSkipsTheTimedOutWaiter(bool waiterBehind)
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;
@@ -265,7 +265,7 @@ public sealed class LwMutexInterleavingTests(GuestMemoryFixture fixture) : IDisp
     [Fact]
     public void AHandOverWritesBackTheTimeLeftAtTheUnlock()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000, BeforeUnlockUs = 20_000;

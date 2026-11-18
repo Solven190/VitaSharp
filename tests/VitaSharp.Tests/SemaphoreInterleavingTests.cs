@@ -220,7 +220,7 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ASignalAfterTheDeadlineDoesNotServeALateWaiter()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;
@@ -253,7 +253,7 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ATimedOutHeadHandsTheUnitsToTheWaitersBehindIt()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;

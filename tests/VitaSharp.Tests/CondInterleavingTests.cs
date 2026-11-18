@@ -114,7 +114,7 @@ public sealed class CondInterleavingTests(GuestMemoryFixture fixture) : IDisposa
     [Fact]
     public void ASignalAfterTheDeadlineGoesToTheNextWaiter()
     {
-        using ControlledGuestClock clock = ControlledGuestClock.Stop();
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000, BeforeSignalUs = 20_000;
