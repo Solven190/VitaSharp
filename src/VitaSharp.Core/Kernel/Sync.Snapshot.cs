@@ -1,4 +1,4 @@
-using VitaSharp.Core.SaveState;
+﻿using VitaSharp.Core.SaveState;
 
 namespace VitaSharp.Core.Kernel;
 
@@ -126,18 +126,59 @@ public sealed partial class EventFlag
     }
 }
 
+// A normal mutex keeps its wait queue as a semaphore does: the order an unlock hands it over in, and the waiters made
+// the owner that had not returned (their reissued lock returns OK instead of finding themselves the owner).
 public sealed partial class Mutex
 {
     internal int _ownerUid;
     internal void Save(SnapshotWriter w)
     {
-        w.Write(Attr);
-        w.Write(InitCount);
-        w.WriteKernelObject(Owner);
-        w.Write(LockCount);
-        w.Write(WorkArea);
-        w.Write(_deleted);
+        lock (this)
+        {
+            // a condition wait handed its mutex back that had not returned is saved as the cond wait it reissues, which
+            // takes the mutex itself: the mutex is saved free
+            bool reacquiring = _granted.Exists(request => request.Reacquire && request.Thread == _owner && _owner != null);
+            w.Write(Attr);
+            w.Write(InitCount);
+            w.WriteKernelObject(reacquiring ? null : Owner);
+            w.Write(reacquiring ? 0 : LockCount);
+            w.Write(WorkArea);
+            w.Write(_deleted);
+            // added 16/11/2026; states of builds before it have no queue: their locks are reissued as new ones, as
+            // those builds did ([SnapshotMissing] for this hand-written record: the empty queue)
+            int kept = 0;
+            foreach (WaitRequest request in _granted)
+            {
+                kept += Kept(request) ? 1 : 0;
+            }
+
+            foreach (WaitRequest request in _queue)
+            {
+                kept += Kept(request) ? 1 : 0;
+            }
+
+            w.Write(kept);
+            foreach (List<WaitRequest> list in (List<WaitRequest>[])[_granted, _queue])
+            {
+                foreach (WaitRequest request in list)
+                {
+                    if (!Kept(request))
+                    {
+                        continue;
+                    }
+
+                    w.Write(request.ThreadUid);
+                    w.Write(request.Count);
+                    w.Write(request.Priority);
+                    w.Write(request.Granted);
+                }
+            }
+        }
     }
+
+    /// <summary>A waiter the saved queue keeps: a guest thread's own lock (not a cond wait's, which is reissued).</summary>
+    private static bool Kept(WaitRequest request) => request.ThreadUid != 0 && !request.Reacquire;
+
     internal void Load(SnapshotReader r)
     {
         Attr = r.ReadUInt32();
@@ -146,9 +187,36 @@ public sealed partial class Mutex
         LockCount = r.ReadInt32();
         WorkArea = r.ReadUInt32();
         _deleted = r.ReadBool();
+        _queue.Clear();
+        _granted.Clear();
+        _restored.Clear();
+        Waiters = 0;
+        int saved = r.AtEnd ? 0 : r.ReadInt32();
+        for (int i = 0; i < saved; i++)
+        {
+            WaitRequest request = new()
+            {
+                ThreadUid = r.ReadInt32(),
+                Count = r.ReadInt32(),
+                Priority = r.ReadInt32(),
+                Granted = r.ReadBool(),
+            };
+            _restored.Add(request);
+            if (request.Granted)
+            {
+                _granted.Add(request);
+            }
+            else
+            {
+                _queue.Add(request); // saved in queue order
+                Waiters++;
+            }
+        }
     }
+
     /// <summary>A lightweight mutex's owner and count are its guest work area's (restored with the memory): the owner
-    /// word is rewritten without <see cref="Contended"/>, since no thread sleeps on it after a load.</summary>
+    /// word is rewritten without <see cref="Contended"/>, since no thread sleeps on it after a load. The waiters of a
+    /// normal mutex's saved queue get their threads back (an unlock may hand them the mutex before they reissue).</summary>
     internal void Resolve(ObjectTable t)
     {
         if (IsLight)
@@ -157,6 +225,10 @@ public sealed partial class Mutex
         }
 
         Owner = _ownerUid != 0 ? t.Get<GuestThread>(_ownerUid) : null;
+        foreach (WaitRequest request in _restored)
+        {
+            request.Thread = t.Get<GuestThread>(request.ThreadUid);
+        }
     }
 }
 

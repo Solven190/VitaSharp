@@ -1016,11 +1016,19 @@ public sealed partial class EventFlag : KernelObject
 /// the caller itself, guest code that never enters the kernel (Hle/HleGuestCode: lock = compare-and-swap 0 -> own
 /// UID, unlock = swap back to 0 unless a sleeper set <see cref="Contended"/>); only a lock that must wait and an
 /// unlock that must wake someone come here.
+/// A normal mutex is threadmgr's (FW 3.74): a wait queue, first come first served or, with
+/// SCE_KERNEL_MUTEX_ATTR_TH_PRIO, by thread priority (arrival order among equal priorities). The unlock that frees it
+/// makes the head of the queue the owner with the count it asked for, inside the call; a lock or try-lock takes a free
+/// mutex only when no waiter is ahead of it (a strictly higher priority caller of a TH_PRIO mutex). A count below 1,
+/// or above 1 without SCE_KERNEL_MUTEX_ATTR_RECURSIVE, is ILLEGAL_COUNT in every call; a waiter whose timeout passes
+/// leaves the queue at its guest-time deadline; a cancel or a delete takes every waiter off it at once.
 /// </summary>
 public sealed partial class Mutex : KernelObject
 {
     public override int UidClass => IsLight ? 10 : 4;
     public const uint AttrRecursive = 0x02;
+    /// <summary>SCE_KERNEL_MUTEX_ATTR_TH_PRIO: waiters queue by thread priority instead of first come first served.</summary>
+    public const uint AttrThreadPriority = 0x2000;
     /// <summary>Owner word bit: at least one thread waits (or is about to) in <see cref="Lock"/>, so the owner's unlock
     /// must go through the kernel to wake it. Thread UIDs are positive, so the bit is free.</summary>
     public const uint Contended = 0x80000000;
@@ -1153,6 +1161,158 @@ public sealed partial class Mutex : KernelObject
         WakeWaiters();
     }
 
+    /// <summary>One thread in sceKernelLockMutex (a normal mutex).</summary>
+    private sealed class WaitRequest
+    {
+        public int Count;
+        public int Priority;
+        public int ThreadUid;
+        /// <summary>The thread to make the owner (null for a restored waiter until it is resolved).</summary>
+        public GuestThread? Thread;
+        /// <summary>An unlock (or a cancel's or the owner's end) made it the owner.</summary>
+        public bool Granted;
+        /// <summary>Off the queue without the mutex: WAIT_CANCEL, WAIT_DELETE or WAIT_TIMEOUT.</summary>
+        public int Error;
+        /// <summary>Guest time at the wait and its limit in microseconds (-1: none).</summary>
+        public long StartTicks;
+        public long LimitUs = -1;
+        /// <summary>A condition wait taking its mutex back: a save state reissues the cond wait, not this lock.</summary>
+        public bool Reacquire;
+    }
+
+    /// <summary>The wait queue of a normal mutex, in the order an unlock hands it over.</summary>
+    private readonly List<WaitRequest> _queue = new();
+
+    /// <summary>Waiters made the owner that have not returned yet (their thread still has to wake up).</summary>
+    private readonly List<WaitRequest> _granted = new();
+
+    /// <summary>Waiters of a loaded save state whose threads have not issued their lock again yet.</summary>
+    private readonly List<WaitRequest> _restored = new();
+
+    /// <summary>threadmgr's count check (before the owner): a count below 1, or above 1 on a mutex without
+    /// SCE_KERNEL_MUTEX_ATTR_RECURSIVE, is ILLEGAL_COUNT.</summary>
+    private bool IllegalCount(int count) => count < 1 || (count > 1 && (Attr & AttrRecursive) == 0);
+
+    /// <summary>A normal mutex with no owner, or one whose owner has ended.</summary>
+    private bool OwnerFree => _owner == null || _owner.Status == ThreadStatus.Dormant;
+
+    /// <summary>A waiter is ahead of a caller of this priority: the caller may not take a free mutex before it (any
+    /// waiter of a FIFO mutex, one of equal or higher priority of a TH_PRIO one).</summary>
+    private bool WaiterAhead(int priority)
+    {
+        if (_queue.Count == 0)
+        {
+            return false;
+        }
+
+        return (Attr & AttrThreadPriority) == 0 || _queue[0].Priority <= priority;
+    }
+
+    private void Enqueue(WaitRequest request)
+    {
+        if ((Attr & AttrThreadPriority) == 0)
+        {
+            _queue.Add(request);
+            return;
+        }
+
+        int index = 0;
+        while (index < _queue.Count && _queue[index].Priority <= request.Priority)
+        {
+            index++;
+        }
+
+        _queue.Insert(index, request);
+    }
+
+    /// <summary>Hands a free mutex to the head of the queue with the count it asked for (threadmgr's unlock: the next
+    /// owner is chosen inside the call, before any thread runs). True when it did.</summary>
+    private bool HandOver()
+    {
+        if (_queue.Count == 0 || !OwnerFree)
+        {
+            return false;
+        }
+
+        WaitRequest request = _queue[0];
+        _queue.RemoveAt(0);
+        Waiters--;
+        _owner = request.Thread;
+        _lockCount = request.Count;
+        request.Granted = true;
+        _granted.Add(request);
+        return true;
+    }
+
+    /// <summary>Wait predicate: an owner that ended without unlocking leaves the mutex to the head of the queue (the
+    /// woken head may be another waiter). True when <paramref name="request"/> got it.</summary>
+    private bool HandOverFromEndedOwner(WaitRequest request)
+    {
+        if (HandOver())
+        {
+            Monitor.PulseAll(this);
+        }
+
+        return request.Granted;
+    }
+
+    /// <summary>
+    /// The kernel's timers at the waiters' guest-time deadlines: a waiter whose timeout has passed is off the queue
+    /// (WAIT_TIMEOUT), however late its host thread is to notice, so a later unlock does not make it the owner.
+    /// </summary>
+    private void ReleaseExpired()
+    {
+        bool changed = false;
+        for (int i = _queue.Count - 1; i >= 0; i--)
+        {
+            WaitRequest request = _queue[i];
+            if (request.LimitUs < 0 || !Wait.Expired(request.StartTicks, request.LimitUs))
+            {
+                continue;
+            }
+
+            request.Error = SceError.WAIT_TIMEOUT;
+            _queue.RemoveAt(i);
+            Waiters--;
+            changed = true;
+        }
+        if (changed)
+        {
+            HandOver();
+            Monitor.PulseAll(this);
+        }
+    }
+
+    /// <summary>The place a loaded save state kept for the calling thread's lock, if any.</summary>
+    private WaitRequest? TakeRestored(GuestThread self)
+    {
+        for (int i = 0; i < _restored.Count; i++)
+        {
+            if (_restored[i].ThreadUid == self.Uid)
+            {
+                WaitRequest request = _restored[i];
+                _restored.RemoveAt(i);
+                return request;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The lock count and waiters sceKernelGetMutexInfo reports (timed-out waiters already off the queue).</summary>
+    internal (int Count, int Waiters, GuestThread? Owner) Info()
+    {
+        lock (this)
+        {
+            if (!IsLight)
+            {
+                ReleaseExpired();
+            }
+
+            return (LockCount, Waiters, Owner);
+        }
+    }
+
     public int TryLock(GuestThread self, int count)
     {
         lock (this)
@@ -1177,28 +1337,145 @@ public sealed partial class Mutex : KernelObject
                 LockCount = count;
                 return SceError.OK;
             }
-            if (Owner == self)
+            if (IllegalCount(count))
             {
-                if ((Attr & AttrRecursive) == 0)
-                {
-                    return Recursive;
-                }
-
-                LockCount += count;
-                return SceError.OK;
+                return SceError.ILLEGAL_COUNT;
             }
-            if (Owner != null)
+
+            ReleaseExpired();
+            if (_owner == self)
+            {
+                return LockAgain(count);
+            }
+
+            if (HandOver())
+            {
+                WakeWaiters(); // the owner had ended: the head of the queue takes it first
+            }
+
+            if (!OwnerFree)
             {
                 return FailedToOwn;
             }
 
-            Owner = self;
-            LockCount = count;
+            _owner = self;
+            _lockCount = count;
             return SceError.OK;
         }
     }
 
+    /// <summary>The owner locks again: a recursive mutex adds the count (MUTEX_LOCK_OVF past int.MaxValue), any other
+    /// is MUTEX_RECURSIVE.</summary>
+    private int LockAgain(int count)
+    {
+        if ((Attr & AttrRecursive) == 0)
+        {
+            return Recursive;
+        }
+
+        if (_lockCount + count < 0)
+        {
+            return SceError.MUTEX_LOCK_OVF;
+        }
+
+        _lockCount += count;
+        return SceError.OK;
+    }
+
     public int Lock(GuestThread self, int count, Ptr<uint> timeout)
+    {
+        return IsLight ? LockLight(self, count, timeout) : LockQueued(self, count, timeout, reacquire: false);
+    }
+
+    /// <summary>A condition wait takes its mutex back with the count it had (the cond's thread is not reissued as a
+    /// lock by a save state: see <see cref="WaitRequest.Reacquire"/>).</summary>
+    internal int Reacquire(GuestThread self, int count) => IsLight ? LockLight(self, count, default) : LockQueued(self, count, default, reacquire: true);
+
+    private int LockQueued(GuestThread self, int count, Ptr<uint> timeout, bool reacquire)
+    {
+        int result;
+        bool woken;
+        lock (this)
+        {
+            if (IllegalCount(count))
+            {
+                return SceError.ILLEGAL_COUNT;
+            }
+
+            if (_deleted)
+            {
+                return SceError.WAIT_DELETE;
+            }
+
+            ReleaseExpired();
+            WaitRequest? request = TakeRestored(self);
+            if (request != null && (request.Granted || request.Error != 0))
+            {
+                _granted.Remove(request);
+                ObserveSignal();
+                return request.Granted ? SceError.OK : request.Error;
+            }
+
+            if (request == null)
+            {
+                if (_owner == self)
+                {
+                    return LockAgain(count);
+                }
+
+                if (!WaiterAhead(self.Priority) && OwnerFree)
+                {
+                    _owner = self;
+                    _lockCount = count;
+                    ObserveSignal();
+                    return SceError.OK;
+                }
+
+                request = new WaitRequest { Count = count, Priority = self.Priority, ThreadUid = self.Uid, Thread = self, Reacquire = reacquire };
+                Enqueue(request);
+                Waiters++;
+            }
+
+            request.Thread = self;
+            request.StartTicks = GuestClock.Ticks;
+            request.LimitUs = timeout.IsNull ? -1 : timeout.Value;
+            try
+            {
+                // an owner that ends without unlocking leaves the mutex to the head of the queue: looked at on every
+                // wake-up slice, as before the queue
+                result = Wait.UntilGranted(this, (mutex: this, request), static s => s.request.Granted || s.mutex.HandOverFromEndedOwner(s.request),
+                    timeout, static s => s.request.Granted ? 0 : s.request.Error, WaitDescription, out woken);
+            }
+            finally
+            {
+                if (request.Granted)
+                {
+                    _granted.Remove(request);
+                }
+                else if (request.Error == 0 && _queue.Remove(request))
+                {
+                    Waiters--; // its own timeout (or the thread's end)
+                }
+            }
+            if (request.Granted)
+            {
+                result = SceError.OK; // a timeout or cancel that came after the hand-over does not undo it
+            }
+            else if (request.Error == SceError.WAIT_TIMEOUT)
+            {
+                result = SceError.WAIT_TIMEOUT;
+                timeout.TrySet(0);
+            }
+        }
+        if (woken && result == SceError.OK)
+        {
+            Wait.WakeLatency();
+        }
+
+        return result;
+    }
+
+    private int LockLight(GuestThread self, int count, Ptr<uint> timeout)
     {
         if (count <= 0)
         {
@@ -1207,7 +1484,7 @@ public sealed partial class Mutex : KernelObject
 
         lock (this)
         {
-            if (IsLight ? OwnerUidWord == (uint)self.Uid : Owner == self)
+            if (OwnerUidWord == (uint)self.Uid)
             {
                 if ((Attr & AttrRecursive) == 0)
                 {
@@ -1217,7 +1494,7 @@ public sealed partial class Mutex : KernelObject
                 LockCount += count;
                 return SceError.OK;
             }
-            if (IsLight && LightTryAcquire(self, Waiters))
+            if (LightTryAcquire(self, Waiters))
             {
                 LockCount = count;
                 return SceError.OK;
@@ -1228,24 +1505,16 @@ public sealed partial class Mutex : KernelObject
             {
                 while (true)
                 {
-                    int r = IsLight
-                        ? Wait.Until(this, (m: this, gen), static t => t.m.LightReady(), timeout,
-                            static t => t.m._deleted ? SceError.WAIT_DELETE : t.m._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription)
-                        : Wait.Until(this, (m: this, gen), static t => t.m._owner == null || t.m._owner.Status == ThreadStatus.Dormant, timeout,
-                            static t => t.m._deleted ? SceError.WAIT_DELETE : t.m._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
+                    int r = Wait.Until(this, (m: this, gen), static t => t.m.LightReady(), timeout,
+                        static t => t.m._deleted ? SceError.WAIT_DELETE : t.m._cancelled != t.gen ? SceError.WAIT_CANCEL : 0, WaitDescription);
                     if (r != SceError.OK)
                     {
                         return r;
                     }
                     // a lightweight mutex can be taken by guest code between the wake-up and here: wait again
-                    if (IsLight && !LightTryAcquire(self, Waiters - 1))
+                    if (!LightTryAcquire(self, Waiters - 1))
                     {
                         continue;
-                    }
-
-                    if (!IsLight)
-                    {
-                        Owner = self;
                     }
 
                     LockCount = count;
@@ -1263,22 +1532,22 @@ public sealed partial class Mutex : KernelObject
     {
         lock (this)
         {
-            if (IsLight ? OwnerUidWord != (uint)self.Uid : Owner != self)
-            {
-                return IsLight ? SceError.LW_MUTEX_NOT_OWNED : SceError.MUTEX_NOT_OWNED;
-            }
-
-            if (count > LockCount)
-            {
-                return IsLight ? SceError.LW_MUTEX_UNLOCK_UDF : SceError.MUTEX_UNLOCK_UDF;
-            }
-
-            int left = LockCount - count;
             if (IsLight)
             {
-                if (left != 0)
+                if (OwnerUidWord != (uint)self.Uid)
                 {
-                    LockCount = left;
+                    return SceError.LW_MUTEX_NOT_OWNED;
+                }
+
+                if (count > LockCount)
+                {
+                    return SceError.LW_MUTEX_UNLOCK_UDF;
+                }
+
+                int light = LockCount - count;
+                if (light != 0)
+                {
+                    LockCount = light;
                 }
                 else
                 {
@@ -1287,13 +1556,33 @@ public sealed partial class Mutex : KernelObject
 
                 return SceError.OK;
             }
-            LockCount = left;
-            if (left == 0)
+            if (IllegalCount(count))
             {
-                Owner = null;
+                return SceError.ILLEGAL_COUNT;
             }
 
-            WakeWaiters();
+            ReleaseExpired();
+            if (_owner != self)
+            {
+                return SceError.MUTEX_NOT_OWNED;
+            }
+
+            if (count > _lockCount)
+            {
+                return SceError.MUTEX_UNLOCK_UDF;
+            }
+
+            _lockCount -= count;
+            if (_lockCount == 0)
+            {
+                _owner = null;
+                RecordSignal();
+                if (HandOver())
+                {
+                    WakeWaiters();
+                }
+            }
+
             return SceError.OK;
         }
     }
@@ -1314,31 +1603,44 @@ public sealed partial class Mutex : KernelObject
                 LightRelease();
                 return c;
             }
-            LockCount = 0;
-            Owner = null;
-            WakeWaiters();
+            ReleaseExpired();
+            _lockCount = 0;
+            _owner = null;
+            RecordSignal();
+            if (HandOver())
+            {
+                WakeWaiters();
+            }
+
             return c;
         }
     }
 
-    /// <summary>sceKernelCancelMutex: wakes every waiter with WAIT_CANCEL and resets the lock count (-1 = initCount);
-    /// a count above 0 hands the mutex to the caller.</summary>
+    /// <summary>sceKernelCancelMutex (threadmgr 3.74): a negative count is the initial count; a count above 1 needs
+    /// SCE_KERNEL_MUTEX_ATTR_RECURSIVE (ILLEGAL_COUNT, nothing changed). Every waiter returns WAIT_CANCEL (numWait: how
+    /// many) without the mutex, and the count goes to the caller (0: the mutex is free).</summary>
     public int Cancel(GuestThread? self, int newCount, Ptr<int> numWait)
     {
         lock (this)
         {
-            if (newCount == -1)
+            if (newCount < 0)
             {
                 newCount = InitCount;
             }
 
-            if (newCount < 0 || (newCount > 1 && (Attr & AttrRecursive) == 0))
+            if (newCount > 1 && (Attr & AttrRecursive) == 0)
             {
                 return SceError.ILLEGAL_COUNT;
             }
 
+            if (!IsLight)
+            {
+                ReleaseExpired();
+            }
+
             numWait.TrySet(Waiters);
             _cancelled++;
+            DequeueAll(SceError.WAIT_CANCEL);
             LockCount = newCount;
             Owner = newCount > 0 ? self : null;
             WakeWaiters();
@@ -1351,6 +1653,7 @@ public sealed partial class Mutex : KernelObject
         lock (this)
         {
             _deleted = true;
+            DequeueAll(SceError.WAIT_DELETE);
             LockCount = 0;
             Owner = null;
             // the guest fast paths check the UID word: a deleted mutex's calls come to the kernel (UNKNOWN_LW_MUTEX_ID)
@@ -1361,6 +1664,22 @@ public sealed partial class Mutex : KernelObject
 
             WakeWaiters();
         }
+    }
+
+    private void DequeueAll(int error)
+    {
+        if (IsLight)
+        {
+            return; // a lightweight mutex's sleepers see _cancelled / _deleted
+        }
+
+        foreach (WaitRequest request in _queue)
+        {
+            request.Error = error;
+        }
+
+        Waiters -= _queue.Count;
+        _queue.Clear();
     }
 }
 
@@ -1445,7 +1764,7 @@ public sealed partial class CondVar : KernelObject
             Monitor.Exit(this);
             try
             {
-                Mutex.Lock(self, count, default);
+                Mutex.Reacquire(self, count);
             }
             finally
             {
