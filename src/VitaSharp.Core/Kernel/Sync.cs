@@ -114,7 +114,9 @@ public static class Wait
                         Latency();
                     }
 
-                    WriteRemaining(timeout, limitUs, start);
+                    // a wait that slept ended at the object's last signal, if it came during the wait
+                    long signalled = waited && sync is KernelObject signalledObject ? signalledObject.SignalTicks : long.MinValue;
+                    WriteRemaining(timeout, limitUs, start, signalled);
                     return SceError.OK;
                 }
                 if (self != null && self.Core.StopRequested)
@@ -232,14 +234,18 @@ public static class Wait
     /// out of guest time (the clock and scale every wait's timeout uses).</summary>
     internal static bool Expired(long startTicks, long limitUs) => ElapsedUs(startTicks) >= limitUs;
 
-    private static void WriteRemaining(Ptr<uint> timeout, long? limitUs, long startTicks)
+    /// <summary>Writes back the time left of a wait that ended at <paramref name="endedTicks"/> (the signal that woke it;
+    /// a value outside the wait, such as long.MinValue, means now).</summary>
+    private static void WriteRemaining(Ptr<uint> timeout, long? limitUs, long startTicks, long endedTicks = long.MinValue)
     {
         if (timeout.IsNull || !limitUs.HasValue)
         {
             return;
         }
 
-        long left = limitUs.Value - ElapsedUs(startTicks);
+        long now = GuestClock.Ticks;
+        long ended = endedTicks >= startTicks && endedTicks <= now ? endedTicks : now;
+        long left = limitUs.Value - (long)((ended - startTicks) * 1_000_000 / Stopwatch.Frequency * TimeScale.Wait);
         timeout.Value = (uint)Math.Max(0, left);
     }
 

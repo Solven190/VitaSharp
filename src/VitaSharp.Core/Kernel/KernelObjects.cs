@@ -37,6 +37,10 @@ public abstract class KernelObject
     /// <summary>The signaller's <see cref="GuestThread.CoreReleases"/> at the signal.</summary>
     internal int SignallerCoreReleases { get; private set; }
 
+    /// <summary>The guest time of the last signal (<see cref="Util.GuestClock.Ticks"/>): a timed wait it ends writes back the
+    /// time that was left at the signal, as the kernel's timer stops there, not when the woken host thread runs.</summary>
+    internal long SignalTicks { get; private set; } = long.MinValue;
+
     /// <summary>Records the calling thread as the one that last signalled this object (the caller holds its lock).</summary>
     protected void RecordSignal()
     {
@@ -44,6 +48,7 @@ public abstract class KernelObject
         Signaller = current;
         SignallerProgress = current?.OwnCycles ?? 0;
         SignallerCoreReleases = current?.CoreReleases ?? 0;
+        SignalTicks = Util.GuestClock.Ticks;
     }
 
     /// <summary>Wakes the threads waiting on this object (the caller holds its lock) and records who woke them.</summary>

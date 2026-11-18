@@ -60,6 +60,22 @@ public static partial class GuestClock
         Interlocked.Exchange(ref s_offset, f - RealElapsed);
         Volatile.Write(ref s_frozen, NotFrozen);
     }
+
+    /// <summary>Tests that decide guest time themselves: moves the stopped clock (<see cref="Freeze"/>) forward by
+    /// <paramref name="microseconds"/>, rounded up to whole ticks, so a timeout passes exactly when the test says and
+    /// never because the host was slow.</summary>
+    internal static void AdvanceFrozen(long microseconds)
+    {
+        long f = Volatile.Read(ref s_frozen);
+        if (f == NotFrozen)
+        {
+            throw new InvalidOperationException("only a frozen guest clock is moved by hand");
+        }
+
+        long ticks = (microseconds * Stopwatch.Frequency + 999_999) / 1_000_000;
+        Volatile.Write(ref s_frozen, f + ticks);
+    }
+
     public static long Microseconds => (long)(Ticks * (1_000_000.0 / Stopwatch.Frequency));
     public static double Seconds => Ticks / (double)Stopwatch.Frequency;
 

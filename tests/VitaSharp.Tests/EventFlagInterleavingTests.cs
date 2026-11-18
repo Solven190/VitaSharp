@@ -218,13 +218,14 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
 
     /// <summary>
     /// A wait's timeout is the kernel's timer at a guest-time deadline: once it has passed, the waiter is off the queue
-    /// and a later set does not satisfy it, however late its host thread is to notice (the lock is held here until the
-    /// deadline is past in guest time, then the set comes). The waiter returns WAIT_TIMEOUT with no time left, the
+    /// and a later set does not satisfy it, however late its host thread is to notice (the lock is held here while the
+    /// test moves guest time past the deadline, then the set comes). The waiter returns WAIT_TIMEOUT with no time left, the
     /// pattern from before the set, and the set's bit stays for the next caller.
     /// </summary>
     [Fact]
     public void ASetAfterTheDeadlineDoesNotSatisfyALateWaiter()
     {
+        using ControlledGuestClock clock = ControlledGuestClock.Stop();
         _h.OnGuest(_ =>
         {
             const uint LimitUs = 50_000;
@@ -236,10 +237,9 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
             GuestRun waiter = _h.Start(_ => result = Call(Tm, "sceKernelWaitEventFlag", uid, 0x1u, EventFlag.WaitAnd | EventFlag.WaitClearPat,
                 new Ptr<uint>(outBits), new Ptr<uint>(timeout)), "evf-late");
             Until(() => waiter.Thread.Status == ThreadStatus.Waiting, "the wait");
-            long waiting = VitaSharp.Core.Util.GuestClock.Ticks; // the wait started before this
             lock (flag)
             {
-                Until(() => Wait.Expired(waiting, LimitUs), "the deadline in guest time");
+                clock.Advance(LimitUs);
                 Assert.Equal(0, Call(Tm, "sceKernelSetEventFlag", uid, 0x1u));
             }
             _h.Join(waiter, 5_000);
@@ -256,9 +256,10 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ASetBeforeTheDeadlineSatisfiesALateWaiter()
     {
+        using ControlledGuestClock clock = ControlledGuestClock.Stop();
         _h.OnGuest(_ =>
         {
-            const uint LimitUs = 50_000;
+            const uint LimitUs = 50_000, BeforeSetUs = 20_000;
             int uid = Call(Tm, "sceKernelCreateEventFlag", "in-time", 0u, 0u, 0u);
             EventFlag flag = Flag(uid);
             uint outBits = _h.Word(0);
@@ -269,12 +270,13 @@ public sealed class EventFlagInterleavingTests(GuestMemoryFixture fixture) : IDi
             Until(() => waiter.Thread.Status == ThreadStatus.Waiting, "the wait");
             lock (flag)
             {
+                clock.Advance(BeforeSetUs);
                 Assert.Equal(0, Call(Tm, "sceKernelSetEventFlag", uid, 0x3u));
-                long afterSet = VitaSharp.Core.Util.GuestClock.Ticks;
-                Until(() => Wait.Expired(afterSet, LimitUs), "the deadline in guest time");
+                clock.Advance(LimitUs); // the waiter's thread runs past its deadline
             }
             _h.Join(waiter, 5_000);
             Assert.Equal(0, result);
+            Assert.Equal(LimitUs - BeforeSetUs, GuestMemory.R32(timeout)); // the time left when the set woke it
             Assert.Equal(0x3u, GuestMemory.R32(outBits));
             Assert.Equal(0x2u, flag.Pattern);
         });
