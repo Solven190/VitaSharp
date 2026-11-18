@@ -1200,7 +1200,13 @@ public static class SaveStates
         }
 
         Log.Info($"Load state: GPU backend replaced in {Stopwatch.GetElapsedTime(t0).TotalMilliseconds:F0} ms");
+        // the kernel process's translations too: the kernel code a plugin's hook patched is the state's again
         List<Emulator> processes = SystemProcesses(emu);
+        if (emu.Vita.KernelProcess is { } kernelProcess)
+        {
+            processes.Add(kernelProcess);
+        }
+
         if (!s_keepCodeOnLoad)
         {
             foreach (Emulator process in processes)

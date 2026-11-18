@@ -142,6 +142,9 @@ public sealed unsafe partial class GuestThread
         // appended after the registers, read only when present: a state of a build before it has none (its threads were
         // all user threads), and a build before it ignores the rest of the record
         w.Write(KernelMode);
+        // appended after it the same way: the privileged state of a thread in a kernel exception handler (the mode,
+        // the banked registers, the fault registers) and its exception stacks (SceExcpmgr, GuestThread.Exceptions)
+        WriteExceptionState(w, Core.State);
     }
 
     internal static void WriteCpu(SnapshotWriter w, CpuState* s, bool reissue)
@@ -233,6 +236,11 @@ public sealed unsafe partial class GuestThread
         Hle = new HleContext { Cpu = Core.State, Thread = this, Emu = emu };
         ReadCpu(r, Core.State);
         KernelMode = !r.AtEnd && r.ReadBool();
+        if (!r.AtEnd)
+        {
+            ReadExceptionState(r, Core.State);
+        }
+
         Status = kind is SafeKind.Dormant ? ThreadStatus.Dormant : ThreadStatus.Ready;
         _reissuesWait = kind == SafeKind.Reissue;
     }
