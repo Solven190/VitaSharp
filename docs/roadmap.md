@@ -2912,6 +2912,23 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   KernelHleTests.SmallAtomicsUseTheWholeOperandRegisters); DecIfPositive8/16 com >= 0 é o que o firmware faz
   (LDREXB + CMP #0x80). Descartado com medida: lockstep contra o Unicorn (VITASHARP_LOCKSTEP=ALL, --cores=1), 0
   divergências até o Unicorn cair. Falta: o usuário confirmar o jogo até o menu/gameplay
+  Andamento (18/11/2026, ac3g; correção feita, falta a confirmação do usuário): o jogo chega ao gameplay, mas a
+  cena 3D saía com cores erradas (ciano/turquesa e amarelo saturados, com ruído; o HUD certo) e 17-22 fps. Causa
+  (replay do `gpu.vsgd` da captura de gameplay, present 5165): o G-buffer 704x576 F32F32 (0x6078C000) é escrito por
+  programas native-colour criados com HALF4 que empacotam o albedo RGBA8 em o0.x e a normal S8 em o0.y; a passada
+  de luz lê a superfície como U8U8U8U8 em +0 e S8S8S8S8 em +4. O gerador escrevia só os bytes de o0.x convertidos
+  para float (R=byte0/255, G=byte1/255; a normal perdida) e os programas de decal com framebuffer fetch liam o pixel
+  como quatro halves. Correção (genérica, superfícies de canais float de 32 bits): quando o formato do registrador
+  de saída tem o tamanho do pixel (HALF4/FLOAT2 em F32F32; UCHAR4/CHAR4/USHORT2/SHORT2/HALF2/FLOAT em F32), as
+  palavras do registrador vão cruas pela view inteira e o fetch devolve as palavras como estão; gerador v29 (testes
+  NativeColorOutputTests). Falta: os decals do chão (canteiros, manchas) ainda saem como ruído azul/verde no replay;
+  vêm do programa com framebuffer fetch fs E75AC07A68CC79A1 (zerá-lo com `--debug-fs` some com as manchas), que
+  mistura bytes do albedo lido do pixel (SOP2); suspeita: a cópia do fetch é lida por um sampler float
+  (R32G32Sfloat), que pode zerar denormais/alterar NaN das palavras empacotadas; próximo passo é ler a cópia por uma
+  view inteira (R32G32Uint, usampler) quando o programa usa as palavras cruas. Depois, o usuário confirmar as cores
+  no jogo. Desempenho (não mexido): na captura, GPU
+  ~14 ms por quadro contra ~52 ms de quadro do guest, com TaskThread1-3 e a `main` ocupadas: o gargalo é a CPU do
+  guest, não a GPU
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
