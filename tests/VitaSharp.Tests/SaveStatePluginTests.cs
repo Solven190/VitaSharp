@@ -314,7 +314,7 @@ public sealed unsafe class SaveStatePluginTests : IDisposable
 
         var writer = new SnapshotWriter();
         thread.WriteSnapshot(writer, GuestThread.SafeKind.Dormant);
-        GuestThread restored = GuestThread.ReadSnapshot(Kernel, new SnapshotReader(writer.Data.ToArray()), out _, out _, out _);
+        var restored = GuestThread.ReadSnapshot(Kernel, new SnapshotReader(writer.Data.ToArray()), out _, out _, out _);
         try
         {
             CpuState* loaded = restored.Core.State;
