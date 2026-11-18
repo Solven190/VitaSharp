@@ -250,12 +250,17 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
-- [ ] [P1][M] Save state recusado com plugins de kernel ativos (relato do usuário, 18/11/2026): com "Ativar Plugins
-  do Kernel" ligado (ex.: nopsmdrm/kubridge no ur0:tai/config.txt), salvar dá `module kernel PluginFramework: its state
-  is not supported by save states yet` (SaveStates.cs:380). Falta o estado do PluginFramework (hooks instalados por
-  processo, plugins carregados e a ordem, o processo de kernel compartilhado, a memória e as threads dos plugins) entrar
-  no save state e voltar no load como num Vita (os hooks reinstalados nas mesmas funções), com teste de ida e volta com
-  um plugin de teste (SceModuleBuilder) que instala um hook
+- [x] (18/11/2026, fix/ss1, correção feita, ainda não confirmada no jogo do relato) [P1][M] Save state recusado com
+  plugins de kernel ativos: com "Ativar Plugins do Kernel" ligado, salvar dava `module kernel PluginFramework: its state
+  is not supported by save states yet`. Feito: o PluginFramework tem snapshot (os hooks e as injeções de dados por UID,
+  de cada processo e do processo de kernel); os registros (processo, endereço, bytes originais, thunk, trampolim,
+  registros de referência, função HLE redirecionada) entram na tabela de objetos do kernel (`pluginhook`,
+  `plugininject`); no load os stubs de importação de uma função HLE com hook voltam para o thunk (também os ligados
+  depois do load) e os de um hook feito só depois do save voltam para a função, sem recarregar plugin nenhum (módulos,
+  threads e memória dos plugins já eram do estado); o cache de código do processo de kernel também é limpo no load; a
+  thread salva dentro de um handler de exceção do SceExcpmgr guarda modo, registros banqueados, SPSR, registros de
+  falha e as pilhas de exceção. Testes: `SaveStatePluginTests` (hook de export + injeção, stub do jogo numa função HLE
+  com hook nos dois sentidos, handlers de exceção do kernel, thread em modo abort).
 - [x] Cascas dos módulos de firmware em HLE (FirmwareKernelModules, rr3c) ocupam o tamanho real do código dos módulos de
   kernel (~20 MB de memória de kernel do guest preenchidos com a armadilha 0xE7FDDEFE), que ia inteiro para cada save
   state. Feito (fix/bug6-shells, 16/11/2026): uma página que é uma só palavra de 32 bits repetida (a armadilha, um
