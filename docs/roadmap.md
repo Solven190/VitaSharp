@@ -392,6 +392,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Desempenho (PC)
 
+- [ ] [P2][G] Pré-compilação do código ARM antes do boot, como o "Compiling PPU modules" do RPCS3 (pedido do usuário,
+  18/11/2026): no 1º boot de um jogo (e depois de cada atualização do emulador), com tela de progresso, achar o código
+  do eboot.bin e dos módulos (análise de fluxo a partir das entradas, exportações, tabelas de relocação) e traduzi-lo
+  com o JIT nativo para um cache em disco (por título, versão, build do emulador e endereço de carga/relocações); nas
+  sessões seguintes só carregar. O JIT normal cobre o que a análise não achar. Medida de partida: AC III Liberation,
+  sessão de ~4,5 min = 84.817 blocos, 15,4 s compilando (182 us/bloco) no meio do jogo; no celular deve ser 2-4x.
+  Aceite: 1ª sessão depois da pré-compilação com quase 0 ms de compilação durante o jogo. Desktop e Android
+  (ARM64), validado no PC enquanto o Android está pausado
+
 - [ ] [P3][M] Investigar reduções de memória do emulador (pedido do usuário, 17/11/2026): medir o uso de RAM do
   processo com um jogo pesado (dotnet-counters/dotnet-gcdump) e listar onde dá para cortar (caches de shader/textura,
   cópias da memória do Vita, buffers da GPU, heap do .NET), com o ganho estimado de cada um, sem perder fps
