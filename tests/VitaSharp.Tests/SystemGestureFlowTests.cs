@@ -66,6 +66,33 @@ public sealed class SystemGestureFlowTests(GuestMemoryFixture fixture) : IDispos
     private static uint State(byte[] e) => BitConverter.ToUInt32(e, 4);
     private static short S16(byte[] e, int o) => BitConverter.ToInt16(e, o);
 
+    /// <summary>The recognizer state lives in the caller's SceSystemGestureTouchRecognizer buffer, so a copy of the
+    /// buffer is the same recognizer and re-creating the scratch buffer it came from does not touch the copy (Assassin's
+    /// Creed III Liberation builds each recognizer in one stack buffer and memcpy's it out; with the state keyed by
+    /// address the copies answered INVALID_ARG, the game read that error as the event count and looped over 0x80800001
+    /// events, overrunning a heap vector).</summary>
+    [Fact]
+    public void CopiedRecognizerBufferKeepsItsState()
+    {
+        const uint Size = 307 * 8;
+        uint scratch = _harness.Alloc(Size), front = _harness.Alloc(Size), back = _harness.Alloc(Size);
+        Assert.Equal(0, Call(SystemGesture, "sceSystemGestureInitializePrimitiveTouchRecognizer", 0u));
+        Assert.Equal(0, Call(SystemGesture, "sceSystemGestureCreateTouchRecognizer", scratch, 2u, 0u, 0u, 0u)); // drag, front
+        GuestMemory.Copy(front, scratch, Size);
+        Assert.Equal(0, Call(SystemGesture, "sceSystemGestureCreateTouchRecognizer", scratch, 2u, 1u, 0u, 0u)); // drag, rear
+        GuestMemory.Copy(back, scratch, Size);
+
+        Frame(16_000, (7, 500, 400));
+        Assert.Single(Events(front)); // the front touch began a drag
+        Assert.Empty(Events(back)); // the rear panel saw nothing
+        Assert.Empty(Events(scratch)); // still the last recognizer created there (rear)
+
+        uint stray = _harness.Alloc(Size);
+        GuestMemory.Fill(stray, 0, Size);
+        Assert.Equal(INVALID_ARG, Call(SystemGesture, "sceSystemGestureUpdateTouchRecognizer", stray)); // never created
+        Assert.Equal(INVALID_ARG, Call(SystemGesture, "sceSystemGestureGetTouchEventsCount", stray));
+    }
+
     [Fact]
     public void PrimitiveEventsFollowEachFinger()
     {

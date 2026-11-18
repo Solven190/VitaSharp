@@ -2788,6 +2788,22 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   NGS, sem sobreposição aparente. Próximo passo: comparar essas escritas com os chunks do dlmalloc no assert
   (0x8145C50E) e, se nenhuma cair no chunk corrompido, procurar na semântica de memória da CPU guest
   (LDM/STM, LDREXD/STREXD, VFP) com um watchpoint no campo pai do nó raiz
+  Andamento (18/11/2026, ac3c; correção feita, falta a confirmação do usuário): causa no HLE do SceSystemGesture.
+  O jogo cria cada reconhecedor de toque num buffer da pilha (porta 0, depois porta 1, no mesmo endereço) e copia o
+  SceSystemGestureTouchRecognizer (uint64_t reserved[307], todo o estado fica no buffer do chamador) para os seus
+  objetos; o HLE guardava o estado pelo endereço, então Update/GetTouchEventsCount na cópia (0x83A11000) davam
+  INVALID_ARG. O jogo usou 0x80800001 como número de eventos e chamou GetTouchEventByIndex 12278 vezes, crescendo um
+  vetor de eventos de 0x90 bytes até a capacidade de 16 bits dar a volta (0x4002 -> 0x0002): o próximo "realloc"
+  de 0xEA0 bytes recebeu um chunk pequeno do dlmalloc e a cópia de ~3 MB passou por cima das páginas livres do
+  alocador do Gear (o pai errado da raiz e os asserts do dlmalloc). Achado com um watchpoint nos campos dos nós (a
+  `main` gravando numa página que ela mesma tinha liberado), probes no realloc do vetor e trace de HLE da `main`.
+  Correção: Create grava um handle no buffer e toda chamada acha o reconhecedor por ele (teste
+  SystemGestureFlowTests.CopiedRecognizerBufferKeepsItsState). Headless: 769 quadros em 60 s, ~26-30 fps, logos
+  da Ubisoft e a abertura, sem BKPT. No caminho: sceKernelAtomicCompareAndSet8/16 e AddUnless8/16 reduziam os
+  operandos a 8/16 bits, e o FW 3.74 usa o registrador inteiro (corrigido, teste
+  KernelHleTests.SmallAtomicsUseTheWholeOperandRegisters); DecIfPositive8/16 com >= 0 é o que o firmware faz
+  (LDREXB + CMP #0x80). Descartado com medida: lockstep contra o Unicorn (VITASHARP_LOCKSTEP=ALL, --cores=1), 0
+  divergências até o Unicorn cair. Falta: o usuário confirmar o jogo até o menu/gameplay
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;

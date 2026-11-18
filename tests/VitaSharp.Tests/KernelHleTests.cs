@@ -122,6 +122,51 @@ public sealed class KernelHleTests(GuestMemoryFixture fixture)
         Assert.Equal(0xFFFF_FFF0L, Call<long>(a, "sceKernelAtomicClearAndGet64", p + 8, 0xFL));
     }
 
+    /// <summary>FW 3.74 libkernel: CompareAndSet8/16 compare the sign-extended old value with the whole 32-bit
+    /// expected register, and AddUnless8/16 add and compare the whole 32-bit addend and limit registers (no narrowing
+    /// of the operands); DecIfPositive8/16 decrement when the old value is &gt;= 0 (LDREXB + CMP #0x80).</summary>
+    [Fact]
+    public void SmallAtomicsUseTheWholeOperandRegisters()
+    {
+        var a = new Atomic();
+        uint p = Alloc(16);
+        GuestMemory.W32(p, 0);
+
+        GuestMemory.Write<byte>(p, 0xFF);
+        Assert.Equal(-1, Call<int>(a, "sceKernelAtomicCompareAndSet8", p, 0xFF, 0x12)); // zero-extended: no match
+        Assert.Equal((byte)0xFF, GuestMemory.Read<byte>(p));
+        Assert.Equal(-1, Call<int>(a, "sceKernelAtomicCompareAndSet8", p, -1, 0x12));
+        Assert.Equal((byte)0x12, GuestMemory.Read<byte>(p));
+
+        GuestMemory.Write<ushort>(p + 2, 0x8000);
+        Assert.Equal(-0x8000, Call<int>(a, "sceKernelAtomicCompareAndSet16", p + 2, 0x8000, 1));
+        Assert.Equal((ushort)0x8000, GuestMemory.Read<ushort>(p + 2));
+        Assert.Equal(-0x8000, Call<int>(a, "sceKernelAtomicCompareAndSet16", p + 2, -0x8000, 1));
+        Assert.Equal((ushort)1, GuestMemory.Read<ushort>(p + 2));
+
+        GuestMemory.Write<byte>(p + 4, 0);
+        Assert.Equal(0, Call<int>(a, "sceKernelAtomicAddUnless8", p + 4, 1, 0x100)); // 1 < 256
+        Assert.Equal((byte)1, GuestMemory.Read<byte>(p + 4));
+        Assert.Equal(1, Call<int>(a, "sceKernelAtomicAddUnless8", p + 4, 0x101, 0x102)); // 0x102 >= 0x102
+        Assert.Equal((byte)0x02, GuestMemory.Read<byte>(p + 4));
+
+        GuestMemory.Write<short>(p + 6, 0);
+        Assert.Equal(0, Call<int>(a, "sceKernelAtomicAddUnless16", p + 6, 1, 0x10000)); // 1 < 65536
+        Assert.Equal((short)1, GuestMemory.Read<short>(p + 6));
+
+        GuestMemory.Write<byte>(p + 8, 0);
+        Assert.Equal(0, Call<int>(a, "sceKernelAtomicDecIfPositive8", p + 8));
+        Assert.Equal((sbyte)-1, GuestMemory.Read<sbyte>(p + 8));
+        Assert.Equal(-1, Call<int>(a, "sceKernelAtomicDecIfPositive8", p + 8));
+        Assert.Equal((sbyte)-1, GuestMemory.Read<sbyte>(p + 8)); // negative: untouched
+        GuestMemory.Write<long>(p + 8, 0x1_0000_0000L);
+        Assert.Equal(0x1_0000_0000L, Call<long>(a, "sceKernelAtomicDecIfPositive64", p + 8));
+        Assert.Equal(0xFFFF_FFFFL, GuestMemory.Read<long>(p + 8));
+        GuestMemory.Write<long>(p + 8, 0);
+        Assert.Equal(0L, Call<long>(a, "sceKernelAtomicDecIfPositive64", p + 8));
+        Assert.Equal(0L, GuestMemory.Read<long>(p + 8));
+    }
+
     [Fact]
     public void SimpleEventPulseOnlyReachesWaiters()
     {
