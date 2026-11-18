@@ -76,11 +76,30 @@ public unsafe struct CpuState
     public long NSimdOps;      // profiling (VITASHARP_NATIVE_COUNTERS): VFP/NEON IR ops and conditional branches of
     public long NCondBranches; // the native blocks run since entering native code (counted per block execution)
 
+    // ---- privileged state (exception modes, see ExceptionModes): only kernel exception handlers use it. A cleared
+    // state is user mode, so nothing above changes for user code, and the generated code never reads these fields.
+    public uint ControlXor;            // CPSR bits 9:6 and 4:0 (E, A, I, F, M) xor 0x10: 0 = user mode, nothing masked
+    public fixed uint BankedSp[6];     // R13 of the modes not running (index: ExceptionModes.Bank)
+    public fixed uint BankedLr[6];     // R14 of the modes not running
+    public fixed uint Spsr[6];         // the saved program status register of each exception mode (0: user/system has none)
+    public fixed uint BankedHigh[10];  // R8-R12 of user/system (0..4) and of FIQ mode (5..9), the one not running
+    public uint Dfsr, Dfar;            // CP15 c5/c6 fault status and address of the last data abort
+    public uint Ifsr, Ifar;            // ... and of the last prefetch abort
+    public uint Adfsr, Aifsr;          // auxiliary fault status registers (IMPLEMENTATION DEFINED, kept as written)
+
+    /// <summary>CPSR bits 9:6 and 4:0 (endianness, A/I/F masks, mode).</summary>
+    public readonly uint Control => ControlXor ^ ExceptionModes.User;
+
+    /// <summary>CPSR.M: the processor mode (<see cref="ExceptionModes.User"/> for a cleared state).</summary>
+    public readonly uint Mode => Control & 0x1F;
+
+    /// <summary>The CPSR. Writing it changes the user-visible bits only (flags, Q, GE, IT, T); the mode and the masks
+    /// change through <see cref="ExceptionModes.WriteCpsr"/>.</summary>
     public uint Cpsr
     {
         readonly get => (N << 31) | (Z << 30) | (C << 29) | (V << 28) | (Q << 27)
                         | ((ITState & 3) << 25) | ((GE & 0xF) << 16) | ((ITState >> 2) << 10)
-                        | (Thumb << 5) | 0x10;
+                        | (Thumb << 5) | Control;
         set
         {
             N = (value >> 31) & 1;

@@ -96,5 +96,7 @@ functions do nothing, as imports nothing provides. Function hooks are the next s
 
 - A plugin that patches the firmware's own code by offset finds no firmware code there (VitaSharp implements the
   firmware's libraries itself).
-- Exceptions are not delivered to kernel handlers (the emulated CPU reports a guest fault as a crash); interrupt
-  masking is state only (there is no interrupt controller).
+- Undefined instructions and prefetch aborts (jumps to unmapped addresses) reach the handlers registered with
+  SceExcpmgr, in undefined/abort mode with the banked registers and SPSR of the ARM exception modes; with no handler,
+  or when no handler takes it, the fault is reported as a crash as before. Data aborts are not delivered yet (an
+  access to unmapped memory reads zeros). Interrupt masking is state only (there is no interrupt controller).

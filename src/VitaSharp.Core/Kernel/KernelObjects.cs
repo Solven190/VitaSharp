@@ -181,6 +181,8 @@ public static class SceError
     public const int ILLEGAL_THREAD_ID = unchecked((int)0x80028022);
     public const int UNKNOWN_THREAD_ID = unchecked((int)0x80028021);
     public const int ILLEGAL_PRIORITY = unchecked((int)0x80028023);
+    public const int ILLEGAL_EXCPCODE = unchecked((int)0x80027001);
+    public const int ILLEGAL_EXCPHANDLER = unchecked((int)0x80027002);
     public const int NOT_DORMANT = unchecked((int)0x80028028);
     public const int DORMANT = unchecked((int)0x80028027);
     public const int WAIT_TIMEOUT = unchecked((int)0x80028005);

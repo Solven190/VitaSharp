@@ -435,10 +435,10 @@ internal static unsafe class T32
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Msr(CpuState* state, uint ins, uint pc) => A32.MsrCore(state, Bits(ins, 11, 10), state->R[Bits(ins, 19, 16)]);
+    public static void Msr(CpuState* state, uint ins, uint pc) => A32.MsrCore(state, Bit(ins, 20) != 0, Bits(ins, 11, 8), state->R[Bits(ins, 19, 16)]);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Mrs(CpuState* state, uint ins, uint pc) => state->R[Bits(ins, 11, 8)] = (state->Cpsr & 0xF80F0000) | 0x10;
+    public static void Mrs(CpuState* state, uint ins, uint pc) => state->R[Bits(ins, 11, 8)] = A32.MrsValue(state, Bit(ins, 20) != 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void BxjOrSubsPcLr(CpuState* state, uint ins, uint pc)
@@ -448,10 +448,44 @@ internal static unsafe class T32
         {
             BxWritePc(state, state->R[Bits(ins, 19, 16)]);
         }
+        else if (ExceptionModes.HasSpsr(state))
+        {
+            ExceptionModes.ReturnFromException(state, state->R[14] - (ins & 0xFF));
+        }
         else
         {
             BxWritePc(state, state->R[14] - (ins & 0xFF));
         }
+    }
+
+    /// <summary>CPS (Thumb-2): 11110 0111010 1111 | 10 0 0 0 imod M A I F mode.</summary>
+    public static void Cps(CpuState* state, uint ins, uint pc)
+        => A32.ChangeProcessorState(state, Bits(ins, 10, 9), Bit(ins, 8) != 0, Bits(ins, 7, 5), ins & 0x1F);
+
+    /// <summary>SRS (Thumb-2): 1110100 op 0 W 0 1101 | 1100 0000 000 mode; op 0 = DB, 3 = IA.</summary>
+    public static void Srs(CpuState* state, uint ins, uint pc)
+    {
+        if (!ExceptionModes.HasSpsr(state))
+        {
+            Udf(state, ins, pc);
+            return;
+        }
+
+        bool increment = Bits(ins, 24, 23) == 3;
+        A32.StoreReturnState(state, ins & 0x1F, !increment, increment, Bit(ins, 21) != 0);
+    }
+
+    /// <summary>RFE (Thumb-2): 1110100 op 0 W 1 Rn | 1100 0000 0000 0000; op 0 = DB, 3 = IA.</summary>
+    public static void Rfe(CpuState* state, uint ins, uint pc)
+    {
+        if (!ExceptionModes.IsPrivileged(state))
+        {
+            Udf(state, ins, pc);
+            return;
+        }
+
+        bool increment = Bits(ins, 24, 23) == 3;
+        A32.ReturnFromExceptionState(state, Bits(ins, 19, 16), !increment, increment, Bit(ins, 21) != 0);
     }
 
     /// <summary>TBB/TBH: 111010001101 Rn | 1111 0000 000 H Rm</summary>

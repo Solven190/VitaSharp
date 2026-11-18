@@ -33,6 +33,8 @@ public enum Op : ushort
     // NEON
     Neon_ThreeSame, Neon_ThreeDiff, Neon_Scalar, Neon_Shift, Neon_Misc, Neon_Imm, Neon_Vext, Neon_Vtbl,
     Neon_VdupScalar, Neon_LoadStore,
+    // privileged (exception modes, see ExceptionModes): appended so the values above do not move
+    A32_Cps, A32_Srs, A32_Rfe, A32_DPExceptionReturn, A32_LdmStmUser, T16_Cps, T32_Cps, T32_Srs, T32_Rfe,
     Count,
 }
 

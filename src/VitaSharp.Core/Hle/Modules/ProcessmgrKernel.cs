@@ -25,6 +25,7 @@ public sealed partial class ProcessmgrKernel : HleModule
     // exception handlers registered with the exception manager: handler address -> (kind << 16 | priority)
     readonly Dictionary<uint, uint> _exceptionHandlers = new();
     readonly Dictionary<uint, uint> _exceptionChainHeads = new();
+    [SaveState.SnapshotMissing] uint _defaultExceptionHandler;
 
     ThreadMgr Threads => Emu.Hle.Modules.OfType<ThreadMgr>().First();
 
@@ -241,43 +242,140 @@ public sealed partial class ProcessmgrKernel : HleModule
 
     /// <summary>
     /// sceKernelRegisterExceptionHandler (SceExcpmgrForKernel; ksceExcpmgrRegisterHandler on 3.63+)(kind, priority,
-    /// SceKernelExceptionHandler *handler): adds a kernel handler to the chain of one exception kind (the handler's
-    /// first word links to the next one). VitaSharp delivers no CPU exceptions to guest code: a guest fault is reported
-    /// as the emulator's crash, and what usually traps on hardware (VFP short vectors) is executed directly, so the
-    /// chains are kept but never entered.
+    /// SceKernelExceptionHandler *handler), as the FW 3.74 SceExcpmgr does it: a handler is {next, reserved, code...}
+    /// (its first two words must be zero), the chain of each kind is kept in priority order (0 first; among equal
+    /// priorities the newest first) and ends at the firmware's default handler, and the exception vector of the kind
+    /// enters the first handler's code at +8 in the exception's mode (<see cref="ExceptionVector"/>). Each handler
+    /// passes an exception it does not take on by jumping to its next handler's code (+8).
     /// </summary>
     [Hle]
     int sceKernelRegisterExceptionHandler(uint kind, uint priority, uint handler)
     {
-        if (kind >= ExceptionKinds || priority > 0xFF)
-        {
-            return SceError.INVALID_ARGUMENT;
-        }
-
-        if (handler == 0)
+        if (handler == 0 || (handler & 2) != 0)
         {
             return SceError.ILLEGAL_ADDR;
         }
 
+        uint record = handler & ~3u;
+        if (GuestMemory.R32(record) != 0 || GuestMemory.R32(record + 4) != 0)
+        {
+            return SceError.ILLEGAL_EXCPHANDLER;
+        }
+
+        if (kind >= ExceptionKinds)
+        {
+            return SceError.ILLEGAL_EXCPCODE;
+        }
+
+        if (priority >= 8)
+        {
+            return SceError.ILLEGAL_PRIORITY;
+        }
+
         lock (_exceptionHandlers)
         {
-            uint head = _exceptionChainHeads.GetValueOrDefault(kind);
-            GuestMemory.W32(handler, head);
-            _exceptionChainHeads[kind] = handler;
+            uint terminal = DefaultExceptionHandler();
+            // before the first handler of a priority not below this one
+            uint previous = 0;
+            uint next = _exceptionChainHeads.GetValueOrDefault(kind);
+            while (next != 0 && next != terminal && _exceptionHandlers.TryGetValue(next, out uint entry) && (entry & 0xFFFF) < priority)
+            {
+                previous = next;
+                next = GuestMemory.R32(next & ~3u);
+            }
+
+            GuestMemory.W32(record, next == 0 ? terminal : next);
+            if (previous == 0)
+            {
+                _exceptionChainHeads[kind] = handler;
+            }
+            else
+            {
+                GuestMemory.W32(previous & ~3u, handler);
+            }
+
             _exceptionHandlers[handler] = (kind << 16) | priority;
         }
 
         return 0;
     }
 
-    /// <summary>The kernel handlers registered for exception <paramref name="kind"/>, newest first.</summary>
+    /// <summary>The kernel handlers registered for exception <paramref name="kind"/>, in the order the exception
+    /// enters them.</summary>
     internal List<uint> ExceptionHandlers(uint kind)
     {
         lock (_exceptionHandlers)
         {
-            return _exceptionHandlers.Where(kv => kv.Value >> 16 == kind).Select(kv => kv.Key).Reverse().ToList();
+            var chain = new List<uint>();
+            uint at = _exceptionChainHeads.GetValueOrDefault(kind);
+            while (at != 0 && _exceptionHandlers.ContainsKey(at) && chain.Count < _exceptionHandlers.Count)
+            {
+                chain.Add(at);
+                at = GuestMemory.R32(at & ~3u);
+            }
+
+            return chain;
         }
     }
+
+    /// <summary>
+    /// Where exception <paramref name="kind"/> enters the kernel: the code (+8) of the first handler of its chain, or 0
+    /// when no handler is registered (VitaSharp then reports the fault itself, as before exception delivery existed).
+    /// </summary>
+    internal uint ExceptionVector(uint kind)
+    {
+        lock (_exceptionHandlers)
+        {
+            uint head = _exceptionChainHeads.GetValueOrDefault(kind);
+            return head == 0 ? 0 : (head & ~3u) + 8;
+        }
+    }
+
+    /// <summary>The code of the default handler every chain ends at (see <see cref="DefaultExceptionHandler"/>).</summary>
+    internal uint DefaultExceptionHandlerCode
+    {
+        get
+        {
+            lock (_exceptionHandlers)
+            {
+                return _defaultExceptionHandler == 0 ? 0 : _defaultExceptionHandler + 8;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The handler at the end of every chain (the firmware's own default handler, which ends the faulting process):
+    /// a record in kernel memory whose code is an undefined instruction, so reaching it gives the fault back to
+    /// VitaSharp, which reports it the way it reports a fault no handler takes.
+    /// </summary>
+    uint DefaultExceptionHandler()
+    {
+        if (_defaultExceptionHandler == 0)
+        {
+            uint record = KernelAlloc(16, "SceExcpmgrDefaultHandler");
+            GuestMemory.W32(record, 0);
+            GuestMemory.W32(record + 4, 0);
+            GuestMemory.W32(record + 8, DefaultHandlerInstruction);
+            GuestMemory.W32(record + 12, DefaultHandlerInstruction);
+            _defaultExceptionHandler = record;
+        }
+
+        return _defaultExceptionHandler;
+    }
+
+    /// <summary>The abort and undefined mode stacks of a thread that takes an exception (kernel memory).</summary>
+    internal uint AllocateExceptionStack(uint size, string threadName) => KernelAlloc(size, $"SceExcpStack:{threadName}");
+
+    internal void FreeExceptionStack(uint address)
+    {
+        using (ProcessScope.Enter(KernelSpace.KernelPid))
+        {
+            Mem.Free(address);
+        }
+    }
+
+    /// <summary>UDF #0 (ARM): the default handler's code.</summary>
+    const uint DefaultHandlerInstruction = 0xE7F000F0;
 
     // ------------------------------------------------------------------ threads
 
