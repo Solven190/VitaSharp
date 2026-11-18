@@ -13,9 +13,9 @@ How many of the functions that the PS Vita firmware 3.74 exports to user code (t
 |---|---:|---:|---:|---:|---:|---:|
 | Games imports | 2,207 | 2,199 | 8 | 0 | 2,207 | 100% |
 | System imports | 7,277 | 6,886 | 391 | 0 | 7,277 | 100% |
-| General | 9,922 | 9,534 | 388 | 0 | 9,922 | 100% |
-| All firmware 3.74 exports | 19,406 | 5,128 | 787 | 13,491 | 19,406 | 100% |
-| VitaSDK user functions | 7,006 | 4,498 | 384 | 2,124 | 7,006 | 100% |
+| General | 9,922 | 9,542 | 380 | 0 | 9,922 | 100% |
+| All firmware 3.74 exports | 19,406 | 5,136 | 779 | 13,491 | 19,406 | 100% |
+| VitaSDK user functions | 7,006 | 4,506 | 376 | 2,124 | 7,006 | 100% |
 
 ## Libraries provided by LLE
 
@@ -580,7 +580,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceVideoencUser | `os0:us/avcodec_us.suprx` | 21 / 21 | 100% | - | - | 11 / 11 |
 | SceVoice | `vs0:sys/external/libvoice.suprx` | 28 / 28 | 100% | - | 18 / 18 | 2 / 2 |
 | SceVoiceQoS | `vs0:sys/external/libvoiceqos.suprx` | 17 / 17 | 100% | - | 10 / 10 | - |
-| SceVshBridge | `os0:kd/bootimage.skprx/SceVshBridge` | 206 / 206 | 100% | 49 | 4 / 4 | 136 / 136 |
+| SceVshBridge | `os0:kd/bootimage.skprx/SceVshBridge` | 206 / 206 | 100% | 41 | 4 / 4 | 136 / 136 |
 | SceWebFiltering | `vs0:data/external/webcore/jx_web_filtering.suprx` | 8 / 8 | 100% | - | - | 7 / 7 |
 | SceWebKit | `vs0:data/external/webcore/SceWebKitModule.suprx` | 803 / 803 | 100% | - | - | 58 / 58 |
 | SceWebUIPlugin | `vs0:sys/external/web_ui_plugin.suprx` | 30 / 30 | 100% | - | - | 11 / 11 |
