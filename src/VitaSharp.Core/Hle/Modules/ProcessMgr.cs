@@ -199,7 +199,7 @@ public sealed partial class ProcessMgr : HleModule
     [Hle]
     int sceKernelGetOpenPsId(uint id)
     {
-        for (uint i = 0; i < 16; i++) GuestMemory.Write(id + i, (byte)(0x10 + i));
+        ConsoleIdentity.OpenPsId.CopyTo(GuestMemory.Span(id, 16));
         return 0;
     }
 

@@ -27,4 +27,9 @@ public static class ConsoleIdentity
 
     /// <summary>The secure module information word (KBL parameters +8): 0.</summary>
     public const uint SecureModuleInfo = 0;
+
+    /// <summary>The unit's OpenPSID (sceKernelGetOpenPsId; the id a unit-bound license names): 0x10..0x1F, the
+    /// same on every run.</summary>
+    public static ReadOnlySpan<byte> OpenPsId =>
+        [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F];
 }
