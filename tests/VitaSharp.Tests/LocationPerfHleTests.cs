@@ -86,7 +86,7 @@ public sealed class LocationPerfHleTests(GuestMemoryFixture fixture)
         GuestMemory.Span(info, 0x30).Fill(0xAA);
         GuestMemory.W32(info + 0x30, 0x12345678);
 
-        var parameters = typeof(Location).GetMethod("sceLocationGetLocationWithTimeout", BindingFlags.Instance | BindingFlags.NonPublic)!.GetParameters();
+        ParameterInfo[] parameters = typeof(Location).GetMethod("sceLocationGetLocationWithTimeout", BindingFlags.Instance | BindingFlags.NonPublic)!.GetParameters();
         Assert.Equal(3, parameters.Length);
         Assert.All(parameters, parameter => Assert.Equal(typeof(uint), parameter.ParameterType)); // r0, r1, r2
 
