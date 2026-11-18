@@ -49,9 +49,12 @@ public sealed class KernelModuleHleTests(GuestMemoryFixture fixture)
         Assert.Equal(0, m.Cancel(canceller, -1, default));
         Assert.Null(m.Owner);
         Assert.Equal(0, m.LockCount);
-        // counts above 1 need the recursive attribute
+        // counts above 1 need the recursive attribute; any negative count is the initial one (threadmgr 3.74
+        // sceKernelCancelMutex: a count below 0 becomes initCount before the check, so -2 is not ILLEGAL_COUNT)
         Assert.Equal(SceError.ILLEGAL_COUNT, m.Cancel(canceller, 2, default));
-        Assert.Equal(SceError.ILLEGAL_COUNT, m.Cancel(canceller, -2, default));
+        Assert.Equal(0, m.Cancel(canceller, -2, default));
+        Assert.Null(m.Owner);
+        Assert.Equal(0, m.LockCount);
         var rec = new Mutex { Attr = Mutex.AttrRecursive };
         Assert.Equal(0, rec.Cancel(canceller, 3, default));
         Assert.Equal(3, rec.LockCount);
