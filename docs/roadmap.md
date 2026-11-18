@@ -2818,6 +2818,12 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 
 ## Bugs em aberto
 
+- [ ] [P2][P] Launcher com a janela menor: botões e textos são cortados em vez de quebrar para a linha de baixo
+  (relato do usuário, 18/11/2026, print de 18/11 19:34): na página Sistema do Vita, a linha "Instalar firmware (.PUP)... /
+  Usar o firmware do Vita3K / Desinstalar firmware" corta o terceiro botão ("Uninstall f") no meio do cartão. Fazer
+  as linhas de botões quebrarem (WrapPanel), os textos longos quebrarem/encolherem e as duas colunas virarem uma só
+  abaixo de uma largura mínima, em todas as páginas do launcher (Sistema, Configurações, página do jogo, Troféus,
+  Capturas, Instalar), com teste headless em larguras pequenas (nenhum controle fora do próprio cartão)
 - [ ] [P1][M] PSVitaAlive (PSVAS1178, homebrew vita2d), bug gráfico no teclado de busca (usuário, 17/11/2026; captura
   `captures/PSVAS1178_20261117_215911_tudo`, 41 achados [flash]): em quadros isolados faltam as teclas e parte do
   texto ("9/12" em vez de "9/128") e triângulos saem do canto superior esquerdo. Causa (replay do gpu.vsgd, quadro
