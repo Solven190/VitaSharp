@@ -224,6 +224,37 @@ public class ShaderRecipeTests : IDisposable
         Assert.Null(PipelineRecipe.Decode(bad));
     }
 
+    /// <summary>Pipelines of one-sample fetch passes and of the tile-word attachment are recorded too: the render pass
+    /// they were made for round-trips, and a record without either keeps the bytes (and so the key) it always had.</summary>
+    [Fact]
+    public void PipelineRecipeKeepsTheFetchPassAndTileWordVariant()
+    {
+        PipelineRecipe plain = SamplePipeline();
+        byte[] plainBytes = plain.Encode();
+        Assert.Equal(0, plainBytes[48] >> 3); // the spare flag bits of a plain pipeline stay zero (old lists read the same)
+        foreach ((byte tileWord1, bool inputPass) in new[] { ((byte)0, true), ((byte)1, false), ((byte)2, true) })
+        {
+            PipelineRecipe variant = plain with
+            {
+                TileWord1 = tileWord1,
+                InputPass = inputPass
+            };
+            byte[] enc = variant.Encode();
+            var back = PipelineRecipe.Decode(enc);
+            Assert.NotNull(back);
+            Assert.Equal(tileWord1, back!.TileWord1);
+            Assert.Equal(inputPass, back.InputPass);
+            Assert.NotEqual(PipelineRecipe.KeyOf(plainBytes), PipelineRecipe.KeyOf(enc));
+        }
+
+        byte[] bad = (byte[])plainBytes.Clone();
+        bad[48] |= 3 << 4; // tile-word use 3 does not exist
+        Assert.Null(PipelineRecipe.Decode(bad));
+        bad[48] = 1 << 6;
+        Assert.Null(PipelineRecipe.Decode(bad));
+        Assert.Throws<ArgumentOutOfRangeException>(() => (plain with { TileWord1 = 3 }).Encode());
+    }
+
     [Fact]
     public void StoreKeepsFirstUseOrderAndProgramBytes()
     {

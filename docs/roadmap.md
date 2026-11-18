@@ -600,7 +600,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --precompile-shaders=on`,
   cache do driver quente, A/B 2x): espera de 130-249 ms para 20 pipelines e o mesmo 1 quadro >= 4 ms com e sem, porque
   os 8 pipelines do passe de fetch (`InputPass`) não entram no pipelines.list e são montados no thread da GPU em toda
-  sessão: gravá-los também é o próximo passo
+  sessão. Feito (feat/pre2, 18/11/2026): os pipelines do passe de fetch e do anexo tile-word entram no pipelines.list
+  (bits livres do byte de flags do `PipelineRecipe`, sem trocar a versão: os registros antigos mantêm bytes e chaves)
+  e o prewarm/precompile os monta; teste `RendererPathsTests.SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread`.
+  Replay do PCSA00029, 2ª sessão: pipelines no thread da GPU 8 → 0, quadros >= 4 ms de espera 1 → 0 (20 → 28
+  pipelines pré-aquecidos, 39-61 ms). Conferidas as outras famílias: clear, blit, resolve e cópias são comandos (sem
+  pipeline); não há compute de conversão de textura (o único compute é o do `VITASHARP_DEBUG_NAN`). Ficam fora da
+  lista os pipelines internos de shader fixo (carga de MSAA, unpack/pack de depth, ordem de memória, overlay do
+  shell): conjunto pequeno por formato/layout, montado na primeira vez no thread da GPU com GLSL próprio e sem entrar
+  na contagem "compiled on the GPU thread"; próximo passo, se aparecerem nos quadros lentos: contá-los e montá-los no
+  início da sessão
 - [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.

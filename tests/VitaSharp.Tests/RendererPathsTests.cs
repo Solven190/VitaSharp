@@ -386,6 +386,55 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
     }
 
+    /// <summary>A programmable-blending draw of a one-sample scene renders in a fetch pass, with a pipeline made for its
+    /// render pass. That pipeline is recorded in pipelines.list like any other, so after the precompile the second
+    /// session builds no pipeline on the GPU thread (the replay of a dump built its 8 fetch-pass pipelines there in
+    /// every session when they were left out).</summary>
+    [SoftwareVulkanFact]
+    public void SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-fetchlist-" + Guid.NewGuid().ToString("N"));
+        const string Title = "PCSA00081";
+        try
+        {
+            (int GpuPipelines, int FetchPass, int Prewarmed) Session()
+            {
+                VulkanRenderer r = NewRenderer(cache);
+                (int, int, int) stats = default;
+                WithRenderer("fetchlist", r, h =>
+                {
+                    r.BeginTitle(Title);
+                    ((IGpuBackend)r).PrecompileBeforeStart(_ => { }, CancellationToken.None);
+                    var w = new RendererTextureTests.Workload(h);
+                    w.RunFetch();
+                    w.Run(1);
+                    h.Emu.Gpu.WaitIdle();
+                    int[] kinds = (int[])typeof(VulkanRenderer).GetField("_statGpuPipelineKinds", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(r)!;
+                    stats = (Stat(r, "_statGpuPipelines"), kinds[1], Stat(r, "_statPrewarmed"));
+                    w.Terminate();
+                });
+                return stats;
+            }
+
+            (int GpuPipelines, int FetchPass, int Prewarmed) first = Session();
+            Assert.True(first.FetchPass > 0, $"first session: no fetch-pass pipeline ({first.GpuPipelines} on the GPU thread)");
+            (int GpuPipelines, int FetchPass, int Prewarmed) second = Session();
+            Assert.True(second.Prewarmed >= first.GpuPipelines, $"{second.Prewarmed} of {first.GpuPipelines} pipelines prewarmed");
+            Assert.Equal(0, second.FetchPass);
+            Assert.Equal(0, second.GpuPipelines);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(cache, true);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
     [SoftwareVulkanFact]
     public void CancelledPrecompileLetsTheGameStartAndTheRestBuildsInTheBackground()
     {
