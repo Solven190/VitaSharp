@@ -483,6 +483,10 @@ internal static unsafe class T16
         state->R[15] = pc;
     }
 
+    /// <summary>CPS (16-bit): 1011 0110 011 im 0 A I F; masks only, no mode change.</summary>
+    public static void Cps(CpuState* state, uint ins, uint pc)
+        => A32.ChangeProcessorState(state, Bit(ins, 4) != 0 ? 3u : 2u, false, ins & 7, 0);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Udf(CpuState* state, uint ins, uint pc)
     {

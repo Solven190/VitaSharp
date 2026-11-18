@@ -831,30 +831,39 @@ internal static unsafe partial class A32
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Mrs(CpuState* state, uint ins, uint pc) => state->R[Bits(ins, 15, 12)] = state->Cpsr & 0xF80F0000 | 0x10;
+    public static void Mrs(CpuState* state, uint ins, uint pc) => state->R[Bits(ins, 15, 12)] = MrsValue(state, Bit(ins, 22) != 0);
 
-    /// <summary>MSR APSR, Rn / #imm: only the flags (nzcvq) and GE fields are writable from user mode.</summary>
+    /// <summary>What MRS reads: the SPSR of an exception mode (R = 1), else the CPSR without the execution state bits
+    /// (T, IT, J read as zero). In user mode that is the APSR with mode 0x10, as before exception modes existed.</summary>
+    internal static uint MrsValue(CpuState* state, bool spsr)
+    {
+        if (spsr && ExceptionModes.HasSpsr(state))
+        {
+            return ExceptionModes.ReadSpsr(state);
+        }
+
+        return state->Cpsr & 0xF80F03DF;
+    }
+
+    /// <summary>MSR CPSR/SPSR, Rn / #imm: from user mode only the flags (nzcvq) and GE fields are writable; a
+    /// privileged mode also writes the control byte (mode, masks) or its SPSR.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void MsrReg(CpuState* state, uint ins, uint pc) => MsrCore(state, Bits(ins, 19, 18), state->R[ins & 0xF]);
+    public static void MsrReg(CpuState* state, uint ins, uint pc) => MsrCore(state, Bit(ins, 22) != 0, Bits(ins, 19, 16), state->R[ins & 0xF]);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void MsrImm(CpuState* state, uint ins, uint pc)
-        => MsrCore(state, Bits(ins, 19, 18), ArmExpandImmC(ins & 0xFFF, 0, out _));
+        => MsrCore(state, Bit(ins, 22) != 0, Bits(ins, 19, 16), ArmExpandImmC(ins & 0xFFF, 0, out _));
 
-    internal static void MsrCore(CpuState* state, uint mask, uint v)
+    /// <summary>MSR: <paramref name="fieldMask"/> is the c, x, s, f field mask (bits 0..3).</summary>
+    internal static void MsrCore(CpuState* state, bool spsr, uint fieldMask, uint v)
     {
-        if ((mask & 2) != 0)
+        if (spsr && ExceptionModes.HasSpsr(state))
         {
-            state->N = v >> 31;
-            state->Z = (v >> 30) & 1;
-            state->C = (v >> 29) & 1;
-            state->V = (v >> 28) & 1;
-            state->Q = (v >> 27) & 1;
+            ExceptionModes.WriteSpsr(state, fieldMask, v);
+            return;
         }
-        if ((mask & 1) != 0)
-        {
-            state->GE = (v >> 16) & 0xF;
-        }
+
+        ExceptionModes.WriteCpsrFields(state, fieldMask, v);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -907,6 +916,7 @@ internal static unsafe partial class A32
     {
         uint rt = Bits(ins, 15, 12), crn = Bits(ins, 19, 16), opc2 = Bits(ins, 7, 5);
         uint v = 0;
+        int faultRegister = FaultRegister(ins);
         if (crn == 13 && opc2 == 3)
         {
             v = state->TpidrUro;
@@ -914,6 +924,10 @@ internal static unsafe partial class A32
         else if (crn == 13 && opc2 == 2)
         {
             v = state->TpidrUrw;
+        }
+        else if (faultRegister >= 0)
+        {
+            v = (&state->Dfsr)[faultRegister];
         }
 
         if (rt == 15)
@@ -936,6 +950,12 @@ internal static unsafe partial class A32
         if (crn == 13 && opc2 == 2)
         {
             state->TpidrUrw = state->R[rt];
+        }
+
+        int faultRegister = FaultRegister(ins);
+        if (faultRegister >= 0)
+        {
+            (&state->Dfsr)[faultRegister] = state->R[rt];
         }
 
         // c7 cache maintenance / barriers (CP15DMB etc.)

@@ -49,6 +49,7 @@ public sealed unsafe partial class ArmFrontend
     private static readonly uint s_svcPcOffset = (uint)StateLayout.Of(nameof(CpuState.SvcPc));
     private static readonly uint s_tpidrUroOffset = (uint)StateLayout.Of(nameof(CpuState.TpidrUro));
     private static readonly uint s_tpidrUrwOffset = (uint)StateLayout.Of(nameof(CpuState.TpidrUrw));
+    private static readonly uint s_faultRegistersOffset = (uint)StateLayout.Of(nameof(CpuState.Dfsr)); // + 4 x A32.FaultRegister
     private static readonly uint s_exclusiveValidOffset = (uint)StateLayout.Of(nameof(CpuState.ExclusiveValid));
     private static readonly uint s_dOffset = (uint)StateLayout.Of(nameof(CpuState.D));
     private static readonly uint s_fpscrOffset = (uint)StateLayout.Of(nameof(CpuState.Fpscr));
@@ -466,7 +467,24 @@ public sealed unsafe partial class ArmFrontend
     private bool? Mrc(in DecodedInst d)
     {
         uint ins = d.Raw, rt = Bits(ins, 15, 12), crn = Bits(ins, 19, 16), opc2 = Bits(ins, 7, 5);
-        int v = crn == 13 && opc2 == 3 ? B.LoadState(s_tpidrUroOffset) : crn == 13 && opc2 == 2 ? B.LoadState(s_tpidrUrwOffset) : C(0);
+        int faultRegister = A32.FaultRegister(ins);
+        int v;
+        if (crn == 13 && opc2 == 3)
+        {
+            v = B.LoadState(s_tpidrUroOffset);
+        }
+        else if (crn == 13 && opc2 == 2)
+        {
+            v = B.LoadState(s_tpidrUrwOffset);
+        }
+        else if (faultRegister >= 0)
+        {
+            v = B.LoadState(s_faultRegistersOffset + 4 * (uint)faultRegister);
+        }
+        else
+        {
+            v = C(0);
+        }
         if (rt == 15)
         {
             B.SetFlag(IrFlag.N, B.Bit(v, 31));
@@ -488,6 +506,12 @@ public sealed unsafe partial class ArmFrontend
         if (crn == 13 && opc2 == 2)
         {
             B.StoreState(s_tpidrUrwOffset, Reg(rt));
+        }
+
+        int faultRegister = A32.FaultRegister(ins);
+        if (faultRegister >= 0)
+        {
+            B.StoreState(s_faultRegistersOffset + 4 * (uint)faultRegister, Reg(rt));
         }
 
         if (crn == 7)

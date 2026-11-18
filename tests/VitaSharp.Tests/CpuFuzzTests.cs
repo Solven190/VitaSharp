@@ -494,10 +494,19 @@ public sealed unsafe class CpuFuzzTests(GuestMemoryFixture fixture, ITestOutputH
             return true;
         }
 
+        // the privileged forms (exception modes): in user mode an exception return copies no SPSR (QEMU copies one),
+        // SRS/RFE are undefined and LDM/STM ^ name the user registers; the fuzz runs in user mode
+        if (d.Op is Op.A32_DPExceptionReturn or Op.A32_Srs or Op.A32_Rfe or Op.T32_Srs or Op.T32_Rfe)
+        {
+            return true;
+        }
+
         if (!thumb)
         {
             switch (d.Op)
             {
+                case Op.A32_LdmStmUser:
+                    return true;
                 case Op.A32_DPImm or Op.A32_DPRegImm:
                     return F(15, 12) == 15; // Rd=PC: S is an exception return; otherwise results with bits[1:0]=10 are UNPREDICTABLE
                 case Op.A32_DPRegReg:

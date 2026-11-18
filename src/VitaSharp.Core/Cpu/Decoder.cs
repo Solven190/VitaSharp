@@ -146,6 +146,11 @@ public static class Decoder
                     writesPc = true;
                 }
 
+                if (IsDPExceptionReturn(ins))
+                {
+                    return Op.A32_DPExceptionReturn;
+                }
+
                 return b4 ? Op.A32_DPRegReg : Op.A32_DPRegImm;
             }
             case 1:
@@ -185,6 +190,11 @@ public static class Decoder
                     writesPc = true;
                 }
 
+                if (IsDPExceptionReturn(ins))
+                {
+                    return Op.A32_DPExceptionReturn;
+                }
+
                 return Op.A32_DPImm;
             }
             case 2:
@@ -211,7 +221,7 @@ public static class Decoder
                     writesPc = true;
                 }
 
-                return Op.A32_LdmStm;
+                return B(ins, 22) != 0 ? Op.A32_LdmStmUser : Op.A32_LdmStm;
             case 5:
                 writesPc = true;
                 return B(ins, 24) != 0 ? Op.A32_Bl : Op.A32_B;
@@ -237,6 +247,14 @@ public static class Decoder
                 return Op.A32_Udf;
             }
         }
+    }
+
+    /// <summary>A data-processing instruction with S that writes the PC and is not a compare (SUBS PC, LR / MOVS PC, LR):
+    /// an exception return in an exception mode.</summary>
+    private static bool IsDPExceptionReturn(uint ins)
+    {
+        uint opcode = Bs(ins, 24, 21);
+        return Bs(ins, 15, 12) == 15 && B(ins, 20) != 0 && (opcode < 8 || opcode > 11);
     }
 
     private static Op DecodeArmMedia(uint ins, out bool writesPc)
@@ -413,9 +431,27 @@ public static class Decoder
             return Op.A32_Nop; // PLD/PLDW/PLI
         }
 
+        if ((ins & 0x0FF1_0020) == 0x0100_0000)
+        {
+            writesPc = true; // a mode change: the block ends after it
+            return Op.A32_Cps;
+        }
+
         if ((ins & 0x0FF0_0000) == 0x0100_0000)
         {
-            return Op.A32_Nop; // CPS/SETEND
+            return Op.A32_Nop; // SETEND
+        }
+
+        if ((ins & 0x0E50_0000) == 0x0840_0000)
+        {
+            writesPc = true; // undefined in user mode
+            return Op.A32_Srs;
+        }
+
+        if ((ins & 0x0E50_0000) == 0x0810_0000)
+        {
+            writesPc = true;
+            return Op.A32_Rfe;
         }
 
         if ((ins & 0x0F70_0000) == 0x0410_0000)
@@ -560,9 +596,14 @@ public static class Decoder
             return Op.T16_Push;                // 010xxxx
         }
 
-        if (op == 0x32 || op == 0x33)
+        if (op == 0x32)
         {
-            return Op.T16_Nop;            // SETEND / CPS
+            return Op.T16_Nop;            // SETEND
+        }
+
+        if (op == 0x33)
+        {
+            return Op.T16_Cps;
         }
 
         if ((op & 0x78) == 0x50)
@@ -642,8 +683,8 @@ public static class Decoder
                     if (op == 0 || op == 3)
                     {
                         writesPc = true;
-                        return Op.T32_Udf;
-                    } // SRS/RFE
+                        return B(hw1, 4) != 0 ? Op.T32_Rfe : Op.T32_Srs;
+                    }
                     return Op.T32_LdmStm;
                 }
                 if ((op2 & 0x64) == 0x04)
@@ -780,7 +821,8 @@ public static class Decoder
                     uint hint = hw2 & 0xFF;
                     if (Bs(hw2, 10, 8) != 0)
                     {
-                        return Op.T32_Nop; // CPS
+                        writesPc = true; // a mode change: the block ends after it
+                        return Op.T32_Cps;
                     }
 
                     if (hint is 1 or 2 or 3)
