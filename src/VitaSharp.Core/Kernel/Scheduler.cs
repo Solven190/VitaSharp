@@ -12,6 +12,10 @@ namespace VitaSharp.Core.Kernel;
 /// each other. libpaf relies on it (two of the shell's job threads swapping the same resource's file object without a
 /// lock freed it under the other when they ran concurrently). Threads of a process that
 /// <see cref="Emulator.RunsOnSystemCore"/> are scheduled on that separate single core.
+/// The order among ready threads is threadmgr's (FW 3.74, os0:kd/threadmgr.skprx): a ready queue per priority, a
+/// thread made ready (woken, created, back from a wait) joins the tail of its priority, and a running thread that a
+/// higher-priority one preempts goes back to the head of its priority, so it runs again before the equal-priority
+/// threads that were already waiting. A free core goes to the first thread of the highest priority waiting.
 /// </summary>
 public static class Scheduler
 {
@@ -54,29 +58,67 @@ public static class Scheduler
 
         lock (pool.L)
         {
-            bool queued = false;
-            while (true)
-            {
-                if (pool.Running < cores && !HigherPriorityWaiting(pool, t.Priority))
-                {
-                    if (queued)
-                    {
-                        pool.Waiting.Remove(t);
-                    }
+            AcquireLocked(t, pool, cores);
+        }
+    }
 
-                    pool.Running++;
-                    t.HasCore = true;
-                    t.Core.ResetThrottle();
-                    return;
-                }
-                if (!queued)
+    /// <summary>Takes a core once one is free and <paramref name="t"/> is first in line (see <see cref="FirstInLine"/>);
+    /// <paramref name="t"/> may already be in the waiting list (<see cref="Yield"/> puts it back there itself).</summary>
+    private static void AcquireLocked(GuestThread t, Pool pool, int cores)
+    {
+        bool queued = pool.Waiting.Contains(t);
+        while (true)
+        {
+            if (pool.Running < cores && FirstInLine(pool, t))
+            {
+                if (queued)
                 {
-                    pool.Waiting.Add(t);
-                    queued = true;
+                    pool.Waiting.Remove(t);
                 }
-                Monitor.Wait(pool.L, 2);
+
+                pool.Running++;
+                t.HasCore = true;
+                t.Core.ResetThrottle();
+                if (pool.Running < cores && pool.Waiting.Count > 0)
+                {
+                    Monitor.PulseAll(pool.L); // the next in line may take another free core now, not at its next poll
+                }
+
+                return;
+            }
+            if (!queued)
+            {
+                pool.Waiting.Add(t);
+                queued = true;
+            }
+            Monitor.Wait(pool.L, 2);
+        }
+    }
+
+    /// <summary>
+    /// <paramref name="t"/> is the thread a free core goes to: no waiting thread has a higher priority, and none of its
+    /// own priority is ahead of it in the waiting list (a thread not in the list yet is behind all of them). Without
+    /// the second rule the equal-priority waiters took a freed core in whatever order the host woke them, and a thread
+    /// arriving just then could pass all of them.
+    /// </summary>
+    private static bool FirstInLine(Pool pool, GuestThread t)
+    {
+        bool passedSelf = false;
+        foreach (GuestThread w in pool.Waiting)
+        {
+            if (w == t)
+            {
+                passedSelf = true;
+                continue;
+            }
+
+            if (w.Priority < t.Priority || (w.Priority == t.Priority && !passedSelf))
+            {
+                return false;
             }
         }
+
+        return true;
     }
 
     public static void Release(GuestThread t)
@@ -117,17 +159,46 @@ public static class Scheduler
         }
     }
 
-    /// <summary>Gives the core away (if anyone of higher or equal priority wants it) and takes one again.</summary>
+    /// <summary>
+    /// Gives the core away (if anyone of higher or equal priority wants it) and takes one again. Preempted by a
+    /// higher-priority thread, it goes back to the head of its priority, as threadmgr re-queues a preempted thread;
+    /// giving the core to an equal-priority thread (the cores are all busy) puts it at the tail, behind that thread.
+    /// </summary>
     public static void Yield(GuestThread t)
     {
-        if (!ShouldYield(t))
+        if (!t.HasCore || !ShouldYield(t))
         {
             return;
         }
 
-        Release(t);
+        if (t == GuestThread.Current)
+        {
+            t.Core.SettleThrottle(t.Core.PendingInstructions);
+            t.Core.PendingInstructions = 0;
+        }
+        Pool pool = PoolOf(t);
+        int cores = CoresOf(pool);
+        lock (pool.L)
+        {
+            if (HigherPriorityWaiting(pool, t.Priority))
+            {
+                pool.Waiting.Insert(0, t);
+            }
+            else
+            {
+                pool.Waiting.Add(t);
+            }
+
+            pool.Running--;
+            t.HasCore = false;
+            t.CountCoreRelease();
+            Monitor.PulseAll(pool.L);
+        }
         Thread.Yield();
-        Acquire(t);
+        lock (pool.L)
+        {
+            AcquireLocked(t, pool, cores);
+        }
     }
 
     private static bool HigherPriorityWaiting(Pool pool, int priority)
@@ -154,6 +225,16 @@ public static class Scheduler
         }
 
         return false;
+    }
+
+    /// <summary>The thread is in line for a core (tests and diagnostics).</summary>
+    internal static bool IsWaitingForCore(GuestThread t)
+    {
+        Pool pool = PoolOf(t);
+        lock (pool.L)
+        {
+            return pool.Waiting.Contains(t);
+        }
     }
 
     /// <summary>Forgets all core bookkeeping (process exec after every thread has exited).</summary>
