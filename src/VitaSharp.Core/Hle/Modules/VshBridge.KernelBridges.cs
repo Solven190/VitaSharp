@@ -17,8 +17,6 @@ public sealed partial class VshBridge
     const int NPDRM_ERR_INVALID = unchecked((int)0x80870001);
     /// <summary>SCE_ERROR_ERRNO_ENOENT (0x80010002).</summary>
     const int ERRNO_ENOENT = unchecked((int)0x80010002);
-    /// <summary>SceNpDrm: a license that needs the unit's activation (act.dat) when the unit has none (the license checks' answer) (0x80870003).</summary>
-    const int NPDRM_ERR_NOT_ACTIVATED = unchecked((int)0x80870003);
     /// <summary>SceNpDrm: data that does not verify (a signature or hash mismatch, a license of the wrong kind) (0x80870005).</summary>
     const int NPDRM_ERR_BAD_DATA = unchecked((int)0x80870005);
     /// <summary>SCE_APPMGR_ERROR_STATE (0x80802013).</summary>
@@ -976,13 +974,13 @@ public sealed partial class VshBridge
         var s = GuestMemory.ReadSpan(sig, 0x200);
         if (!s[..8].SequenceEqual("NPUMDSIG"u8))
         {
-            return NPDRM_ERR_NOT_ACTIVATED; // signature does not verify
+            return NPDRM_ERR_BAD_DATA; // not a signature EbootSigGen made: SceNpDrm 3.74 answers 0x80870005
         }
 
         var expect = EbootSignature(p, s.Slice(0x30, s[8] == 3 ? 0x100 : 0x20), s[8]);
         if (!s.Slice(0x10, 0x20).SequenceEqual(expect.AsSpan(0x10, 0x20)))
         {
-            return NPDRM_ERR_NOT_ACTIVATED;
+            return NPDRM_ERR_BAD_DATA;
         }
 
         if (header != 0)
@@ -1001,7 +999,8 @@ public sealed partial class VshBridge
 
     /// <summary>(const SceUInt8 rif[0x200], const void *doc, SceSize docSize, const opt *0x10: documentKey,
     /// size &lt;= 0x200): the key of a PSP game manual (DOCUMENT.DAT) from its license. PSP licenses are not
-    /// supported by the emulator's NpDrm: 0x80870005 (no license), like npdrm with a rif it cannot use.</summary>
+    /// supported by the emulator's NpDrm: 0x80870005 (data that does not verify), like npdrm with a rif of a kind
+    /// it cannot use.</summary>
     [Hle]
     int _vshNpDrmGetLegacyDocKey(uint rif, uint doc, uint size, uint opt)
     {

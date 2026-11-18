@@ -120,7 +120,14 @@ public sealed class HleBatch7Tests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(0, Call(vsh, "_vshNpDrmEbootSigGenPsp", path, sha, sig, sw));
         Assert.Equal(0x03740011u, GuestMemory.R32(sw));
         Assert.Equal(1, Call(vsh, "_vshNpDrmEbootSigVerify", path, sig, 0u, 0u));
-        Assert.Equal(unchecked((int)0x80870003), Call(vsh, "_vshNpDrmEbootSigVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
+        // SceNpDrm 3.74 answers a signature that does not verify (another eboot's, or no NPUMDSIG magic) with
+        // 0x80870005, its "data does not verify" code; 0x80870003 is the license checks' "needs activation" answer
+        const int npDrmBadData = unchecked((int)0x80870005);
+        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
+        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
+        GuestMemory.Write(sig, (byte)'X');
+        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", path, sig, 0u, 0u));
+        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", path, sig, 0u, 0u));
     }
 
     [Fact]
