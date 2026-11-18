@@ -396,7 +396,7 @@ public sealed partial class MainWindow : Window
         log.Margin = new Thickness(0, 7, 16, 7);
         DockPanel.SetDock(log, Dock.Right);
         _statusBar.Children.Add(log);
-        AddPrecompileControls();
+        AddShaderCacheLoadControls();
         _statusBar.Children.Add(_status);
     }
 
@@ -617,7 +617,7 @@ public sealed partial class MainWindow : Window
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            // "Cancelar" of the shader precompile (MainWindow.Precompile.cs)
+            // "Cancelar" of the shader cache load (MainWindow.ShaderCacheLoad.cs)
             RedirectStandardInput = true,
             CreateNoWindow = true,
         };
@@ -664,7 +664,7 @@ public sealed partial class MainWindow : Window
                     Dispatcher.UIThread.Post(() =>
                     {
                         AppendLog(e.Data);
-                        OnPrecompileLine(e.Data);
+                        OnShaderCacheLoadLine(e.Data);
                     });
                 }
             };
@@ -727,7 +727,7 @@ public sealed partial class MainWindow : Window
 
     void OnGameExited(Process p)
     {
-        ShowPrecompile(null);
+        ShowShaderCacheLoad(null);
         int code = p.ExitCode;
         var title = _runningTitle;
         if (_runningId != null)

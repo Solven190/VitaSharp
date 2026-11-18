@@ -27,10 +27,10 @@ public sealed class EmulatorOptions
     /// the system registry's /CONFIG/SYSTEM/language, for games without the system's language. The system software
     /// (programs from vs0:) keeps the system's. Null: the system's language.</summary>
     public int? SystemLanguage { get; init; }
-    /// <summary>The emulator option "Precompilar shaders": before the game starts, wait for the shaders and pipelines its
-    /// earlier sessions recorded (<see cref="Gpu.IGpuBackend.PrecompileBeforeStart"/>), with progress in the log
-    /// (<see cref="Gpu.ShaderPrecompile"/>). Off: they build in the background while the game runs.</summary>
-    public bool PrecompileShaders { get; init; }
+    /// <summary>The emulator option "Carregar o cache de shaders antes de jogar": before the game starts, wait for the
+    /// shaders and pipelines its earlier sessions recorded (its shader cache) (<see cref="Gpu.IGpuBackend.LoadShaderCacheBeforeStart"/>), with progress in the log
+    /// (<see cref="Gpu.ShaderCacheLoad"/>). Off: they build in the background while the game runs.</summary>
+    public bool LoadShaderCacheBeforeStart { get; init; }
     /// <summary>Directory with per-title code patch files (TITLEID.txt); null = built-in patches only.</summary>
     public string? PatchDir { get; init; }
     /// <summary>The emulated PSN account (signed in by default, see <see cref="PsnAccount"/>).</summary>
@@ -1065,9 +1065,9 @@ public sealed class Emulator : IDisposable
         try
         {
             Gpu.Backend?.BeginTitle(TitleId);
-            if (Options.PrecompileShaders)
+            if (Options.LoadShaderCacheBeforeStart)
             {
-                PrecompileShaders();
+                WaitForShaderCache();
             }
         }
         catch (Exception e)
@@ -1564,9 +1564,9 @@ public sealed class Emulator : IDisposable
         return GuestMemory.R32(pp + (uint)offset);
     }
 
-    /// <summary>"Precompilar shaders": waits for the title's recorded shaders and pipelines before the game starts, logging the
-    /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines for the launcher.</summary>
-    private void PrecompileShaders()
+    /// <summary>"Carregar o cache de shaders antes de jogar": waits for the title's recorded shaders and pipelines before the game starts, logging the
+    /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderCacheLoad"/> lines for the launcher.</summary>
+    private void WaitForShaderCache()
     {
         if (Gpu.Backend is not { } backend)
         {
@@ -1574,19 +1574,19 @@ public sealed class Emulator : IDisposable
         }
 
         long last = 0;
-        bool waited = backend.PrecompileBeforeStart(progress =>
+        bool waited = backend.LoadShaderCacheBeforeStart(progress =>
         {
             long now = Environment.TickCount64;
             if (progress.Finished || now - last >= 250)
             {
                 last = now;
-                Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(progress));
+                Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(progress));
             }
-        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token);
+        }, VitaSharp.Core.Gpu.ShaderCacheLoad.Token);
         // nothing to wait for, or cancelled: the launcher still gets the end of the wait
-        if (!waited || VitaSharp.Core.Gpu.ShaderPrecompile.Token.IsCancellationRequested)
+        if (!waited || VitaSharp.Core.Gpu.ShaderCacheLoad.Token.IsCancellationRequested)
         {
-            Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(0, 0, true)));
+            Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(new VitaSharp.Core.Gpu.ShaderCacheLoadProgress(0, 0, true)));
         }
     }
 
