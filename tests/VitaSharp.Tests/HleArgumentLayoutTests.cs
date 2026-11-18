@@ -98,6 +98,39 @@ public sealed unsafe class HleArgumentLayoutTests(GuestMemoryFixture fixture)
         return (int)GuestMemory.R32(id);
     }
 
+    /// <summary>sceLocationStartHeadingCallback(handle, float difference, callback, userdata) (FW 3.74 SceLibLocation: the
+    /// difference is a float, checked against 0-180, so it is in s0 and the callback in r1, the userdata in r2). Reading
+    /// four core registers took the userdata (r2) as the callback: a null userdata was refused as a null callback.</summary>
+    [Fact]
+    public void LocationHeadingCallbackTakesTheDifferenceAsFloat()
+    {
+        var location = new Location();
+        uint handleOut = Alloc(4, "abi-loc-handle");
+        var open = new GuestCall();
+        open.Core[0] = handleOut;
+        open.Core[1] = 1;
+        open.Core[2] = 1;
+        Assert.Equal(0u, Run(location, "sceLocationOpen", open).R0);
+        uint handle = GuestMemory.R32(handleOut);
+
+        var call = new GuestCall();
+        call.Core[0] = handle;
+        call.Core[1] = 0x81000100; // callback
+        call.Core[2] = 0;          // userdata may be null
+        call.Core[3] = 0;
+        call.Single[0] = 10f;
+        Assert.Equal(Location.ERR_DISABLE_APPLICATION, (int)Run(location, "sceLocationStartHeadingCallback", call).R0);
+
+        call.Core[1] = 0;          // a null callback, with userdata set
+        call.Core[2] = 0x1234;
+        Assert.Equal(Location.ERR_INVALID_ADDRESS, (int)Run(location, "sceLocationStartHeadingCallback", call).R0);
+
+        call.Core[0] = 999;        // the callback is checked before the handle
+        Assert.Equal(Location.ERR_INVALID_ADDRESS, (int)Run(location, "sceLocationStartHeadingCallback", call).R0);
+        call.Core[1] = 0x81000100;
+        Assert.Equal(Location.ERR_INVALID_HANDLE, (int)Run(location, "sceLocationStartHeadingCallback", call).R0);
+    }
+
     /// <summary>sceFiosKernelOverlayResolveSync02(pid, resolve_for_write, in_path, opt) (FW 3.74 SceFios2Kernel02, the
     /// syscall behind driver_us's sceFiosOverlayResolveSync02): opt = { out_path, max_path, reserved, out_path_buffer_size }.
     /// The syscall copies exactly out_path_buffer_size bytes of a zeroed buffer holding the resolved path. Reading r3 as
