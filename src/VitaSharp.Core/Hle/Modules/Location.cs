@@ -13,10 +13,18 @@ namespace VitaSharp.Core.Hle.Modules;
 /// </summary>
 public sealed partial class Location : HleModule
 {
-    internal const int ERR_INVALID_ADDRESS = unchecked((int)0x80101204), ERR_INVALID_HANDLE = unchecked((int)0x80101205),
-        ERR_INVALID_LOCATION_METHOD = unchecked((int)0x80101208), ERR_INVALID_HEADING_METHOD = unchecked((int)0x80101209),
-        ERR_NOT_RUNNING_CALLBACK = unchecked((int)0x8010120B), ERR_DIALOG_RESULT_NONE = unchecked((int)0x8010120C),
-        ERR_DISABLE_APPLICATION = unchecked((int)0x8010120D);
+    // FW 3.74's SceLibLocation (vs0:sys/external/liblocation.suprx) answers its own argument checks with 0x8010124x:
+    // 0x80101240 a null pointer, 0x80101241 an unknown handle, 0x80101244/45 a bad location/heading method
+    // (sceLocationOpen/Reopen), 0x80101248 a confirmation dialog without a result. Those are not the psp2/location.h
+    // values (0x80101204...). What the location service answers (liblocation_provider, the 0x8010120x numbering of
+    // psp2/location.h) passes through unchanged: a measurement the application may not make, a callback not running.
+    internal const int ERR_INVALID_ADDRESS = unchecked((int)0x80101240);
+    internal const int ERR_INVALID_HANDLE = unchecked((int)0x80101241);
+    internal const int ERR_INVALID_LOCATION_METHOD = unchecked((int)0x80101244);
+    internal const int ERR_INVALID_HEADING_METHOD = unchecked((int)0x80101245);
+    internal const int ERR_DIALOG_RESULT_NONE = unchecked((int)0x80101248);
+    internal const int ERR_NOT_RUNNING_CALLBACK = unchecked((int)0x8010120B);
+    internal const int ERR_DISABLE_APPLICATION = unchecked((int)0x8010120D);
 
     /// <summary>SCE_LOCATION_DATA_INVALID.</summary>
     internal const double DataInvalid = -9999.0;
@@ -192,7 +200,12 @@ public sealed partial class Location : HleModule
         var h = Get(handle);
         if (h == null) return ERR_INVALID_HANDLE;
         if (result.IsNull) return ERR_INVALID_ADDRESS;
-        if (h.ConfirmStatus != DialogFinished) return ERR_DIALOG_RESULT_NONE;
+        if (h.ConfirmStatus != DialogFinished)
+        {
+            result.Value = ResultNone; // the firmware clears the output before answering "no result"
+            return ERR_DIALOG_RESULT_NONE;
+        }
+
         result.Value = h.ConfirmResult;
         return 0;
     }
