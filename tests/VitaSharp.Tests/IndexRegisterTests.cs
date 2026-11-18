@@ -47,4 +47,26 @@ public class IndexRegisterTests
         Assert.True(init > 0);
         Assert.True(init < glsl.IndexOf("r[0].w = ", StringComparison.Ordinal));
     }
+
+    // GTA: Vice City's port (reVC through vitaGL and the firmware's shader compiler), skinned-ped vertex program
+    // AD4D4B2E21DD78EE: the lighting loop indexes the light table in the secondary attributes through idx0.
+    // 77: VTST.F16 in its double form, src1 = 7-bit field 0x6E (indexed bank sa, offset 14 pairs = word 28)
+    private const ulong LightEnabledTest = 0x488B01811003B700;
+    // 89: VMAD2 (F16 x4), src1 = 6-bit field 0x3E (indexed bank sa, offset 14 pairs = word 28), the same light colour
+    private const ulong LightColourMad = 0x048292822183CF86;
+
+    /// <summary>An indexed operand's base bank is the two top bits of its register field, whatever the field's width:
+    /// the doubled 7-bit field of a double-form VTST and the doubled 6-bit field of VMAD2 name the same secondary-attribute
+    /// word. Reading the bank from fixed bits 5-6 of the doubled number took the VTST's operand from the primary
+    /// attributes: the light test always saw 0, the loop ended before the first light and the lit models (the peds,
+    /// the bottles on the table) came out black.</summary>
+    [Theory]
+    [InlineData(LightEnabledTest)]
+    [InlineData(LightColourMad)]
+    public void IndexedOperandsKeepTheirBankInEveryFieldWidth(ulong instruction)
+    {
+        string glsl = Generate([instruction]);
+        Assert.Contains("sa[((idx[0] * 2 + 28)", glsl);
+        Assert.DoesNotContain("pa[((idx[0]", glsl);
+    }
 }
