@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace VitaSharp.Tests;
 
 /// <summary>
-/// SceDbutil HLE (Dbutil.Batch13.cs) against the firmware's dbutil.suprx 3.74: each scenario builds the same object in
+/// SceDbutil HLE (Dbutil.ObjectMembers.cs) against the firmware's dbutil.suprx 3.74: each scenario builds the same object in
 /// two buffers, runs the module's export on one and the HLE on the other (both through guest calls, the RMutex at the
 /// object's offset made by libpaf's constructor) and compares the result and the bytes. The module comes from the
 /// installed firmware (VITASHARP_DATA or %APPDATA%\VitaSharp, read only); without it the test only runs the HLE.

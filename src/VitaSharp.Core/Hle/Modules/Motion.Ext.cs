@@ -9,7 +9,7 @@ namespace VitaSharp.Core.Hle.Modules;
 /// The SceMotion functions of driver_us.suprx 3.74 the HLE still lacked: the Ext getters (port 0 = the built-in
 /// sensors, 1..4 = a PS TV's external controllers, none of which is emulated), the packed sensor state, the three
 /// basic-orientation thresholds, the accelerometer's zero point, and the state reads of the system's two other motion
-/// clients (the location service and the internal client of Motion.Batch13b.cs).
+/// clients (the location service and the internal client of Motion.ClientSampling.cs).
 /// </summary>
 public sealed partial class Sensors
 {
