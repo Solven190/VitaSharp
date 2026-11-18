@@ -133,10 +133,18 @@ public sealed partial class SystemServicesVsh
         return SSMGR_ERR_NO_QAF;
     }
 
-    /// <summary>NID_516ECC08 (SceSblSsMgrForKernel)(): the module answers -1 and does nothing else.</summary>
+    /// <summary>NID_516ECC08 (SceSblSsMgrForKernel)(uint8 *mode): ss_mgr exports its import of
+    /// kscePmMgrGetProductMode under this NID (the export is the import's stub): the product (factory) mode, off on
+    /// a retail unit; NULL 0x800F0A16.</summary>
     [Hle("NID_516ECC08", Nid = 0x516ECC08, Library = "SceSblSsMgrForKernel")]
-    int SsMgrNid516ECC08()
+    int SsMgrGetProductMode(uint mode)
     {
-        return -1;
+        if (mode == 0)
+        {
+            return SBL_PMMGR_ERR_INVALID_ARGUMENT;
+        }
+
+        GuestMemory.Write(mode, (byte)0);
+        return 0;
     }
 }
