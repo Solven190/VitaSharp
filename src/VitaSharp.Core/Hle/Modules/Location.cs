@@ -108,8 +108,12 @@ public sealed partial class Location : HleModule
 
     [Hle] int sceLocationGetLocation(uint handle, uint locationInfo) => GetLocation(handle, locationInfo);
 
-    /// <summary>The timeout (SceUInt64, inferred) is irrelevant: the request fails at once.</summary>
-    [Hle] int sceLocationGetLocationWithTimeout(uint handle, uint locationInfo, ulong timeout) => GetLocation(handle, locationInfo);
+    /// <summary>sceLocationGetLocationWithTimeout(handle, timeout, locationInfo): FW 3.74's SceLibLocation takes the timeout
+    /// (a 32-bit value) second and the output third, and passes them to the same request as sceLocationGetLocation, which
+    /// uses a fixed timeout. The timeout is irrelevant here: the request fails at once. (Reading the second argument as
+    /// the output wrote the 0x30-byte invalid location at the timeout's value, a low address, and left the caller's
+    /// structure unwritten: Assassin's Creed III Liberation's geolocation thread passes 10.)</summary>
+    [Hle] int sceLocationGetLocationWithTimeout(uint handle, uint timeout, uint locationInfo) => GetLocation(handle, locationInfo);
 
     int GetLocation(uint handle, uint info)
     {

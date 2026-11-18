@@ -2762,11 +2762,32 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   thread `Loading` espera esse lwmutex e os TaskThread1-3/`Loading Support`/`Gear::AsynchGeneric` esperam o
   eventflag `GEAR_EVENT`. Próximo passo: descobrir o que a `main` espera nesse laço (valor em memória que outro
   thread ou o HLE deveria escrever) pelo `rerun` da captura e pela desmontagem do laço
+  Andamento (18/11/2026, jogos1; não resolvido): reproduz sem a captura (`run PCSE00053 --headless --seconds=40`,
+  sem plugins, ~5-7 s de boot): o laço é a busca na árvore de páginas livres do alocador de páginas do Gear (objeto
+  0x8337A060, que alimenta o dlmalloc do bloco `GameHeap` 0x83881000-0x8B181000) com um ciclo; em outras execuções
+  o mesmo heap estoura asserts do dlmalloc (BKPT 0x8145C50E/0x8145BB2E/0x8145C6EC) ou saltos para lixo. Watchpoint:
+  a `main` e a `Loading` escrevem no mesmo chunk (0x845596C8). Descartado: JIT (`--cpu=interp`/`il` falham igual),
+  corrida de núcleos (`--cores=1` falha), o atalho de lwmutex (`VITASHARP_HLE_GUEST_CODE=nolw` falha; Mutex C#
+  instrumentado nunca entregou um lwmutex ocupado), liberação de pilha/TLS na saída de thread (o VitaSharp não libera)
+  e o alocador de páginas em si (alocar/liberar registrados por probe: nenhuma sobreposição). Achado no caminho e
+  corrigido: sceLocationGetLocationWithTimeout lia o 2º argumento (timeout) como ponteiro de saída (FW 3.74:
+  handle, timeout, saída), mas não era esta causa. Próximo passo: watchpoint nos nós da árvore do alocador de páginas
+  (o nó cujo ponteiro vira ciclo) para achar a escrita de fora; suspeitos: escrita HLE fora do tamanho (sceIo*/FIOS2
+  assíncrono, Ngs) e instruções de memória comuns ao interp e ao JIT
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
   hle_errors só PollEventFlag/WaitSema de espera normal). Suspeita a confirmar no replay: iluminação dos modelos com
   skin (constantes de luz/normais no shader dos personagens). Não é ajuste para o jogo: achar a regra genérica
+  Andamento (18/11/2026, jogos1; correção feita, falta a confirmação no jogo): causa no tradutor USSE. Um operando
+  indexado (idx0/idx1) guarda o banco base nos dois bits de cima do campo de registrador, e esse campo tem largura
+  diferente por instrução; o tradutor lia o banco sempre nos bits 5-6 do número já dobrado. No VTST de forma dupla
+  (campo de 7 bits) isso trocava sa por pa: o laço de luzes do vertex shader dos modelos iluminados (vs
+  AD4D4B2E21DD78EE, instruções 77/80) testava a tabela de luzes nos atributos primários, via 0 e saía antes da
+  primeira luz. Correção: número canônico do operando indexado (banco + deslocamento) calculado pela largura do
+  campo; GeneratorVersion 28 (os caches de shader se refazem). Replay do `gpu.vsgd` (quadro 1960) mostra os
+  personagens, as garrafas e a mesa iluminados. Teste: IndexRegisterTests.IndexedOperandsKeepTheirBankInEveryFieldWidth.
+  Testar: a cutscene do restaurante no começo do jogo
 
 - [x] (16/11/2026, confirmado pelo usuário: passa dos 99% e os gráficos estão certos — plugins de kernel num kernel único do sistema fc39f7c5, funções internas do SceSysmem 3.74 77d9f5c7 + af2cba24, ETC1 com palavras little-endian 5f7680c2) [P1][M] Real Racing 3 (port RR3VITA01) parado em "Preparando los shaders… 99%" (relato do usuário, 16/11/2026; captura `RR3VITA01_20261116_013628_tudo`): a tela desenha a 60 fps a mesma imagem ("1714 preparados" não sobe), as 4 `rr3_worker` só dormem em laço (sceKernelDelayThread 100 ms), a `main` espera o semáforo `rr3_dib_vaciado` com timeout (0x80028005 x4379) e a `rr3_dibujo` segue desenhando e passa bloqueada em sceGxmDisplayQueueAddEntry — ninguém sinaliza o "desenho esvaziado". Suspeitas: a fila de exibição do GXM nunca libera a entrada que a thread de desenho espera para sinalizar, ou o libshacccg não devolveu um shader. O módulo PluginFramework (taiHEN) recusa save state, então a captura não tem estado para rerun. Primeiro passo: ler o código da rr3_dibujo em torno do sinal de rr3_dib_vaciado (lr 0x810145DD / 0x81014425) e o histórico do sema.
   16/11/2026 (kill3, rr3b): causa 1 corrigida (c3248133: plugins de kernel recarregados depois do LoadExec do processo que os tem). Causa 2, aberta: com o kubridge presente o jogo chega ao kuKernelMemProtect real e crasha (Prefetch abort em 0x0, lr=kubridge+0x15FE): o kubridge acha funções INTERNAS do SceSysmem por module_get_offset (deslocamentos de 3.65 = 3.74: 0x10CE1 busca de memblock, 0xA115/0x15DAD/0x149E5/0x148D9/0x15B1D mapa/desmapa da MMU) e mexe nos campos do memblock (+0xC tipo, +0x10, +0x20 lock, +0x24 espaço, +0x30 sub-blocos); a casca HLE do SceSysmem (FirmwareKernelModules) é pequena e PluginFramework.SegmentOffset recusa o deslocamento, o ponteiro fica 0. Plano: (a) casca do SceSysmem com o layout real do firmware instalado (seg0 0x2F280, seg1 memsz 0x7604, exports nos deslocamentos reais); (b) armadilha SVC nas funções internas sem HLE (erro com nome em vez de crash), teste sintético; (c) HLE das funções internas e dos objetos memblock/espaço de endereços no layout 3.74 (várias horas; decompilado em fw374decompos0__kd__sysmem.skprx.c). Ver também SceExcpmgr (kuKernelRegisterExceptionHandler).

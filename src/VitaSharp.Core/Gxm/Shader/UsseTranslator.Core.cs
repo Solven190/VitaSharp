@@ -503,9 +503,8 @@ public sealed partial class UsseTranslator
         Bank bank = op.Bank;
         if (indexed)
         {
-            int enc = (op.Num >> 5) & 3;
-            bank = enc switch { 0 => Bank.Temp, 1 => Bank.Output, 2 => Bank.PrimAttr, _ => Bank.SecAttr };
-            int addOff = (op.Num & 31) + shift;
+            bank = IndexedBaseBank(op.Num);
+            int addOff = IndexedOffset(op.Num) + shift;
             int idxReg = op.Bank == Bank.Indexed1 ? 0 : 1;
             dynBase = $"(idx[{idxReg}] * 2 + {addOff})";
         }
@@ -609,9 +608,8 @@ public sealed partial class UsseTranslator
         string? dynBase = null;
         if (indexed)
         {
-            int enc = (dest.Num >> 5) & 3;
-            bank = enc switch { 0 => Bank.Temp, 1 => Bank.Output, 2 => Bank.PrimAttr, _ => Bank.SecAttr };
-            dynBase = $"(idx[{(dest.Bank == Bank.Indexed1 ? 0 : 1)}] * 2 + {(dest.Num & 31) + off})";
+            bank = IndexedBaseBank(dest.Num);
+            dynBase = $"(idx[{(dest.Bank == Bank.Indexed1 ? 0 : 1)}] * 2 + {IndexedOffset(dest.Num) + off})";
         }
         else if (BankName(bank) == "")
         {
@@ -814,8 +812,44 @@ public sealed partial class UsseTranslator
         }
     }
 
+    /// <summary>Bit of an indexed operand's canonical number (<see cref="CanonicalIndexed"/>) where its base bank starts.</summary>
+    private const int IndexedBankShift = 8;
+
+    /// <summary>
+    /// An indexed operand's register field holds the base bank (temporaries, outputs, primary or secondary attributes)
+    /// in its two top bits and the offset below them; in a double (64-bit register) operand the field counts in pairs,
+    /// so the number, doubled, is <paramref name="regBits"/> wide and the bank sits in its two top bits. The bank bits
+    /// therefore move with the field's width: a 6-bit field doubled (VMAD2's sources) has them at bits 5-6, a 7-bit
+    /// one doubled (VTST's in its double form) at bits 6-7. The number becomes bank &lt;&lt; <see cref="IndexedBankShift"/>
+    /// | offset, so every reader takes the same bank. (Fixed bits 5-6 read a doubled 7-bit secondary-attribute operand
+    /// as a primary-attribute one: the reVC vertex lighting loop of GTA: Vice City's port tested its light table in pa
+    /// instead of sa, always found 0 and left the lit models black.)
+    /// </summary>
+    private static void CanonicalIndexed(ref Operand r, int regBits)
+    {
+        int offsetBits = regBits - 2;
+        int enc = (r.Num >> offsetBits) & 3;
+        int offset = r.Num & ((1 << offsetBits) - 1);
+        r.Num = (enc << IndexedBankShift) | offset;
+    }
+
+    private static Bank IndexedBaseBank(int num) => ((num >> IndexedBankShift) & 3) switch
+    {
+        0 => Bank.Temp,
+        1 => Bank.Output,
+        2 => Bank.PrimAttr,
+        _ => Bank.SecAttr,
+    };
+
+    private static int IndexedOffset(int num) => num & ((1 << IndexedBankShift) - 1);
+
     private void FinalizeRegister(ref Operand r, bool dbl, int regBits)
     {
+        if (r.Bank is Bank.Indexed1 or Bank.Indexed2)
+        {
+            CanonicalIndexed(ref r, regBits);
+        }
+
         CheckRegInternal(ref r, dbl, regBits);
         if (r.Bank == Bank.Special)
         {

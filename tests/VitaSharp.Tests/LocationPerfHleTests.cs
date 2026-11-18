@@ -56,7 +56,6 @@ public sealed class LocationPerfHleTests(GuestMemoryFixture fixture)
         Assert.Equal((float)Location.DataInvalid, GuestMemory.Read<float>(info + 0x24));
         Assert.NotEqual(0ul, GuestMemory.Read<ulong>(info + 0x28));
         Assert.Equal(0x12345678u, GuestMemory.R32(info + 0x30));
-        Assert.Equal(Location.ERR_DISABLE_APPLICATION, Call(l, "sceLocationGetLocationWithTimeout", h, info, 1000ul));
         Assert.Equal(Location.ERR_INVALID_ADDRESS, Call(l, "sceLocationGetLocation", h, 0u));
         Assert.Equal(Location.ERR_INVALID_HANDLE, Call(l, "sceLocationGetLocation", 999u, info));
 
@@ -71,6 +70,36 @@ public sealed class LocationPerfHleTests(GuestMemoryFixture fixture)
         Assert.Equal(Location.ERR_DISABLE_APPLICATION, Call(l, "sceLocationStartHeadingCallback", h, 10u, 0x81000001u, 0u));
         Assert.Equal(Location.ERR_NOT_RUNNING_CALLBACK, Call(l, "sceLocationStopHeadingCallback", h));
         Assert.Equal(0, Call(l, "sceLocationCancelGetLocation", h));
+    }
+
+    /// <summary>sceLocationGetLocationWithTimeout(handle, timeout, locationInfo) (FW 3.74 SceLibLocation: the timeout is
+    /// the second argument, the output the third). Assassin's Creed III Liberation calls it with r1 = 10, r2 = the output:
+    /// reading r1 as the output wrote 0x30 bytes at guest address 10 and left the game's structure unwritten.</summary>
+    [Fact]
+    public void LocationWithTimeoutTakesTheOutputAsThirdArgument()
+    {
+        var l = new Location();
+        uint p = fixture.Memory.Alloc(0x80, "loc-t");
+        Assert.Equal(0, Call(l, "sceLocationOpen", P<uint>(p), 1u, 1u));
+        uint h = GuestMemory.R32(p);
+        uint info = p + 0x10;
+        GuestMemory.Span(info, 0x30).Fill(0xAA);
+        GuestMemory.W32(info + 0x30, 0x12345678);
+
+        ParameterInfo[] parameters = typeof(Location).GetMethod("sceLocationGetLocationWithTimeout", BindingFlags.Instance | BindingFlags.NonPublic)!.GetParameters();
+        Assert.Equal(3, parameters.Length);
+        Assert.All(parameters, parameter => Assert.Equal(typeof(uint), parameter.ParameterType)); // r0, r1, r2
+
+        Assert.Equal(Location.ERR_DISABLE_APPLICATION, Call(l, "sceLocationGetLocationWithTimeout", h, 10u, info));
+        Assert.Equal(Location.DataInvalid, GuestMemory.Read<double>(info));
+        Assert.Equal(Location.DataInvalid, GuestMemory.Read<double>(info + 0x08));
+        Assert.Equal((float)Location.DataInvalid, GuestMemory.Read<float>(info + 0x24));
+        Assert.NotEqual(0ul, GuestMemory.Read<ulong>(info + 0x28));
+        Assert.Equal(0x12345678u, GuestMemory.R32(info + 0x30));
+
+        Assert.Equal(Location.ERR_INVALID_ADDRESS, Call(l, "sceLocationGetLocationWithTimeout", h, 10u, 0u));
+        Assert.Equal(Location.ERR_INVALID_HANDLE, Call(l, "sceLocationGetLocationWithTimeout", 999u, 10u, info));
+        Assert.Equal(0, Call(l, "sceLocationClose", h));
     }
 
     [Fact]
