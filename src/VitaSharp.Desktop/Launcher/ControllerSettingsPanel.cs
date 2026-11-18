@@ -79,8 +79,8 @@ public sealed class ControllerSettingsPanel : UserControl
     ListenMode _listenMode;
     readonly Queue<VitaControl> _sequence = new();
     DateTime _listenUntil, _listenSince;
-    /// <summary>Buttons pressed so far while recording a combination (in the order they were pressed).</summary>
-    readonly List<InputBinding> _comboParts = new();
+    /// <summary>The controller recording in progress (a hotkey waits for its whole combination), null otherwise.</summary>
+    BindingRecorder? _recorder;
     TextBlock? _hotkeyRowsHeader;
 
     /// <summary>Raised whenever a profile changes (the dialog's Save button saves them).</summary>
@@ -560,7 +560,8 @@ public sealed class ControllerSettingsPanel : UserControl
     string ListeningText => _listenMode switch
     {
         ListenMode.Add => Loc.Get("CsListenAdd"),
-        ListenMode.Combo => _comboParts.Count == 0 ? Loc.Get("CsListenCombo") : string.Join(" + ", _comboParts.Select(b => ControlNames.Describe(b, _current?.Kind ?? ControllerKind.Generic))) + "\u2026",
+        _ when _recorder is { RecordsCombination: true, Parts.Count: > 0 } recorder => string.Join(" + ", recorder.Parts.Select(b => ControlNames.Describe(b, _current?.Kind ?? ControllerKind.Generic))) + "\u2026",
+        ListenMode.Combo => Loc.Get("CsListenCombo"),
         _ => Loc.Get("CsListen"),
     };
 
@@ -692,7 +693,6 @@ public sealed class ControllerSettingsPanel : UserControl
 
         _listen = c;
         _listenMode = mode;
-        _comboParts.Clear();
         _listenUntil = DateTime.UtcNow.AddSeconds(8);
         _listenSince = DateTime.UtcNow;
         _layout.ListeningControl = c;
@@ -706,7 +706,15 @@ public sealed class ControllerSettingsPanel : UserControl
             _baseline.Clear();
         }
 
-        _status.Text = Loc.Format("CsListenStatus", ControlNames.Label(c), Loc.Get(_current?.IsKeyboard == true ? "CsPressKey" : mode == ListenMode.Combo ? "CsHoldCombo" : "CsPressButton"));
+        RecordMode recordMode = mode switch
+        {
+            ListenMode.Add => RecordMode.Add,
+            ListenMode.Combo => RecordMode.Combo,
+            _ => RecordMode.Replace,
+        };
+        _recorder = _current is { IsKeyboard: false } ? new BindingRecorder(c, recordMode, controller: true, _baseline) : null;
+        bool holdCombo = _recorder is { RecordsCombination: true };
+        _status.Text = Loc.Format("CsListenStatus", ControlNames.Label(c), Loc.Get(_current?.IsKeyboard == true ? "CsPressKey" : holdCombo ? "CsHoldCombo" : "CsPressButton"));
         RefreshBindings();
         Focus();
     }
@@ -719,6 +727,7 @@ public sealed class ControllerSettingsPanel : UserControl
         }
 
         _listen = null;
+        _recorder = null;
         _sequence.Clear();
         _layout.ListeningControl = null;
         RefreshBindings();
@@ -729,6 +738,7 @@ public sealed class ControllerSettingsPanel : UserControl
         var c = _listen!.Value;
         var mode = _listenMode;
         _listen = null;
+        _recorder = null;
         _layout.ListeningControl = null;
         Edit(p =>
         {
@@ -753,23 +763,21 @@ public sealed class ControllerSettingsPanel : UserControl
         }
     }
 
-    /// <summary>A combination was recorded (all its buttons released): added to the control's bindings; a single
-    /// button is added as a plain binding.</summary>
-    void BoundCombo()
+    /// <summary>A controller recording finished: a single input goes through <see cref="Bound"/>; a combination
+    /// (every button released) replaces or joins the control's bindings as the recording's mode says.</summary>
+    void Recorded(RecordedInput recorded)
     {
-        var c = _listen!.Value;
-        var parts = _comboParts.ToArray();
-        _comboParts.Clear();
-        if (parts.Length == 1)
+        if (recorded.Combo is not { } combo)
         {
-            _listenMode = ListenMode.Add;
-            Bound(parts[0]);
+            _listenMode = recorded.Replace ? ListenMode.Replace : ListenMode.Add;
+            Bound(recorded.Single!.Value);
             return;
         }
+        var c = _listen!.Value;
         _listen = null;
+        _recorder = null;
         _layout.ListeningControl = null;
-        var combo = new InputCombo(parts);
-        Edit(p => p.AddCombo(c, combo));
+        Edit(p => BindingRecorder.Apply(p, c, recorded));
         _status.Text = Loc.Format("CsHeldTogether", ControlNames.Label(c), ControlNames.Describe(combo, _current?.Kind ?? ControllerKind.Generic));
     }
 
@@ -932,37 +940,20 @@ public sealed class ControllerSettingsPanel : UserControl
                 CancelListen();
                 _status.Text = Loc.Get("CsNoInput");
             }
-            else if (_listenMode == ListenMode.Combo)
+            else if (pad != null && _recorder is { } recorder)
             {
-                if (pad != null)
+                // a pad binding of the other view (raw vs gamepad) would never fire: InputCapture follows the device.
+                // A hotkey waits for its whole combination (every button released): L3, then R3 is "L3 + R3" only.
+                int partsBefore = recorder.Parts.Count;
+                if (recorder.Update(pad, Environment.TickCount64) is { } recorded)
                 {
-                    // the combination is every button pressed until all are released again
-                    var held = InputCapture.Held(_baseline, pad);
-                    bool grew = false;
-                    foreach (var h in held)
-                    {
-                        if (!_comboParts.Contains(h))
-                        {
-                            _comboParts.Add(h);
-                            grew = true;
-                        }
-                    }
-
-                    if (grew)
-                    {
-                        _listenUntil = DateTime.UtcNow.AddSeconds(8);
-                        RefreshBindings();
-                    }
-                    if (held.Count == 0 && _comboParts.Count > 0)
-                    {
-                        BoundCombo();
-                    }
+                    Recorded(recorded);
                 }
-            }
-            else if (pad != null && InputCapture.Detect(_baseline, pad) is { } b)
-            {
-                // a pad binding of the other view (raw vs gamepad) would never fire: InputCapture follows the device
-                Bound(b);
+                else if (recorder.Parts.Count != partsBefore)
+                {
+                    _listenUntil = DateTime.UtcNow.AddSeconds(8);
+                    RefreshBindings();
+                }
             }
         }
 

@@ -1447,6 +1447,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   ao gravar L3 + R3, o mapeamento entende L3 sozinho e depois L3 + R3 (grava cada botão conforme é apertado, em vez
   de esperar a combinação completa); o certo é gravar só a combinação final (L3 + R3) e, no jogo, disparar só com os
   dois apertados, sem disparar o atalho de L3 sozinho no caminho
+  Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): num controle, a gravação de um atalho (clicar na linha,
+  "+" ou o botão de combinação) espera a combinação inteira: guarda o maior conjunto de botões apertados juntos e só
+  termina com todos soltos por 400 ms (um clique de analógico que escapa no meio não encerra), e clicar na linha troca
+  tudo o que o atalho tinha pela combinação. `BindingRecorder` (Core/Input), `BindingRecorderTests`.
 - [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
   as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
   tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
