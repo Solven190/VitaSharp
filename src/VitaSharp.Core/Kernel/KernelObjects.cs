@@ -37,6 +37,10 @@ public abstract class KernelObject
     /// <summary>The signaller's <see cref="GuestThread.CoreReleases"/> at the signal.</summary>
     internal int SignallerCoreReleases { get; private set; }
 
+    /// <summary>The guest time of the last signal (<see cref="Util.GuestClock.Ticks"/>): a timed wait it ends writes back the
+    /// time that was left at the signal, as the kernel's timer stops there, not when the woken host thread runs.</summary>
+    internal long SignalTicks { get; private set; } = long.MinValue;
+
     /// <summary>Records the calling thread as the one that last signalled this object (the caller holds its lock).</summary>
     protected void RecordSignal()
     {
@@ -44,6 +48,7 @@ public abstract class KernelObject
         Signaller = current;
         SignallerProgress = current?.OwnCycles ?? 0;
         SignallerCoreReleases = current?.CoreReleases ?? 0;
+        SignalTicks = Util.GuestClock.Ticks;
     }
 
     /// <summary>Wakes the threads waiting on this object (the caller holds its lock) and records who woke them.</summary>
@@ -205,6 +210,14 @@ public static class SceError
     public const int LW_MUTEX_RECURSIVE = unchecked((int)0x80028182);
     public const int LW_MUTEX_UNLOCK_UDF = unchecked((int)0x80028184);
     public const int UNKNOWN_COND_ID = unchecked((int)0x800281A1);
+    /// <summary>A cond wait's mutex was deleted (or cancelled) while the woken waiter locked it again; the cond itself
+    /// was deleted while it waited (threadmgr 3.74).</summary>
+    public const int WAIT_DELETE_MUTEX = unchecked((int)0x800281A2);
+    public const int WAIT_CANCEL_MUTEX = unchecked((int)0x800281A3);
+    public const int WAIT_DELETE_COND = unchecked((int)0x800281A4);
+    /// <summary>The same for a lightweight cond and its lightweight mutex.</summary>
+    public const int WAIT_DELETE_LW_MUTEX = unchecked((int)0x800281C2);
+    public const int WAIT_DELETE_LW_COND = unchecked((int)0x800281C3);
     public const int UNKNOWN_CALLBACK_ID = unchecked((int)0x800280A1);
     public const int UNKNOWN_MSG_PIPE_ID = unchecked((int)0x80028221);
     public const int MPP_EMPTY = unchecked((int)0x80028223);

@@ -244,6 +244,7 @@ public sealed class MutexInterleavingTests(GuestMemoryFixture fixture) : IDispos
     [InlineData(false)]
     public void AnUnlockAfterTheDeadlineSkipsTheTimedOutWaiter(bool waiterBehind)
     {
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;
@@ -254,11 +255,12 @@ public sealed class MutexInterleavingTests(GuestMemoryFixture fixture) : IDispos
             List<int> order = [];
             GuestRun late = _h.Start(_ => results[0] = Call(Tm, "sceKernelLockMutex", uid, 1, new Ptr<uint>(timeout)), "mutex-late");
             Until(() => late.Thread.Status == ThreadStatus.Waiting, "the timed wait");
-            long waiting = VitaSharp.Core.Util.GuestClock.Ticks; // the wait started before this
             GuestRun? behind = waiterBehind ? Waiter(uid, 1, results, 1, order) : null;
             lock (mutex)
             {
-                Until(() => Wait.Expired(waiting, LimitUs), "the deadline in guest time");
+                clock.Advance(LimitUs - 1);
+                Assert.Equal((1, main.Uid, waiterBehind ? 2 : 1), Info(main, uid)); // still queued a microsecond before
+                clock.Advance(1);
                 Assert.Equal(0u, main.DispatchForTest("sceKernelUnlockMutex", (uint)uid, 1u));
                 Assert.Equal(waiterBehind ? (1, behind!.Thread.Uid, 0) : (0, 0, 0), Info(main, uid));
             }

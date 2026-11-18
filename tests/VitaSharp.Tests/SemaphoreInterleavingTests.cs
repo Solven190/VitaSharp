@@ -213,13 +213,14 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
     }
 
     /// <summary>
-    /// A wait's timeout is the kernel's timer at a guest-time deadline: once it has passed, the waiter is off the queue
+    /// A wait's timeout is the kernel's timer at a guest-time deadline (the test moves guest time): once it has passed, the waiter is off the queue
     /// and a later signal does not serve it, however late its host thread is to notice. It returns WAIT_TIMEOUT with no
     /// time left, and the signal's unit stays for the next caller.
     /// </summary>
     [Fact]
     public void ASignalAfterTheDeadlineDoesNotServeALateWaiter()
     {
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;
@@ -229,10 +230,11 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
             int result = 1;
             GuestRun waiter = _h.Start(_ => result = Call(Tm, "sceKernelWaitSema", uid, 1, new Ptr<uint>(timeout)), "sema-late");
             Until(() => waiter.Thread.Status == ThreadStatus.Waiting, "the wait");
-            long waiting = VitaSharp.Core.Util.GuestClock.Ticks; // the wait started before this
             lock (sema)
             {
-                Until(() => Wait.Expired(waiting, LimitUs), "the deadline in guest time");
+                clock.Advance(LimitUs - 1);
+                Assert.Equal((0, 1), Info(main, uid)); // a microsecond before the deadline it still waits
+                clock.Advance(1);
                 Assert.Equal(0u, main.DispatchForTest("sceKernelSignalSema", (uint)uid, 1u));
                 Assert.Equal((1, 0), Info(main, uid));
             }
@@ -251,6 +253,7 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
     [Fact]
     public void ATimedOutHeadHandsTheUnitsToTheWaitersBehindIt()
     {
+        using var clock = ControlledGuestClock.Stop();
         _h.OnGuest(main =>
         {
             const uint LimitUs = 50_000;
@@ -260,13 +263,14 @@ public sealed class SemaphoreInterleavingTests(GuestMemoryFixture fixture) : IDi
             int[] results = [1, 1];
             GuestRun head = _h.Start(_ => results[0] = Call(Tm, "sceKernelWaitSema", uid, 2, new Ptr<uint>(timeout)), "sema-head");
             Until(() => head.Thread.Status == ThreadStatus.Waiting, "the head's wait");
-            long waiting = VitaSharp.Core.Util.GuestClock.Ticks;
             GuestRun behind = Waiter(uid, 1, results, 1);
             lock (sema)
             {
                 Assert.Equal(0u, main.DispatchForTest("sceKernelSignalSema", (uint)uid, 1u));
                 Assert.Equal((1, 2), Info(main, uid));
-                Until(() => Wait.Expired(waiting, LimitUs), "the head's deadline in guest time");
+                clock.Advance(LimitUs - 1);
+                Assert.Equal((1, 2), Info(main, uid)); // a microsecond before the deadline the head still waits
+                clock.Advance(1);
                 Assert.Equal(unchecked((uint)SceError.SEMA_ZERO), main.DispatchForTest("sceKernelPollSema", (uint)uid, 1u));
                 Assert.Equal((0, 0), Info(main, uid));
             }
