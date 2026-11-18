@@ -366,7 +366,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   real: Audioenc, Videoenc, Mp4Recorder, G729, Rudp e TriggerUtil (nenhum jogo instalado importa); Location (Severed),
   NetAdhocMatching (Soul Sacrifice Delta, Army Corps of Hell, Table Top Tanks e outros) e Ime (LittleBigPlanet,
   Shinobido 2 e outros) são importados, mas não ficam em uso no começo do jogo num cenário curto sem janela.
-- [ ] [P3][M] Sob o shell do Vita (vários processos) o salvamento é recusado
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P3][M] Sob o shell do Vita (vários processos) o salvamento é recusado
   Feito (16/11/2026, rm5, feat/rm5-savestate-multiprocess; junto em 18/11/2026, feat/pend1, a confirmar pelo
   usuário): o estado guarda todos os processos do sistema (o shell e os aplicativos que ele abriu) em volta do kernel
   único: cada processo com suas seções (`process<N>/system`, `hle.functions`, `hle:<Módulo>`), a lista `processes` e
@@ -1527,7 +1527,7 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Controles
 
-- [ ] [P2][M] Atalho com dois botões juntos (combinação) não funciona no mapeamento (pedido do usuário, 17/11/2026):
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P2][M] Atalho com dois botões juntos (combinação) não funciona no mapeamento (pedido do usuário, 17/11/2026):
   ao gravar L3 + R3, o mapeamento entende L3 sozinho e depois L3 + R3 (grava cada botão conforme é apertado, em vez
   de esperar a combinação completa); o certo é gravar só a combinação final (L3 + R3) e, no jogo, disparar só com os
   dois apertados, sem disparar o atalho de L3 sozinho no caminho
@@ -1535,14 +1535,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   "+" ou o botão de combinação) espera a combinação inteira: guarda o maior conjunto de botões apertados juntos e só
   termina com todos soltos por 400 ms (um clique de analógico que escapa no meio não encerra), e clicar na linha troca
   tudo o que o atalho tinha pela combinação. `BindingRecorder` (Core/Input), `BindingRecorderTests`.
-- [ ] [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P2][M] Teclado funcionando junto com o controle (pedido do usuário, 17/11/2026): hoje, com um controle em uso,
   as teclas do mapeamento do teclado deixam de valer; o teclado deve continuar mandando os botões mapeados ao mesmo
   tempo que o controle (as duas entradas somadas no mesmo pad do Vita), sem precisar trocar de dispositivo
   Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): no jogo o `HostInput` já somava teclado e controles
   (conferido no `pad-test`); a tela de controles mostrava só o dispositivo escolhido. Agora a prévia ao vivo soma as
   teclas do perfil do teclado com o controle escolhido, como o jogo recebe (`InputMapper.MapTogether`,
   `InputMappingTests.KeyboardKeysKeepWorkingWhileAControllerIsInUse`).
-- [ ] [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P3][P] Salvar o mapeamento de forma visível (pedido do usuário, 17/11/2026): hoje o mapeamento só é gravado ao
   sair da tela de controles; ter um botão "Salvar" (e um aviso de "salvo"/"alterações não salvas") na tela de
   controles, mantendo o salvamento ao sair
   Feito (18/11/2026, feat/pend1, a confirmar pelo usuário): botão "Salvar" ao lado de "Restaurar padrão", com o aviso
@@ -2824,7 +2824,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   as linhas de botões quebrarem (WrapPanel), os textos longos quebrarem/encolherem e as duas colunas virarem uma só
   abaixo de uma largura mínima, em todas as páginas do launcher (Sistema, Configurações, página do jogo, Troféus,
   Capturas, Instalar), com teste headless em larguras pequenas (nenhum controle fora do próprio cartão)
-- [ ] [P1][M] PSVitaAlive (PSVAS1178, homebrew vita2d), bug gráfico no teclado de busca (usuário, 17/11/2026; captura
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][M] PSVitaAlive (PSVAS1178, homebrew vita2d), bug gráfico no teclado de busca (usuário, 17/11/2026; captura
   `captures/PSVAS1178_20261117_215911_tudo`, 41 achados [flash]): em quadros isolados faltam as teclas e parte do
   texto ("9/12" em vez de "9/128") e triângulos saem do canto superior esquerdo. Causa (replay do gpu.vsgd, quadro
   7692, draws 379+): os draws leem os vértices do quadro seguinte (o programa de cor recebe dados com coordenadas de
@@ -2835,7 +2835,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   índices, os vertex streams e os uniform buffers vinculados (`GeometrySnapshot`, `DisplayHold`), e o worker lê a
   cópia; teste `GxmFlowTests.DrawsBehindADisplayHoldReadTheGeometryOfTheirKick`. Teste do usuário: PSVitaAlive,
   abrir "Buscar no catálogo" e digitar várias letras pelo toque; não pode piscar nem faltar tecla.
-- [ ] [P1][M] PSM: "0 fps / não dá para jogar" (usuário, 17/11/2026; captura `captures/PCSI00011_20261117_225840_tudo`).
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][M] PSM: "0 fps / não dá para jogar" (usuário, 17/11/2026; captura `captures/PCSI00011_20261117_225840_tudo`).
   O que foi aberto foi o próprio PSM Runtime Package (PCSI00011), sem jogo: o main do runtime 2.01 (estudo do eboot
   decifrado) carrega libmono_bridge/libmono/libpsm, pede o parâmetro (sceAppMgrGetAppParam, "ux0:psm/<id>"), monta
   106/107 com os 9 últimos caracteres; sem parâmetro a montagem falha, ele descarrega tudo e termina no abort da libc
@@ -2862,6 +2862,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   mantém a rolagem; apagar uma captura (página Capturas e lista da página do jogo) mantém a rolagem com o foco na
   captura seguinte (`ListDeleteKeepsPositionTests`). Não há lista de saves com apagar no launcher. Falta: o app
   Android (pausado).
+  (18/11/2026, usuário: a parte do desktop confirmada como corrigida; o app Android segue aberto)
 - [ ] [P1][M] Assassin's Creed III Liberation (PCSE00053) trava no boot, nunca mostra o primeiro quadro (usuário,
   17/11/2026; primeiro teste do jogo). Captura `captures/PCSE00053_20261117_012258_tudo`: 7 min no quadro 0 (0 fps,
   só a imagem de boot), áudio aberto mas em silêncio. Os threads do motor (Gear) foram todos criados, NGS e GXM
@@ -2912,7 +2913,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   KernelHleTests.SmallAtomicsUseTheWholeOperandRegisters); DecIfPositive8/16 com >= 0 é o que o firmware faz
   (LDREXB + CMP #0x80). Descartado com medida: lockstep contra o Unicorn (VITASHARP_LOCKSTEP=ALL, --cores=1), 0
   divergências até o Unicorn cair. Falta: o usuário confirmar o jogo até o menu/gameplay
-- [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
   hle_errors só PollEventFlag/WaitSema de espera normal). Suspeita a confirmar no replay: iluminação dos modelos com
@@ -2991,7 +2992,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   suspend/resume com outro jogo rodando (modelos do cenário não carregados, streaming ou animação da cutscene
   parados); as threads do MGS no início da captura não estão presas em nada anormal. Falta a captura do mesmo plano
   com o MGS aberto direto (pedida ao usuário em 16/11) para separar "depende da troca" de "o plano é assim aqui".
-- [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), subitem que sobrou do relato de 11/11/2026 (o resto está em "Corrigido, falta o usuário testar"):
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][G] Metal Gear Solid HD Collection (PCSE00020), subitem que sobrou do relato de 11/11/2026 (o resto está em "Corrigido, falta o usuário testar"):
   - **Ainda aberto: escurecimento de um quadro (cabeça do tripulante e bloom, flashes 2752-2778 da captura
     010709; são os flashes que sobram com a correção acima).** No replay do dump 010709 (quadros 2740-2790) aparecem
     quedas de um quadro em posições diferentes a cada execução, só com `--msaa=native` (3 de 5 execuções); com
@@ -3064,7 +3065,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   imagem PFS e não têm equivalente numa pasta do host. O limite de tamanho do save (1 MiB, ou 10 MiB) também não é
   conferido.
 
-- [ ] [P2][M] Travada de 0,3 a 1,4 s sob carga na fila de exibição (achado do agente P1, 13/11/2026, Wipeout na corrida): a
+- [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P2][M] Travada de 0,3 a 1,4 s sob carga na fila de exibição (achado do agente P1, 13/11/2026, Wipeout na corrida): a
   thread da fila de exibição espera a fence da GPU enquanto o worker da GPU espera o buffer ser liberado; só o limite
   de 250 ms ("sceGxmBeginScene: sync object ... still displayed after 250 ms") desfaz. Conferir com o fluxo do
   console (a fila só chama o callback depois da fence; a liberação vem depois do callback) onde as duas esperas se
@@ -3255,6 +3256,7 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   "começo depois de pausa", sem aviso, e aparece no resumo da porta (agente snd1, fix/shell-audio)
 
 - [ ] [P1][G] Metal Gear Solid HD Collection (PCSE00020), abertura do MGS3 dentro do avião (relato do usuário, 10/11/2026;
+  (18/11/2026, usuário: as partes (2) cunhas/borrão e (3) trava do End Frame confirmadas como corrigidas; a parte (1) segue aberta)
   `captures\PCSE00020_20261110_214209_tudo`, `_214218_tudo` com dump da GPU, `_214309_tudo` com a trava). Agente B
   (fix/bugs-b-7). Referência do Vita de verdade: YouTube GaPPb3zatq0 (longplay, 1:45-4:00).
   - **(2) cunhas vermelhas/azuis e borrão no interior: correção feita, validada só no replay** (2ae181d). A composição
