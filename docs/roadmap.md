@@ -250,6 +250,12 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
+- [ ] [P1][M] Save state recusado com plugins de kernel ativos (relato do usuário, 18/11/2026): com "Ativar Plugins
+  do Kernel" ligado (ex.: nopsmdrm/kubridge no ur0:tai/config.txt), salvar dá `module kernel PluginFramework: its state
+  is not supported by save states yet` (SaveStates.cs:380). Falta o estado do PluginFramework (hooks instalados por
+  processo, plugins carregados e a ordem, o processo de kernel compartilhado, a memória e as threads dos plugins) entrar
+  no save state e voltar no load como num Vita (os hooks reinstalados nas mesmas funções), com teste de ida e volta com
+  um plugin de teste (SceModuleBuilder) que instala um hook
 - [x] Cascas dos módulos de firmware em HLE (FirmwareKernelModules, rr3c) ocupam o tamanho real do código dos módulos de
   kernel (~20 MB de memória de kernel do guest preenchidos com a armadilha 0xE7FDDEFE), que ia inteiro para cada save
   state. Feito (fix/bug6-shells, 16/11/2026): uma página que é uma só palavra de 32 bits repetida (a armadilha, um
