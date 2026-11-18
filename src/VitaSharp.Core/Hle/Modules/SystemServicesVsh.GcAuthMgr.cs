@@ -25,7 +25,6 @@ public sealed partial class SystemServicesVsh
     [Hle("sceSblGcAuthMgrAdhocBB224Auth5", Library = "SceLibKernel", Default = true)]
     [Hle("sceSblGcAuthMgrAdhocBB224GetKeys", Library = "SceLibKernel", Default = true)]
     [Hle("sceSblGcAuthMgrMsSaveBBMacFinal", Library = "SceLibKernel", Default = true)]
-    [Hle("sceSblGcAuthMgrMsSaveBBMacInit", Library = "SceLibKernel", Default = true)]
     [Hle("sceSblGcAuthMgrPsmactCreateC1", Library = "SceLibKernel", Default = true)]
     [Hle("sceSblGcAuthMgrPsmactVerifyR1", Library = "SceLibKernel", Default = true)]
     [Hle("sceSblGcAuthMgrSclkGetData1", Library = "SceLibKernel", Default = true)]

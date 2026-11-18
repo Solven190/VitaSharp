@@ -451,8 +451,12 @@ public sealed partial class VshBridge
     }
     /// <summary>The port the user is using: 0, the handheld's own buttons (a PS TV with a DualShock reports 1).</summary>
     [Hle] int vshCtrlGetActiveControllerPort() => 0;
-    /// <summary>A Blu-ray remote (PS TV only): never connected.</summary>
-    [Hle] int vshCtrlIsBdRemoconConnected() => 0;
+    /// <summary>A Blu-ray remote (PS TV only): for system programs (0x80010058), ksceCtrlIsBdRemoconConnected.</summary>
+    [Hle]
+    int vshCtrlIsBdRemoconConnected()
+    {
+        return Vsh ? KernelServices.ksceCtrlIsBdRemoconConnected() : VSH_ERR_PERM;
+    }
     /// <summary>(SceUID cb): undoes vshCtrlRegisterNotifyCallBack (which keeps nothing).</summary>
     [Hle] int vshCtrlUnregisterNotifyCallBack(int cb) => 0;
 
@@ -630,27 +634,30 @@ public sealed partial class VshBridge
     }
 
     // ---- system event log and process information
-    /// <summary>(const void *data, const opt *0x10: size &lt;= 0x7C0): one entry of the system event log
-    /// (ksceEventLogPut): written to the emulator's log.</summary>
+    /// <summary>(ushort code, ushort subcode, uint value, const opt *0x10 {+0 data, +4 size, +8 the length copied
+    /// in, at most 0x7C0}): one record of the kernel event log for the calling thread, as the bridge of 3.74 does it:
+    /// the option block and the data are copied in (a NULL block: an illegal address; a length above 0x7C0: 0x8002710B), a caller that is not a system program gets 0x80010058, then ksceEventLogPutForCurrentThread.</summary>
     [Hle]
-    int _vshEventLogPut(uint data, uint opt)
+    int _vshEventLogPut(int code, int subcode, uint value, uint opt)
     {
-        if (!OptSize(opt, out uint size))
+        if (opt == 0)
         {
             return ERR_BAD_ADDR;
         }
 
-        if (size > 0x7C0)
+        uint data = GuestMemory.R32(opt);
+        uint size = GuestMemory.R32(opt + 4);
+        if (data != 0 && GuestMemory.R32(opt + 8) > 0x7C0)
         {
             return ERR_TOO_BIG;
         }
 
-        if (data != 0 && size > 0)
+        if (!Vsh)
         {
-            Util.Log.Debug($"vsh event log: {Convert.ToHexString(GuestMemory.ReadSpan(data, (int)Math.Min(size, 64u)))}");
+            return VSH_ERR_PERM;
         }
 
-        return 0;
+        return KernelServices.EventLogPutForCurrentThread(code, subcode, value, data, size);
     }
 
     /// <summary>(SceUID pid, SceUInt32 *version): the SDK version the process was built with (from its

@@ -108,10 +108,34 @@ public sealed partial class VshBridge : HleModule
     [Hle] int vshSysconIsMCEmuCapable() => 0;
 
     // ---- input idle detection, RTC alarms, clock: no hardware counterpart, the calls succeed
-    /// <summary>(uint keys, uint keys2, int, int): buttons that cancel the auto-dim timer.</summary>
-    [Hle] int vshCtrlSetIdleCancelKey(uint keys, uint keys2, int a, int b) => 0;
-    /// <summary>(int leftStick, int rightStick): stick travel that cancels the auto-dim timer.</summary>
-    [Hle] int vshCtrlSetIdleCancelThreshold(int left, int right) => 0;
+    /// <summary>(uint keys, uint keys2, uint, uint): buttons that cancel the auto-dim timer: for system programs
+    /// (0x80010058), ksceCtrlSetIdleCancelKey.</summary>
+    [Hle]
+    int vshCtrlSetIdleCancelKey(uint keys, uint keys2, uint third, uint fourth)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        return KernelServices.ksceCtrlSetIdleCancelKey(keys, keys2, third, fourth);
+    }
+
+    /// <summary>(int leftStick, int rightStick): stick travel that cancels the auto-dim timer: for system programs
+    /// (0x80010058), ksceCtrlSetIdleCancelThreshold (each -1..0x80).</summary>
+    [Hle]
+    int vshCtrlSetIdleCancelThreshold(int left, int right)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        return KernelServices.ksceCtrlSetIdleCancelThreshold(left, right);
+    }
+
+    /// <summary>The kernel side of the bridge's calls (the module that holds the kernel libraries' state).</summary>
+    SystemServicesVsh KernelServices => Emu.Hle.Modules.OfType<SystemServicesVsh>().First();
     /// <summary>(int id): the shell drops a secure-clock alarm it registered (0, or 0x80251004 "not registered", both fine).</summary>
     [Hle] int vshRtcUnregisterSecureAlarmCallback(int id) => 0;
     /// <summary>(SceRtcTick *tick): setting the clock (date and time settings). The emulated clock follows the host's.</summary>
