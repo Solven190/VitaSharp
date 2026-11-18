@@ -926,6 +926,9 @@
 0xF7464216	sceCameraSetZoom	Camera	SceCamera	vh
 0xA8FEAE35	sceCameraStart	Camera	SceCamera	vh
 0x1DD9C9CE	sceCameraStop	Camera	SceCamera	vh
+0x0657FC1B	SceCdramForDriver_0657FC1B	SystemServicesVsh	SceCdramForDriver	-	default
+0x2D728EBF	SceCdramForDriver_2D728EBF	SystemServicesVsh	SceCdramForDriver	-	default
+0x3EFA7540	SceCdramForDriver_3EFA7540	SystemServicesVsh	SceCdramForDriver	-
 0x5BB10CC2	sceClipboardGetText	SystemUtil	SceClipboard	vh
 0x43A94D3E	sceClipboardSetText	SystemUtil	SceClipboard	vh
 0x2C9DA711	sceCodecEnginePmonGetProcessorLoad	CodecEngine	SceCodecEnginePerf	vh
@@ -1421,8 +1424,13 @@
 0xA0CE3287	ksceKernelSetAssertLevel	SysmemKernel	SceDebugForKernel	-
 0x2B6EABAD	sceDebugLedInvokeHandle0	SystemServicesVsh	SceDebugLed	vh
 0x0E6B9890	sceDebugLedInvokeHandle1	SystemServicesVsh	SceDebugLed	vh
-0x14F582CF	sceKernelGetGPI	SysMem	SceDebugLed	vh
-0x78E702D3	sceKernelSetGPO	SysMem	SceDebugLed	vh
+0x14F582CF	sceKernelGetGPI	SystemServicesVsh	SceDebugLed	vh
+0x78E702D3	sceKernelSetGPO	SystemServicesVsh	SceDebugLed	vh
+0x24173819	ksceDebugLedRegisterHandle0	SystemServicesVsh	SceDebugLedForDriver	-
+0xF62154E7	ksceDebugLedRegisterHandle1	SystemServicesVsh	SceDebugLedForDriver	-
+0x3BB289F7	ksceKernelGetGPO	SystemServicesVsh	SceDebugLedForDriver	-
+0x51C5325A	ksceKernelSetGPI	SystemServicesVsh	SceDebugLedForDriver	-
+0x098473B0	ksceKernelSetGPOMask	SystemServicesVsh	SceDebugLedForDriver	-
 0x63B0C50F	sceKernelDeci4pClose	DebugPerf	SceDeci4pUserp	vh
 0x4719A799	sceKernelDeci4pCreateHostProcess	DebugPerf	SceDeci4pUserp	vh
 0x6A09F63A	sceKernelDeci4pCreateHostProcessAndWait	DebugPerf	SceDeci4pUserp	vh
@@ -6691,6 +6699,9 @@
 0xD312424D	_sceNpDrmGetRifNameForInstall	SystemServicesVsh	SceNpDrm	vh	default
 0x2523F57F	_sceNpDrmPresetRifProvisionalFlag	SystemServicesVsh	SceNpDrm	vh	default
 0x507D06A6	_sceNpDrmRemoveActData	SystemServicesVsh	SceNpDrm	vh	default
+0xDB406EAE	ksceNpDrmGetRifInfo	SystemServicesVsh	SceNpDrmForDriver	-
+0xDACB71F4	ksceNpDrmGetRifPspKey	SystemServicesVsh	SceNpDrmForDriver	-
+0x723322B5	ksceNpDrmGetRifVitaKey	SystemServicesVsh	SceNpDrmForDriver	-
 0xA1D885FA	_sceNpDrmPackageCheck	SystemServicesVsh	SceNpDrmPackage	vh	default
 0xD6F05ACC	_sceNpDrmPackageDecrypt	SystemServicesVsh	SceNpDrmPackage	vh	default
 0x6896EAF2	_sceNpDrmPackageInstallFinished	SystemServicesVsh	SceNpDrmPackage	vh
@@ -8986,8 +8997,8 @@
 0x59A6CDAE	scePromoterUtility_59A6CDAE	SystemFallback	ScePromoterUtil	-
 0x8494C742	scePromoterUtility_8494C742	SystemFallback	ScePromoterUtil	-
 0xA89653B3	scePsmDrmGetActInfo	SystemServicesVsh	ScePsmDrm	vh	default
-0xE31A6220	scePsmDrmGetRifInfo	SystemServicesVsh	ScePsmDrm	vh	default
-0x207A2C53	scePsmDrmGetRifKey	SystemServicesVsh	ScePsmDrm	vh	default
+0xE31A6220	scePsmDrmGetRifInfo	SystemServicesVsh	ScePsmDrm	vh
+0x207A2C53	scePsmDrmGetRifKey	SystemServicesVsh	ScePsmDrm	vh
 0x3E881391	scePsmDrmGetRifName	SystemServicesVsh	ScePsmDrm	vh	default
 0x0D6470DA	scePsmDrmGetRifNameForInstall	SystemServicesVsh	ScePsmDrm	vh	default
 0x0E193CBB	scePsmDrmRemoveActData	SystemServicesVsh	ScePsmDrm	vh	default
@@ -9227,6 +9238,11 @@
 0x6E787722	scePvfSetEmboldenRate	Pvf	ScePvf	vh
 0xC4444FB3	scePvfSetResolution	Pvf	ScePvf	vh
 0x3DD09BC9	scePvfSetSkewValue	Pvf	ScePvf	vh
+0x0374213C	ScePwmForDriver_0374213C	SystemServicesVsh	ScePwmForDriver	-
+0x13161CCC	ScePwmForDriver_13161CCC	SystemServicesVsh	ScePwmForDriver	-
+0x22C17D24	ScePwmForDriver_22C17D24	SystemServicesVsh	ScePwmForDriver	-
+0x514773B1	ScePwmForDriver_514773B1	SystemServicesVsh	ScePwmForDriver	-
+0x99911920	ScePwmForDriver_99911920	SystemServicesVsh	ScePwmForDriver	-
 0x911E0AA0	sceRazorCaptureIsInProgress	DebugPerf	SceRazorCapture	vh
 0xE916B538	sceRazorCaptureSetTrigger	DebugPerf	SceRazorCapture	vh
 0x3D4B7E68	sceRazorCaptureSetTriggerNextFrame	DebugPerf	SceRazorCapture	vh
@@ -9456,11 +9472,43 @@
 0x868E1C88	sceSasSetVolumeInternal	Sas	SceSas	-
 0x3C17A7F7	_sceSblACMgrIsGameProgram	SystemMisc	SceSblACMgr	vh
 0x8612B243	ksceSblACMgrIsSystemProgram	ProcessmgrKernel	SceSblACMgrForDriver	-
+0x14345161	ksceSblAimgrGetProductCode	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xB33CEC8F	ksceSblAimgrGetProductSubCode	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x47D9CF13	ksceSblAimgrGetSMI	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xD78B04A2	ksceSblAimgrIsCEX	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xF4B98F66	ksceSblAimgrIsDEX	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x71608CA3	ksceSblAimgrIsDolce	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xC6E83F34	ksceSblAimgrIsGenuineDolce	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x963CA644	ksceSblAimgrIsGenuineVITA	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x6D5A3FC9	ksceSblAimgrIsJapaneseFat	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xFF5784B9	ksceSblAimgrIsPrototypeRev2	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x05F79D4A	ksceSblAimgrIsPrototypeRev7	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x3B638885	ksceSblAimgrIsTest	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x274663A0	ksceSblAimgrIsTool	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xBB9D146B	ksceSblAimgrIsToolRev3	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x37A79140	ksceSblAimgrIsToolRev4	SystemServicesVsh	SceSblAIMgrForDriver	-
+0xE5E47FF7	ksceSblAimgrIsToolRev5	SystemServicesVsh	SceSblAIMgrForDriver	-
+0x4273B97B	ksceSblAimgrIsVITA	SystemServicesVsh	SceSblAIMgrForDriver	-
 0x6E283E2E	_sceKernelGetOpenPsId	ProcessMgr	SceSblAimgr	vh
+0x41DAEA12	ksceSblAuthMgrDecBindData	SystemServicesVsh	SceSblAuthMgrForDriver	-	default
+0x868B9E9A	ksceSblAuthMgrGetEKc	SystemServicesVsh	SceSblAuthMgrForDriver	-	default
+0x24C4CE64	ksceSblAuthMgrVerifySpfsoCtx	SystemServicesVsh	SceSblAuthMgrForDriver	-	default
+0x2A83A012	SceSblAuthMgrForKernel_2A83A012	SystemServicesVsh	SceSblAuthMgrForKernel	-
+0xF3411881	ksceSblAuthMgrAuthHeader	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
+0xF2BB723E	ksceSblAuthMgrClearDmac5Key	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
+0x026ACBAD	ksceSblAuthMgrClose	SystemServicesVsh	SceSblAuthMgrForKernel	-
+0xABAB8466	ksceSblAuthMgrCompareSwVersion	SystemServicesVsh	SceSblAuthMgrForKernel	-
+0xBC422443	ksceSblAuthMgrLoadBlock	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
+0xA9CD2A09	ksceSblAuthMgrOpen	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
+0x122ACDEA	ksceSblAuthMgrSetDmac5Key	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
+0x89CCDA2C	ksceSblAuthMgrSetupAuthSegment	SystemServicesVsh	SceSblAuthMgrForKernel	-	default
 0xD0B1F759	sceSblDmac5EncDec	SystemServicesVsh	SceSblDmac5Mgr	vh	default
 0x5BF4F924	sceSblDmac5EncDecKeyGen	SystemServicesVsh	SceSblDmac5Mgr	vh	default
 0x09EBC6EF	sceSblDmac5HashTransform	Security	SceSblDmac5Mgr	vh
 0xCCE57D33	sceSblDmac5HmacKeyGen	SystemServicesVsh	SceSblDmac5Mgr	vh	default
+0x91C73A54	ksceSblFwLoaderLoad	SystemServicesVsh	SceSblFwLoaderForDriver	-	default
+0xA6278D27	ksceSblFwLoaderLock	SystemServicesVsh	SceSblFwLoaderForDriver	-
+0xBB59FC7A	ksceSblFwLoaderUnlock	SystemServicesVsh	SceSblFwLoaderForDriver	-
 0x5E56F845	_sceSblGcAuthMgrAdhocBB160Auth1	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0xD2218A6E	_sceSblGcAuthMgrAdhocBB160Auth2	SystemServicesVsh	SceSblGcAuthMgr	vh	default
 0xD1777A14	_sceSblGcAuthMgrAdhocBB160Auth3	SystemServicesVsh	SceSblGcAuthMgr	vh	default
@@ -9542,6 +9590,15 @@
 0x9DFB118B	sceSblRtcMgrSetCpRtcLogical	SystemServicesVsh	SceSblRtcMgr	vh	default
 0x3C0EEC69	sceSblRtcMgrSetCpRtcPhysicalAndKey	SystemServicesVsh	SceSblRtcMgr	vh	default
 0xA990BC44	sceSblRtcMgrSetCpRtcPhysicalForUser	SystemServicesVsh	SceSblRtcMgr	vh	default
+0xDB9FC204	ksceSblSmCommCallFunc	SystemServicesVsh	SceSblSmCommForKernel	-
+0x039C73B1	ksceSblSmCommStartSmFromData	SystemServicesVsh	SceSblSmCommForKernel	-	default
+0x7863A0CC	ksceSblSmCommStartSmFromFile	SystemServicesVsh	SceSblSmCommForKernel	-	default
+0x0631F8ED	ksceSblSmCommStopSm	SystemServicesVsh	SceSblSmCommForKernel	-
+0x516ECC08	SceSblSsMgrForKernel_516ECC08	SystemServicesVsh	SceSblSsMgrForKernel	-
+0xC2EC8F5A	ksceSblNvsReadData	SystemServicesVsh	SceSblSsMgrForKernel	-
+0xE29E161C	ksceSblNvsWriteData	SystemServicesVsh	SceSblSsMgrForKernel	-
+0x83D254FF	ksceSblQafManagerGetQAFlags	SystemServicesVsh	SceSblSsMgrForKernel	-
+0xE2DD0378	ksceSblQafManagerGetQafName	SystemServicesVsh	SceSblSsMgrForKernel	-
 0x4C06F41C	sceSblUsAllocateBuffer	SystemServicesVsh	SceSblSsUpdateMgr	vh	default
 0xBED8DFC7	sceSblUsCheckSystemIntegrity	SystemServicesVsh	SceSblSsUpdateMgr	vh	default
 0xC1792A1C	sceSblUsExtractSpackage	SystemServicesVsh	SceSblSsUpdateMgr	vh	default
@@ -10164,6 +10221,9 @@
 0xC442D0BE	SceSysconForDriver_C442D0BE	SysconKernel	SceSysconForDriver	-
 0xDE613081	SceSysconForDriver_DE613081	SysconKernel	SceSysconForDriver	-
 0xE0D52DF0	SceSysconForDriver_E0D52DF0	SysconKernel	SceSysconForDriver	-
+0xACAFA2B8	ksceSysconNvsReadData	SystemServicesVsh	SceSysconForDriver	-
+0x81A6060D	ksceSysconNvsSetRunMode	SystemServicesVsh	SceSysconForDriver	-
+0x10C9657A	ksceSysconNvsWriteData	SystemServicesVsh	SceSysconForDriver	-
 0x32418370	ksceSysconSetAlarmCallback	SysconKernel	SceSysconForDriver	-
 0xF245CD6F	ksceSysconSetDebugHandlers	SysconKernel	SceSysconForDriver	-
 0x3F0DB7C0	ksceSysconSetLowBatteryCallback	SysconKernel	SceSysconForDriver	-
@@ -10752,6 +10812,10 @@
 0x58BF700F	sceTriggerUtilUnregisterDailyEvent	TriggerUtil	SceTriggerUtil	vh
 0xAF73E0A8	sceTriggerUtilUnregisterOneTimeEvent	TriggerUtil	SceTriggerUtil	vh
 0x28EF51DA	sceTriggerUtil_28EF51DA	TriggerUtil	SceTriggerUtil	-
+0x4C02AA05	ksceUartInit	SystemServicesVsh	SceUartForKernel	-	default
+0x4E97D3AD	ksceUartRead	SystemServicesVsh	SceUartForKernel	-	default
+0x16780BC3	ksceUartReadAvailable	SystemServicesVsh	SceUartForKernel	-	default
+0x430C48F1	ksceUartWrite	SystemServicesVsh	SceUartForKernel	-
 0xFCD876FB	NID_FCD876FB	SystemServicesVsh	SceUdcd	-
 0x701C87CF	sceUdcdGetDeviceInfo	SystemServicesVsh	SceUdcd	vh
 0xFCD31220	sceUdcdGetDeviceState	MtpIf	SceUdcd	vh

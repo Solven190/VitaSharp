@@ -225,7 +225,7 @@
 <g><title>SceJpegArm: 6/6 (100%)</title><rect x="966.1" y="523.3" width="13" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceKernelForMono: 6/6 (100%)</title><rect x="979" y="523.3" width="13" height="12.9" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>ScePerfInternal: 6/6 (100%)</title><rect x="901.3" y="536.2" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
-<g><title>ScePsmDrm: 6/6 (100%), 6 default</title><rect x="901.3" y="549.7" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
+<g><title>ScePsmDrm: 6/6 (100%), 4 default</title><rect x="901.3" y="549.7" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceRegMgrForSDK: 6/6 (100%)</title><rect x="901.3" y="563.3" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceRiffPromoter: 6/6 (100%)</title><rect x="901.3" y="576.8" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
 <g><title>SceVideodecAsyncUser: 6/6 (100%)</title><rect x="901.3" y="590.3" width="12.4" height="13.5" fill="#298e29" stroke="#0d1117" stroke-width="1"/></g>
