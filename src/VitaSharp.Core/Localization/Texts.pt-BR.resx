@@ -3138,4 +3138,22 @@
   <data name="FwUninstalled" xml:space="preserve">
     <value>Firmware desinstalado (removido: {0}).</value>
   </data>
+  <data name="PrecompileShaders" xml:space="preserve">
+    <value>Precompilar shaders</value>
+  </data>
+  <data name="PrecompileShadersDetail" xml:space="preserve">
+    <value>Antes de o jogo começar, monta os shaders e pipelines que ele usou nas sessões anteriores</value>
+  </data>
+  <data name="PrecompileShadersGlobalDetail" xml:space="preserve">
+    <value>Antes de um jogo começar, monta os shaders e pipelines que ele usou nas sessões anteriores (cada jogo pode mudar na página dele)</value>
+  </data>
+  <data name="PrecompileShadersTip" xml:space="preserve">
+    <value>Ligado (padrão): ao iniciar um jogo, os shaders e pipelines das sessões anteriores são montados primeiro, com uma barra de progresso (Cancelar inicia o jogo na hora). Assim o jogo não engasga na primeira vez que mostra de novo cada efeito. A primeira sessão de um jogo não tem nada gravado e começa na hora; depois de atualizar o driver de vídeo a espera pode levar alguns segundos. Desligado: eles são montados em segundo plano com o jogo rodando.</value>
+  </data>
+  <data name="PrecompileProgress" xml:space="preserve">
+    <value>Precompilando shaders: {0} de {1}</value>
+  </data>
+  <data name="PrecompileCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
 </root>

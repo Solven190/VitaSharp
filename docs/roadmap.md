@@ -511,6 +511,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   dinâmico (`VK_EXT_extended_dynamic_state` 2/3, como Ryujinx e yuzu), onde o driver tiver as extensões, mantendo o
   caminho atual onde o suporte for parcial (Mali); (3) mais threads de compilação quando a CPU tiver folga (hoje 2
   workers). Pular o desenho até o pipeline ficar pronto não entra como padrão (não é 1:1 com o console).
+  Andamento da frente (1) (feat/pre1, 18/11/2026; o usuário confirma): opção "Precompilar shaders" (global, ligada
+  por padrão, e por jogo; `--precompile-shaders`): antes do boot o jogo espera a reconstrução e o prewarm do que as
+  sessões anteriores gravaram (programs.pack, pipelines.list), com barra de progresso e "Cancelar" na barra de status do
+  launcher (`VulkanRenderer.Precompile.cs`, teste `RendererPathsTests.PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame`).
+  Traduzir só os GXP achados nos arquivos do jogo não basta e ficou de fora: a varredura (`GxpScanner`) acha 2 dos 88
+  programas que o PCSE00269 usa e 10 dos 1.758 do Killzone (o resto está em arquivos comprimidos; 1,3 s e 4,0 s), e só
+  7-13% das variantes de shader gravadas (12.826 receitas de 67 títulos) dão para prever só pelo programa: os hints
+  são estado do draw (formatos de textura, formato dos atributos de vértice, cor da superfície). Falta: medir em
+  gameplay (Killzone, 2ª sessão, cache do driver frio e quente) os quadros lentos com/sem e o tempo da espera; Android
+  (opção e tela de progresso no app)
 - [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.

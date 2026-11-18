@@ -391,6 +391,11 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   Dozen, phone drivers) pipelines are compiled whole either way. The
   `[shadercache] session` log line counts what the GPU thread compiled; see
   [`docs/notes/pipeline-skip.md`](docs/notes/pipeline-skip.md).
+- "Precompilar shaders" (launcher: Configurações, next to "Compilar shaders em segundo plano", and each game's page; `--precompile-shaders=on|off`, default on):
+  before a game starts, the shaders and pipelines recorded in its earlier sessions (`shadercache/titles/<ID>/`) are
+  built behind a progress bar in the launcher's status bar; "Cancelar" (the line `cancel-precompile` on the game
+  process's standard input) starts the game at once and the rest builds in the background. Nothing extra to install,
+  same on Windows, Linux and macOS.
 - Profiling: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, every OS); on Windows also
   PerfView and WPR/WPA (Windows Performance Toolkit).
 

@@ -37,6 +37,14 @@ public interface IGpuBackend : IDisposable
     /// <summary>The title passed to <see cref="BeginTitle"/>, or null (a backend without per-title state).</summary>
     string? TitleId => null;
 
+    /// <summary>
+    /// The emulator option "Precompilar shaders": after <see cref="BeginTitle"/>, before the game starts, waits until
+    /// the shaders and pipelines recorded in earlier sessions of the title are built (the boot rebuild after a
+    /// generator change, then the pipeline prewarm), reporting <paramref name="progress"/>. Cancelling stops the wait
+    /// only: what is left keeps building in the background, as without the option. False when there was nothing to wait for.
+    /// </summary>
+    bool PrecompileBeforeStart(Action<ShaderPrecompileProgress>? progress, CancellationToken cancel) => false;
+
     /// <summary>Called on the submitting thread for each command before it is queued (no worker state may be touched):
     /// lets a backend start slow preparation, e.g. shader compilation, ahead of execution.</summary>
     void Prefetch(GpuCommand command)

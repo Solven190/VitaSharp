@@ -1033,6 +1033,7 @@ public static class Program
         Console.WriteLine("               --video-decoder=auto|sw|hw|d3d11va|vaapi|videotoolbox  H.264 decoding (default auto: software; hw: the platform's hardware decoder)");
         Console.WriteLine("               --shaderc-opt=zero|size|perf  shader optimisation (default zero: fast compiles, less stutter)");
         Console.WriteLine("               --async-shaders=on|off  compile new shaders and pipelines on worker threads (default on)");
+        Console.WriteLine("               --precompile-shaders=on|off  build the shaders and pipelines recorded in earlier sessions before the game starts (default on; \"cancel-precompile\" on stdin stops the wait)");
         Console.WriteLine("               --async-pipelines=on|off  background pipelines only (default on), --shader-workers=N (default auto)");
         Console.WriteLine("               --host-prio=on|off  guest threads and GPU worker above normal host priority (default on)");
         Console.WriteLine("               --gpu-profile=adreno|mali|desktop  emulate a mobile GPU class: its missing features, limits and driver quirks");

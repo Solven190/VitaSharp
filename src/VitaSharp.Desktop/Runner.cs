@@ -46,6 +46,40 @@ public static class Runner
     }
 
     /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
+    /// <summary>--precompile-shaders (default on, like the launcher); when on, a background reader of standard input takes
+    /// the launcher's <see cref="VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand"/>.</summary>
+    static bool PrecompileShadersOpt(string[] options)
+    {
+        bool on = OnOff(options, "--precompile-shaders") ?? true;
+        if (on && Console.IsInputRedirected)
+        {
+            var reader = new Thread(() =>
+            {
+                try
+                {
+                    while (Console.In.ReadLine() is { } line)
+                    {
+                        if (line.Trim() == VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand)
+                        {
+                            VitaSharp.Core.Gpu.ShaderPrecompile.Cancel();
+                        }
+                    }
+                }
+                catch (IOException)
+                {
+                    // the launcher closed the pipe
+                }
+            })
+            {
+                Name = "Precompile cancel",
+                IsBackground = true,
+            };
+            reader.Start();
+        }
+
+        return on;
+    }
+
     internal static bool? OnOff(string[] options, string name)
     {
         var v = Opt(options, name);
@@ -300,6 +334,9 @@ public static class Runner
             KernelPlugins = OnOff(options, "--kernel-plugins"),
             // --system-language=<0-19>: the launcher's "Idioma do sistema" per game (SceSystemParamLang the game reads)
             SystemLanguage = SystemLanguageOpt(options),
+            // --precompile-shaders=on|off: the launcher's "Precompilar shaders" (per game or the global default, on): the
+            // recorded shaders and pipelines are built before the game starts; "cancel-precompile" on standard input stops the wait
+            PrecompileShaders = PrecompileShadersOpt(options),
         });
         var fatal = new ManualResetEventSlim();
         emu.Fatal += (t, e) => fatal.Set();

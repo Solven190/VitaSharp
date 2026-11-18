@@ -213,6 +213,12 @@ public static class Strings
     public static string FastLoadingDetail => T();
     public static string FastLoadingGlobalDetail => T();
     public static string FastLoadingTip => T();
+    public static string PrecompileShaders => T();
+    public static string PrecompileShadersDetail => T();
+    public static string PrecompileShadersGlobalDetail => T();
+    public static string PrecompileShadersTip => T();
+    public static string PrecompileProgress(int done, int total) => F(T(), done, total);
+    public static string PrecompileCancel => T();
     public static string ControlsDetail => T();
     public static string AppliesOnStart => T();
     public static string AppliesNextStart => T();

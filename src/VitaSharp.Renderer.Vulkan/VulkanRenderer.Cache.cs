@@ -534,9 +534,13 @@ public sealed unsafe partial class VulkanRenderer
     /// <summary>Recorded pipelines to prewarm: <see cref="PipelineRecipe"/>s, or byte[] version 3 records.</summary>
     private readonly ConcurrentQueue<object> _prewarmJobs = new();
     private int _prewarmPending, _statPrewarmFailed, _statPrewarmStale;
+    /// <summary>Tests only (set by reflection): runs before each prewarm item, so a test can hold the prewarm and see
+    /// who waits for it (RendererPathsTests, "Precompilar shaders").</summary>
+    internal static Action<VulkanRenderer>? PrewarmItemHook { get; set; }
 
     private void EnqueuePrewarm(object item)
     {
+        Interlocked.Increment(ref _bootItemsQueued);
         Interlocked.Increment(ref _prewarmPending);
         _prewarmJobs.Enqueue(item);
     }
@@ -549,6 +553,8 @@ public sealed unsafe partial class VulkanRenderer
         {
             return false;
         }
+
+        PrewarmItemHook?.Invoke(this);
 
         try
         {
@@ -585,6 +591,7 @@ public sealed unsafe partial class VulkanRenderer
         finally
         {
             Interlocked.Decrement(ref _prewarmPending);
+            Interlocked.Increment(ref _bootItemsDone);
         }
         return true;
     }
@@ -817,6 +824,7 @@ public sealed unsafe partial class VulkanRenderer
 
     private void EnqueueRebuild(object item)
     {
+        Interlocked.Increment(ref _bootItemsQueued);
         Interlocked.Increment(ref _rebuildPending);
         _rebuildJobs.Enqueue(item);
         _workAvailable.Release();
@@ -864,6 +872,7 @@ public sealed unsafe partial class VulkanRenderer
         }
         finally
         {
+            Interlocked.Increment(ref _bootItemsDone);
             if (Interlocked.Decrement(ref _rebuildPending) == 0)
             {
                 _rebuildDone.Set();

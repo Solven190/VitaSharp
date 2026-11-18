@@ -299,6 +299,135 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
     }
 
+    /// <summary>"Precompilar shaders": with the option, the second session's recorded pipelines are all built before the
+    /// game's first frame, so that frame translates no shader and builds no pipeline on the GPU thread. Without it the
+    /// game starts at once and its first frame races the (below normal priority) prewarm.</summary>
+    [SoftwareVulkanFact]
+    public void PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        const string Title = "PCSA00079";
+        try
+        {
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) Session(bool precompile)
+            {
+                VulkanRenderer r = NewRenderer(cache);
+                (bool, int, int, int, int) stats = default;
+                PropertyInfo hook = typeof(VulkanRenderer).GetProperty("PrewarmItemHook", BindingFlags.Static | BindingFlags.NonPublic)!;
+                using var gate = new ManualResetEventSlim();
+                using var reported = new ManualResetEventSlim();
+                // the prewarm of this renderer is held until the wait has been seen
+                hook.SetValue(null, new Action<VulkanRenderer>(x =>
+                {
+                    if (ReferenceEquals(x, r))
+                    {
+                        gate.Wait();
+                    }
+                }));
+                try
+                {
+                    WithRenderer("precompile", r, h =>
+                    {
+                        r.BeginTitle(Title);
+                        int reports = 0;
+                        bool waited = false;
+                        if (precompile)
+                        {
+                            Task<bool> wait = Task.Run(() => ((IGpuBackend)r).PrecompileBeforeStart(_ =>
+                            {
+                                reports++;
+                                reported.Set();
+                            }, CancellationToken.None));
+                            // either the call returns or it reports progress while the prewarm is held
+                            Assert.True(SpinWait.SpinUntil(() => wait.IsCompleted || reported.IsSet, 120_000), "neither returned nor reported");
+                            bool heldTheGame = !wait.IsCompleted || !wait.Result;
+                            gate.Set();
+                            waited = wait.Result;
+                            Assert.True(heldTheGame || !waited, "returned while the recorded pipelines were still being built");
+                        }
+                        gate.Set();
+                        int prewarmed = Stat(r, "_statPrewarmed");
+                        var w = new RendererTextureTests.Workload(h);
+                        w.Run(1); // the game's first frame
+                        h.Emu.Gpu.WaitIdle();
+                        stats = (waited, prewarmed, reports, Stat(r, "_statGpuPipelines"), Stat(r, "_statShaderMisses"));
+                        w.Terminate();
+                    });
+                }
+                finally
+                {
+                    gate.Set();
+                    hook.SetValue(null, null);
+                }
+
+                return stats;
+            }
+
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) first = Session(precompile: true);
+            Assert.False(first.Waited, "a first session has nothing recorded to wait for");
+            Assert.True(first.GpuPipelines > 0 && first.Misses > 0, $"first session: {first.GpuPipelines} pipelines, {first.Misses} shaders on the GPU thread");
+
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) second = Session(precompile: true);
+            Assert.True(second.Waited);
+            Assert.True(second.Progress >= 1, "the wait reports its end");
+            Assert.True(second.Prewarmed >= first.GpuPipelines, $"{second.Prewarmed} of {first.GpuPipelines} recorded pipelines built before the first frame");
+            Assert.Equal(0, second.GpuPipelines);
+            Assert.Equal(0, second.Misses);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(cache, true);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [SoftwareVulkanFact]
+    public void CancelledPrecompileLetsTheGameStartAndTheRestBuildsInTheBackground()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        const string Title = "PCSA00080";
+        try
+        {
+            void Session(bool cancelled)
+            {
+                VulkanRenderer r = NewRenderer(cache);
+                WithRenderer("precompile-cancel", r, h =>
+                {
+                    r.BeginTitle(Title);
+                    using var cancel = new CancellationTokenSource();
+                    if (cancelled)
+                    {
+                        cancel.Cancel();
+                    }
+
+                    ((IGpuBackend)r).PrecompileBeforeStart(null, cancel.Token);
+                    var w = new RendererTextureTests.Workload(h);
+                    w.Run(1);
+                    h.Emu.Gpu.WaitIdle();
+                    w.Terminate();
+                });
+            }
+
+            Session(cancelled: false);
+            Session(cancelled: true); // returns without waiting; the frame still renders (no deadlock with the prewarm)
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(cache, true);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
     // ---------------------------------------------------------------- debug mode
 
     [SoftwareVulkanFact]

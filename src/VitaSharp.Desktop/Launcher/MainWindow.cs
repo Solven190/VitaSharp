@@ -393,6 +393,7 @@ public sealed partial class MainWindow : Window
         log.Margin = new Thickness(0, 7, 16, 7);
         DockPanel.SetDock(log, Dock.Right);
         _statusBar.Children.Add(log);
+        AddPrecompileControls();
         _statusBar.Children.Add(_status);
     }
 
@@ -613,6 +614,8 @@ public sealed partial class MainWindow : Window
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // "Cancelar" of the shader precompile (MainWindow.Precompile.cs)
+            RedirectStandardInput = true,
             CreateNoWindow = true,
         };
         // a framework-dependent build runs through "dotnet VitaSharp.Desktop.dll"
@@ -655,7 +658,11 @@ public sealed partial class MainWindow : Window
             {
                 if (e.Data != null)
                 {
-                    Dispatcher.UIThread.Post(() => AppendLog(e.Data));
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        AppendLog(e.Data);
+                        OnPrecompileLine(e.Data);
+                    });
                 }
             };
             p.ErrorDataReceived += (_, e) =>
@@ -717,6 +724,7 @@ public sealed partial class MainWindow : Window
 
     void OnGameExited(Process p)
     {
+        ShowPrecompile(null);
         int code = p.ExitCode;
         var title = _runningTitle;
         if (_runningId != null)

@@ -99,7 +99,7 @@ public static class GxpScanner
     private static void ScanFile(string file, byte[]? klicensee, List<GxpProgram> found, HashSet<ulong> seen, ref int blocks, ref int invalid, ref int duplicates,
         Action<string, long, string>? onInvalid)
     {
-        using var handle = File.OpenHandle(file);
+        using Microsoft.Win32.SafeHandles.SafeFileHandle handle = File.OpenHandle(file);
         long length = RandomAccess.GetLength(handle);
         if (length < Overlap)
         {

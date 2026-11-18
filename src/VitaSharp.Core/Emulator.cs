@@ -27,6 +27,10 @@ public sealed class EmulatorOptions
     /// the system registry's /CONFIG/SYSTEM/language, for games without the system's language. The system software
     /// (programs from vs0:) keeps the system's. Null: the system's language.</summary>
     public int? SystemLanguage { get; init; }
+    /// <summary>The emulator option "Precompilar shaders": before the game starts, wait for the shaders and pipelines its
+    /// earlier sessions recorded (<see cref="Gpu.IGpuBackend.PrecompileBeforeStart"/>), with progress in the log
+    /// (<see cref="Gpu.ShaderPrecompile"/>). Off: they build in the background while the game runs.</summary>
+    public bool PrecompileShaders { get; init; }
     /// <summary>Directory with per-title code patch files (TITLEID.txt); null = built-in patches only.</summary>
     public string? PatchDir { get; init; }
     /// <summary>The emulated PSN account (signed in by default, see <see cref="PsnAccount"/>).</summary>
@@ -1061,6 +1065,10 @@ public sealed class Emulator : IDisposable
         try
         {
             Gpu.Backend?.BeginTitle(TitleId);
+            if (Options.PrecompileShaders)
+            {
+                PrecompileShaders();
+            }
         }
         catch (Exception e)
         {
@@ -1554,6 +1562,32 @@ public sealed class Emulator : IDisposable
         }
 
         return GuestMemory.R32(pp + (uint)offset);
+    }
+
+    /// <summary>"Precompilar shaders": waits for the title's recorded shaders and pipelines before the game starts, logging the
+    /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines for the launcher.</summary>
+    private void PrecompileShaders()
+    {
+        if (Gpu.Backend is not { } backend)
+        {
+            return;
+        }
+
+        long last = 0;
+        bool waited = backend.PrecompileBeforeStart(progress =>
+        {
+            long now = Environment.TickCount64;
+            if (progress.Finished || now - last >= 250)
+            {
+                last = now;
+                Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(progress));
+            }
+        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token);
+        // nothing to wait for, or cancelled: the launcher still gets the end of the wait
+        if (!waited || VitaSharp.Core.Gpu.ShaderPrecompile.Token.IsCancellationRequested)
+        {
+            Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(0, 0, true)));
+        }
     }
 
     private byte[]? FindKlicensee()
