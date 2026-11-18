@@ -2732,6 +2732,18 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   thread `Loading` espera esse lwmutex e os TaskThread1-3/`Loading Support`/`Gear::AsynchGeneric` esperam o
   eventflag `GEAR_EVENT`. Próximo passo: descobrir o que a `main` espera nesse laço (valor em memória que outro
   thread ou o HLE deveria escrever) pelo `rerun` da captura e pela desmontagem do laço
+  Andamento (18/11/2026, jogos1; não resolvido): reproduz sem a captura (`run PCSE00053 --headless --seconds=40`,
+  sem plugins, ~5-7 s de boot): o laço é a busca na árvore de páginas livres do alocador de páginas do Gear (objeto
+  0x8337A060, que alimenta o dlmalloc do bloco `GameHeap` 0x83881000-0x8B181000) com um ciclo; em outras execuções
+  o mesmo heap estoura asserts do dlmalloc (BKPT 0x8145C50E/0x8145BB2E/0x8145C6EC) ou saltos para lixo. Watchpoint:
+  a `main` e a `Loading` escrevem no mesmo chunk (0x845596C8). Descartado: JIT (`--cpu=interp`/`il` falham igual),
+  corrida de núcleos (`--cores=1` falha), o atalho de lwmutex (`VITASHARP_HLE_GUEST_CODE=nolw` falha; Mutex C#
+  instrumentado nunca entregou um lwmutex ocupado), liberação de pilha/TLS na saída de thread (o VitaSharp não libera)
+  e o alocador de páginas em si (alocar/liberar registrados por probe: nenhuma sobreposição). Achado no caminho e
+  corrigido: sceLocationGetLocationWithTimeout lia o 2º argumento (timeout) como ponteiro de saída (FW 3.74:
+  handle, timeout, saída), mas não era esta causa. Próximo passo: watchpoint nos nós da árvore do alocador de páginas
+  (o nó cujo ponteiro vira ciclo) para achar a escrita de fora; suspeitos: escrita HLE fora do tamanho (sceIo*/FIOS2
+  assíncrono, Ngs) e instruções de memória comuns ao interp e ao JIT
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
