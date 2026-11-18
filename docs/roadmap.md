@@ -520,7 +520,10 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   7-13% das variantes de shader gravadas (12.826 receitas de 67 títulos) dão para prever só pelo programa: os hints
   são estado do draw (formatos de textura, formato dos atributos de vértice, cor da superfície). Falta: medir em
   gameplay (Killzone, 2ª sessão, cache do driver frio e quente) os quadros lentos com/sem e o tempo da espera; Android
-  (opção e tela de progresso no app)
+  (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --precompile-shaders=on`,
+  cache do driver quente, A/B 2x): espera de 130-249 ms para 20 pipelines e o mesmo 1 quadro >= 4 ms com e sem, porque
+  os 8 pipelines do passe de fetch (`InputPass`) não entram no pipelines.list e são montados no thread da GPU em toda
+  sessão: gravá-los também é o próximo passo
 - [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
