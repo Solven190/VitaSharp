@@ -9637,7 +9637,12 @@
 0x4DD1B2E5	ksceSblDmac5Rnd	SystemServicesVsh	SceSblSsMgrForDriver	-
 0xAC57F4F0	ksceSblRngGenuineRandomNumber	SystemServicesVsh	SceSblSsMgrForDriver	-
 0x4F9BFBE5	ksceSblRngPseudoRandomNumber	SystemServicesVsh	SceSblSsMgrForDriver	-
+0xB8B298FD	ksceSblSsCreatePassPhrase	SystemServicesVsh	SceSblSsMgrForDriver	-	default
+0x934DB6B5	ksceSblSsDecryptWithPortability	SystemServicesVsh	SceSblSsMgrForDriver	-
+0x21EC51F6	ksceSblSsEncryptWithPortability	SystemServicesVsh	SceSblSsMgrForDriver	-
+0xFDD6D5DE	ksceSblSsGetNvsData	SystemServicesVsh	SceSblSsMgrForDriver	-
 0xCD98CC92	ksceSblSsMemset	SystemServicesVsh	SceSblSsMgrForDriver	-
+0x249ADB07	ksceSblSsSetNvsData	SystemServicesVsh	SceSblSsMgrForDriver	-
 0x516ECC08	SceSblSsMgrForKernel_516ECC08	SystemServicesVsh	SceSblSsMgrForKernel	-
 0xC2EC8F5A	ksceSblNvsReadData	SystemServicesVsh	SceSblSsMgrForKernel	-
 0xE29E161C	ksceSblNvsWriteData	SystemServicesVsh	SceSblSsMgrForKernel	-
