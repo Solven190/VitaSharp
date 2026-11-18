@@ -115,17 +115,132 @@ internal static unsafe partial class HostVirtualMemory
 
     /// <summary>
     /// Freed pages of shared memory (a view several reservations map, which cannot be decommitted through one of them):
-    /// their content is no longer needed, so the OS may drop it instead of paging it out. They read back as garbage or
-    /// zeros; allocations clear what they commit.
+    /// their content is no longer needed. Linux and Android punch them out of the memory file (the RAM goes back to the
+    /// system and every view reads zeros); Windows marks them MEM_RESET (the OS may drop them instead of paging them
+    /// out; they read back as garbage or zeros). <see cref="ZeroSharedPages"/> makes the next block there read zero.
     /// </summary>
-    public static void Discard(byte* addr, nuint size)
+    public static void DiscardShared(nint memory, ulong offset, byte* addr, nuint size)
     {
         const uint MEM_RESET = 0x80000;
         if (OperatingSystem.IsWindows())
         {
             VirtualAlloc(addr, size, MEM_RESET, PAGE_NOACCESS);
         }
+        else if (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid())
+        {
+            PunchHole(memory, offset, size);
+        }
     }
+
+    /// <summary>
+    /// Makes [<paramref name="offset"/>, + <paramref name="size"/>) of shared memory <paramref name="memory"/> (mapped at
+    /// <paramref name="addr"/> in the calling reservation) read zero in every view, without making pages that already
+    /// read zero resident: Windows clears by hand only the pages of the section that were ever committed (by a block or
+    /// by a stray access through the lazy commit handler); a page of a SEC_RESERVE section never committed is still the
+    /// demand-zero page. Linux and Android punch the range out of the memory file (FALLOC_FL_PUNCH_HOLE: holes read
+    /// zero and take no RAM; byte exact, so neighbouring blocks in the same host page keep their data). False when the
+    /// host has no way to do it (macOS shm objects have no hole punching): the caller clears what may hold data.
+    /// </summary>
+    public static bool ZeroSharedPages(nint memory, ulong offset, byte* addr, nuint size)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            ClearCommittedPages(addr, size);
+            return true;
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid())
+        {
+            return PunchHole(memory, offset, size);
+        }
+
+        return false;
+    }
+
+    /// <summary>Windows: clears the committed parts of [<paramref name="addr"/>, + <paramref name="size"/>).</summary>
+    private static void ClearCommittedPages(byte* addr, nuint size)
+    {
+        nuint at = (nuint)addr, end = at + size;
+        while (at < end)
+        {
+            MemoryBasicInformation info;
+            if (VirtualQuery((void*)at, &info, (nuint)sizeof(MemoryBasicInformation)) == 0)
+            {
+                // no answer: clear the rest by hand (commit first, a clear of reserved pages would fault)
+                Commit((byte*)at, end - at);
+                Clear(at, end);
+                return;
+            }
+
+            nuint regionEnd = Math.Min(end, (nuint)info.BaseAddress + info.RegionSize);
+            if (info.State == MEM_COMMIT)
+            {
+                Clear(at, regionEnd);
+            }
+
+            at = regionEnd;
+        }
+    }
+
+    /// <summary>Linux, Android: punches [offset, + size) out of the memory file; false when the kernel refuses.</summary>
+    private static bool PunchHole(nint memory, ulong offset, nuint size)
+    {
+        const int FALLOC_FL_KEEP_SIZE = 1, FALLOC_FL_PUNCH_HOLE = 2;
+        try
+        {
+            return fallocate((int)memory - 1, FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE, (long)offset, (long)size) == 0;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// macOS (and Linux without hole punching): true when the host page holding <paramref name="addr"/> is in memory, so it
+    /// may hold data although no block was ever there (a stray access wrote it). False also when the query fails.
+    /// </summary>
+    public static bool IsResident(byte* addr)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        nuint page = (nuint)Environment.SystemPageSize;
+        byte vector = 0;
+        void* start = (void*)((nuint)addr & ~(page - 1));
+        try
+        {
+            return mincore(start, page, &vector) == 0 && (vector & 1) != 0;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return true;
+        }
+    }
+
+    [LibraryImport("kernel32.dll")]
+    private static partial nuint VirtualQuery(void* addr, MemoryBasicInformation* info, nuint length);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryBasicInformation
+    {
+        public nint BaseAddress;
+        public nint AllocationBase;
+        public uint AllocationProtect;
+        public ushort PartitionId;
+        public nuint RegionSize;
+        public uint State;
+        public uint Protect;
+        public uint Type;
+    }
+
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int fallocate(int fd, int mode, long offset, long length);
+
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int mincore(void* addr, nuint length, byte* vector);
 
     private static void Clear(nuint from, nuint to)
     {
