@@ -423,6 +423,11 @@ public sealed partial class Ctrl : HleModule
     uint _samplingMode;
     long _lastRead;
     bool _psDown;
+    [VitaSharp.Core.SaveState.SnapshotIgnore] // a lookup cache
+    SystemServicesVsh? _kernelServices;
+
+    /// <summary>The kernel side of the controller driver (its emulation slots), looked up once.</summary>
+    SystemServicesVsh KernelServices => _kernelServices ??= Emu.Hle.Modules.OfType<SystemServicesVsh>().First();
 
     /// <summary>The buttons and sticks this process sees: the host's for the foreground process, nothing for a process in
     /// the background. The PS button is a system button: a press seen by the shell's reads (whatever process is in
@@ -475,14 +480,26 @@ public sealed partial class Ctrl : HleModule
             // the extra samples repeat the state one vblank apart (Vita3K's ctrl_get)
             ulong now = Emu.Kernel.ProcessTimeUs, back = i * 16667UL;
             GuestMemory.Write(p, now > back ? now - back : 0UL);
-            uint buttons = MapButtons(ApplyRapidFire((uint)s.Buttons, VBlank.Count), api);
+            uint hostButtons = (uint)s.Buttons;
+            byte leftX = s.Lx;
+            byte leftY = s.Ly;
+            byte rightX = s.Rx;
+            byte rightY = s.Ry;
+            if (port == 0)
+            {
+                // the driver's analog and button emulation (ksceCtrlSetAnalogEmulation/SetButtonEmulation) is merged
+                // into port 0's samples
+                KernelServices.CtrlApplyEmulation(VBlank.Count, ref hostButtons, ref leftX, ref leftY, ref rightX, ref rightY);
+            }
+
+            uint buttons = MapButtons(ApplyRapidFire(hostButtons, VBlank.Count), api);
             if (buttons != 0) VitaSharp.Core.Util.Log.Debug($"ctrl port {port} buttons 0x{buttons:X} -> 0x{p:X8}");
             GuestMemory.W32(p + 8, negative ? ~buttons : buttons);
             bool analog = _samplingMode != 0;
-            GuestMemory.Write(p + 12, analog ? s.Lx : (byte)128);
-            GuestMemory.Write(p + 13, analog ? s.Ly : (byte)128);
-            GuestMemory.Write(p + 14, analog ? s.Rx : (byte)128);
-            GuestMemory.Write(p + 15, analog ? s.Ry : (byte)128);
+            GuestMemory.Write(p + 12, analog ? leftX : (byte)128);
+            GuestMemory.Write(p + 13, analog ? leftY : (byte)128);
+            GuestMemory.Write(p + 14, analog ? rightX : (byte)128);
+            GuestMemory.Write(p + 15, analog ? rightY : (byte)128);
         }
     }
 
