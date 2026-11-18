@@ -91,6 +91,15 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   reproduzem com a CPU livre, o ritmo do HLE de áudio está certo. Falta: PVRTC, YUV420 e cube no `gfx`; o cube
   precisa de um fragment shader com `samplerCUBE`, e o TestGame só tem os shaders pré-compilados do vita2d (sem
   compilador de shader no VitaSDK).
+  Feito (16/11/2026, rm5, test/rm5-testgame-gfx; junto em 18/11/2026, feat/pend1, a confirmar pelo usuário):
+  `gfx/tex_PVRT4BPP_swizzled` (PVRTC 4 bpp, os quatro pesos de modulação do modo padrão entre as cores A e B, 96
+  texels) e `gfx/tex_YUV420P2_CSC0`, `tex_YVU420P2_CSC0`, `tex_YUV420P3_CSC0`, `tex_YVU420P3_CSC0` (16 blocos com luma
+  e croma próprios, BT.601 padrão). Rodada headless: `# done ok=230 fail=0 skip=5`; um VPK com U/V e as cores A/B
+  trocadas dá FAIL nos dois casos (`16/16 wrong`, `96/96 wrong`). O cube fica como limitação (SKIP `tex_cube`):
+  amostrar precisa de um fragment program com `samplerCUBE` e nenhum compilador redistribuível gera um (o `psp2cgc` e o
+  `libshacccg` são da Sony); a amostragem de cube do renderizador segue coberta pelos testes de renderizador da suíte.
+  O CSC1 também não entra: a libgxm 3.74 começa o CSC1 como BT.709 padrão (`GxmContext.YuvProfile`), mas o
+  `TextureDecoder` o converte como BT.601 de faixa cheia e não lê o `sceGxmSetYuvProfile`; a conferir num item próprio.
 - [x] **Testes da suíte que dependiam do relógio ou da pasta do host:** `SharedCaptureTests.IdleCaptureStopsAfterTheLinger`
   (o linger agora corre num `TimeProvider` manual, `ManualTimeProvider`; mais o caso do linger cancelado),
   `RunnerProcessTests.HeadlessRun...` (`--frames=N` pausa o guest no quadro N: termina com exatamente N, antes 42-555),
