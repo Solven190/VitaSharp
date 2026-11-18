@@ -34,10 +34,10 @@ public sealed partial class VshBridge : HleModule
     int _vshSblAimgrGetPscode(uint pscode)
     {
         if (pscode == 0) return unchecked((int)0x80010016); // EINVAL: nothing to copy the code to
-        GuestMemory.Write(pscode, (ushort)1);
-        GuestMemory.Write(pscode + 2, (ushort)0x104);
-        GuestMemory.Write(pscode + 4, (ushort)0x10);
-        GuestMemory.Write(pscode + 6, (ushort)0);
+        GuestMemory.Write(pscode, ConsoleIdentity.CompanyCode);
+        GuestMemory.Write(pscode + 2, ConsoleIdentity.ProductCode);
+        GuestMemory.Write(pscode + 4, ConsoleIdentity.ProductSubCode);
+        GuestMemory.Write(pscode + 6, ConsoleIdentity.FactoryCode);
         return 0;
     }
 
