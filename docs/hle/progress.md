@@ -164,8 +164,8 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 
 | Kernel exports | Covered | Real | Default | Total | % |
 |---|---:|---:|---:|---:|---:|
-| All | 1,368 | 1,245 | 123 | 3,918 | 34.9% |
-| Imported | 718 | - | - | 2,062 | 34.8% |
+| All | 1,409 | 1,286 | 123 | 3,918 | 35.9% |
+| Imported | 733 | - | - | 2,062 | 35.5% |
 
 | Library | Implemented / total | % | Default | Imported |
 |---|---:|---:|---:|---:|
@@ -189,7 +189,7 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | SceCpuForDriver | 104 / 104 | 100% | - | 35 / 35 |
 | SceCpuForKernel | 39 / 39 | 100% | - | 6 / 6 |
 | SceCsiForDriver | 6 / 6 | 100% | 6 | 6 / 6 |
-| SceCtrlForDriver | 21 / 40 | 52.5% | - | 8 / 23 |
+| SceCtrlForDriver | 40 / 40 | 100% | - | 23 / 23 |
 | SceDebugForDriver | 16 / 16 | 100% | - | 8 / 8 |
 | SceDebugForKernel | 17 / 17 | 100% | - | 6 / 6 |
 | SceDebugLedForDriver | 9 / 9 | 100% | - | 3 / 3 |
@@ -236,9 +236,9 @@ The functions the kernel modules of firmware 3.74 export to other kernel code (`
 | ScePsmDrmForDriver | 1 / 6 | 16.6% | 1 | 1 / 3 |
 | ScePwmForDriver | 5 / 5 | 100% | - | 3 / 3 |
 | SceQafMgrForDriver | 25 / 25 | 100% | - | 23 / 23 |
-| SceRegMgrForDebugger | 0 / 9 | 0% | - | - |
+| SceRegMgrForDebugger | 9 / 9 | 100% | - | - |
 | SceRegMgrForDriver | 25 / 25 | 100% | - | 7 / 7 |
-| SceRegMgrForTool | 0 / 13 | 0% | - | - |
+| SceRegMgrForTool | 13 / 13 | 100% | - | - |
 | SceRegMgrServiceForDriver | 5 / 5 | 100% | - | - |
 | SceRtcForDriver | 16 / 65 | 24.6% | - | 5 / 30 |
 | SceSblACMgrForDriver | 1 / 45 | 2.2% | - | 1 / 40 |
