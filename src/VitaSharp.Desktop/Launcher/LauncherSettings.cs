@@ -32,12 +32,17 @@ public sealed class LauncherSettings
     public bool FastShaderCompile { get; set; } = true;
     /// <summary>"Compilar shaders e pipelines em segundo plano": shader/pipeline prefetch workers, --async-shaders=.</summary>
     public bool BackgroundShaderCompile { get; set; } = true;
-    /// <summary>"Precompilar shaders" for every game without its own choice (<see cref="GameOptions.PrecompileShaders"/>):
-    /// the shaders and pipelines recorded in the game's earlier sessions are built before it starts, behind a progress bar
-    /// with "Cancelar" (--precompile-shaders). On by default, like RPCS3 and Ryujinx, which always load their shader
-    /// caches at boot: with a warm driver cache it takes about a second, and the game then has no first-use pipeline
-    /// hitches for what it used before; a first session has nothing recorded and starts at once.</summary>
-    public bool PrecompileShaders { get; set; } = true;
+    /// <summary>"Carregar o cache de shaders antes de jogar" for every game without its own choice
+    /// (<see cref="GameOptions.LoadShaderCacheBeforePlaying"/>): the shaders and pipelines recorded in the game's earlier
+    /// sessions (its shader cache) are built before it starts, behind a progress bar with "Cancelar"
+    /// (--load-shader-cache). On by default, like RPCS3 and Ryujinx, which always load their shader caches at boot: with
+    /// a warm driver cache it takes about a second, and the game then has no first-use pipeline hitches for what it used
+    /// before; a first session has nothing recorded and starts at once.</summary>
+    public bool LoadShaderCacheBeforePlaying { get; set; } = true;
+    /// <summary>The option's earlier name in launcher.json ("Precompilar shaders"); <see cref="MigrateShaderCacheLoad"/>
+    /// moves it to <see cref="LoadShaderCacheBeforePlaying"/>. Never written back.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PrecompileShaders { get; set; }
     /// <summary>"Modo de depuracao": detailed diagnostic logging (--debug-mode, docs/notes/debug-mode.md).</summary>
     public bool DebugMode { get; set; }
     /// <summary>"Pre-gravacao": F8's session capture keeps the seconds before it was pressed (--capture-preroll,
@@ -148,6 +153,7 @@ public sealed class LauncherSettings
                 }
 
                 s.MigrateCamera();
+                s.MigrateShaderCacheLoad();
                 return s;
             }
         }
@@ -177,6 +183,26 @@ public sealed class LauncherSettings
         Camera = "";
     }
 
+    /// <summary>The option's earlier name ("PrecompileShaders", global and per game) becomes
+    /// <see cref="LoadShaderCacheBeforePlaying"/>.</summary>
+    public void MigrateShaderCacheLoad()
+    {
+        if (PrecompileShaders is bool global)
+        {
+            LoadShaderCacheBeforePlaying = global;
+            PrecompileShaders = null;
+        }
+
+        foreach (GameOptions game in Games.Values)
+        {
+            if (game.PrecompileShaders is bool own)
+            {
+                game.LoadShaderCacheBeforePlaying ??= own;
+                game.PrecompileShaders = null;
+            }
+        }
+    }
+
     public void Save()
     {
         Directory.CreateDirectory(Program.DataRoot);
@@ -200,7 +226,7 @@ public sealed class LauncherSettings
             yield return "--fast-loading";
         }
 
-        yield return (game?.PrecompileShaders ?? PrecompileShaders) ? "--precompile-shaders=on" : "--precompile-shaders=off";
+        yield return Core.Gpu.ShaderCacheLoad.Option + ((game?.LoadShaderCacheBeforePlaying ?? LoadShaderCacheBeforePlaying) ? "=on" : "=off");
 
         if (Fullscreen)
         {
@@ -310,8 +336,11 @@ public sealed class GameOptions
     /// (<see cref="LauncherSettings.FastLoading"/>); passed by <see cref="LauncherSettings.RunOptions"/>.</summary>
     public bool? FastLoading { get; set; }
 
-    /// <summary>"Precompilar shaders": this game's own choice, null = the global default
-    /// (<see cref="LauncherSettings.PrecompileShaders"/>).</summary>
+    /// <summary>"Carregar o cache de shaders antes de jogar": this game's own choice, null = the global default
+    /// (<see cref="LauncherSettings.LoadShaderCacheBeforePlaying"/>).</summary>
+    public bool? LoadShaderCacheBeforePlaying { get; set; }
+    /// <summary>The option's earlier name (<see cref="LauncherSettings.MigrateShaderCacheLoad"/>). Never written back.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public bool? PrecompileShaders { get; set; }
 
     /// <summary>Fast loading choices: value (null = the global default, its state in the label) and label.</summary>
@@ -349,7 +378,7 @@ public sealed class GameOptions
     /// <summary>Every option at its default: the entry can be dropped.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsDefault => ResScale is < 2 or > 4 && FrameRate is not ("30" or "60" or "unlimited") && FastLoading == null
-        && SystemLanguage == null && PrecompileShaders == null;
+        && SystemLanguage == null && LoadShaderCacheBeforePlaying == null;
 }
 
 /// <summary>Source-generated JSON metadata for the settings file (Native AOT has no reflection-based serializer).</summary>

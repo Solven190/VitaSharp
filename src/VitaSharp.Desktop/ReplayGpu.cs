@@ -34,7 +34,7 @@ static class ReplayGpu
         Console.WriteLine("    --compare=<dir>        compare the written frames with frame_N.png of another run (compare.txt, diff_N.png)");
         Console.WriteLine("    --window [--hold] [--speed=X|--fast]  show it in a window at the recorded pace (X times), keep it open at the end");
         Console.WriteLine("    --shader-cache=<dir> --async-shaders=on|off (default off) --no-idle --no-targets --debug-mode");
-        Console.WriteLine("    --precompile-shaders=on  wait for the shaders and pipelines recorded in --shader-cache before the first command");
+        Console.WriteLine("    --load-shader-cache=on  wait for the shaders and pipelines recorded in --shader-cache before the first command (earlier name --precompile-shaders)");
         Console.WriteLine("    --prefetch-ahead=N     with --async-shaders=on: each command reaches the shader prefetch N presents before it runs,");
         Console.WriteLine("                           as from a game's submitting thread (default 1; 0 = just before it runs)");
         Console.WriteLine("    --speed=X              without --window: also keep the recorded pace (default: as fast as possible)");
@@ -220,9 +220,9 @@ static class ReplayGpu
         public double Speed = 1; // 0 = as fast as possible
         /// <summary>Presents ahead of execution at which commands reach the shader prefetch (-1: no prefetch).</summary>
         public int PrefetchAhead = -1;
-        /// <summary>--precompile-shaders: wait for the recorded shaders and pipelines before the first command, as the
-        /// game does with the launcher option "Precompilar shaders".</summary>
-        public bool Precompile;
+        /// <summary>--load-shader-cache: wait for the recorded shaders and pipelines before the first command, as the
+        /// game does with the launcher option "Carregar o cache de shaders antes de jogar".</summary>
+        public bool LoadShaderCache;
         public string Out = "";
     }
 
@@ -302,7 +302,7 @@ static class ReplayGpu
             AsyncPipelines = Opt(options, "--async-shaders") is "on" or "1" or "true",
             FirstPresent = firstPresent,
         };
-        s.Precompile = Opt(options, "--precompile-shaders") is "on" or "1" or "true";
+        s.LoadShaderCache = Runner.LoadShaderCacheChoice(options) == true;
         if (ro.AsyncShaders)
         {
             s.PrefetchAhead = int.TryParse(Opt(options, "--prefetch-ahead"), out int ahead) && ahead >= 0 ? ahead : 1;
@@ -379,9 +379,9 @@ static class ReplayGpu
             if (header["title-id"] is { Length: > 0 } title)
             {
                 renderer.BeginTitle(title);
-                if (s.Precompile && ((Core.Gpu.IGpuBackend)renderer).PrecompileBeforeStart(null, CancellationToken.None))
+                if (s.LoadShaderCache && ((Core.Gpu.IGpuBackend)renderer).LoadShaderCacheBeforeStart(null, CancellationToken.None))
                 {
-                    Console.WriteLine("precompile: recorded shaders and pipelines built before the first command");
+                    Console.WriteLine("shader cache load: recorded shaders and pipelines built before the first command");
                 }
             }
 

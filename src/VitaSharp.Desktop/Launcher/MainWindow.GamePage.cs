@@ -430,7 +430,7 @@ public sealed partial class MainWindow
         var res = GameOptions.ResScales;
         var rates = GameOptions.FrameRates;
         var fast = GameOptions.FastLoadings(_settings.FastLoading);
-        var precompile = GameOptions.FastLoadings(_settings.PrecompileShaders); // (the same "default (on/off)", on, off choices)
+        var shaderCacheLoad = GameOptions.FastLoadings(_settings.LoadShaderCacheBeforePlaying); // (the same "default (on/off)", on, off choices)
         var languages = GameOptions.SystemLanguages;
         s.Children.Add(_k.Group(
             _k.Row("monitor", S.InternalResolution, S.InternalResolutionDetail,
@@ -442,13 +442,13 @@ public sealed partial class MainWindow
             _k.Row("zap", S.FastLoading, S.FastLoadingDetail,
                 _k.Dropdown(fast.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(fast, c => c.Value == opts.FastLoading)), i => { opts.FastLoading = fast[i].Value; Store(); }, 176),
                 tip: S.FastLoadingTip),
-            _k.Row("layers", S.PrecompileShaders, S.PrecompileShadersDetail,
-                _k.Dropdown(precompile.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(precompile, c => c.Value == opts.PrecompileShaders)), i =>
+            _k.Row("layers", S.LoadShaderCache, S.LoadShaderCacheDetail,
+                _k.Dropdown(shaderCacheLoad.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(shaderCacheLoad, c => c.Value == opts.LoadShaderCacheBeforePlaying)), i =>
                 {
-                    opts.PrecompileShaders = precompile[i].Value;
+                    opts.LoadShaderCacheBeforePlaying = shaderCacheLoad[i].Value;
                     Store();
                 }, 176),
-                tip: S.PrecompileShadersTip),
+                tip: S.LoadShaderCacheTip),
             _k.Row("globe", S.SystemLanguage, S.SystemLanguageDetail,
                 _k.Dropdown(languages.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(languages, c => c.Value == opts.SystemLanguage)), i =>
                 {

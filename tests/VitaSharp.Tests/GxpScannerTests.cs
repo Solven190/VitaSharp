@@ -4,8 +4,9 @@ using VitaSharp.Core.Gxm.Shader;
 namespace VitaSharp.Tests;
 
 /// <summary>
-/// The "Precompilar shaders" scan of a title's files (<see cref="GxpScanner"/>): loose .gxp files, programs inside a
-/// game archive (also across the scanner's read chunks), duplicates and "GXP\0" blocks that are not programs.
+/// The scan of a title's files for its GXP programs (<see cref="GxpScanner"/>, what the shadertest tool translates
+/// ahead of use): loose .gxp files, programs inside a game archive (also across the scanner's read chunks), duplicates
+/// and "GXP\0" blocks that are not programs.
 /// </summary>
 public sealed class GxpScannerTests
 {

@@ -299,18 +299,18 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
     }
 
-    /// <summary>"Precompilar shaders": with the option, the second session's recorded pipelines are all built before the
+    /// <summary>"Carregar o cache de shaders antes de jogar": with the option, the second session's recorded pipelines are all built before the
     /// game's first frame, so that frame translates no shader and builds no pipeline on the GPU thread. Without it the
     /// game starts at once and its first frame races the (below normal priority) prewarm.</summary>
     [SoftwareVulkanFact]
-    public void PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame()
+    public void ShaderCacheLoadBuildsTheRecordedPipelinesBeforeTheFirstFrame()
     {
         using IDisposable driver = SoftwareVulkan.Use();
-        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-shadercache-load-" + Guid.NewGuid().ToString("N"));
         const string Title = "PCSA00079";
         try
         {
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) Session(bool precompile)
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) Session(bool loadCache)
             {
                 VulkanRenderer r = NewRenderer(cache);
                 (bool, int, int, int, int) stats = default;
@@ -327,14 +327,14 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 }));
                 try
                 {
-                    WithRenderer("precompile", r, h =>
+                    WithRenderer("shadercache-load", r, h =>
                     {
                         r.BeginTitle(Title);
                         int reports = 0;
                         bool waited = false;
-                        if (precompile)
+                        if (loadCache)
                         {
-                            Task<bool> wait = Task.Run(() => ((IGpuBackend)r).PrecompileBeforeStart(_ =>
+                            Task<bool> wait = Task.Run(() => ((IGpuBackend)r).LoadShaderCacheBeforeStart(_ =>
                             {
                                 reports++;
                                 reported.Set();
@@ -364,11 +364,11 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 return stats;
             }
 
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) first = Session(precompile: true);
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) first = Session(loadCache: true);
             Assert.False(first.Waited, "a first session has nothing recorded to wait for");
             Assert.True(first.GpuPipelines > 0 && first.Misses > 0, $"first session: {first.GpuPipelines} pipelines, {first.Misses} shaders on the GPU thread");
 
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) second = Session(precompile: true);
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) second = Session(loadCache: true);
             Assert.True(second.Waited);
             Assert.True(second.Progress >= 1, "the wait reports its end");
             Assert.True(second.Prewarmed >= first.GpuPipelines, $"{second.Prewarmed} of {first.GpuPipelines} recorded pipelines built before the first frame");
@@ -387,7 +387,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
     }
 
     /// <summary>A programmable-blending draw of a one-sample scene renders in a fetch pass, with a pipeline made for its
-    /// render pass. That pipeline is recorded in pipelines.list like any other, so after the precompile the second
+    /// render pass. That pipeline is recorded in pipelines.list like any other, so after the shader cache load the second
     /// session builds no pipeline on the GPU thread (the replay of a dump built its 8 fetch-pass pipelines there in
     /// every session when they were left out).</summary>
     [SoftwareVulkanFact]
@@ -405,7 +405,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 WithRenderer("fetchlist", r, h =>
                 {
                     r.BeginTitle(Title);
-                    ((IGpuBackend)r).PrecompileBeforeStart(_ => { }, CancellationToken.None);
+                    ((IGpuBackend)r).LoadShaderCacheBeforeStart(_ => { }, CancellationToken.None);
                     var w = new RendererTextureTests.Workload(h);
                     w.RunFetch();
                     w.Run(1);
@@ -436,17 +436,17 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
     }
 
     [SoftwareVulkanFact]
-    public void CancelledPrecompileLetsTheGameStartAndTheRestBuildsInTheBackground()
+    public void CancelledShaderCacheLoadLetsTheGameStartAndTheRestBuildsInTheBackground()
     {
         using IDisposable driver = SoftwareVulkan.Use();
-        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-shadercache-load-" + Guid.NewGuid().ToString("N"));
         const string Title = "PCSA00080";
         try
         {
             void Session(bool cancelled)
             {
                 VulkanRenderer r = NewRenderer(cache);
-                WithRenderer("precompile-cancel", r, h =>
+                WithRenderer("shadercache-load-cancel", r, h =>
                 {
                     r.BeginTitle(Title);
                     using var cancel = new CancellationTokenSource();
@@ -455,7 +455,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                         cancel.Cancel();
                     }
 
-                    ((IGpuBackend)r).PrecompileBeforeStart(null, cancel.Token);
+                    ((IGpuBackend)r).LoadShaderCacheBeforeStart(null, cancel.Token);
                     var w = new RendererTextureTests.Workload(h);
                     w.Run(1);
                     h.Emu.Gpu.WaitIdle();

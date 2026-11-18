@@ -45,12 +45,26 @@ public static class Runner
         return null;
     }
 
-    /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
-    /// <summary>--precompile-shaders (default on, like the launcher); when on, a background reader of standard input takes
-    /// the launcher's <see cref="VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand"/>.</summary>
-    static bool PrecompileShadersOpt(string[] options)
+    /// <summary>--load-shader-cache=on|off, or its earlier name --precompile-shaders (accepted with a warning that names
+    /// the new one); null when absent.</summary>
+    internal static bool? LoadShaderCacheChoice(string[] options)
     {
-        bool on = OnOff(options, "--precompile-shaders") ?? true;
+        bool? choice = OnOff(options, VitaSharp.Core.Gpu.ShaderCacheLoad.Option);
+        if (choice == null && Opt(options, VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption) != null)
+        {
+            Log.Warn($"{VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption} is the earlier name of {VitaSharp.Core.Gpu.ShaderCacheLoad.Option} "
+                + "(it loads the shader cache of earlier sessions, it does not precompile): use the new name");
+            choice = OnOff(options, VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption);
+        }
+
+        return choice;
+    }
+
+    /// <summary>--load-shader-cache (default on, like the launcher); when on, a background reader of standard input takes
+    /// the launcher's <see cref="VitaSharp.Core.Gpu.ShaderCacheLoad.CancelCommand"/>.</summary>
+    static bool LoadShaderCacheOpt(string[] options)
+    {
+        bool on = LoadShaderCacheChoice(options) ?? true;
         if (on && Console.IsInputRedirected)
         {
             var reader = new Thread(() =>
@@ -59,9 +73,9 @@ public static class Runner
                 {
                     while (Console.In.ReadLine() is { } line)
                     {
-                        if (line.Trim() == VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand)
+                        if (line.Trim() == VitaSharp.Core.Gpu.ShaderCacheLoad.CancelCommand)
                         {
-                            VitaSharp.Core.Gpu.ShaderPrecompile.Cancel();
+                            VitaSharp.Core.Gpu.ShaderCacheLoad.Cancel();
                         }
                     }
                 }
@@ -71,7 +85,7 @@ public static class Runner
                 }
             })
             {
-                Name = "Precompile cancel",
+                Name = "Shader cache load cancel",
                 IsBackground = true,
             };
             reader.Start();
@@ -80,6 +94,7 @@ public static class Runner
         return on;
     }
 
+    /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
     internal static bool? OnOff(string[] options, string name)
     {
         var v = Opt(options, name);
@@ -334,9 +349,10 @@ public static class Runner
             KernelPlugins = OnOff(options, "--kernel-plugins"),
             // --system-language=<0-19>: the launcher's "Idioma do sistema" per game (SceSystemParamLang the game reads)
             SystemLanguage = SystemLanguageOpt(options),
-            // --precompile-shaders=on|off: the launcher's "Precompilar shaders" (per game or the global default, on): the
-            // recorded shaders and pipelines are built before the game starts; "cancel-precompile" on standard input stops the wait
-            PrecompileShaders = PrecompileShadersOpt(options),
+            // --load-shader-cache=on|off: the launcher's "Carregar o cache de shaders antes de jogar" (per game or the global
+            // default, on): the recorded shaders and pipelines are built before the game starts; "cancel-shader-cache-load"
+            // on standard input stops the wait
+            LoadShaderCacheBeforeStart = LoadShaderCacheOpt(options),
         });
         var fatal = new ManualResetEventSlim();
         emu.Fatal += (t, e) => fatal.Set();

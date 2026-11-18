@@ -539,7 +539,7 @@ public sealed unsafe partial class VulkanRenderer
     private readonly ConcurrentQueue<object> _prewarmJobs = new();
     private int _prewarmPending, _statPrewarmFailed, _statPrewarmStale;
     /// <summary>Tests only (set by reflection): runs before each prewarm item, so a test can hold the prewarm and see
-    /// who waits for it (RendererPathsTests, "Precompilar shaders").</summary>
+    /// who waits for it (RendererPathsTests, "Carregar o cache de shaders antes de jogar").</summary>
     internal static Action<VulkanRenderer>? PrewarmItemHook { get; set; }
 
     private void EnqueuePrewarm(object item)

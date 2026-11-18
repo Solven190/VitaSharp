@@ -581,28 +581,31 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e, se ganhar lá, subir o padrão (o Dolphin usa todos os núcleos menos 3)
 - [ ] [P2][G] Engasgos de shader na primeira vez que se joga (plano escolhido): o custo é o driver montar cada pipeline
   (~80 ms por pipeline na GTX 1650; traduzir os shaders do Vita custa no máximo ~116 ms por sessão), e na segunda
-  sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Três frentes:
-  (1) opção do emulador "Precompilar shaders", como no RPCS3: antes de iniciar o jogo, com tela de progresso, achar
-  os shaders GXP nos arquivos do jogo (na instalação ou no primeiro boot), traduzir, criar os módulos de shader e
-  pré-aquecer os pipelines conhecidos; decidir se vem ligada por padrão; (2) menos variantes de pipeline com estado
+  sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Frentes:
+  (1) opção do emulador "Carregar o cache de shaders antes de jogar", como o carregamento do cache no boot do RPCS3 e
+  do Ryujinx: antes de iniciar o jogo, com tela de progresso, montar o que as sessões anteriores gravaram (é o cache,
+  não uma pré-compilação: a 1ª sessão não tem nada gravado); (2) menos variantes de pipeline com estado
   dinâmico (`VK_EXT_extended_dynamic_state` 2/3, como Ryujinx e yuzu), onde o driver tiver as extensões, mantendo o
   caminho atual onde o suporte for parcial (Mali); (3) mais threads de compilação quando a CPU tiver folga (hoje 2
   workers). Pular o desenho até o pipeline ficar pronto não entra como padrão (não é 1:1 com o console).
-  Andamento da frente (1) (feat/pre1, 18/11/2026; o usuário confirma): opção "Precompilar shaders" (global, ligada
-  por padrão, e por jogo; `--precompile-shaders`): antes do boot o jogo espera a reconstrução e o prewarm do que as
+  Andamento da frente (1) (feat/pre1, 18/11/2026; o usuário confirma): opção "Carregar o cache de shaders antes de
+  jogar" (global, ligada por padrão, e por jogo; `--load-shader-cache`, o nome antigo `--precompile-shaders` ainda
+  vale com aviso; a chave antiga do launcher.json é migrada; feat/uber1): antes do boot o jogo espera a reconstrução e o prewarm do que as
   sessões anteriores gravaram (programs.pack, pipelines.list), com barra de progresso e "Cancelar" na barra de status do
-  launcher (`VulkanRenderer.Precompile.cs`, teste `RendererPathsTests.PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame`).
-  Traduzir só os GXP achados nos arquivos do jogo não basta e ficou de fora: a varredura (`GxpScanner`) acha 2 dos 88
+  launcher (`VulkanRenderer.ShaderCacheLoad.cs`, teste
+  `RendererPathsTests.ShaderCacheLoadBuildsTheRecordedPipelinesBeforeTheFirstFrame`).
+  Pré-compilar de verdade (traduzir antes do 1º uso os GXP achados nos arquivos do jogo) não basta e ficou de fora
+  (a varredura `GxpScanner` só serve à ferramenta `shadertest`): ela acha 2 dos 88
   programas que o PCSE00269 usa e 10 dos 1.758 do Killzone (o resto está em arquivos comprimidos; 1,3 s e 4,0 s), e só
   7-13% das variantes de shader gravadas (12.826 receitas de 67 títulos) dão para prever só pelo programa: os hints
   são estado do draw (formatos de textura, formato dos atributos de vértice, cor da superfície). Falta: medir em
   gameplay (Killzone, 2ª sessão, cache do driver frio e quente) os quadros lentos com/sem e o tempo da espera; Android
-  (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --precompile-shaders=on`,
+  (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --load-shader-cache=on`,
   cache do driver quente, A/B 2x): espera de 130-249 ms para 20 pipelines e o mesmo 1 quadro >= 4 ms com e sem, porque
   os 8 pipelines do passe de fetch (`InputPass`) não entram no pipelines.list e são montados no thread da GPU em toda
   sessão. Feito (feat/pre2, 18/11/2026): os pipelines do passe de fetch e do anexo tile-word entram no pipelines.list
   (bits livres do byte de flags do `PipelineRecipe`, sem trocar a versão: os registros antigos mantêm bytes e chaves)
-  e o prewarm/precompile os monta; teste `RendererPathsTests.SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread`.
+  e o prewarm/carregamento do cache os monta; teste `RendererPathsTests.SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread`.
   Replay do PCSA00029, 2ª sessão: pipelines no thread da GPU 8 → 0, quadros >= 4 ms de espera 1 → 0 (20 → 28
   pipelines pré-aquecidos, 39-61 ms). Conferidas as outras famílias: clear, blit, resolve e cópias são comandos (sem
   pipeline); não há compute de conversão de textura (o único compute é o do `VITASHARP_DEBUG_NAN`). Ficam fora da
