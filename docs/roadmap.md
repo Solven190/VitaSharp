@@ -148,7 +148,24 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   chamada; lock e try-lock não passam na frente da fila; contagem < 1 (ou > 1 sem RECURSIVE) é ILLEGAL_COUNT em todas
   as chamadas (o `ThreadMgrHleTests.MutexOwnershipAndCounts` esperava INVALID_ARGUMENT, corrigido); prazo em tempo de
   guest tira a espera da fila; cancel e delete soltam a fila inteira; a fila entra no save state. Eram bugs (sem fila,
-  cada espera disputava o dono), corrigidos no mesmo merge. Faltam lwmutex, cond, msgpipe, eventos e callbacks.
+  cada espera disputava o dono), corrigidos no mesmo merge.
+  Testes de prazo com o tempo de guest decidido pelo teste (18/11/2026, sync3, test/sync3, `ControlledGuestClock`): o
+  relógio para e só anda quando o teste manda, e cada teste confere a espera um microssegundo antes do prazo (o
+  `ATimedOutHead...` do semáforo falhava com a máquina carregada). Achado e corrigido no mesmo hash: a espera com prazo
+  terminada por um sinal escrevia o tempo restante da volta da thread no host, não o do sinal.
+  Lwmutex coberto (18/11/2026, sync3, `LwMutexInterleavingTests`, conferido no SceLibKernel e no threadmgr 3.74): fila
+  FIFO ou por prioridade (TH_PRIO); o unlock que zera a contagem com fila escreve a cabeça como dona no work area, com a
+  contagem dela, dentro da chamada (o work area nunca fica livre entre os dois, então nem o atalho em código guest nem
+  outra chamada passa na frente); contagem < 1 (ou > 1 sem RECURSIVE) é ILLEGAL_COUNT no lock, try-lock (na ordem do
+  SceLibKernel) e unlock; LW_MUTEX_LOCK_OVF; prazo em tempo de guest; delete solta a fila; a fila entra no save state.
+  Eram bugs (sem fila: todos disputavam o work area solto; contagens erradas aceitas), corrigidos no mesmo hash; o
+  atalho em código guest passou a tratar só contagem 1 (`HleGuestCodeKernelTests.LwMutexFastPathsKeepTheKernelsQueue`).
+  Cond coberto (18/11/2026, sync3, `CondInterleavingTests`, conferido no threadmgr 3.74): a espera solta o mutex por 1
+  (não inteiro) e o retoma por 1; fila FIFO ou TH_PRIO; prazo tira da fila e o sinal vai ao próximo; delete devolve
+  WAIT_DELETE_COND (WAIT_DELETE_LW_COND) sem retomar o mutex; erro na retomada vira WAIT_DELETE_MUTEX/CANCEL_MUTEX;
+  SignalTo com 0 ou a própria thread é ILLEGAL_THREAD_ID antes do UID. Eram bugs, corrigidos no mesmo hash.
+  Faltam msgpipe (achado: não tem fila de espera de envio nem de recepção, quem acorda primeiro no host leva os dados;
+  estudar a fila do threadmgr e os atributos TH_PRIO de envio/recepção), eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
