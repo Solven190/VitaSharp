@@ -55,7 +55,44 @@ public sealed partial class SystemGesture : HleModule
         public float RotationStartAngle;
     }
 
+    /// <summary>Recognizers by the handle tagged into their SceSystemGestureTouchRecognizer buffer (save states from
+    /// before the tag are keyed by the buffer address, see <see cref="TryGetRecognizer"/>).</summary>
     readonly Dictionary<uint, Recognizer> _recognizers = new();
+
+    /// <summary>"VSGR": marks a SceSystemGestureTouchRecognizer buffer initialised by Create; the next word is the handle.</summary>
+    const uint RecognizerTag = 0x52475356;
+
+    /// <summary>
+    /// libsystemgesture keeps a recognizer's whole state in the caller's SceSystemGestureTouchRecognizer buffer
+    /// (uint64_t reserved[307]): the buffer is a plain value, so games build it in a scratch buffer and copy it into
+    /// their own objects (Assassin's Creed III Liberation creates every recognizer in one stack buffer, port 0 and
+    /// port 1 in turn, and memcpy's each into its gesture object). The handle therefore travels inside the buffer,
+    /// never by its address.
+    /// </summary>
+    bool TryGetRecognizer(uint rec, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Recognizer? recognizer)
+    {
+        if (rec != 0 && GuestMemory.R32(rec) == RecognizerTag && _recognizers.TryGetValue(GuestMemory.R32(rec + 4), out recognizer))
+        {
+            return true;
+        }
+
+        return _recognizers.TryGetValue(rec, out recognizer);
+    }
+
+    /// <summary>A handle no live recognizer uses (deterministic, so save states replay the same handles).</summary>
+    uint NewRecognizerHandle()
+    {
+        uint handle = 1;
+        foreach (uint key in _recognizers.Keys)
+        {
+            if (key >= handle && key < 0x10000000)
+            {
+                handle = key + 1;
+            }
+        }
+
+        return handle;
+    }
 
     // ------------------------------------------------------------------ primitive recognizer
 
@@ -195,7 +232,14 @@ public sealed partial class SystemGesture : HleModule
         var r = new Recognizer { Type = type, Port = (int)(port & 0xFF), RX = x, RY = y, RW = w, RH = h };
         if (type == TYPE_TAP && param != 0) r.MaxTapCount = Math.Max(1, (int)GuestMemory.Read<byte>(param));
         GuestMemory.Fill(rec, 0, 307 * 8);
-        lock (_lock) _recognizers[rec] = r;
+        lock (_lock)
+        {
+            uint handle = NewRecognizerHandle();
+            GuestMemory.W32(rec, RecognizerTag);
+            GuestMemory.W32(rec + 4, handle);
+            _recognizers[handle] = r;
+        }
+
         Util.Log.Debug($"gesture recognizer 0x{rec:X8} type {type} port {port} rect ({x},{y},{w},{h})");
         return 0;
     }
@@ -205,7 +249,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r)) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r)) return ERR_INVALID_ARG;
             (r.RX, r.RY, r.RW, r.RH) = ReadRect(rect);
         }
         return 0;
@@ -216,7 +260,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r)) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r)) return ERR_INVALID_ARG;
             r.Events.Clear();
             r.Tracks.Clear();
             r.TapCount = 0;
@@ -249,7 +293,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r)) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r)) return ERR_INVALID_ARG;
             r.Events.Clear();
             r.UpdatedTime = _now;
             // reused scratch list (updated every frame per recognizer; no LINQ garbage)
@@ -407,7 +451,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r)) { num.TrySet(0); return ERR_INVALID_ARG; }
+            if (!TryGetRecognizer(rec, out var r)) { num.TrySet(0); return ERR_INVALID_ARG; }
             uint n = 0;
             foreach (var e in r.Events)
             {
@@ -420,14 +464,14 @@ public sealed partial class SystemGesture : HleModule
         return 0;
     }
 
-    [Hle] int sceSystemGestureGetTouchEventsCount(uint rec) { lock (_lock) return _recognizers.TryGetValue(rec, out var r) ? r.Events.Count : ERR_INVALID_ARG; }
+    [Hle] int sceSystemGestureGetTouchEventsCount(uint rec) { lock (_lock) return TryGetRecognizer(rec, out var r) ? r.Events.Count : ERR_INVALID_ARG; }
 
     [Hle]
     int sceSystemGestureGetTouchEventByIndex(uint rec, uint index, uint dst)
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r) || index >= r.Events.Count || dst == 0) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r) || index >= r.Events.Count || dst == 0) return ERR_INVALID_ARG;
             r.Events[(int)index].CopyTo(GuestMemory.Span(dst, 144));
         }
         return 0;
@@ -438,7 +482,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r) || dst == 0) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r) || dst == 0) return ERR_INVALID_ARG;
             var e = r.Events.FirstOrDefault(ev => BitConverter.ToUInt32(ev, 0) == id);
             if (e == null) return ERR_INVALID_ARG;
             e.CopyTo(GuestMemory.Span(dst, 144));
@@ -451,7 +495,7 @@ public sealed partial class SystemGesture : HleModule
     {
         lock (_lock)
         {
-            if (!_recognizers.TryGetValue(rec, out var r) || info == 0) return ERR_INVALID_ARG;
+            if (!TryGetRecognizer(rec, out var r) || info == 0) return ERR_INVALID_ARG;
             GuestMemory.Fill(info, 0, 280);
             GuestMemory.W32(info, r.Type);
             GuestMemory.W32(info + 4, (uint)r.Port);
