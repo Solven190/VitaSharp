@@ -164,8 +164,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (não inteiro) e o retoma por 1; fila FIFO ou TH_PRIO; prazo tira da fila e o sinal vai ao próximo; delete devolve
   WAIT_DELETE_COND (WAIT_DELETE_LW_COND) sem retomar o mutex; erro na retomada vira WAIT_DELETE_MUTEX/CANCEL_MUTEX;
   SignalTo com 0 ou a própria thread é ILLEGAL_THREAD_ID antes do UID. Eram bugs, corrigidos no mesmo hash.
-  Faltam msgpipe (achado: não tem fila de espera de envio nem de recepção, quem acorda primeiro no host leva os dados;
-  estudar a fila do threadmgr e os atributos TH_PRIO de envio/recepção), eventos e callbacks.
+  Msgpipe coberto (18/11/2026, sync4, test/sync4, `MsgPipeInterleavingTests`, conferido no threadmgr 3.74: envio
+  0x81013DFC, recepção 0x8101456C, Try 0x810165E8 / 0x81016D30, cancel 0x8101738C e os tratadores de espera da
+  classe 0x81013964 / 0x81013C30): uma fila só, de remetentes ou de receptores, FIFO ou por prioridade com TH_PRIO_S
+  (0x1) / TH_PRIO_R (0x2); o envio entrega os bytes aos receptores em espera dentro da chamada, na ordem da fila (o
+  FULL fica na cabeça até completar), e põe o resto no buffer (ASAP o que cabe, FULL tudo ou nada); a recepção pega o
+  buffer e depois os bytes dos remetentes em espera, cada resto indo para o buffer, até o primeiro que fica; ninguém
+  passa na frente de um da sua espécie nem de uma cabeça parcialmente servida; a contagem é escrita a cada passo
+  (erro depois de mover parte devolve essa parte; erro antes de mover não escreve nada); prazo em tempo de guest
+  tira da fila e deixa entrar os remetentes de trás; cancel esvazia o buffer; DONT_WAIT é um waiter na prioridade de
+  quem chamou; DONT_REMOVE (0x100) espia; os Try recusam outros bits de modo (ILLEGAL_MODE); lista de buffers maior
+  que o pipe é ILLEGAL_SIZE também na recepção; a fila e o buffer entram no save state (estados antigos carregam
+  com fila vazia). Eram bugs (sem fila: quem acordava primeiro no host levava os dados), corrigidos no mesmo hash.
+  Faltam eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
