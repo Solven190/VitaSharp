@@ -28,6 +28,12 @@ public static class ConsoleIdentity
     /// <summary>The secure module information word (KBL parameters +8): 0.</summary>
     public const uint SecureModuleInfo = 0;
 
+    /// <summary>The unit's console id (16 bytes): +3 company 1, +4 product 0x104 (big-endian), +7 sub code 0x10,
+    /// +8 the factory/chassis byte 4, +9..+15 the serial part (the last bytes of the OpenPSID), stable between runs.
+    /// </summary>
+    public static ReadOnlySpan<byte> ConsoleId =>
+        [0, 0, 0, 1, 0x01, 0x04, 0, 0x10, 0x04, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F];
+
     /// <summary>The unit's OpenPSID (sceKernelGetOpenPsId; the id a unit-bound license names): 0x10..0x1F, the
     /// same on every run.</summary>
     public static ReadOnlySpan<byte> OpenPsId =>

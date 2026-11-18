@@ -82,6 +82,16 @@ public sealed class NvsQafKernelTests(GuestMemoryFixture fixture) : IDisposable
         Assert.True(GuestMemory.ReadSpan(flags, 16).SequenceEqual(new byte[16]));
         Assert.Equal(SsInvalid, Call(Services, "ksceSblQafManagerGetQafName", 0u, 0x18u));
         Assert.Equal(NoQaf, Call(Services, "ksceSblQafManagerGetQafName", name, 0x18u));
-        Assert.Equal(-1, Call(Services, "SsMgrNid516ECC08"));
+    }
+
+    /// <summary>NID_516ECC08 is ss_mgr's re-export of kscePmMgrGetProductMode (its export points at the import's
+    /// stub): the retail unit's product mode is off.</summary>
+    [Fact]
+    public void Nid516ECC08IsTheProductModeQuery()
+    {
+        uint mode = _harness.Word(0xFF);
+        Assert.Equal(unchecked((int)0x800F0A16), Call(Services, "SsMgrGetProductMode", 0u));
+        Assert.Equal(0, Call(Services, "SsMgrGetProductMode", mode));
+        Assert.Equal(0u, GuestMemory.R32(mode) & 0xFF);
     }
 }
