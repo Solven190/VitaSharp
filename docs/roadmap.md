@@ -2774,6 +2774,20 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   handle, timeout, saída), mas não era esta causa. Próximo passo: watchpoint nos nós da árvore do alocador de páginas
   (o nó cujo ponteiro vira ciclo) para achar a escrita de fora; suspeitos: escrita HLE fora do tamanho (sceIo*/FIOS2
   assíncrono, Ngs) e instruções de memória comuns ao interp e ao JIT
+  Andamento (18/11/2026, vc1; não resolvido): o laço é o ajuste de inserção de uma árvore rubro-negra (0x81464798)
+  do alocador de páginas, cujos nós ficam no próprio bloco livre (página + 0x800: esquerda, direita, pai, cor,
+  endereço); no dump do travamento a raiz 0x8AD05800 aponta como pai para 0x8AD01800, que é outro nó, e não para
+  o cabeçalho 0x8337A078. A `main` está dentro da seção crítica certa (lwmutex work 0x8337A260, dono = UID da main,
+  count 1, attr recursivo). Descartados com medida: o lwmutex (`--watch 8337A260:C` + log das aquisições em C#:
+  5144 escritas até o crash, o dono sempre 0->X->0, nunca X->Y, contagem nunca escrita com o mutex livre); estouro
+  de pilha (preenchimento 0xCC intacto no fundo de todas as pilhas); sceGxmPrecomputedDrawInit (32 dos 44 bytes);
+  overlays do FIOS2 (a libfios2 é LLE e só chama _sceFiosKernelOverlayGetList uma vez, na própria pilha).
+  Escritas do lado do host no GameHeap (log em DirtyPages.Mark/MarkRange, 2874 numa execução até o travamento):
+  só criação de lwmutex (32 bytes do work), descritores de textura da GXM (16 bytes), estado precomputado da GXM,
+  sceIoRead de 0x8000/0x40000 em buffers do jogo, o zero do AllocMemBlock do GameHeap e blocos de 0xF8/0x40 da
+  NGS, sem sobreposição aparente. Próximo passo: comparar essas escritas com os chunks do dlmalloc no assert
+  (0x8145C50E) e, se nenhuma cair no chunk corrompido, procurar na semântica de memória da CPU guest
+  (LDM/STM, LDREXD/STREXD, VFP) com um watchpoint no campo pai do nó raiz
 - [ ] [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
