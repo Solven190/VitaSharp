@@ -338,6 +338,14 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   NetAdhocMatching (Soul Sacrifice Delta, Army Corps of Hell, Table Top Tanks e outros) e Ime (LittleBigPlanet,
   Shinobido 2 e outros) são importados, mas não ficam em uso no começo do jogo num cenário curto sem janela.
 - [ ] [P3][M] Sob o shell do Vita (vários processos) o salvamento é recusado
+  Feito (16/11/2026, rm5, feat/rm5-savestate-multiprocess; junto em 18/11/2026, feat/pend1, a confirmar pelo
+  usuário): o estado guarda todos os processos do sistema (o shell e os aplicativos que ele abriu) em volta do kernel
+  único: cada processo com suas seções (`process<N>/system`, `hle.functions`, `hle:<Módulo>`), a lista `processes` e
+  o espaço de endereço de cada bloco (`memory.spaces`, `mem:<endereço>@<pid>`); as threads voltam para o processo dono,
+  as listas de módulos e os timers também. O load exige os mesmos processos rodando (pid, aplicativo, título,
+  suspenso/na tela) e recusa antes de parar qualquer coisa. Estado de um processo só mantém o formato de antes
+  (`SaveStateLegacyTests` passa). Testes: `SaveStateMultiProcessTests` (shell e app sintéticos no mesmo endereço; sem
+  a mudança o save falha com "save states support a game run directly"). Falta confirmar numa sessão real do shell.
 - [x] Não validado (06/11/2026): o device lost do Tearaway na janela (o relato de 04/11 não reproduziu em 3 cargas
   sem janela; não houve teste com janela); o teclado do sistema (ImeDialog) aberto num save: o Sakatsuku
   (`st_game2`, 7000 quadros) não chegou ao teclado, e o Invizimals não foi testado

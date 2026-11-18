@@ -56,10 +56,11 @@ internal static class KernelSnapshot
             switch (kernelObject)
             {
                 case GuestThread t:
-                    // the kernel process's threads are part of the state too (its record owner is the kernel's pid)
-                    if (t.Process != emu && !(t.Process.IsKernelProcess && ReferenceEquals(t.Process.Vita, emu.Vita)))
+                    // every process's threads are part of the state (the shell's and its applications' under the Vita
+                    // shell, the kernel process's with the kernel's pid as their record owner)
+                    if (!ReferenceEquals(t.Process.Vita, emu.Vita))
                     {
-                        throw new SnapshotException($"thread {t.Name} belongs to another process");
+                        throw new SnapshotException($"thread {t.Name} belongs to another system");
                     }
 
                     t.WriteSnapshot(w, kinds.TryGetValue(t, out GuestThread.SafeKind k) ? k : GuestThread.SafeKind.Dormant);
@@ -129,11 +130,41 @@ internal static class KernelSnapshot
         return w;
     }
 
+    /// <summary>The process a saved object of <paramref name="owner"/> goes back to: the kernel process for the kernel's
+    /// pid, the running process with that pid (the shell or one of its applications), else the first process (states
+    /// of builds before the kernel process name it for everything).</summary>
+    private static Emulator OwnerProcess(Emulator emu, int owner)
+    {
+        if (owner == KernelSpace.KernelPid && emu.Vita.KernelProcess is { } kernelOwner)
+        {
+            return kernelOwner;
+        }
+
+        foreach (Emulator process in emu.Vita.Processes)
+        {
+            if (process.Pid == owner)
+            {
+                return process;
+            }
+        }
+
+        return emu;
+    }
+
     /// <summary>Replaces the object table; returns the restored live threads, to start once everything else is loaded.</summary>
     public static List<GuestThread> Load(Emulator emu, SnapshotReader r)
     {
         ObjectTable table = emu.Kernel.Objects;
         List<KernelObject> current = table.Snapshot();
+        // which process's list each loaded module is in (the lists are rebuilt from the saved UIDs below)
+        var moduleProcess = new Dictionary<LoadedModule, Emulator>();
+        foreach (Emulator process in emu.Vita.ProcessesAndKernel.Prepend(emu))
+        {
+            foreach (LoadedModule loaded in process.Kernel.Modules.Values)
+            {
+                moduleProcess.TryAdd(loaded, process);
+            }
+        }
         int next = r.ReadInt32();
         int n = r.ReadInt32();
         var objects = new List<KernelObject>(n);
@@ -153,8 +184,9 @@ internal static class KernelSnapshot
             {
                 case Thread:
                 {
-                    // a thread the kernel process owned goes back to it (states of builds before it have none)
-                    Emulator threadProcess = owner == KernelSpace.KernelPid && emu.Vita.KernelProcess is { } kernelOwner ? kernelOwner : emu;
+                    // a thread goes back to the process that owned it (the kernel process's: states of builds before
+                    // it have none)
+                    Emulator threadProcess = OwnerProcess(emu, owner);
                     var t = GuestThread.ReadSnapshot(threadProcess, b, out GuestThread.SafeKind k, out int cm, out int cc);
                     if (k == GuestThread.SafeKind.HostBody)
                     {
@@ -231,7 +263,8 @@ internal static class KernelSnapshot
                 }
                 case Timer:
                 {
-                    var t = new TimerObject { Name = name, Clock = () => emu.Kernel.ProcessTimeUs };
+                    Emulator timerProcess = OwnerProcess(emu, owner);
+                    var t = new TimerObject { Name = name, Clock = () => timerProcess.Kernel.ProcessTimeUs };
                     t.Load(b);
                     o = t;
                     break;
@@ -312,16 +345,17 @@ internal static class KernelSnapshot
         table.NextUid = next;
         // the module lists follow the UIDs the modules took: the kernel modules are the kernel process's
         Emulator kernelModules = emu.Vita.KernelProcess ?? emu;
-        emu.Kernel.Modules.Clear();
-        if (!ReferenceEquals(kernelModules, emu))
+        foreach (Emulator process in moduleProcess.Values.Distinct())
         {
-            kernelModules.Kernel.Modules.Clear();
+            process.Kernel.Modules.Clear();
         }
 
+        kernelModules.Kernel.Modules.Clear();
         foreach (ModuleObject mo in modulesSeen)
         {
             mo.Module.Uid = mo.Uid;
-            (mo.Module.IsKernel ? kernelModules : emu).Kernel.Modules[mo.Uid] = mo.Module;
+            Emulator holder = mo.Module.IsKernel ? kernelModules : moduleProcess.GetValueOrDefault(mo.Module) ?? emu;
+            holder.Kernel.Modules[mo.Uid] = mo.Module;
         }
         foreach (KernelObject o in objects)
         {
