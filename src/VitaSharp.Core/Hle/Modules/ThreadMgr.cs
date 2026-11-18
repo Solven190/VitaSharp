@@ -747,10 +747,17 @@ public sealed partial class ThreadMgr : HleModule
 
     [Hle(Cost = HleCost.SchedulerWait)] int sceKernelSignalCond(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.Signal(); return 0; }
     [Hle(Cost = HleCost.SchedulerWait)] int sceKernelSignalCondAll(int uid) { var c = Obj<CondVar>(uid); if (c == null) return SceError.UNKNOWN_COND_ID; c.SignalAll(); return 0; }
-    /// <summary>Wakes the given thread if it waits on the cond; ILLEGAL_THREAD_ID when it does not (Vita3K).</summary>
+    /// <summary>Wakes the given thread if it waits on the cond (threadmgr 3.74): 0 or the caller's own UID is
+    /// ILLEGAL_THREAD_ID before the cond is looked up, an unknown thread UNKNOWN_THREAD_ID, a thread that does not wait
+    /// on it ILLEGAL_THREAD_ID.</summary>
     [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelSignalCondTo(int uid, int thid)
     {
+        if (thid == 0 || thid == Self.Uid)
+        {
+            return SceError.ILLEGAL_THREAD_ID;
+        }
+
         var c = Obj<CondVar>(uid);
         if (c == null || c.WorkArea != 0) return SceError.UNKNOWN_COND_ID;
         var t = K.GetThread(thid);
@@ -835,6 +842,11 @@ public sealed partial class ThreadMgr : HleModule
     [Hle(Cost = HleCost.SchedulerWait)]
     int sceKernelSignalLwCondTo(uint work, int thid)
     {
+        if (thid == 0 || thid == Self.Uid)
+        {
+            return SceError.ILLEGAL_THREAD_ID;
+        }
+
         var c = LwCondOf(work);
         if (c == null) return SceError.UNKNOWN_LW_COND_ID;
         var t = K.GetThread(thid);

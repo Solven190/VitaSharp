@@ -1362,7 +1362,7 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelDeleteLwCond", cond));
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelSignalLwCond", cond));
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelSignalLwCondAll", cond));
-            Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelSignalLwCondTo", cond, self.Uid));
+            Assert.Equal(SceError.ILLEGAL_THREAD_ID, Call(Tm, "sceKernelSignalLwCondTo", cond, self.Uid)); // the thread is checked first
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelWaitLwCond", cond, new Ptr<uint>(0)));
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelGetLwCondInfo", cond, info));
             Assert.Equal(SceError.UNKNOWN_LW_COND_ID, Call(Tm, "sceKernelGetLwCondInfoById", cuid, info));
@@ -1414,18 +1414,18 @@ public sealed class ThreadMgrHleTests(GuestMemoryFixture fx) : IDisposable
             Call(Tm, "sceKernelLockMutex", m, 1, new Ptr<uint>(0));
             Assert.Equal(SceError.WAIT_TIMEOUT, Call(Tm, "_sceKernelWaitCond", c, new Ptr<uint>(_h.Word(1000))));
             Call(Tm, "sceKernelUnlockMutex", m, 1);
-            // a delete wakes a waiter with WAIT_DELETE
+            // a delete wakes a waiter with WAIT_DELETE_COND (threadmgr 3.74), without the mutex
             GuestRun d = Waiter("cv-d", v => r1 = v);
             Until(() => { Call(Tm, "sceKernelGetCondInfo", c, info); return GuestMemory.R32(info + 0x30) == 1; }, "the cond waiter");
             Assert.Equal(0, Call(Tm, "sceKernelDeleteCond", c));
             _h.Join(d);
-            Assert.Equal(SceError.WAIT_DELETE, r1);
+            Assert.Equal(SceError.WAIT_DELETE_COND, r1);
             foreach (string? fn in new[] { "sceKernelDeleteCond", "sceKernelSignalCond", "sceKernelSignalCondAll" })
             {
                 Assert.Equal(SceError.UNKNOWN_COND_ID, Call(Tm, fn, c));
             }
 
-            Assert.Equal(SceError.UNKNOWN_COND_ID, Call(Tm, "sceKernelSignalCondTo", c, self.Uid));
+            Assert.Equal(SceError.ILLEGAL_THREAD_ID, Call(Tm, "sceKernelSignalCondTo", c, self.Uid)); // the thread is checked first
             Assert.Equal(SceError.UNKNOWN_COND_ID, Call(Tm, "sceKernelWaitCond", c, new Ptr<uint>(0)));
             Assert.Equal(SceError.UNKNOWN_COND_ID, Call(Tm, "sceKernelGetCondInfo", c, info));
             Assert.Equal(SceError.UNKNOWN_COND_ID, Call(Tm, "sceKernelCloseCond", c));

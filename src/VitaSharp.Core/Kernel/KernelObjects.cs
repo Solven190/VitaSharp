@@ -210,6 +210,14 @@ public static class SceError
     public const int LW_MUTEX_RECURSIVE = unchecked((int)0x80028182);
     public const int LW_MUTEX_UNLOCK_UDF = unchecked((int)0x80028184);
     public const int UNKNOWN_COND_ID = unchecked((int)0x800281A1);
+    /// <summary>A cond wait's mutex was deleted (or cancelled) while the woken waiter locked it again; the cond itself
+    /// was deleted while it waited (threadmgr 3.74).</summary>
+    public const int WAIT_DELETE_MUTEX = unchecked((int)0x800281A2);
+    public const int WAIT_CANCEL_MUTEX = unchecked((int)0x800281A3);
+    public const int WAIT_DELETE_COND = unchecked((int)0x800281A4);
+    /// <summary>The same for a lightweight cond and its lightweight mutex.</summary>
+    public const int WAIT_DELETE_LW_MUTEX = unchecked((int)0x800281C2);
+    public const int WAIT_DELETE_LW_COND = unchecked((int)0x800281C3);
     public const int UNKNOWN_CALLBACK_ID = unchecked((int)0x800280A1);
     public const int UNKNOWN_MSG_PIPE_ID = unchecked((int)0x80028221);
     public const int MPP_EMPTY = unchecked((int)0x80028223);

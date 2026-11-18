@@ -1663,23 +1663,41 @@ public sealed partial class Mutex : KernelObject
     }
 }
 
-/// <summary>Condition variable bound to a mutex (SceKernelCond and lightweight conds). Waiters queue in arrival order;
-/// a signal releases the first one, SignalTo a specific thread, SignalAll every waiter. A lightweight cond publishes the
-/// number of queued waiters in its work area (+0 its UID, +4 its mutex's, +8 <see cref="LwQueuedOffset"/>), so a signal
-/// with nobody to wake, the common case, is guest code that never enters the kernel (Hle/HleGuestCode). A waiter counts
-/// itself there before its mutex is released: a signaller holding the mutex always sees it. Games may copy a work area
-/// (MotorStorm RC waits through a copy on a thread's stack and signals through another one); only the work area the
-/// cond was created in carries the count, so it also holds its own address (+12 <see cref="LwSelfOffset"/>) and the
-/// guest fast path takes a copy (a different address there) to the kernel.</summary>
+/// <summary>Condition variable bound to a mutex (SceKernelCond and lightweight conds), as threadmgr does it (FW 3.74):
+/// a wait unlocks its mutex by 1 (MUTEX_NOT_OWNED / LW_MUTEX_NOT_OWNED when the caller does not own it) and queues,
+/// first come first served or, with SCE_KERNEL_COND_ATTR_TH_PRIO, by thread priority; a signal releases the head of the
+/// queue, SignalTo a given waiter, SignalAll every waiter, and the released thread locks the mutex again by 1 when it
+/// runs. A waiter whose timeout passes is off the queue at its guest-time deadline (a later signal goes to the next
+/// one) and locks the mutex again; a deleted cond's waiters return WAIT_DELETE_COND (WAIT_DELETE_LW_COND) without
+/// locking it. A lightweight cond publishes the number of queued waiters in its work area (+0 its UID, +4 its mutex's,
+/// +8 <see cref="LwQueuedOffset"/>), so a signal with nobody to wake, the common case, is guest code that never enters
+/// the kernel (Hle/HleGuestCode). A waiter counts itself there before its mutex is released: a signaller holding the
+/// mutex always sees it. Games may copy a work area (MotorStorm RC waits through a copy on a thread's stack and signals
+/// through another one); only the work area the cond was created in carries the count, so it also holds its own address
+/// (+12 <see cref="LwSelfOffset"/>) and the guest fast path takes a copy (a different address there) to the kernel.</summary>
 public sealed partial class CondVar : KernelObject
 {
     public override int UidClass => WorkArea != 0 ? 11 : 5;
+    /// <summary>SCE_KERNEL_COND_ATTR_TH_PRIO: waiters queue by thread priority instead of first come first served.</summary>
+    public const uint AttrThreadPriority = 0x2000;
     public uint Attr;
     public Mutex Mutex = null!;
     public uint WorkArea;
-    public int Waiters;
     private bool _deleted;
     public const uint LwQueuedOffset = 8, LwSelfOffset = 12;
+
+    /// <summary>Threads in the wait queue (numWaitThreads; timed-out waiters already off it).</summary>
+    public int Waiters
+    {
+        get
+        {
+            lock (this)
+            {
+                ReleaseExpired();
+                return _queue.Count;
+            }
+        }
+    }
 
     private void PublishQueued(int n)
     {
@@ -1692,44 +1710,98 @@ public sealed partial class CondVar : KernelObject
     private sealed class Waiter
     {
         public GuestThread Thread = null!;
+        public int Priority;
         public bool Released;
+        /// <summary>Off the queue without a signal: WAIT_TIMEOUT (its deadline passed) or the delete's error.</summary>
+        public int Error;
+        /// <summary>Guest time at the wait and its limit in microseconds (-1: none).</summary>
+        public long StartTicks;
+        public long LimitUs = -1;
     }
 
     private readonly LinkedList<Waiter> _queue = new();
     /// <summary>Queue nodes of finished waits, reused by later waits (guarded by this object's lock).</summary>
     private readonly Stack<LinkedListNode<Waiter>> _freeNodes = new();
 
+    /// <summary>What a deleted cond's waiters return.</summary>
+    private int DeletedError => WorkArea != 0 ? SceError.WAIT_DELETE_LW_COND : SceError.WAIT_DELETE_COND;
+
+    /// <summary>Queues <paramref name="node"/>: at the end, or with SCE_KERNEL_COND_ATTR_TH_PRIO after the waiters of
+    /// equal or higher priority.</summary>
+    private void Enqueue(LinkedListNode<Waiter> node)
+    {
+        if ((Attr & AttrThreadPriority) != 0)
+        {
+            for (LinkedListNode<Waiter>? n = _queue.First; n != null; n = n.Next)
+            {
+                if (n.Value.Priority > node.Value.Priority)
+                {
+                    _queue.AddBefore(n, node);
+                    return;
+                }
+            }
+        }
+
+        _queue.AddLast(node);
+    }
+
+    /// <summary>The kernel's timers at the waiters' guest-time deadlines: a waiter whose timeout has passed is off the
+    /// queue (WAIT_TIMEOUT), however late its host thread is to notice, so a later signal goes to the next one.</summary>
+    private void ReleaseExpired()
+    {
+        bool changed = false;
+        LinkedListNode<Waiter>? n = _queue.First;
+        while (n != null)
+        {
+            LinkedListNode<Waiter>? next = n.Next;
+            Waiter w = n.Value;
+            if (w.LimitUs >= 0 && Wait.Expired(w.StartTicks, w.LimitUs))
+            {
+                w.Error = SceError.WAIT_TIMEOUT;
+                _queue.Remove(n);
+                changed = true;
+            }
+
+            n = next;
+        }
+        if (changed)
+        {
+            PublishQueued(_queue.Count);
+            Monitor.PulseAll(this);
+        }
+    }
+
     public int WaitCond(GuestThread self, Ptr<uint> timeout)
     {
-        int count;
+        int r;
         lock (this)
         {
             PublishQueued(_queue.Count + 1); // this waiter, before its mutex goes
-            // a wait reissued by a save state load released its mutex before the state was saved
-            count = self._condReissueCount > 0 ? self._condReissueCount : Mutex.ReleaseAll(self);
+            // a wait reissued by a save state load unlocked its mutex before the state was saved
+            int unlocked = self._condReissueCount > 0 ? SceError.OK : Mutex.Unlock(self, 1);
             self._condReissueCount = 0;
-            if (count < 0)
+            if (unlocked != SceError.OK)
             {
                 PublishQueued(_queue.Count);
-                return Mutex.IsLight ? SceError.LW_MUTEX_NOT_OWNED : SceError.MUTEX_NOT_OWNED;
+                return unlocked;
             }
-            self._condWaitCount = count; // save states: the lock count the reissued wait gives back
-            Waiters++;
+            self._condWaitCount = 1; // save states: the reissued wait has unlocked its mutex by this much
             LinkedListNode<Waiter> node = _freeNodes.Count > 0 ? _freeNodes.Pop() : new LinkedListNode<Waiter>(new Waiter());
             Waiter w = node.Value;
             w.Thread = self;
+            w.Priority = self.Priority;
             w.Released = false;
-            _queue.AddLast(node);
-            int r;
+            w.Error = 0;
+            w.StartTicks = GuestClock.Ticks;
+            w.LimitUs = timeout.IsNull ? -1 : timeout.Value;
+            Enqueue(node);
             try
             {
-                r = Wait.Until(this, (c: this, w), static t => t.w.Released, timeout,
-                    static t => t.c._deleted ? SceError.WAIT_DELETE : 0, WaitDescription);
+                r = Wait.Until(this, w, static t => t.Released, timeout, static t => t.Released ? 0 : t.Error, WaitDescription);
             }
             finally
             {
-                Waiters--;
-                if (!w.Released)
+                if (!w.Released && node.List != null)
                 {
                     _queue.Remove(node);
                     PublishQueued(_queue.Count);
@@ -1740,17 +1812,41 @@ public sealed partial class CondVar : KernelObject
                     _freeNodes.Push(node);
                 }
             }
-            // reacquire outside our lock to avoid lock-order inversion with the mutex
+            if (w.Released)
+            {
+                r = SceError.OK; // a timeout that came after the signal does not undo it
+            }
+            else if (r == SceError.WAIT_TIMEOUT)
+            {
+                timeout.TrySet(0);
+            }
+            else if (r != SceError.OK)
+            {
+                return r; // deleted: the mutex is not locked again
+            }
+
+            // lock the mutex again outside our lock to avoid lock-order inversion with the mutex
             Monitor.Exit(this);
+            int relocked;
             try
             {
-                Mutex.Reacquire(self, count);
+                relocked = Mutex.Reacquire(self, 1);
             }
             finally
             {
                 Monitor.Enter(this);
             }
-            return r;
+            if (relocked == SceError.WAIT_DELETE)
+            {
+                return WorkArea != 0 ? SceError.WAIT_DELETE_LW_MUTEX : SceError.WAIT_DELETE_MUTEX;
+            }
+
+            if (relocked == SceError.WAIT_CANCEL)
+            {
+                return SceError.WAIT_CANCEL_MUTEX;
+            }
+
+            return relocked < 0 ? relocked : r;
         }
     }
 
@@ -1765,6 +1861,7 @@ public sealed partial class CondVar : KernelObject
     {
         lock (this)
         {
+            ReleaseExpired();
             if (_queue.First is { } first)
             {
                 Release(first);
@@ -1779,6 +1876,7 @@ public sealed partial class CondVar : KernelObject
     {
         lock (this)
         {
+            ReleaseExpired();
             for (LinkedListNode<Waiter>? n = _queue.First; n != null; n = n.Next)
             {
                 if (n.Value.Thread != target)
@@ -1798,6 +1896,7 @@ public sealed partial class CondVar : KernelObject
     {
         lock (this)
         {
+            ReleaseExpired();
             while (_queue.First is { } first)
             {
                 Release(first);
@@ -1812,6 +1911,13 @@ public sealed partial class CondVar : KernelObject
         lock (this)
         {
             _deleted = true;
+            foreach (Waiter w in _queue)
+            {
+                w.Error = DeletedError;
+            }
+
+            _queue.Clear();
+            PublishQueued(0);
             // the guest fast paths check the UID word: a deleted cond's signals come to the kernel (UNKNOWN_LW_COND_ID)
             if (WorkArea != 0)
             {
