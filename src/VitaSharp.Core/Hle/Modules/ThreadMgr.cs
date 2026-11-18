@@ -856,13 +856,24 @@ public sealed partial class ThreadMgr : HleModule
 
     // ------------------------------------------------------------------ message pipes
 
+    /// <summary>Every create route (sceKernelCreateMsgPipe / WithLR in SceLibKernel, the _sceKernelCreateMsgPipeWithLR
+    /// syscall at 0x8102AC28 and ksceKernelCreateMsgPipe at 0x81016200) ends in one threadmgr 3.74 function
+    /// (0x81015D10), which refuses a size that rounds to no 4 KB page before it allocates anything: 0x81015DA8-0x81015DB6
+    /// compute (size + 0xFFF) &gt;&gt; 12 and branch to 0x81015E62, ILLEGAL_SIZE, when it is 0 (also when the
+    /// addition wraps past 4 GB). A pipe always has a buffer.</summary>
     [Hle]
     int sceKernelCreateMsgPipe(string name, uint type, uint attr, uint bufSize, uint opt)
-        => K.Objects.Register(new MsgPipe { Name = name, Attr = attr, BufferSize = MsgPipeCapacity(bufSize), CreatorThreadUid = Self.Uid });
+    {
+        if ((uint)(bufSize + 0xFFFu) >> 12 == 0)
+        {
+            return SceError.ILLEGAL_SIZE;
+        }
+
+        return K.Objects.Register(new MsgPipe { Name = name, Attr = attr, BufferSize = MsgPipeCapacity(bufSize), CreatorThreadUid = Self.Uid });
+    }
 
     /// <summary>threadmgr backs a message pipe with a memory block of the size rounded up to whole 4 KB pages and uses
-    /// all of it as the buffer (its capacity field is the rounded size). Size 0 allocates no block: the pipe has no
-    /// buffer and data goes straight from a sender to a receiver (<see cref="MsgPipe"/>).</summary>
+    /// all of it as the buffer (its capacity field is the rounded size).</summary>
     internal static int MsgPipeCapacity(uint bufSize) => (int)Math.Min((bufSize + 0xFFFul) & ~0xFFFul, int.MaxValue & ~0xFFF);
 
     /// <summary>Same arguments as sceKernelCreateMsgPipe; the "LR" (caller address kept for debugging) is not used.</summary>

@@ -3409,6 +3409,15 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   `MsgPipeWithoutABufferSenderTimeoutLeavesNothingBehind` (falham sem a correção). Correção feita, ainda não validada
   com jogo. Fica de fora: a entrega direta a um receptor que espera num pipe COM buffer (o firmware copia para ele
   antes do buffer; aqui passa pelo buffer, sem diferença de resultado conhecida).
+  Revisto e desfeito (18/11/2026, sync4, test/sync4): o pipe de tamanho 0 não existe no console. Toda rota de criação
+  (sceKernelCreateMsgPipe 0x0A10C1C8 / WithLR 0xD7E10BB1 da SceLibKernel → syscall 0x2AAC8BFD @0x8102AC28 → 0x8102DA88;
+  ksceKernelCreateMsgPipe @0x81016200) passa por 0x81015D10, que em 0x81015DA8-0x81015DB6 calcula (size + 0xFFF) >> 12
+  e desvia para 0x81015E62 (ILLEGAL_SIZE, 0x8002000B) quando dá 0, antes de alocar; nenhum atributo ou opt muda isso
+  (conferido na disassembly). A leitura anterior pegou o "cap == 0 ||" da checagem final do envio (0x81013DFC), que
+  nunca é alcançado: a checagem por entrada do vetor já recusa qualquer entrada maior que o buffer. Agora a criação
+  com tamanho 0 (ou que estoura 4 GB) é ILLEGAL_SIZE nas duas rotas
+  (`ThreadMgrHleTests.MsgPipeOfSizeZeroIsRefusedOnEveryCreateRoute`, TestGame `msgpipe0_create_refused`); o modo sem
+  buffer sai junto com a reescrita das filas.
 - [x] MsgPipe: DONT_WAIT (0x10) nas formas bloqueantes (sceKernelSendMsgPipe/ReceiveMsgPipe e Vector) não é "falhar em
   vez de esperar" no firmware: o threadmgr copia o vetor, enfileira o pedido para os threads "SceKernelMsgPipeAsync"
   (até 0x100 pedidos por processo, depois 0x80028225) e volta na hora; o envio/recebimento acontece depois nesse thread
