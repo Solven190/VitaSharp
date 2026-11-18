@@ -7,9 +7,9 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 11: the SDK's SQLite (SceSqlite) on the SceSqliteVsh engine and the default entries.</summary>
+/// <summary>The SDK's SQLite (SceSqlite) on the SceSqliteVsh engine and the default entries.</summary>
 [Collection("guest")]
-public sealed class HleBatch11Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class SqliteVshTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle11-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

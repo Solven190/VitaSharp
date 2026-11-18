@@ -9,10 +9,10 @@ using Semaphore = VitaSharp.Core.Kernel.Semaphore;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 3: the kernel syscall forms behind the SceLibKernel/SceDriverUser wrappers (arguments packed
+/// <summary>The kernel syscall forms behind the SceLibKernel/SceDriverUser wrappers (arguments packed
 /// in an opt struct, as the 3.74 wrappers pass them) and the SceRtabi helpers.</summary>
 [Collection("guest")]
-public sealed class HleBatch3Tests(GuestMemoryFixture fixture)
+public sealed class KernelSyscallFormsTests(GuestMemoryFixture fixture)
 {
     private static object? Invoke(object module, string name, params object?[] args) =>
         module.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(module, args);

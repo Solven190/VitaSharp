@@ -7,10 +7,10 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 10b: the system side the shell and its applications import (MTP, HTTP over MTP and its wrapper,
+/// <summary>The system side the shell and its applications import (MTP, HTTP over MTP and its wrapper,
 /// the MTP service client, livespace_db, the email engine, ScePsp2Compat helpers).</summary>
 [Collection("guest")]
-public sealed class HleBatch10bTests(GuestMemoryFixture fixture) : IDisposable
+public sealed class MtpEmailPsp2CompatTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle10b-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

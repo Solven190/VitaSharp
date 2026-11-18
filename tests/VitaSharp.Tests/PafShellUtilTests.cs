@@ -7,9 +7,9 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 13b: libpaf's type checks and math, SceShellUtil/SceShellSvc, small np_common_ps4/dbutil exports.</summary>
+/// <summary>libpaf's type checks and math, SceShellUtil/SceShellSvc, small np_common_ps4/dbutil exports.</summary>
 [Collection("guest")]
-public sealed class HleBatch13bTests(GuestMemoryFixture fixture) : IDisposable
+public sealed class PafShellUtilTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle13b-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

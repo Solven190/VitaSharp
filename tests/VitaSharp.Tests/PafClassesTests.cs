@@ -7,9 +7,9 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 8: libpaf's classes (rect, rtc/DateTime, strings and paths, files, SHA-1, zlib, heaps, buffers).</summary>
+/// <summary>libpaf's classes (rect, rtc/DateTime, strings and paths, files, SHA-1, zlib, heaps, buffers).</summary>
 [Collection("guest")]
-public sealed class HleBatch8Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class PafClassesTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle8-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

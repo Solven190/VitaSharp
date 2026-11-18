@@ -7,10 +7,10 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 7: the system side (SceVshBridge, SceAppMgr, SceAVConfig, SceBbmc, Videodec, SceNetPs syscalls,
+/// <summary>The system side (SceVshBridge, SceAppMgr, SceAVConfig, SceBbmc, Videodec, SceNetPs syscalls,
 /// libpaf's C library, the xthreads of libc.suprx).</summary>
 [Collection("guest")]
-public sealed class HleBatch7Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class VshBridgeSystemSideTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle7-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;
@@ -122,12 +122,12 @@ public sealed class HleBatch7Tests(GuestMemoryFixture fixture) : IDisposable
         Assert.Equal(1, Call(vsh, "_vshNpDrmEbootSigVerify", path, sig, 0u, 0u));
         // SceNpDrm 3.74 answers a signature that does not verify (another eboot's, or no NPUMDSIG magic) with
         // 0x80870005, its "data does not verify" code; 0x80870003 is the license checks' "needs activation" answer
-        const int npDrmBadData = unchecked((int)0x80870005);
-        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
-        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
+        const int NpDrmBadData = unchecked((int)0x80870005);
+        Assert.Equal(NpDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
+        Assert.Equal(NpDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", Str("ux0:other/EBOOT2.PBP"), sig, 0u, 0u));
         GuestMemory.Write(sig, (byte)'X');
-        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", path, sig, 0u, 0u));
-        Assert.Equal(npDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", path, sig, 0u, 0u));
+        Assert.Equal(NpDrmBadData, Call(vsh, "_vshNpDrmEbootSigVerify", path, sig, 0u, 0u));
+        Assert.Equal(NpDrmBadData, Call(vsh, "_vshNpDrmPspEbootVerify", path, sig, 0u, 0u));
     }
 
     [Fact]

@@ -7,10 +7,10 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 9: the NP side of the system software (libnetctl's and np_manager's requests to the shell's
+/// <summary>The NP side of the system software (libnetctl's and np_manager's requests to the shell's
 /// services, np_commerce2's contexts and requests).</summary>
 [Collection("guest")]
-public sealed class HleBatch9Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class NpShellServiceTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle9-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

@@ -6,10 +6,10 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 10: np_manager's own IPMI requests, the last libnetctl exports, kernel services of the system
+/// <summary>np_manager's own IPMI requests, the last libnetctl exports, kernel services of the system
 /// software (update manager, Bluetooth, USB PSP-communication, motion driver, registry region strings...).</summary>
 [Collection("guest")]
-public sealed class HleBatch10Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class SystemKernelServicesTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle10-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

@@ -6,10 +6,10 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 13: the small libraries (GPU driver signals and salvage, cookie statistics, Wi-Fi location
+/// <summary>The small libraries (GPU driver signals and salvage, cookie statistics, Wi-Fi location
 /// history, the GXM replay arena, AppUtil's book/video/additional-content mounts, event notify callbacks).</summary>
 [Collection("guest")]
-public sealed class HleBatch13Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class SmallSystemLibrariesTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle13-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;

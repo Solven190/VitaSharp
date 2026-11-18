@@ -7,9 +7,9 @@ using Xunit;
 
 namespace VitaSharp.Tests;
 
-/// <summary>HLE batch 12: SceLsdb's AppInfo getters and helpers (and the other small libraries of the batch).</summary>
+/// <summary>SceLsdb's AppInfo getters and helpers (and the other small libraries next to it).</summary>
 [Collection("guest")]
-public sealed class HleBatch12Tests(GuestMemoryFixture fixture) : IDisposable
+public sealed class LsdbAppInfoTests(GuestMemoryFixture fixture) : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-hle12-" + Guid.NewGuid().ToString("N"));
     private Emulator? _emu;
