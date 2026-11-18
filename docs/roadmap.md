@@ -142,9 +142,21 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   need < 1 = INVALID_ARGUMENT antes do UID. A fila (ordem e servidos ainda sem retorno) entra no save state; estados
   antigos carregam com a fila vazia. Eram bugs (`WaitSema` sem fila), corrigidos no mesmo hash. Faltam mutex, lwmutex,
   cond, msgpipe, eventos e callbacks.
+  Mutex (normal) coberto (16/11/2026, sync2, test/sync-mutex; junto em 18/11/2026, feat/pend1, a confirmar):
+  `MutexInterleavingTests`, conferido no threadmgr 3.74: fila FIFO ou por prioridade com
+  `SCE_KERNEL_MUTEX_ATTR_TH_PRIO`; o unlock que libera passa o mutex à cabeça da fila com a contagem pedida, dentro da
+  chamada; lock e try-lock não passam na frente da fila; contagem < 1 (ou > 1 sem RECURSIVE) é ILLEGAL_COUNT em todas
+  as chamadas (o `ThreadMgrHleTests.MutexOwnershipAndCounts` esperava INVALID_ARGUMENT, corrigido); prazo em tempo de
+  guest tira a espera da fila; cancel e delete soltam a fila inteira; a fila entra no save state. Eram bugs (sem fila,
+  cada espera disputava o dono), corrigidos no mesmo merge. Faltam lwmutex, cond, msgpipe, eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
+  Em andamento (16/11/2026, sched1, test/sched-contracts-1; junto em 18/11/2026, feat/pend1): ordem de prontos do
+  threadmgr 3.74 no `Scheduler` (o núcleo livre vai ao primeiro da maior prioridade, por chegada dentro da prioridade;
+  quem é preemptado por uma prioridade maior volta à frente da sua, quem cede a um igual vai para trás) e
+  `SchedulerContractTests` (6 casos, ordem forçada por portões e `Scheduler.IsWaitingForCore`). Falta: afinidade, o tempo
+  de guest por chamada HLE e por espera, e quem acorda quem.
 - [x] **Custos do HLE:** a classe de custo de cada função (código de usuário, entrada no kernel, espera) testada como
   contrato, sem depender do nome. Feito: `[Hle(Cost = HleCost...)]` por função e `HleModule.DefaultCost` por
   biblioteca, `CallbackWait = true` nas esperas com callbacks; `HleCostTests` confere as classes, o custo cobrado por

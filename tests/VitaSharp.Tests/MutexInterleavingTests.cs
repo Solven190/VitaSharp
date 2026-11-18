@@ -325,11 +325,11 @@ public sealed class MutexInterleavingTests(GuestMemoryFixture fixture) : IDispos
             Assert.Equal(0, Call(Tm, "sceKernelCancelMutex", uid, 0, new Ptr<int>(0)));
             restored.Load(new SnapshotReader(writer.Data.ToArray()));
             restored.Resolve(_h.Emu.Kernel.Objects);
-            Assert.Equal((1, runs[0].Thread, 2), restored.Info());
+            Assert.Equal((1, 2, runs[0].Thread), restored.Info());
             for (int i = 2; i >= 0; i--)
             {
                 int index = i;
-                Until(() => runs[index].Thread.Status == ThreadStatus.Waiting && runs[index].Thread.CurrentWaitSync == _h.Emu.Kernel.Objects.Get<Semaphore>(gates[index]), "the gate");
+                Until(() => runs[index].Thread.Status == ThreadStatus.Waiting && runs[index].Thread.CurrentWaitSync == _h.Emu.Kernel.Objects.Get<VitaSharp.Core.Kernel.Semaphore>(gates[index]), "the gate");
                 Assert.Equal(0, Call(Tm, "sceKernelSignalSema", gates[index], 1));
                 if (index > 0)
                 {
@@ -345,7 +345,7 @@ public sealed class MutexInterleavingTests(GuestMemoryFixture fixture) : IDispos
             Assert.Equal([0, SceError.WAIT_CANCEL, SceError.WAIT_CANCEL], first);
             Assert.Equal([0, 0, 0], second);
             Assert.Equal([0, 1, 2], order);
-            Assert.Equal((0, null, 0), restored.Info());
+            Assert.Equal<(int, int, GuestThread?)>((0, 0, null), restored.Info());
         });
     }
 
