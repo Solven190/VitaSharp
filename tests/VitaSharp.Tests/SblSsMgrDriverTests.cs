@@ -90,6 +90,21 @@ public sealed class SblSsMgrDriverTests(GuestMemoryFixture fixture) : IDisposabl
         Assert.Equal(0, Call(Services, "ksceSblAimgrGetVisibleId", _harness.Alloc(0x20)));
     }
 
+    /// <summary>The bridge passes the pointer to ksceSblAimgrGetPscode2 and answers what it answers: a retail unit has
+    /// no product mode, so both refuse alike (it used to copy the pscode out).</summary>
+    [Fact]
+    public void TheBridgesPscode2AnswersAsTheKernelEntry()
+    {
+        uint pscode = _harness.Alloc(8);
+        VshBridge bridge = _harness.Module<VshBridge>();
+        _harness.Emu.IsSystemProgram = true;
+        Assert.Equal(Call(Services, "ksceSblAimgrGetPscode2", pscode), Call(bridge, "_vshSblAimgrGetPscode2", pscode));
+        Assert.Equal(unchecked((int)0x800F0C29), Call(bridge, "_vshSblAimgrGetPscode2", pscode));
+        Assert.Equal(Call(Services, "ksceSblAimgrGetPscode2", 0u), Call(bridge, "_vshSblAimgrGetPscode2", 0u));
+        _harness.Emu.IsSystemProgram = false;
+        Assert.Equal(unchecked((int)0x80010058), Call(bridge, "_vshSblAimgrGetPscode2", pscode));
+    }
+
     [Fact]
     public void RandomNumbersAndMemset()
     {

@@ -109,8 +109,24 @@ public sealed partial class VshBridge
 
     // ---- the unit's identity
 
-    /// <summary>(SceKernelPscode *pscode): as _vshSblAimgrGetPscode (the secure module's copy).</summary>
-    [Hle] int _vshSblAimgrGetPscode2(uint pscode) => !Vsh ? VSH_ERR_PERM : _vshSblAimgrGetPscode(pscode);
+    /// <summary>SceSblSsMgr's answers to ksceSblAimgrGetPscode2: a NULL output, and the secure copy of the product
+    /// code outside product (factory) mode.</summary>
+    const int AIMGR_ERR_INVALID_ARGUMENT = unchecked((int)0x800F0C16);
+    const int AIMGR_ERR_NOT_PRODUCT_MODE = unchecked((int)0x800F0C29);
+
+    /// <summary>(SceKernelPscode *pscode): the bridge (SceVshBridge 3.74) passes the pointer to
+    /// ksceSblAimgrGetPscode2, which reads the secure processor's copy only in product (factory) mode: a retail unit
+    /// answers 0x800F0C29 (NULL 0x800F0C16), as the kernel entry does.</summary>
+    [Hle]
+    int _vshSblAimgrGetPscode2(uint pscode)
+    {
+        if (!Vsh)
+        {
+            return VSH_ERR_PERM;
+        }
+
+        return pscode == 0 ? AIMGR_ERR_INVALID_ARGUMENT : AIMGR_ERR_NOT_PRODUCT_MODE;
+    }
     /// <summary>(char visibleId[0x20]): the printed id of the unit (none in the emulated unit's ID storage: zeros).</summary>
     [Hle(Default = true)] int _vshSblAimgrGetVisibleId(uint id) => VshOut(id, 0x20, _ => { });
     /// <summary>(uint *smi): the secure module information word: 0.</summary>
