@@ -179,6 +179,10 @@ public static class Program
                 Console.WriteLine(a == null ? "no output opened" : $"opened: {a.DeviceName}");
                 return a == null ? 1 : 0;
             }
+            case "hle-abi-check":
+                // hle-abi-check --headers=<vita-headers> [--fewer]: every [Hle] binding whose argument registers differ
+                // from the VitaSDK prototype (HleAbiCheck); exit 1 when any MISMATCH is found
+                return HleAbiCheckCommand(OptValue(args, "--headers"), args.Contains("--fewer"));
             case "hle-implemented":
                 // hle-implemented [--vitasdk=<vitasdk-user-functions.tsv>] [--out=<tsv>]: every NID with an HLE
                 // implementation, as docs/hle/data/vitasharp-implemented.tsv (nid, name, module, library, "vh" when the
@@ -859,6 +863,35 @@ public static class Program
         return 0;
     }
 
+    /// <summary>hle-abi-check: the bindings whose argument registers differ from the vita-headers prototypes
+    /// (<see cref="VitaSharp.Core.Firmware.HleAbiCheck"/>), as a TSV on stdout: status, function, module, HLE registers,
+    /// header registers, header file, C parameters.</summary>
+    static int HleAbiCheckCommand(string? headers, bool includeFewer)
+    {
+        string include = headers == null ? "" : Path.Combine(headers, "include");
+        if (!Directory.Exists(Path.Combine(include, "psp2")))
+        {
+            Console.Error.WriteLine("hle-abi-check: --headers=<vita-headers checkout> (with include/psp2) is required");
+            return 2;
+        }
+
+        var files = Directory.EnumerateFiles(include, "*.h", SearchOption.AllDirectories)
+            .Order(StringComparer.Ordinal)
+            .Select(file => (Path.GetRelativePath(headers!, file).Replace('\\', '/'), File.ReadAllText(file)));
+        // types from every header (psp2common has the shared typedefs), prototypes from the user side only
+        var prototypes = VitaSharp.Core.Firmware.HleAbiCheck.ParseHeaders(files, path => path.StartsWith("include/psp2/", StringComparison.Ordinal));
+        var findings = VitaSharp.Core.Firmware.HleAbiCheck.Compare(prototypes, VitaSharp.Core.Hle.HleBindings.Modules, includeFewer);
+        Console.Out.WriteLine("status\tfunction\tmodule\thle\theader\tfile\tparameters");
+        foreach (var finding in findings)
+        {
+            Console.Out.WriteLine($"{finding.Status}\t{finding.Function}\t{finding.Module}\t{finding.HleLayout}\t{finding.HeaderLayout}\t{finding.File}\t{finding.Parameters}");
+        }
+
+        int mismatches = findings.Count(finding => finding.Status == "MISMATCH");
+        Console.Error.WriteLine($"{prototypes.Count} prototypes, {findings.Count} findings, {mismatches} mismatches");
+        return mismatches > 0 ? 1 : 0;
+    }
+
     /// <summary>hle-implemented: the table of every NID with an [Hle] entry (<see cref="VitaSharp.Core.Firmware.HleCensusTables.Implemented"/>)
     /// to <paramref name="outTsv"/> or stdout. The emulator the scan makes logs at Info level; that log goes to stderr,
     /// so stdout (redirected into the table by earlier refreshes, which put log lines on top of it) carries only data.</summary>
@@ -972,6 +1005,7 @@ public static class Program
         Console.WriteLine("  rerun <capture folder> [--from=preroll|start] [--window] [--rerun-gpu-dump]  replay a Gravar tudo capture's input from its save state");
         Console.WriteLine("  run options: --nav=<file> [--nav-live] [--nav-out=<dir>]  screen-driven input script (NavScript: tap/press/stable/shot/quit)");
         Console.WriteLine("  hle-implemented [--vitasdk=<tsv>]   list every NID the HLE implements (docs/hle/data/vitasharp-implemented.tsv)");
+        Console.WriteLine("  hle-abi-check --headers=<dir> [--fewer]  HLE bindings whose argument registers differ from the vita-headers prototypes");
         Console.WriteLine("  kernel-census [--root=<repo>]       HLE status of the FW 3.74 kernel exports (docs/hle/data/kernel-exports.tsv, kernel-exports.md)");
         Console.WriteLine("  audio-devices [--audio-device=<name>]  list the audio outputs and show the one a game opens");
         Console.WriteLine("  hle-coverage [--out=<tsv>] [--vitasdk=<tsv>] [--status=<repo>]  HLE coverage of every function the installed firmware exports (games/system/general)");

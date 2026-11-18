@@ -350,7 +350,7 @@ Android: [`docs/android/README.md`](docs/android/README.md). Pacotes prontos (zi
 Todo script vem em par `.ps1` + `.sh`, e o CI confere isso. Os textos da interface ficam em
 `src/VitaSharp.Core/Localization` (`Texts.resx` em inglês, `Texts.pt-BR.resx`); a documentação externa também vem nos
 dois idiomas (`README.md` + `README.pt-BR.md`, conferidos pelo `ExternalDocPairsTests`). Para contribuir com funções do
-sistema, veja as especificações em [`docs/hle`](docs/hle/README.md).
+sistema, veja as especificações em [`docs/hle`](docs/hle/README.md). `build/hle-abi-check.ps1` / `build/hle-abi-check.sh` lista as funções HLE cujos registradores de argumento diferem dos protótipos do [vita-headers](https://github.com/vitasdk/vita-headers) (precisa de `git` e rede para o clone, ou de um clone local).
 
 ### Estilo de código
 

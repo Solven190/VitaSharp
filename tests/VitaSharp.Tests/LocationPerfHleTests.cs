@@ -131,6 +131,34 @@ public sealed class LocationPerfHleTests(GuestMemoryFixture fixture)
         Assert.Equal(Location.ERR_INVALID_HANDLE, Call(l, "sceLocationConfirm", h));
     }
 
+    /// <summary>FW 3.74's SceLibLocation answers its own checks with 0x8010124x (null pointer 0x40, handle 0x41, methods
+    /// 0x44/0x45, no dialog result 0x48), not the psp2/location.h numbering (0x80101204...) the HLE used; the location
+    /// service's answers keep that numbering (a measurement the application may not make: 0x8010120D). And
+    /// sceLocationConfirmGetResult clears the output before answering "no result".</summary>
+    [Fact]
+    public void LocationErrorCodesAreTheFirmwares()
+    {
+        Assert.Equal(unchecked((int)0x80101240), Location.ERR_INVALID_ADDRESS);
+        Assert.Equal(unchecked((int)0x80101241), Location.ERR_INVALID_HANDLE);
+        Assert.Equal(unchecked((int)0x80101244), Location.ERR_INVALID_LOCATION_METHOD);
+        Assert.Equal(unchecked((int)0x80101245), Location.ERR_INVALID_HEADING_METHOD);
+        Assert.Equal(unchecked((int)0x80101248), Location.ERR_DIALOG_RESULT_NONE);
+        Assert.Equal(unchecked((int)0x8010120D), Location.ERR_DISABLE_APPLICATION);
+
+        var l = new Location();
+        uint p = fixture.Memory.Alloc(0x40, "loc-codes");
+        Assert.Equal(unchecked((int)0x80101240), Call(l, "sceLocationOpen", P<uint>(0), 1u, 1u));
+        Assert.Equal(0, Call(l, "sceLocationOpen", P<uint>(p), 1u, 1u));
+        uint h = GuestMemory.R32(p);
+        Assert.Equal(unchecked((int)0x80101244), Call(l, "sceLocationReopen", h, 9u, 0u));
+        Assert.Equal(unchecked((int)0x80101241), Call(l, "sceLocationClose", 999u));
+        GuestMemory.W32(p + 8, 0xFFFFFFFF);
+        Assert.Equal(unchecked((int)0x80101248), Call(l, "sceLocationConfirmGetResult", h, P<uint>(p + 8)));
+        Assert.Equal(Location.ResultNone, GuestMemory.R32(p + 8));
+        Assert.Equal(unchecked((int)0x8010120D), Call(l, "sceLocationGetLocation", h, p + 0x10));
+        Assert.Equal(0, Call(l, "sceLocationClose", h));
+    }
+
     [Fact]
     public void GpsHasNoDevice()
     {

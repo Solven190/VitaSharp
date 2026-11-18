@@ -97,7 +97,13 @@ tabela com o que muda por função.
    (`Emulator.InitProcess`). O NID é resolvido pelo nome em `Hle/Data/nids.txt`; use `Nid = 0x...` se o nome não
    estiver lá e `Library = "..."` se for ambíguo.
 2. Parâmetros seguem AAPCS-VFP pelo binder (`HleFramework.cs`): `int/uint/Ptr<T>/string` em r0–r3 e pilha,
-   `long/ulong` em par alinhado, `float` em s0–s15, `VarArgs` para variádicas.
+   `long/ulong` em par alinhado, `float` em s0–s15 e `double` em d0–d7 (com back-filling), `VarArgs` para variádicas.
+   A ordem e a largura dos parâmetros vêm do protótipo do firmware: um argumento lido do registrador errado grava a
+   saída no endereço errado. `build/hle-abi-check.ps1` (ou `.sh`; precisa de `git` e rede para clonar o
+   [vita-headers](https://github.com/vitasdk/vita-headers), ou `-Headers <pasta>` com um clone local) lista as funções
+   cujos registradores diferem do protótipo do vita-headers. É um relatório: o header também pode estar errado, e
+   dois argumentos de 32 bits trocados dão os mesmos registradores, então confira no módulo do firmware antes de mudar.
+   `HleArgumentLayoutTests` chama funções pela binding gerada com os registradores de uma chamada do guest.
 3. Erros vêm de `SceError` (`Kernel/KernelObjects.cs`); objetos do kernel via `K.Objects`.
 4. Declare o que a função é no firmware, que dá o custo de CPU emulada por chamada (`HleCost`, nunca pelo nome):
    `[Hle(Cost = HleCost.SchedulerWait)]` para quem espera no escalonador (esperas, sinais, I/O bloqueante),
