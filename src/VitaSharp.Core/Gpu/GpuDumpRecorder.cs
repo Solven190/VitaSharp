@@ -353,6 +353,42 @@ public sealed unsafe class GpuDumpRecorder
         }
     }
 
+    /// <summary>A read the backend made from a draw's <see cref="GeometrySnapshot"/> instead of guest memory: the replay's
+    /// memory gets the copy's bytes there before the draw, and the pages are compared with guest memory again at the
+    /// next read (they hold the copy now, not what the guest has written since).</summary>
+    public static void TapCopy(uint addr, ReadOnlySpan<byte> data)
+    {
+        if (Environment.CurrentManagedThreadId != s_tapThread || data.IsEmpty)
+        {
+            return;
+        }
+
+        if (s_current is { _state: 1 } r)
+        {
+            r.OnCopyRead(addr, data);
+        }
+    }
+
+    private void OnCopyRead(uint addr, ReadOnlySpan<byte> data)
+    {
+        OnRead(addr, data.Length); // pages read for the first time get their guest contents first
+        byte[]?[] shadow = _shadow!;
+        uint[] verified = _verified!;
+        ulong end = (ulong)addr + (ulong)data.Length;
+        for (ulong p = addr >> PageShift; p <= (end - 1) >> PageShift; p++)
+        {
+            uint pa = (uint)(p << PageShift);
+            int from = (int)(Math.Max(addr, pa) - addr), to = (int)(Math.Min(end, (ulong)pa + PageSize) - addr);
+            if (shadow[p] is { } s)
+            {
+                data[from..to].CopyTo(s.AsSpan((int)(addr + (uint)from - pa)));
+            }
+
+            verified[p] = 0;
+        }
+        EmitMemory(addr, data);
+    }
+
     private void OnRead(uint addr, long length)
     {
         long t0 = Stopwatch.GetTimestamp();

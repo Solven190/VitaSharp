@@ -595,9 +595,18 @@ public sealed partial class Gxm : HleModule
         uint xMax = validRegion != 0 ? GuestMemory.R32(validRegion) : rt.Width - 1u;
         uint yMax = validRegion != 0 ? GuestMemory.R32(validRegion + 4) : rt.Height - 1u;
         SetDefaultRegionClipAndViewport(c, xMax, yMax);
-        WaitForDisplayRelease(fragmentSync);
-        if (_sceneGate is { } stale) EndSceneGate(stale);
-        _sceneGate = new SceneGate();
+        DisplayHold? hold = WaitForDisplayRelease(fragmentSync);
+        if (hold != null)
+        {
+            _lastHold = hold;
+        }
+
+        if (_sceneGate is { } stale)
+        {
+            EndSceneGate(stale);
+        }
+
+        _sceneGate = NewSceneGate();
         Gpu.Submit(new BeginSceneCommand
         {
             Width = rt.Width, Height = rt.Height, Multisample = rt.MultisampleMode,
@@ -644,7 +653,11 @@ public sealed partial class Gxm : HleModule
     {
         if (Ctx(ctx) is { Deferred: true }) return ERR_INVALID_VALUE;
         // the vertex work so far goes to the hardware: the draws before the flush may read their buffers now
-        if (_sceneGate is { } gate) { EndSceneGate(gate); _sceneGate = new SceneGate(); }
+        if (_sceneGate is { } gate)
+        {
+            EndSceneGate(gate);
+            _sceneGate = NewSceneGate();
+        }
         Gpu.Submit(new MidSceneFlushCommand());
         if (ReadNotification(vertexNotification) is { } n && n.Item1 != 0) Gpu.Notify(n.Item1, n.Item2);
         return 0;
@@ -742,11 +755,25 @@ public sealed partial class Gxm : HleModule
         }
     }
 
-    void WaitForDisplayRelease(uint fragmentSync)
+    /// <summary>Holds the GPU worker until the display releases the scene's colour buffer; the hold (null: no wait).</summary>
+    DisplayHold? WaitForDisplayRelease(uint fragmentSync)
     {
-        if (!DisplaySync || fragmentSync == 0 || !_syncObjects.TryGetValue(fragmentSync, out var s)) return;
+        if (!DisplaySync || fragmentSync == 0 || !_syncObjects.TryGetValue(fragmentSync, out var s))
+        {
+            return null;
+        }
+
         long target;
-        lock (s) { target = s.Queued; if (s.Released >= target) return; }
+        lock (s)
+        {
+            target = s.Queued;
+            if (s.Released >= target)
+            {
+                return null;
+            }
+        }
+
+        var hold = new DisplayHold();
         Gpu.Submit(new CallbackCommand
         {
             Action = () =>
@@ -761,8 +788,71 @@ public sealed partial class Gxm : HleModule
                     Interlocked.Increment(ref SyncTimeouts);
                     Log.WarnOnce("gxm-sync-timeout", $"sceGxmBeginScene: sync object 0x{s.Handle:X8} still displayed after 250 ms (display {s.Released}/{target}); rendering anyway");
                 }
+
+                hold.Release();
             },
         });
+        return hold;
+    }
+
+    /// <summary>The last display-release hold submitted (the worker passes the holds in order: once it is done, so are
+    /// the earlier ones).</summary>
+    [VitaSharp.Core.SaveState.SnapshotIgnore] DisplayHold? _lastHold;
+    [VitaSharp.Core.SaveState.SnapshotIgnore] List<DrawCommand>? _spareHeldDraws;
+
+    /// <summary>A scene gate, queued behind the last hold when the worker has not passed it.</summary>
+    SceneGate NewSceneGate()
+    {
+        var gate = new SceneGate();
+        if (_lastHold is { Done: false } hold)
+        {
+            gate.Hold = hold;
+        }
+        else
+        {
+            _lastHold = null;
+        }
+
+        return gate;
+    }
+
+    /// <summary>
+    /// The kick of a scene whose draws are queued behind a display-release hold the worker has not passed: the vertex
+    /// phase runs now on the console, so the draws' geometry and bound uniform buffers are copied now, before the game
+    /// can reuse the memory (PSVitaAlive's vita2d pool: draws read the next frame's vertices, triangles shot out of the
+    /// screen's corner and parts of the keyboard were missing). Under the hold's lock, so the worker runs none of them
+    /// meanwhile.
+    /// </summary>
+    void SnapshotHeldDraws(SceneGate gate)
+    {
+        if (gate.HeldDraws is not { } draws)
+        {
+            return;
+        }
+
+        gate.HeldDraws = null;
+        if (gate.Hold is { } hold)
+        {
+            lock (hold.Lock)
+            {
+                if (!hold.Done)
+                {
+                    foreach (DrawCommand draw in draws)
+                    {
+                        if (draw.UniformsLate)
+                        {
+                            CopyLateUniforms(draw);
+                            draw.UniformsLate = false;
+                        }
+                    }
+
+                    GeometrySnapshot.Take(draws);
+                }
+            }
+        }
+
+        draws.Clear();
+        _spareHeldDraws = draws;
     }
     static readonly bool DisplayQueueStrict = Environment.GetEnvironmentVariable(EnvVars.DisplayQueueStrict) == "1";
 
@@ -1160,6 +1250,7 @@ public sealed partial class Gxm : HleModule
     /// <summary>The guest ended or flushed a scene: opens its gate, or in frame mode keeps it closed until the flip.</summary>
     void EndSceneGate(SceneGate gate)
     {
+        SnapshotHeldDraws(gate);
         gate.TakeSweep();
         if (UbAudit) AuditSceneEnd();
         if (!UbGateFrame) { gate.End(); return; }
@@ -1618,6 +1709,18 @@ public sealed partial class Gxm : HleModule
         vTex.CopyTo(cmd.VertexTextures, 0);
         fTex.CopyTo(cmd.FragmentTextures, 0);
         streams.CopyTo(cmd.Streams, 0);
+        if (_sceneGate is { Hold.Done: false } held)
+        {
+            // queued behind a display-release hold: its geometry is copied at the scene's kick (SnapshotHeldDraws)
+            if (held.HeldDraws == null)
+            {
+                held.HeldDraws = _spareHeldDraws ?? [];
+                _spareHeldDraws = null;
+            }
+
+            held.HeldDraws.Add(cmd);
+        }
+
         Gpu.Submit(cmd);
     }
 

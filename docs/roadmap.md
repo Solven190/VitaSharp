@@ -2721,6 +2721,17 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
 
 ## Bugs em aberto
 
+- [ ] [P1][M] PSVitaAlive (PSVAS1178, homebrew vita2d), bug gráfico no teclado de busca (usuário, 17/11/2026; captura
+  `captures/PSVAS1178_20261117_215911_tudo`, 41 achados [flash]): em quadros isolados faltam as teclas e parte do
+  texto ("9/12" em vez de "9/128") e triângulos saem do canto superior esquerdo. Causa (replay do gpu.vsgd, quadro
+  7692, draws 379+): os draws leem os vértices do quadro seguinte (o programa de cor recebe dados com coordenadas de
+  textura, o de texto recebe cores). A cena num buffer ainda na tela espera na GPU a troca de quadro (sync object de
+  fragmento) e o GPU worker executa vértice e fragmento juntos; no console só o fragmento espera, os vértices são
+  lidos no kick (sceGxmEndScene/MidSceneFlush), e o vita2d reaproveita o pool de vértices a cada quadro. Correção
+  feita (fix/psm1), ainda não confirmada: os draws enfileirados atrás de uma espera de exibição copiam no kick os
+  índices, os vertex streams e os uniform buffers vinculados (`GeometrySnapshot`, `DisplayHold`), e o worker lê a
+  cópia; teste `GxmFlowTests.DrawsBehindADisplayHoldReadTheGeometryOfTheirKick`. Teste do usuário: PSVitaAlive,
+  abrir "Buscar no catálogo" e digitar várias letras pelo toque; não pode piscar nem faltar tecla.
 - [ ] [P3][P] Ao apagar um item da lista (biblioteca de jogos do launcher), a rolagem volta para o topo (pedido do
   usuário, 17/11/2026): manter a posição da rolagem onde estava, com o foco no item seguinte ao apagado; o mesmo nas
   outras listas com apagar (saves, capturas) e no app Android quando ele voltar
