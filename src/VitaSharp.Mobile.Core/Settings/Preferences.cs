@@ -195,16 +195,18 @@ public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string Gpu
     public long ClockHz => CpuMhz > 0 ? CpuMhz * 1_000_000L : CpuCore.DefaultClockHz;
 }
 
-/// <summary>The choices of the picker rows, with the labels the mockups use.</summary>
+/// <summary>The choices of the picker rows, with the labels the mockups use. Each list is built when read, in the
+/// language of that moment: a list kept from the first read held the language the process started with (the labels and
+/// the FPS overlay's mode stayed in Portuguese after the app was switched to English without restarting).</summary>
 public static class SettingsChoices
 {
-    public static IReadOnlyList<Choice> Clocks { get; } =
+    public static IReadOnlyList<Choice> Clocks =>
     [
         new("0", Loc.Get("MClock333")),
         new("444", Loc.Get("MClock444")),
     ];
 
-    public static IReadOnlyList<Choice> GpuProfiles { get; } =
+    public static IReadOnlyList<Choice> GpuProfiles =>
     [
         new("", Loc.Get("MGpuAuto")),
         new("desktop", Loc.Get("MGpuNoWorkarounds")),
@@ -212,7 +214,7 @@ public static class SettingsChoices
         new("mali", Loc.Get("MGpuMali")),
     ];
 
-    public static IReadOnlyList<Choice> ResScales { get; } =
+    public static IReadOnlyList<Choice> ResScales =>
     [
         new("", Loc.Get("MResNative")),
         new("0.75", Loc.Get("MRes75")),
@@ -223,7 +225,7 @@ public static class SettingsChoices
     ];
 
     /// <summary>"Taxa de quadros" (values of Hle/Modules/Display.cs FrameRate.Parse; "" = native).</summary>
-    public static IReadOnlyList<Choice> FrameRates { get; } =
+    public static IReadOnlyList<Choice> FrameRates =>
     [
         new("", Loc.Get("RateNative")),
         new("30", Loc.Get("RateFixed30")),
@@ -233,7 +235,7 @@ public static class SettingsChoices
 
     /// <summary>"Idioma do sistema": the system's language ("") or a SceSystemParamLang, each language in its own name
     /// (Core/Firmware/SystemLanguage.cs; the desktop launcher's list).</summary>
-    public static IReadOnlyList<Choice> SystemLanguages { get; } =
+    public static IReadOnlyList<Choice> SystemLanguages =>
     [
         new("", Loc.Get("SystemLanguageFollow")),
         .. VitaSharp.Core.Firmware.SystemLanguage.Names.Select((name, language) => new Choice(language.ToString(System.Globalization.CultureInfo.InvariantCulture), name)),
@@ -243,15 +245,16 @@ public static class SettingsChoices
     /// through them); an unknown value starts over at native.</summary>
     public static string NextFrameRate(string? value)
     {
+        IReadOnlyList<Choice> rates = FrameRates;
         int index = -1;
-        for (int i = 0; i < FrameRates.Count; i++)
+        for (int i = 0; i < rates.Count; i++)
         {
-            if (FrameRates[i].Value == (value ?? ""))
+            if (rates[i].Value == (value ?? ""))
             {
                 index = i;
             }
         }
-        return FrameRates[(index + 1) % FrameRates.Count].Value;
+        return rates[(index + 1) % rates.Count].Value;
     }
 
     /// <summary>The FPS overlay's text: the frames of the last second, and the frame rate mode when it is not native.</summary>
@@ -259,14 +262,14 @@ public static class SettingsChoices
         frameRate.Length > 0 ? Loc.Format("MFpsWithMode", fps, LabelOf(FrameRates, frameRate)) : Loc.Format("MFpsCount", fps);
 
     /// <summary>"Intensidade da vibracao" of the on-screen controls (values of Input.OnScreenHaptics).</summary>
-    public static IReadOnlyList<Choice> HapticStrengths { get; } =
+    public static IReadOnlyList<Choice> HapticStrengths =>
     [
         new("1", Loc.Get("MHapticWeak")),
         new("2", Loc.Get("MHapticMedium")),
         new("3", Loc.Get("MHapticStrong")),
     ];
 
-    public static IReadOnlyList<Choice> MsaaModes { get; } =
+    public static IReadOnlyList<Choice> MsaaModes =>
     [
         new("", Loc.Get("MMsaaNative")),
         new("off", Loc.Get("MMsaaOff")),

@@ -22,10 +22,13 @@ public sealed class LauncherNarrowWindowTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), "vitasharp-narrow-" + Guid.NewGuid().ToString("N"));
     private readonly string? _savedData = Environment.GetEnvironmentVariable(EnvVars.Data);
 
+    // the launcher switches the process-wide language to the one each case asks for: put back the one before
+    private readonly LanguageScope _language = new();
+
     public void Dispose()
     {
         Environment.SetEnvironmentVariable(EnvVars.Data, _savedData);
-        Loc.SetLanguage(Loc.System);
+        _language.Dispose();
         FirmwarePanel.FindVita3K = VitaSharp.Core.Firmware.FirmwareInstaller.FindVita3KFirmware;
         try
         {
