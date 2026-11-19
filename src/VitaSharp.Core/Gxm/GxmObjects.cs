@@ -34,6 +34,10 @@ public sealed class GxmProgramInfo
     /// </summary>
     public static void Clear() => s_cache.Clear();
 
+    /// <summary>The program at <paramref name="address"/> if it was parsed already (a registered program), else null:
+    /// nothing is read from guest memory.</summary>
+    public static GxmProgramInfo? Parsed(uint address) => address != 0 && s_cache.TryGetValue(address, out GxmProgramInfo? info) ? info : null;
+
     public static GxmProgramInfo Get(uint address)
     {
         if (s_cache.TryGetValue(address, out GxmProgramInfo? info))

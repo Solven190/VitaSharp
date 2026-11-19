@@ -2536,6 +2536,7 @@ public sealed partial class Gxm : HleModule
         if (attributeCount > 0) GuestMemory.Span(attributes, attrBytes).CopyTo(raw);
         if (streamCount > 0) GuestMemory.Span(streams, streamBytes).CopyTo(raw[attrBytes..]);
         var key = (program, System.IO.Hashing.XxHash64.HashToUInt64(raw));
+        GxmVertexProgram created;
         lock (sp)
         {
             if (sp.VertexCache.TryGetValue(key, out var cached) && _vertexPrograms.ContainsKey(cached.Handle))
@@ -2560,7 +2561,10 @@ public sealed partial class Gxm : HleModule
             _vertexPrograms[h] = vp;
             sp.VertexCache[key] = vp;
             outVp.Value = h;
+            created = vp;
         }
+        // a new object only (games re-create the same vertex program every frame and get the cached one)
+        Gpu.Backend?.VertexProgramCreated(created);
         return 0;
     }
 
@@ -2572,6 +2576,7 @@ public sealed partial class Gxm : HleModule
         var blend = GxmBlendInfo.Read(blendInfo);
         ulong blendKey = blendInfo == 0 ? ulong.MaxValue : GuestMemory.R32(blendInfo);
         var key = (program, outputFormat, multisampleMode, blendKey, vertexProgram);
+        GxmFragmentProgram? created = null;
         lock (sp)
         {
             if (sp.FragmentCache.TryGetValue(key, out var cached) && _fragmentPrograms.ContainsKey(cached.Handle))
@@ -2589,7 +2594,13 @@ public sealed partial class Gxm : HleModule
             _fragmentPrograms[h] = fp;
             sp.FragmentCache[key] = fp;
             outFp.Value = h;
+            created = fp;
         }
+        if (created != null)
+        {
+            Gpu.Backend?.FragmentProgramCreated(created, GxmProgramInfo.Parsed(vertexProgram));
+        }
+
         return 0;
     }
 
@@ -2653,6 +2664,7 @@ public sealed partial class Gxm : HleModule
         };
         _texcoordRemaps[handle] = remap;
         outFp.Value = handle;
+        Gpu.Backend?.FragmentProgramCreated(_fragmentPrograms[handle], GxmProgramInfo.Parsed(vertexProgram));
         return 0;
     }
 

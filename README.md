@@ -398,6 +398,14 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   launcher's status bar; "Cancelar" (the line `cancel-shader-cache-load` on the game process's standard input) starts
   the game at once and the rest builds in the background. It is a cache load, not a precompilation: a game's first
   session has nothing recorded. Nothing extra to install, same on Windows, Linux and macOS.
+- Compile shaders at program load ("compilar shaders ao carregar o programa"; `--compile-on-program-load=on|off`,
+  default on; `VITASHARP_COMPILE_ON_PROGRAM_LOAD=0|1` overrides it, also on Android): when a game creates a vertex or
+  fragment program (sceGxmShaderPatcherCreate*, usually behind its loading screen), the shader workers translate and
+  compile its shaders with the hints predicted from the program, and build the pipeline of the vertex program it is
+  made for, so a first session's first draw finds them ready. A draw whose texture or surface format differs from the
+  prediction but translates to the same shader uses the same module. The session's `[shadercache] session` line ends
+  with what was queued and used ("at program load: ..."); `replay-gpu --compile-on-program-load=on` announces the
+  dump's programs before its first command. Nothing extra to install, every OS.
 - Profiling: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, every OS); on Windows also
   PerfView and WPR/WPA (Windows Performance Toolkit).
 

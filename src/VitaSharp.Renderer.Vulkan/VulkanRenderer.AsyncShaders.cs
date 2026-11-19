@@ -310,9 +310,10 @@ public sealed unsafe partial class VulkanRenderer
     }
 
     private readonly ConcurrentQueue<PipelineJob> _pipelineJobs = new();
+    private int _pipelineJobsRunning;
 
     private sealed record PipelineJob(GxmVertexProgram Vp, ulong Vk, GxpProgram Fs, ulong Fk, ulong FetchKey, ShaderHints? FetchHints,
-        PredictedScene Scene, GxmBlendInfo? Blend, bool FragEnabled, byte PrimitiveType, byte PolygonMode, ulong Static);
+        PredictedScene Scene, GxmBlendInfo? Blend, bool FragEnabled, byte PrimitiveType, byte PolygonMode, ulong Static, bool ProgramLoad = false);
 
     /// <summary>Module of a prefetched key: ready, in flight (wait / run it), or null when the shader job is gone.</summary>
     private ModuleEntry? ModuleFor(GxpProgram gxpProgram, ulong hk, ShaderHints? hints)
@@ -386,7 +387,7 @@ public sealed unsafe partial class VulkanRenderer
 
         if (BuildSharedPipeline(key, vs, fs.Module, topology) == SharedBuild.Built)
         {
-            Interlocked.Increment(ref _statPipelinesPrefetched);
+            Interlocked.Increment(ref j.ProgramLoad ? ref _statLoadPipelinesBuilt : ref _statPipelinesPrefetched);
         }
     }
 
@@ -499,6 +500,12 @@ public sealed unsafe partial class VulkanRenderer
 
     private void Queue(GxpProgram gxpProgram, ulong hk, ShaderHints hints)
     {
+        // the same shader was queued when the game created the program (VulkanRenderer.ProgramLoad.cs)
+        if (TryProgramLoadModule(gxpProgram, hk, hints, wait: false, out _))
+        {
+            return;
+        }
+
         var job = new ShaderJob(gxpProgram, hk, hints);
         if (!_inflight.TryAdd((gxpProgram.Hash, hk), job))
         {
@@ -575,6 +582,7 @@ public sealed unsafe partial class VulkanRenderer
             }
             if (_pipelineJobs.TryDequeue(out PipelineJob? pipelineJob))
             {
+                Interlocked.Increment(ref _pipelineJobsRunning);
                 if (!_stopShaderJobs && !_deviceLost)
                 {
                     try
@@ -587,6 +595,7 @@ public sealed unsafe partial class VulkanRenderer
                     }
                 }
 
+                Interlocked.Decrement(ref _pipelineJobsRunning);
                 continue;
             }
             // the boot rebuild comes last: whatever the running game asks for goes first

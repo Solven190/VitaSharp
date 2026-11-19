@@ -1122,7 +1122,7 @@ public sealed unsafe partial class VulkanRenderer
                 + $" built or linked there: tile-word {_statGpuPipelineKinds[0]}, fetch pass {_statGpuPipelineKinds[1]}, integer view {_statGpuPipelineKinds[2]}, MSAA {_statGpuPipelineKinds[3]}, other {_statGpuPipelineKinds[4]});"
                 + $" frames stalled >= {HitchMs} ms by shader/pipeline work: {_statHitchFrames}, >= {LongHitchMs} ms: {_statLongHitchFrames}, >= {SevereHitchMs} ms: {_statSevereHitchFrames} (worst {Ms(_statWorstFrameStallTicks):F1} ms);"
                 + $" shaderc ({_compiler.OptLevel}): {ShaderCompiler.Compiled} compiled in {Ms(ShaderCompiler.CompileTicks):F0} ms, {ShaderCompiler.DiskHits} .spv disk hits; prefetch: {_statAsyncQueued} shaders queued to {(_shaderWorkers?.Length ?? 0)} workers, {_statAsyncWaited} waited for by the GPU thread; {_statPipelinesPrefetched} pipelines prefetched, {_statPipelineWaits} waited for ({Ms(_statPipelineWaitTicks):F0} ms)"
-                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}" + PipelineLibraryReport());
+                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}" + PipelineLibraryReport() + ProgramLoadReport());
         }
 
         if (_titleId != null)

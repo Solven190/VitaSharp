@@ -107,6 +107,54 @@ public sealed record ShaderHints(uint[] TextureFormats, (uint RegIndex, int Comp
         return VaryingMask != 0 ? Fnv.Mix(Fnv.Mix(h, VaryingMaskKey), VaryingMask) : h;
     }
 
+    /// <summary>Mixed into every <see cref="CanonicalKey"/> (never equal to a <see cref="Key"/> by construction of the inputs).</summary>
+    public const uint CanonicalKeySalt = 0x43414E4F;
+
+    /// <summary>
+    /// What the generator reads of a texture format: the component type and count of the sampled value
+    /// (<see cref="GxmFormats.TextureComponentType"/>, <see cref="GxmFormats.TextureComponentCount"/>) and the
+    /// <see cref="ShaderGenerator.RtReinterpretBits"/>; the rest (block compression, palette, YUV, swizzle order, gamma)
+    /// is the sampler's and the texture upload's business. Two formats with the same class translate to the same shader:
+    /// U8U8U8U8, BC1-3, ETC1, PVRTC and P8 all sample as four unsigned bytes.
+    /// </summary>
+    public static uint CanonicalTextureFormat(uint format) =>
+        0x80000000u | (uint)GxmFormats.TextureComponentType(format) << 16 | (uint)GxmFormats.TextureComponentCount(format) << 12
+        | (format & ShaderGenerator.RtReinterpretBits);
+
+    /// <summary>What the generator reads of a colour surface format: the base format bits (0xF1800000, the output type,
+    /// the raw-bit views, the stored components) and whether its swizzle is not the default (raw output bits).</summary>
+    public static uint CanonicalColorFormat(uint format) => (format & 0xF1800000) | (((format >> 20) & 3) != 0 ? 0x00100000u : 0);
+
+    /// <summary>
+    /// The key of the shader these hints translate to: <see cref="Key"/> with each texture and the colour format
+    /// reduced to what the generator reads of them (<see cref="CanonicalTextureFormat"/>,
+    /// <see cref="CanonicalColorFormat"/>). Hints with the same canonical key give the same shader, so a module
+    /// translated with predicted hints serves a draw whose exact formats differ (VulkanRenderer.ProgramLoad.cs).
+    /// </summary>
+    public ulong CanonicalKey()
+    {
+        ulong h = Fnv.Mix(Fnv.Offset, CanonicalKeySalt);
+        foreach (uint t in TextureFormats)
+        {
+            h = Fnv.Mix(h, CanonicalTextureFormat(t));
+        }
+
+        foreach ((uint RegIndex, int ComponentCount, byte Format) a in Attributes)
+        {
+            h = Fnv.Mix(h, a.RegIndex);
+            h = Fnv.Mix(h, (uint)a.ComponentCount);
+            h = Fnv.Mix(h, a.Format);
+        }
+
+        h = Fnv.Mix(h, CanonicalColorFormat(ColorFormat));
+        h = Fnv.Mix(h, OutputRegisterFormat);
+        uint flags = (FetchInputAttachment ? 1u : 0) | (FetchInputSingleSample ? 2u : 0) | (TileWord1 ? 4u : 0) | (ScaledPointSize ? 8u : 0)
+            | (FloatBitsOutput ? 16u : 0);
+        h = Fnv.Mix(h, flags);
+        h = Fnv.Mix(h, VaryingMask);
+        return MixTexcoordRemap(h, TexcoordRemap);
+    }
+
     /// <summary>Mixes <paramref name="texcoordRemap"/> into a key the way <see cref="Key"/> does (nothing for the identity).</summary>
     public static ulong MixTexcoordRemap(ulong h, ulong texcoordRemap)
     {

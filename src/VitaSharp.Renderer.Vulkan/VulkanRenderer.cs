@@ -39,6 +39,12 @@ public sealed class VulkanRendererOptions
     /// it stalled more than whole pipelines, docs/notes/pipeline-skip.md) compiles every pipeline whole.
     /// VITASHARP_PIPELINE_LIBRARY=0|1 overrides it.</summary>
     public bool PipelineLibrary;
+    /// <summary>"Compilar shaders ao carregar o programa": when the game creates a vertex or fragment program
+    /// (sceGxmShaderPatcherCreate*, usually behind a loading screen), its shaders are translated and compiled on the
+    /// shader workers with the hints predicted from the program and the last scene, and the pipeline of the vertex
+    /// program it is created for is built too, so the first draw finds them ready (VulkanRenderer.ProgramLoad.cs). On by
+    /// default; VITASHARP_COMPILE_ON_PROGRAM_LOAD=0|1 overrides it.</summary>
+    public bool CompileOnProgramLoad = true;
     /// <summary>Shader worker threads, 0 = automatic (half the logical processors, 1-6). VITASHARP_SHADER_WORKERS overrides it.</summary>
     public int ShaderWorkers;
     /// <summary>Presents counted before this renderer's first one (GPU dump replay: frames keep the recorded numbers).</summary>
@@ -233,6 +239,7 @@ public sealed unsafe partial class VulkanRenderer : IGpuBackend
         // VITASHARP_DEBUG_NAN=draws: the instrumented SPIR-V stays out of the on-disk cache
         _compiler = new ShaderCompiler(Core.Gxm.Shader.ShaderGenerator.NanDraws ? null : options.ShaderCacheDir, ShaderCompiler.ResolveOptLevel(options.ShaderOptimization));
         ConfigureAsyncShaders(options);
+        ConfigureProgramLoad(options);
         InitPipelineLibrary(options.PipelineLibrary);
         ShaderCompiler.WarmProcessInBackground(); // glslang's one-time initialisation off the first new shader's frame
         InitTrace();
