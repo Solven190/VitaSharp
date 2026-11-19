@@ -110,7 +110,12 @@ above.
 - The GPU worker is raised together with the guest threads: with only the guest threads raised, Killzone's
   main and job threads, which spin in `sceKernelDelayThread` polls (docs/notes/kz-mainthread.md), would outrank the
   GPU worker they wait for.
-- JIT workers, the texture-inspection thread and the shader prewarm stay below normal. Shader workers stay normal.
+- JIT workers run at the guest threads' priority (`HostThreads.Apply(Role.JitWorker)`, 18/11/2026; normal with
+  `--host-prio=off`), never below: a guest thread runs a block in the interpreter until a worker has compiled it, and
+  with the guest threads above normal, Killzone's four guest threads polling `sceKernelDelayThread` kept below-normal
+  workers off the CPU for 14-65 s at boot. Dolphin, FEX and Box64 compile on the guest thread itself, at its
+  priority. Covered by `JitWorkerPriorityTests`.
+- The texture-inspection thread and the shader prewarm stay below normal. Shader workers stay normal.
 - macOS (not measured): the same two roles get `QOS_CLASS_USER_INTERACTIVE` (`pthread_set_qos_class_self_np`),
   which also keeps them on the performance cores of Apple Silicon. Linux: unchanged, because a negative nice value
   needs `CAP_SYS_NICE`, so an unprivileged process cannot raise a thread above the default.
