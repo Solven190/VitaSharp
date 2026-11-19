@@ -61,6 +61,7 @@ public sealed unsafe class NativeX64Compiler : IBlockCompiler
             if (x.Op == IrOp.ExitStatic)
             {
                 exits++;
+                Jit.StaticExits?.Add((x.Imm, x.Imm2 != 0));
             }
         }
 

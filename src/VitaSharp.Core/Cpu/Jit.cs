@@ -200,8 +200,58 @@ public static unsafe class Jit
         }
     }
 
+    /// <summary>Blocks translated ahead of execution (<see cref="CompileAheadOne"/>) and the time spent: kept apart from
+    /// the backends' statistics, which then count only what was compiled while the game ran.</summary>
+    public static long AheadBlocks, AheadTicks;
+
+    /// <summary>The static exits (guest PC, Thumb) of the blocks the native backends compile on this thread, when set
+    /// (<see cref="CodePrecompiler"/> follows them to find more code).</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic] sink, set per precompile worker")]
+    [ThreadStatic] public static List<(uint Pc, bool Thumb)>? StaticExits;
+
+    /// <summary>Whether ahead-of-time translation may still use the native code arena: it keeps half of it for the
+    /// code the game compiles while it runs (a full arena would leave every later block interpreted).</summary>
+    public static bool ArenaHasRoomForAhead()
+    {
+        IBlockCompiler[] chain = Chain;
+        if (chain.Length == 0 || chain[0] is not (NativeX64Compiler or NativeArm64Compiler))
+        {
+            return true;
+        }
+
+        return Native.NativeRuntime.Instance.Code.Used < Native.ExecutableMemory.ReserveSize / 2;
+    }
+    /// <summary>Compiles a block that has not been queued yet with the first backend, on the calling thread; false when
+    /// it is already queued or compiled, or no backend takes it.</summary>
+    public static bool CompileAheadOne(Block b)
+    {
+        if (!Enabled || b.Tier != 0 || Interlocked.CompareExchange(ref b.JitState, 1, 0) != 0)
+        {
+            return false;
+        }
+
+        Interlocked.Increment(ref s_inFlight);
+        try
+        {
+            Compile(b, ahead: true);
+        }
+        catch (Exception)
+        {
+            b.JitState = 3;
+            throw;
+        }
+        finally
+        {
+            Interlocked.Decrement(ref s_inFlight);
+        }
+
+        return b.JitState == 2;
+    }
+
     /// <summary>Offers the block to the backend at its tier; on rejection it moves to the next tier.</summary>
-    public static void Compile(Block b)
+    public static void Compile(Block b) => Compile(b, ahead: false);
+
+    private static void Compile(Block b, bool ahead)
     {
         IBlockCompiler[] chain = Chain;
         if (b.Tier >= chain.Length)
@@ -222,8 +272,16 @@ public static unsafe class Jit
 
         long dt = System.Diagnostics.Stopwatch.GetTimestamp() - t0;
         BackendStats backendStats = backend.Stats;
-        Interlocked.Add(ref backendStats.Ticks, dt);
-        Util.FrameLedger.Add(Util.FrameLedger.Cat.JitCompile, dt);
+        if (ahead)
+        {
+            Interlocked.Add(ref AheadTicks, dt);
+        }
+        else
+        {
+            Interlocked.Add(ref backendStats.Ticks, dt);
+            Util.FrameLedger.Add(Util.FrameLedger.Cat.JitCompile, dt);
+        }
+
         if (cb == null)
         {
             Interlocked.Increment(ref backendStats.Rejected);
@@ -234,6 +292,12 @@ public static unsafe class Jit
             return;
         }
         Install(b, cb);
+        if (ahead)
+        {
+            Interlocked.Increment(ref AheadBlocks);
+            return;
+        }
+
         Interlocked.Increment(ref backendStats.Blocks);
         Interlocked.Add(ref backendStats.Instructions, b.Insts.Length);
     }
@@ -283,5 +347,6 @@ public static unsafe class Jit
     public static string Describe() =>
         Chain.Length == 0 ? "CPU backend: interpreter only"
             : $"CPU backend: {Mode} (chain {string.Join(" > ", Chain.Select(c => c.Name))} > interp)" +
-              string.Concat(Chain.Select(c => $"; {c.Name}: {c.Stats}"));
+              string.Concat(Chain.Select(c => $"; {c.Name}: {c.Stats}")) +
+              (AheadBlocks > 0 ? $"; precompiled before start: {AheadBlocks} blocks ({AheadTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms of compile time)" : "");
 }

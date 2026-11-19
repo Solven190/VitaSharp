@@ -3171,4 +3171,16 @@
   <data name="PrecompileCancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>
+  <data name="PrecompileCode" xml:space="preserve">
+    <value>Precompilar código ARM</value>
+  </data>
+  <data name="PrecompileCodeDetail" xml:space="preserve">
+    <value>Traduz o código do jogo antes de ele começar, em todos os núcleos livres</value>
+  </data>
+  <data name="PrecompileCodeTip" xml:space="preserve">
+    <value>Ligado (padrão): ao iniciar um jogo, o código ARM dele é traduzido primeiro, com uma barra de progresso (Cancelar inicia o jogo na hora): o código que as sessões anteriores rodaram (o cache de código) e o código achado analisando os módulos do jogo. Assim o jogo quase não compila nada enquanto roda e não engasga na primeira vez que chega em código novo. Desligado: o código é compilado quando o jogo chega nele.</value>
+  </data>
+  <data name="PrecompileCodeProgress" xml:space="preserve">
+    <value>Precompilando código ARM: {0} de {1}</value>
+  </data>
 </root>

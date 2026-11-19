@@ -25,6 +25,11 @@ public sealed class LoadedModule
     public bool IsKernel;
     /// <summary>module_start already ran (a kernel module starts when it is loaded, before the process).</summary>
     public bool Started;
+    /// <summary>XxHash64 of the decrypted module image (the ELF as the loader read it, before relocation): identifies
+    /// the module's code for <see cref="Cpu.CodeCache"/> wherever it is loaded.</summary>
+    public ulong ImageHash;
+    /// <summary>Addresses of the functions the module exports (bit 0 set: Thumb), the code analysis' entry points.</summary>
+    public List<uint> ExportedFunctionEntries = new();
 
     public override string ToString() => $"{Name} uid={Uid:X} start={StartEntry:X8}";
 }
@@ -760,6 +765,7 @@ public static class ModuleLoader
             uint[] nids = GuestMemory.Span<uint>(nidTable, total).ToArray();
             uint[] entries = GuestMemory.Span<uint>(entryTable, total).ToArray();
             m.Exports.Add((GuestMemory.ReadCString(libName), libNid, nids[..nfunc], nids[nfunc..]));
+            m.ExportedFunctionEntries.AddRange(entries[..nfunc]);
             ExportScope scope = !kernel ? ExportScope.User : (attr & Linker.SyscallExportAttr) != 0 && syscallsForUsers ? ExportScope.Syscall : ExportScope.Kernel;
             linker.RegisterExports(m, libNid, nids, entries, nfunc, scope);
             if (size == 0)

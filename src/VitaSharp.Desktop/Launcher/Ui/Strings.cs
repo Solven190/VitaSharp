@@ -219,6 +219,10 @@ public static class Strings
     public static string PrecompileShadersTip => T();
     public static string PrecompileProgress(int done, int total) => F(T(), done, total);
     public static string PrecompileCancel => T();
+    public static string PrecompileCode => T();
+    public static string PrecompileCodeDetail => T();
+    public static string PrecompileCodeTip => T();
+    public static string PrecompileCodeProgress(int done, int total) => F(T(), done, total);
     public static string ControlsDetail => T();
     public static string AppliesOnStart => T();
     public static string AppliesNextStart => T();

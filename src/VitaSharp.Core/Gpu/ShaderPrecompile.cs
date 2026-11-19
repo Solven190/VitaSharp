@@ -1,8 +1,9 @@
 namespace VitaSharp.Core.Gpu;
 
 /// <summary>Progress of <see cref="IGpuBackend.PrecompileBeforeStart"/>: recorded shaders and pipelines built so far,
-/// out of those queued (the total grows while the records are read).</summary>
-public readonly record struct ShaderPrecompileProgress(int Done, int Total, bool Finished);
+/// out of those queued (the total grows while the records are read). <paramref name="Code"/>: the ARM code precompilation
+/// (<see cref="Cpu.CodeCache.PrecompilePending"/>, blocks translated out of those found) instead of the shaders.</summary>
+public readonly record struct ShaderPrecompileProgress(int Done, int Total, bool Finished, bool Code = false);
 
 /// <summary>
 /// The "Precompilar shaders" wait before a game starts (RPCS3, Ryujinx and Dolphin's "compile shaders before starting"
@@ -17,6 +18,8 @@ public static class ShaderPrecompile
     public const string FinishedPrefix = "[precompile] finished ";
     /// <summary>The line the launcher writes to the game's standard input to stop the wait.</summary>
     public const string CancelCommand = "cancel-precompile";
+    /// <summary>Third word of the lines of the ARM code precompilation (the shader lines have none).</summary>
+    public const string CodeKind = "code";
 
     private static CancellationTokenSource s_cancel = new();
 
@@ -55,12 +58,12 @@ public static class ShaderPrecompile
             return false;
         }
 
-        progress = new ShaderPrecompileProgress(done, total, finished);
+        progress = new ShaderPrecompileProgress(done, total, finished, parts.Length > 2 && parts[2] == CodeKind);
         return true;
     }
 
     /// <summary>The log line of <paramref name="progress"/>.</summary>
     public static string Format(ShaderPrecompileProgress progress) =>
         (progress.Finished ? FinishedPrefix : ProgressPrefix) + progress.Done.ToString(System.Globalization.CultureInfo.InvariantCulture) + " "
-        + progress.Total.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        + progress.Total.ToString(System.Globalization.CultureInfo.InvariantCulture) + (progress.Code ? " " + CodeKind : "");
 }

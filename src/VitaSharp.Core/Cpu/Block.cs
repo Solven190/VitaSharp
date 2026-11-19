@@ -430,4 +430,7 @@ public sealed unsafe class BlockCache
     }
 
     public int Count => _blocks.Count;
+
+    /// <summary>A snapshot of the cached blocks (<see cref="CodeCache"/> records the translated ones).</summary>
+    public ICollection<Block> Blocks => _blocks.Values;
 }

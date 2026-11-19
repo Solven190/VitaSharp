@@ -38,6 +38,11 @@ public sealed class LauncherSettings
     /// caches at boot: with a warm driver cache it takes about a second, and the game then has no first-use pipeline
     /// hitches for what it used before; a first session has nothing recorded and starts at once.</summary>
     public bool PrecompileShaders { get; set; } = true;
+    /// <summary>"Precompilar código ARM": before a game starts, its modules' ARM code is translated on every free core,
+    /// behind the same progress bar with "Cancelar" (--precompile-code): the blocks its earlier sessions translated (the
+    /// code cache) and the code the static analysis finds from the modules' entry points, so the game compiles almost
+    /// nothing while it runs. On by default, like RPCS3's "Compiling PPU modules".</summary>
+    public bool PrecompileCode { get; set; } = true;
     /// <summary>"Modo de depuracao": detailed diagnostic logging (--debug-mode, docs/notes/debug-mode.md).</summary>
     public bool DebugMode { get; set; }
     /// <summary>"Pre-gravacao": F8's session capture keeps the seconds before it was pressed (--capture-preroll,
@@ -201,6 +206,7 @@ public sealed class LauncherSettings
         }
 
         yield return (game?.PrecompileShaders ?? PrecompileShaders) ? "--precompile-shaders=on" : "--precompile-shaders=off";
+        yield return PrecompileCode ? "--precompile-code=on" : "--precompile-code=off";
 
         if (Fullscreen)
         {

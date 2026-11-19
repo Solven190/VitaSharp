@@ -94,6 +94,7 @@ public sealed unsafe class NativeArm64Compiler : IBlockCompiler
             if (x.Op == IrOp.ExitStatic)
             {
                 exits++;
+                Jit.StaticExits?.Add((x.Imm, x.Imm2 != 0));
             }
         }
         // patched links: two words per exit, the target and the patch site (Arm64Emitter.Runtime.PatchLinks)

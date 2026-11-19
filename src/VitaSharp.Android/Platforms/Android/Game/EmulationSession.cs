@@ -103,6 +103,11 @@ public sealed partial class EmulationSession : IDisposable
             Rpcn = rpcn,
             KernelPlugins = prefs.KernelPlugins,
             SystemLanguage = _settings.SystemLanguageValue, // "Idioma do sistema" of this game
+            // the code cache: the blocks earlier sessions translated go to the JIT workers when each module loads. The boot
+            // step with the static analysis (PrecompileCode) stays off until the game screen shows its progress: on the PC it
+            // takes ~17 s of 3 cores for Killzone, 2-4x that on the phone
+            CodeCacheDir = data.CodeCache,
+            PrecompileCode = false,
         });
         _emu.Fatal += (t, e) =>
         {

@@ -46,12 +46,13 @@ public static class Runner
     }
 
     /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
-    /// <summary>--precompile-shaders (default on, like the launcher); when on, a background reader of standard input takes
-    /// the launcher's <see cref="VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand"/>.</summary>
-    static bool PrecompileShadersOpt(string[] options)
+    /// <summary>--precompile-shaders and --precompile-code (both default on, like the launcher); when either is on, a
+    /// background reader of standard input takes the launcher's <see cref="VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand"/>.</summary>
+    static (bool Shaders, bool Code) PrecompileOpts(string[] options)
     {
-        bool on = OnOff(options, "--precompile-shaders") ?? true;
-        if (on && Console.IsInputRedirected)
+        bool shaders = OnOff(options, "--precompile-shaders") ?? true;
+        bool code = OnOff(options, "--precompile-code") ?? true;
+        if ((shaders || code) && Console.IsInputRedirected)
         {
             var reader = new Thread(() =>
             {
@@ -77,7 +78,7 @@ public static class Runner
             reader.Start();
         }
 
-        return on;
+        return (shaders, code);
     }
 
     internal static bool? OnOff(string[] options, string name)
@@ -316,6 +317,7 @@ public static class Runner
         Log.Info(VitaSharp.Core.Util.IoTiming.FastLoading ? "Storage: fast loading (no read speed limit)"
             : $"Storage: {VitaSharp.Core.Util.IoTiming.BytesPerSecond / 1e6:0.#} MB/s (the Vita memory card's speed is {VitaSharp.Core.Util.IoTiming.VitaBytesPerSecond / 1e6:0} MB/s)");
         // --cpu=native|il|interp selects the CPU backend (default: VITASHARP_CPU, else the best one the host supports)
+        (bool Shaders, bool Code) precompile = PrecompileOpts(options);
         using var emu = new Emulator(new EmulatorOptions
         {
             FsRoot = Program.FsRoot,
@@ -336,7 +338,12 @@ public static class Runner
             SystemLanguage = SystemLanguageOpt(options),
             // --precompile-shaders=on|off: the launcher's "Precompilar shaders" (per game or the global default, on): the
             // recorded shaders and pipelines are built before the game starts; "cancel-precompile" on standard input stops the wait
-            PrecompileShaders = PrecompileShadersOpt(options),
+            PrecompileShaders = precompile.Shaders,
+            // --precompile-code=on|off: the launcher's "Precompilar código ARM": the modules' code (the blocks earlier
+            // sessions translated and what the static analysis finds) is translated before the game starts
+            PrecompileCode = precompile.Code,
+            // --code-cache=<dir>|off: the code cache (the blocks each module had translated); default <data>/codecache
+            CodeCacheDir = Opt(options, "--code-cache") is { } codeCache ? (codeCache == "off" ? null : codeCache) : Path.Combine(Program.DataRoot, "codecache"),
         });
         var fatal = new ManualResetEventSlim();
         emu.Fatal += (t, e) => fatal.Set();

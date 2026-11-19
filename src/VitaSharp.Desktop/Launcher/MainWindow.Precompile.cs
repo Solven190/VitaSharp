@@ -49,7 +49,7 @@ public sealed partial class MainWindow
 
         _precompileBar.Maximum = Math.Max(1, p.Total);
         _precompileBar.Value = Math.Min(p.Done, p.Total);
-        SetStatus(S.PrecompileProgress(p.Done, p.Total));
+        SetStatus(p.Code ? S.PrecompileCodeProgress(p.Done, p.Total) : S.PrecompileProgress(p.Done, p.Total));
     }
 
     /// <summary>The status bar's progress bar and "Cancelar" (added by <see cref="BuildStatusBar"/>).</summary>

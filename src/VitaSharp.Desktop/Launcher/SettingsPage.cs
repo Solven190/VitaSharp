@@ -343,6 +343,8 @@ public sealed class SettingsPage : UserControl
             _k.Row("layers", S.AsyncShaders, S.AsyncShadersDetail, _k.Switch(_settings.BackgroundShaderCompile, v => Set(() => _settings.BackgroundShaderCompile = v))),
             _k.Row("layers", S.PrecompileShaders, S.PrecompileShadersGlobalDetail, _k.Switch(_settings.PrecompileShaders, v => Set(() => _settings.PrecompileShaders = v)),
                 tip: S.PrecompileShadersTip),
+            _k.Row("cpu", S.PrecompileCode, S.PrecompileCodeDetail, _k.Switch(_settings.PrecompileCode, v => Set(() => _settings.PrecompileCode = v)),
+                tip: S.PrecompileCodeTip),
             _k.Row("alert", S.Validation, S.ValidationDetail, _k.Switch(_settings.Validation, v => Set(() => _settings.Validation = v)))));
         s.Children.Add(_k.Wrap(S.PerGameGraphicsNote, 12.5).Also(t => t.Margin = new Thickness(6, 2, 0, 0)));
 

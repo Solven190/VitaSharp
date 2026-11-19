@@ -31,6 +31,13 @@ public sealed class EmulatorOptions
     /// earlier sessions recorded (<see cref="Gpu.IGpuBackend.PrecompileBeforeStart"/>), with progress in the log
     /// (<see cref="Gpu.ShaderPrecompile"/>). Off: they build in the background while the game runs.</summary>
     public bool PrecompileShaders { get; init; }
+    /// <summary>The emulator option "Precompilar código ARM": before a process starts, translate its modules' code on
+    /// every free core (<see cref="CodeCache.PrecompilePending"/>): the blocks earlier sessions translated (the code
+    /// cache in <see cref="CodeCacheDir"/>) and the code the static analysis finds from the modules' entry points. Off:
+    /// the cached blocks compile in the background while the game runs and the rest when it gets hot.</summary>
+    public bool PrecompileCode { get; init; }
+    /// <summary>Folder of the code cache (one file per module image, <see cref="CodeCacheFile"/>); null: no cache.</summary>
+    public string? CodeCacheDir { get; init; }
     /// <summary>Directory with per-title code patch files (TITLEID.txt); null = built-in patches only.</summary>
     public string? PatchDir { get; init; }
     /// <summary>The emulated PSN account (signed in by default, see <see cref="PsnAccount"/>).</summary>
@@ -323,6 +330,7 @@ public sealed class Emulator : IDisposable
             Linker.SystemKernel = () => Vita.KernelProcess?.Linker;
         }
 
+        _codeCache = IsKernelProcess || (Options.CodeCacheDir == null && !Options.PrecompileCode) ? null : new CodeCache(Options.CodeCacheDir, Code);
         Kernel.Initialize();
         // every concrete HleModule of the core (generated table), in full type name order as before
         foreach (HleModuleEntry? hleModuleEntry in HleBindings.Modules.OrderBy(m => m.Type.FullName))
@@ -807,6 +815,8 @@ public sealed class Emulator : IDisposable
         }
 
         long bytes = Memory.FreeOwnedBy(Pid);
+        _codeCacheTimer?.Dispose();
+        SaveCodeCache();
         Code.Clear();
         Memory.ReleaseSpace(Space);
         Log.Info($"Process {Describe()} released: {objects} kernel objects, {bytes / 1024} KB of memory");
@@ -973,6 +983,7 @@ public sealed class Emulator : IDisposable
             VitaSharp.Core.Util.AudioDiagnostics.ProcessEnded(); // the old process's ports and decoder streams are gone
         }
 
+        SaveCodeCache();
         Code.Clear();
         if (alone)
         {
@@ -1590,6 +1601,62 @@ public sealed class Emulator : IDisposable
         }
     }
 
+    private CodeCache? _codeCache;
+    private Timer? _codeCacheTimer;
+
+    /// <summary>The boot step of "Precompilar código ARM" (<see cref="EmulatorOptions.PrecompileCode"/>): the process's
+    /// loaded modules are translated before its first thread runs, with progress in the log as
+    /// <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines of the code kind. Without the option, the code cache's
+    /// blocks go to the JIT workers in the background.</summary>
+    private void PrecompileCode()
+    {
+        if (_codeCache is not { } codeCache)
+        {
+            return;
+        }
+
+        if (Options.CodeCacheDir != null)
+        {
+            _codeCacheTimer ??= new Timer(_ => SaveCodeCache(), null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
+        }
+
+        if (!Options.PrecompileCode)
+        {
+            codeCache.StartInBackground();
+            return;
+        }
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        long last = 0;
+        CodePrecompiler.Result result = codeCache.PrecompilePending(progress =>
+        {
+            long now = Environment.TickCount64;
+            if (progress.Finished || now - last >= 250)
+            {
+                last = now;
+                Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(progress.Done, progress.Total, progress.Finished, Code: true)));
+            }
+        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token);
+        double seconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds;
+        Log.Info($"ARM code precompiled in {seconds:F1} s: {result.Translated} blocks translated of {result.Visited} visited "
+            + $"({codeCache.CachedSeeds} from the code cache, {result.Found} found by the static analysis)"
+            + (result.Cancelled ? ", cancelled" : "") + (result.ArenaLimit ? ", stopped at half of the code arena" : ""));
+    }
+
+    /// <summary>Records the blocks this process translated in the code cache (periodically, and before its translations
+    /// go: exec, process end, shutdown).</summary>
+    private void SaveCodeCache()
+    {
+        try
+        {
+            _codeCache?.Save();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            Log.Warn($"Code cache: save failed: {e.Message}");
+        }
+    }
+
     private byte[]? FindKlicensee()
     {
         foreach (string? p in new[]
@@ -1648,6 +1715,8 @@ public sealed class Emulator : IDisposable
             loadedModule.Uid = Kernel.Objects.Register(new ModuleObject(loadedModule));
         }
 
+        loadedModule.ImageHash = System.IO.Hashing.XxHash64.HashToUInt64(elf);
+
         Kernel.Modules[loadedModule.Uid] = loadedModule;
         // only the new module's own range holds new code; the stubs of earlier modules that the linker rewrote (and the
         // variable imports it relocated again) dropped their translations as it wrote them
@@ -1658,6 +1727,11 @@ public sealed class Emulator : IDisposable
 
         Log.Info($"Loaded {(kernel ? "kernel " : "")}module {loadedModule.Name} ({vitaPath}) start=0x{loadedModule.StartEntry:X8} imports={loadedModule.Imports.Sum(i => i.FuncNids.Length)}");
         CheckPendingVariables(loadedModule);
+        if (!kernel)
+        {
+            _codeCache?.ModuleLoaded(loadedModule);
+        }
+
         return loadedModule;
     }
 
@@ -1715,6 +1789,7 @@ public sealed class Emulator : IDisposable
         }
 
         using ProcessScope.Scope scope = ProcessScope.Enter(this);
+        _codeCache?.ModuleUnloaded(loadedModule);
         int rebound = Linker.UnregisterModule(loadedModule);
         foreach (SegmentInfo segmentInfo in loadedModule.Segments.Values)
         {
@@ -2048,6 +2123,7 @@ public sealed class Emulator : IDisposable
 
         string name = ProcessParamString(0x10) ?? "main";
 
+        PrecompileCode();
         GuestThread main = Kernel.CreateThread(name, MainModule.StartEntry, priority, stackSize, 0, affinity);
         Kernel.MainThread = main;
         TellProcessCreated(main);
@@ -2164,6 +2240,8 @@ public sealed class Emulator : IDisposable
     public void Dispose()
     {
         Stop();
+        SaveCodeCache();
+        _codeCacheTimer?.Dispose();
         if (Parent != null)
         {
             return; // the GPU and host devices are the first process's

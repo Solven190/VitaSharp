@@ -3171,4 +3171,16 @@
   <data name="PrecompileCancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="PrecompileCode" xml:space="preserve">
+    <value>Precompile ARM code</value>
+  </data>
+  <data name="PrecompileCodeDetail" xml:space="preserve">
+    <value>Translate the game&apos;s code before it starts, on every free core</value>
+  </data>
+  <data name="PrecompileCodeTip" xml:space="preserve">
+    <value>On (default): when you start a game, its ARM code is translated first, with a progress bar (Cancel starts the game right away): the code its earlier sessions ran (the code cache) and the code found by analysing the game&apos;s modules. Then the game compiles almost nothing while it runs, so it does not stutter the first time it reaches new code. Off: the code is compiled as the game reaches it.</value>
+  </data>
+  <data name="PrecompileCodeProgress" xml:space="preserve">
+    <value>Precompiling ARM code: {0} of {1}</value>
+  </data>
 </root>
