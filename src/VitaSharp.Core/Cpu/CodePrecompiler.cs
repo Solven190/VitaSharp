@@ -35,7 +35,7 @@ public sealed class CodePrecompiler
     private const int Levels = 3;
 
     /// <summary>How many blocks away from executed code the frontier goes.</summary>
-    public const int MaxFrontierDepth = 6;
+    public const int MaxFrontierDepth = 3;
 
     /// <summary>Statistics so far.</summary>
     public readonly record struct Result(int Translated, int Visited, int Found, bool Cancelled, bool ArenaLimit);
@@ -154,7 +154,7 @@ public sealed class CodePrecompiler
             {
                 IsBackground = true,
                 Name = $"JIT precompile {i}",
-                Priority = waitFor == null ? ThreadPriority.BelowNormal : ThreadPriority.Normal,
+                Priority = waitFor == null ? ThreadPriority.Lowest : ThreadPriority.Normal,
             };
             threads[i].Start();
         }
@@ -170,12 +170,12 @@ public sealed class CodePrecompiler
 
             Volatile.Write(ref run._foreground, 0);
             run._work.Release(threads.Length); // the threads that do not stay notice and leave
-            // the threads that stay go on at a low priority, beside the game
+            // the threads that stay go on below the JIT workers (BelowNormal): what the game needs now compiles first
             for (int i = 0; i < keep; i++)
             {
                 try
                 {
-                    threads[i].Priority = ThreadPriority.BelowNormal;
+                    threads[i].Priority = ThreadPriority.Lowest;
                 }
                 catch (ThreadStateException)
                 {
