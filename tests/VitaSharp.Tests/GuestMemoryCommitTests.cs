@@ -187,6 +187,106 @@ public sealed unsafe partial class GuestMemoryCommitTests(GuestMemoryFixture fix
         }
     }
 
+    /// <summary>
+    /// Loading a save state writes back each block page by page; its zero pages (most of a state's heaps) read zero
+    /// without being touched, as in a new block: clearing them by hand made the whole of every block resident. Both the
+    /// block the restore committed fresh and a block that was live with other data (a state loaded over a running game).
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RestoringAStateLeavesItsZeroPagesUntouched(bool blockWasLive)
+    {
+        Assert.Equal(UserBlock, fixture.Memory.TryAllocAt(UserBlock, BlockSize, "restored heap"));
+        try
+        {
+            GuestMemory.Write(UserBlock + 3 * GuestMemory.PageSize + 8, 0x1234_5678u);
+            GuestMemory.Write(UserBlock + 5 * GuestMemory.PageSize, 0xE7FD_DEFEu);
+            GuestMemory.Write(UserBlock + 5 * GuestMemory.PageSize + 4, 0xE7FD_DEFEu);
+            GuestMemory.Block block = fixture.Memory.FindBlock(UserBlock)!;
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            if (blockWasLive)
+            {
+                GuestMemory.Fill(UserBlock, 0xEE, BlockSize);
+            }
+            else
+            {
+                fixture.Memory.Free(UserBlock);
+                Assert.Equal(UserBlock, fixture.Memory.TryAllocAt(UserBlock, BlockSize, "restored heap"));
+                block = fixture.Memory.FindBlock(UserBlock)!;
+            }
+
+            fixture.Memory.RestoreContents(block, data, wordPages);
+            byte* host = fixture.Memory.Primary.Base + UserBlock;
+            long resident = ResidentBytes(host, BlockSize);
+            if (resident >= 0)
+            {
+                Assert.True(resident < BlockSize / 8, $"{resident >> 10} KB of a restored {BlockSize >> 20} MB block with two non-zero pages are resident");
+            }
+
+            Assert.Equal(0x1234_5678u, GuestMemory.Read<uint>(UserBlock + 3 * GuestMemory.PageSize + 8));
+            Assert.Equal(0xE7FD_DEFEu, GuestMemory.Read<uint>(UserBlock + 5 * GuestMemory.PageSize + 4));
+            Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + 5 * GuestMemory.PageSize + 8));
+            for (uint offset = 0; offset < BlockSize; offset += 0x1_0000)
+            {
+                Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + offset));
+            }
+
+            Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + BlockSize - 4));
+        }
+        finally
+        {
+            fixture.Memory.Free(UserBlock);
+        }
+    }
+
+    /// <summary>The zero pages of a restored CDRAM block (shared memory, seen by every process) read zero in every view,
+    /// and the live blocks around it keep their data.</summary>
+    [Fact]
+    public void RestoringACdramBlockZeroesItsZeroPagesAndKeepsTheNeighbours()
+    {
+        const uint Before = CdramBlock + 0x00E0_0000, BeforeSize = 0x5000;
+        const uint Middle = Before + BeforeSize, MiddleSize = 0x7000;
+        const uint After = Middle + MiddleSize, AfterSize = 0x2000;
+        Assert.Equal(Before, fixture.Memory.TryAllocAt(Before, BeforeSize, "live before"));
+        Assert.Equal(Middle, fixture.Memory.TryAllocAt(Middle, MiddleSize, "restored"));
+        Assert.Equal(After, fixture.Memory.TryAllocAt(After, AfterSize, "live after"));
+        AddressSpace? other = fixture.Memory.SeparateSpaces ? fixture.Memory.CreateSpace("second process") : null;
+        try
+        {
+            GuestMemory.Write(Before + BeforeSize - 4, 0xCAFE_F00Du);
+            GuestMemory.Write(After, 0x0BAD_CAFEu);
+            GuestMemory.Write(Middle + 2 * GuestMemory.PageSize + 0x10, 0x1357_9BDFu);
+            GuestMemory.Block block = fixture.Memory.FindBlock(Middle)!;
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            GuestMemory.Fill(Middle, 0xEE, MiddleSize);
+            fixture.Memory.RestoreContents(block, data, wordPages);
+            for (uint offset = 0; offset < MiddleSize; offset += 4)
+            {
+                uint expected = offset == 2 * GuestMemory.PageSize + 0x10 ? 0x1357_9BDFu : 0u;
+                Assert.Equal(expected, GuestMemory.Read<uint>(Middle + offset));
+                if (other != null)
+                {
+                    Assert.Equal(expected, *(uint*)(other.Base + Middle + offset));
+                }
+            }
+
+            Assert.Equal(0xCAFE_F00Du, GuestMemory.Read<uint>(Before + BeforeSize - 4));
+            Assert.Equal(0x0BAD_CAFEu, GuestMemory.Read<uint>(After));
+        }
+        finally
+        {
+            if (other != null)
+            {
+                fixture.Memory.ReleaseSpace(other);
+            }
+
+            fixture.Memory.Free(Before);
+            fixture.Memory.Free(Middle);
+            fixture.Memory.Free(After);
+        }
+    }
+
     private void AllocWriteFreeAndAllocAgain(uint addr, uint size)
     {
         Assert.Equal(addr, fixture.Memory.TryAllocAt(addr, size, "first"));
