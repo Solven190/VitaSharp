@@ -26,7 +26,7 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
         {
             var game = AppServices.FindGame(Props.TitleId);
             // pt-BR texts when the set has them (TROP_17.SFM)
-            var list = game != null ? TrophyList.Load(game, AppServices.Data, language: 17) : null;
+            var list = game != null ? TrophyList.Load(game, AppServices.Data, language: 17, AppServices.TrophyTexts) : null;
             SetState(s => s.List = list);
         });
         base.OnMounted();
@@ -52,11 +52,11 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
                             GradeCount(TrophyGrade.Silver, p, 2), GradeCount(TrophyGrade.Bronze, p, 3))
                     ).Padding(16))
                 .StrokeShape(new RoundRectangle().CornerRadius(20)).StrokeThickness(0).BackgroundColor(Palette.Surface).Margin(20, 8, 20, 0),
-                HStack(
+                ChipRow(
                     Chip(Loc.Get("MAll"), State.Filter == TrophyList.Filter.All, () => SetState(s => s.Filter = TrophyList.Filter.All)),
                     Chip(Loc.Get("MEarned"), State.Filter == TrophyList.Filter.Earned, () => SetState(s => s.Filter = TrophyList.Filter.Earned)),
                     Chip(Loc.Get("MMissingTrophies"), State.Filter == TrophyList.Filter.Missing, () => SetState(s => s.Filter = TrophyList.Filter.Missing))
-                ).Spacing(8).Padding(20, 16, 20, 8),
+                ).Padding(20, 16, 20, 0),
                 VStack(rows.Select(TrophyRowView).ToArray()).Spacing(10).Padding(20, 0)
             ), kicker: Loc.Get("MTrophies"));
     }
@@ -73,8 +73,9 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
     VisualNode TrophyRowView(TrophyRow r)
     {
         double opacity = r.Unlocked ? 1 : 0.55;
-        var icon = r.Icon is { } bytes && (r.Unlocked || !r.Hidden)
-            ? Image().Source(ImageSource.FromStream(() => new MemoryStream(bytes))).Aspect(Aspect.AspectFill)
+        // the picture is read from the TRP when the image loads (the list keeps texts only)
+        var icon = r.HasIcon && (r.Unlocked || !r.Hidden)
+            ? Image().Source(ImageSource.FromStream(() => r.LoadIcon() is { } bytes ? new MemoryStream(bytes) : Stream.Null)).Aspect(Aspect.AspectFill)
             : (VisualNode)Label(r.Hidden ? "?" : "\U0001F3C6").FontSize(20).TextColor(Palette.Muted).Center();
         return Border(
                 Grid("Auto", "Auto,*",
@@ -82,7 +83,7 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
                         .BackgroundColor(Palette.SurfaceHigh).WidthRequest(52).HeightRequest(52),
                     VStack(
                         Grid("Auto", "*,Auto",
-                            Label(r.ShownName).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.TailTruncation),
+                            Label(r.ShownName).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.WordWrap),
                             Label(TrophyList.GradeName(r.Grade)).FontSize(11).TextColor(Color.FromArgb(TrophyList.GradeColor(r.Grade))).GridColumn(1).Margin(8, 0, 0, 0)
                         ),
                         Label(r.ShownDetail).FontSize(12).TextColor(Palette.Muted).MaxLines(3),

@@ -24,6 +24,9 @@ public static class AppServices
     public static DataLayout Data { get; private set; } = null!;
     public static AppPreferences Prefs { get; private set; } = new();
     public static InputProfileStore InputProfiles { get; private set; } = new();
+    /// <summary>The trophy sets' texts the library and the trophy screens read (icons stay in the TRP files), kept
+    /// while a TRP is unchanged, so coming back to the library reads no TRP again.</summary>
+    public static VitaSharp.Core.Hle.Np.TrophyTextsCache TrophyTexts { get; } = new();
     public static AndroidGamepads Gamepads { get; private set; } = new();
     public static bool Initialized { get; private set; }
 

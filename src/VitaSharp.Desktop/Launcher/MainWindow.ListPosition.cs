@@ -3,50 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using VitaSharp.Core.Util;
 
 namespace VitaSharp.Desktop.Launcher;
-
-/// <summary>Which item of a list takes the focus once some of its items are gone (deleted, uninstalled).</summary>
-internal static class ListPosition
-{
-    /// <summary>The item that followed the first removed one in <paramref name="keysBefore"/> (the list as it was
-    /// shown); the one before it when the removed items were at the end; null when nothing is left.</summary>
-    public static string? NextAfterRemoval(IReadOnlyList<string> keysBefore, IReadOnlyCollection<string> removed)
-    {
-        int first = -1;
-        for (int i = 0; i < keysBefore.Count; i++)
-        {
-            if (removed.Contains(keysBefore[i]))
-            {
-                first = i;
-                break;
-            }
-        }
-
-        if (first < 0)
-        {
-            return null;
-        }
-
-        for (int i = first + 1; i < keysBefore.Count; i++)
-        {
-            if (!removed.Contains(keysBefore[i]))
-            {
-                return keysBefore[i];
-            }
-        }
-
-        for (int i = first - 1; i >= 0; i--)
-        {
-            if (!removed.Contains(keysBefore[i]))
-            {
-                return keysBefore[i];
-            }
-        }
-
-        return null;
-    }
-}
 
 /// <summary>
 /// The scroll position and the focused item of the launcher's lists across a rebuild of the page: deleting a capture,

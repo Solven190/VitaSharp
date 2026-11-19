@@ -90,6 +90,7 @@ public sealed partial class EmulationSession : IDisposable
         CpuCore.InstructionsPerSecond = _settings.ClockHz;
         VitaSharp.Core.Util.IoTiming.FastLoading = _settings.FastLoading; // "Carregamento rapido" (else the Vita memory card's speed)
         HostThreads.Enabled = true;
+        VitaSharp.Core.Gpu.ShaderCacheLoad.Reset(); // a "Cancelar" of an earlier session in this process does not carry over
         Performance = new GamePerformance(AppServices.AppContext);
         var (psn, net, rpcn) = prefs.Network.ToOptions(rpcnPassword);
         _emu = new Emulator(new EmulatorOptions
@@ -103,6 +104,9 @@ public sealed partial class EmulationSession : IDisposable
             Rpcn = rpcn,
             KernelPlugins = prefs.KernelPlugins,
             SystemLanguage = _settings.SystemLanguageValue, // "Idioma do sistema" of this game
+            // "Carregar o cache de shaders antes de jogar" (global and per game): the progress and "Cancelar" are the game
+            // screen's banner (GameActivity.ShaderCacheLoad.cs)
+            LoadShaderCacheBeforeStart = _settings.LoadShaderCacheBeforePlaying,
         });
         _emu.Fatal += (t, e) =>
         {

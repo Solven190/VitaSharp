@@ -32,6 +32,11 @@ public sealed class AppPreferences
     /// <summary>"Compilar shaders em segundo plano": shaders and pipelines prepared on worker threads (the desktop's
     /// --async-shaders=, VITASHARP_ASYNC_SHADERS in env.txt wins).</summary>
     public bool BackgroundShaderCompile { get; set; } = true;
+    /// <summary>"Carregar o cache de shaders antes de jogar" of every game without its own choice: the shaders and
+    /// pipelines recorded in the game's earlier sessions are built before it starts, with the progress and "Cancelar" over
+    /// the game screen (Core/Gpu/ShaderCacheLoad.cs). On by default, as the desktop launcher's option of the same name
+    /// (--load-shader-cache).</summary>
+    public bool LoadShaderCacheBeforePlaying { get; set; } = true;
     /// <summary>The shaderc level of <see cref="FastShaderCompile"/>, as the renderer's ShaderOptimization option.</summary>
     [JsonIgnore]
     public string ShaderOptimization => FastShaderCompile ? "zero" : "perf";
@@ -108,6 +113,8 @@ public sealed class GameSettings
     public string? Msaa { get; set; }
     /// <summary>"Carregamento rapido" of this game (null = <see cref="AppPreferences.FastLoading"/>).</summary>
     public bool? FastLoading { get; set; }
+    /// <summary>"Carregar o cache de shaders antes de jogar" of this game (null = <see cref="AppPreferences.LoadShaderCacheBeforePlaying"/>).</summary>
+    public bool? LoadShaderCacheBeforePlaying { get; set; }
     /// <summary>"Taxa de quadros": "30", "60" or "unlimited" (null = native, the game's own pacing; per game only, as the
     /// desktop launcher's --frame-rate=, Hle/Modules/Display.cs FrameRate).</summary>
     public string? FrameRate { get; set; }
@@ -124,7 +131,7 @@ public sealed class GameSettings
 
     [JsonIgnore]
     public bool HasOverrides => CpuBackend != null || CpuMhz != null || GpuProfile != null || VSync != null || ShowFps != null || ResScale != null || Msaa != null || FastLoading != null || FrameRate != null
-        || SystemLanguage != null;
+        || SystemLanguage != null || LoadShaderCacheBeforePlaying != null;
 
     public static GameSettings Load(string path) => SettingsFile.Load(path, PrefsJson.Default.GameSettings) ?? new();
     public void Save(string path) => SettingsFile.Save(path, this, PrefsJson.Default.GameSettings);
@@ -147,7 +154,7 @@ public sealed class GameSettings
 }
 
 /// <summary>What a game runs with: the game's settings over the global ones, validated.</summary>
-public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false, string FrameRate = "", string SystemLanguage = "")
+public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string GpuProfile, bool VSync, bool ShowFps, string ResScale = "", string Msaa = "", bool FastLoading = false, string FrameRate = "", string SystemLanguage = "", bool LoadShaderCacheBeforePlaying = true)
 {
     public static EffectiveSettings Resolve(AppPreferences app, GameSettings? game)
     {
@@ -168,7 +175,8 @@ public sealed record EffectiveSettings(string CpuBackend, int CpuMhz, string Gpu
         string msaa = game?.Msaa == "off" ? "off" : "";
         string rate = SettingsChoices.FrameRates.Any(c => c.Value.Length > 0 && c.Value == game?.FrameRate) ? game!.FrameRate! : "";
         string language = SettingsChoices.SystemLanguages.Any(c => c.Value.Length > 0 && c.Value == game?.SystemLanguage) ? game!.SystemLanguage! : "";
-        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading, rate, language);
+        return new(cpu, mhz, gpu, game?.VSync ?? app.VSync, game?.ShowFps ?? app.ShowFps, res, msaa, game?.FastLoading ?? app.FastLoading, rate, language,
+            game?.LoadShaderCacheBeforePlaying ?? app.LoadShaderCacheBeforePlaying);
     }
 
     /// <summary>EmulatorOptions.SystemLanguage for <see cref="SystemLanguage"/> (null = the system's language).</summary>

@@ -23,12 +23,15 @@ public sealed class LibraryState
     /// <summary>"42% - 80 MB/s - 0:12 restantes" under the install bar.</summary>
     public string InstallDetail { get; set; } = "";
     public FirmwareStatus? Firmware { get; set; }
+    /// <summary>The game highlighted after another one left the list (the one that followed it), null otherwise.</summary>
+    public string? Focus { get; set; }
 }
 
 /// <summary>
 /// Biblioteca (docs/android/mockups/biblioteca.html): search, filters, "Continuar jogando" with the last game, the
-/// "Sistema do Vita" entry, the grid of installed games with trophies earned/total, and "Instalar jogo" (header chip,
-/// floating button, empty-library button and Ajustes): a .vpk, or a .pkg with its work.bin/.rif/zRIF license, picked
+/// "Sistema do Vita" entry, the grid of installed games with trophies earned/total, and "Instalar jogo" (floating
+/// button, empty-library button and Ajustes; the header is the title alone): a .vpk, or a .pkg with its
+/// work.bin/.rif/zRIF license, picked
 /// with the Storage Access Framework, read in place and extracted into &lt;data&gt;/fs/ux0.
 /// </summary>
 public sealed class LibraryView : Screen<LibraryState>
@@ -36,9 +39,16 @@ public sealed class LibraryView : Screen<LibraryState>
     /// <summary>Set by another screen (Ajustes > Instalar jogo) before it switches to the library tab.</summary>
     public static bool InstallRequested;
 
+    /// <summary>A game was uninstalled (from its page): the library drops it in place, keeping where it was scrolled,
+    /// and highlights the game that followed it.</summary>
+    public static event Action<string>? Uninstalled;
+
+    public static void RaiseUninstalled(string titleId) => Uninstalled?.Invoke(titleId);
+
     protected override void OnMounted()
     {
         MainActivity.Resumed += Reload;
+        Uninstalled += OnUninstalled;
         Reload();
         base.OnMounted();
         if (InstallRequested)
@@ -51,14 +61,31 @@ public sealed class LibraryView : Screen<LibraryState>
     protected override void OnWillUnmount()
     {
         MainActivity.Resumed -= Reload;
+        Uninstalled -= OnUninstalled;
         base.OnWillUnmount();
+    }
+
+    /// <summary>The list as shown (search and filter applied).</summary>
+    IReadOnlyList<GameEntry> Shown() =>
+        GameLibrary.Query(State.Games, State.Search, State.Filter, g => AppServices.GameSettingsFor(g.TitleId));
+
+    void OnUninstalled(string titleId)
+    {
+        List<string> shownKeys = Shown().Select(g => g.TitleId).ToList();
+        (List<GameEntry> remaining, string? focus) = ListRemoval.Remove(State.Games, g => g.TitleId, shownKeys, [titleId]);
+        SetState(s =>
+        {
+            s.Games = remaining;
+            s.Trophies.Remove(titleId);
+            s.Focus = focus;
+        });
     }
 
     void Reload() => _ = Task.Run(() =>
     {
         var data = AppServices.Data;
         var games = GameLibrary.Scan(data);
-        var trophies = games.ToDictionary(g => g.TitleId, g => GameLibrary.Trophies(g, data));
+        var trophies = games.ToDictionary(g => g.TitleId, g => GameLibrary.Trophies(g, data, AppServices.TrophyTexts));
         var fw = FirmwareStatus.Read(data.Fs);
         SetState(s =>
         {
@@ -71,27 +98,19 @@ public sealed class LibraryView : Screen<LibraryState>
 
     public override VisualNode Render()
     {
-        var shown = GameLibrary.Query(State.Games, State.Search, State.Filter, g => AppServices.GameSettingsFor(g.TitleId));
+        var shown = Shown();
         var last = State.Games.FirstOrDefault(g => g.TitleId == AppServices.Prefs.LastPlayed);
         return Grid("*", "*",
             VScrollView(
                 VStack(
-                    Grid("Auto", "*,Auto",
-                        VStack(
-                            Label("VITASHARP").FontSize(12).TextColor(Palette.Muted).CharacterSpacing(1),
-                            Label(Loc.Get("MLibrary")).FontFamily(Fonts.SoraBold).FontSize(28)
-                        ).Spacing(2),
-                        HStack(
-                            Chip(Loc.Get("MInstallChip"), true, InstallGame),
-                            IconButton("\u2699", () => RootPage.Show(RootTab.Settings)).VCenter()
-                        ).Spacing(10).GridColumn(1).VCenter()
-                    ).Padding(20, 20, 20, 8),
+                    // the title alone: installing is the floating button (and Ajustes > Instalar jogo), Ajustes its tab
+                    Label(Loc.Get("MLibrary")).FontFamily(Fonts.SoraBold).FontSize(28).Padding(20, 20, 20, 8),
                     SearchBox(),
-                    HStack(
+                    ChipRow(
                         Chip(Loc.Format("MAllCount", State.Games.Count), State.Filter == GameLibrary.Filter.All, () => SetState(s => s.Filter = GameLibrary.Filter.All)),
                         Chip(Loc.Get("MRecent"), State.Filter == GameLibrary.Filter.Recent, () => SetState(s => s.Filter = GameLibrary.Filter.Recent)),
                         Chip(Loc.Get("MPlayable"), State.Filter == GameLibrary.Filter.Playable, () => SetState(s => s.Filter = GameLibrary.Filter.Playable))
-                    ).Spacing(8).Padding(20, 14, 20, 4),
+                    ).Padding(20, 14, 20, 0),
                     last != null && State.Search.Length == 0 ? ContinueCard(last) : null,
                     AppServices.StoragePlan.NeedsPermission ? StorageCard() : null,
                     SystemCard(),
@@ -224,7 +243,7 @@ public sealed class LibraryView : Screen<LibraryState>
     {
         var t = State.Trophies.GetValueOrDefault(g.TitleId) ?? TrophyProgress.None;
         bool playable = g.Category.StartsWith("gd", StringComparison.OrdinalIgnoreCase);
-        return VStack(
+        var tile = VStack(
                 Grid("*", "*",
                     g.IconPath != null ? Image().Source(g.IconPath).Aspect(Aspect.AspectFill) : null,
                     Grid("Auto", "*,Auto",
@@ -237,7 +256,14 @@ public sealed class LibraryView : Screen<LibraryState>
                 Label(g.Title).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.TailTruncation),
                 Label(g.TitleId).FontSize(12).TextColor(Palette.Muted),
                 TrophyLine(t, Palette.Border)
-            ).Spacing(4)
+            ).Spacing(4);
+        if (g.TitleId != State.Focus)
+        {
+            return tile.OnTapped(() => OpenGame(g));
+        }
+
+        // the game that followed an uninstalled one: highlighted in its place, the list where it was scrolled
+        return Border(tile).Stroke(Palette.Accent).StrokeThickness(2).StrokeShape(new RoundRectangle().CornerRadius(14)).Padding(4)
             .OnTapped(() => OpenGame(g));
     }
 

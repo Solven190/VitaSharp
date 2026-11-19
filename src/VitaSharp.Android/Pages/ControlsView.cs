@@ -16,6 +16,8 @@ public sealed class ControlsState
     public List<ControllerEntry> Controllers { get; set; } = [];
     public int Selected { get; set; }
     public int Revision { get; set; }
+    /// <summary>The save line of the mapping ("Salvo" / "Alteracoes nao salvas").</summary>
+    public MappingSaveState Save { get; } = new();
 }
 
 /// <summary>
@@ -75,6 +77,7 @@ public sealed class ControlsView : Screen<ControlsState>
                             detail: KindName(c.Kind), valueColor: Palette.Accent),
                     }).ToArray()),
                 profile != null ? SectionTitle(Loc.Get("MMapping")) : null,
+                profile != null ? Card(SaveRow(profile)) : null,
                 profile != null ? Card(Mapping(profile, kind)) : null,
                 profile != null ? Card(
                     ToggleRow(Loc.Get("MSwapConfirm"), profile.SwapConfirm, v => SaveProfile(p => p.SwapConfirm = v),
@@ -117,7 +120,7 @@ public sealed class ControlsView : Screen<ControlsState>
         [
             VitaControl.Cross, VitaControl.Circle, VitaControl.Square, VitaControl.Triangle, VitaControl.L, VitaControl.R,
             VitaControl.Start, VitaControl.Select, VitaControl.PS, VitaControl.Up, VitaControl.Down, VitaControl.Left,
-            VitaControl.Right, VitaControl.LStickUp, VitaControl.RStickUp,
+            VitaControl.Right, VitaControl.LStickUp, VitaControl.RStickUp, VitaControl.PauseEmulation,
         ];
         var rows = new List<VisualNode?>();
         foreach (VitaControl c in shown)
@@ -127,9 +130,12 @@ public sealed class ControlsView : Screen<ControlsState>
                 rows.Add(Divider());
             }
 
-            string bound = string.Join(" / ", p.Get(c).Select(b => b.Describe(kind))) is { Length: > 0 } s ? s : "\u2014";
+            // a hotkey's combinations too (buttons held together, recorded as one by the core's BindingRecorder)
+            string bound = string.Join(" / ", p.Get(c).Select(b => b.Describe(kind)).Concat(p.GetCombos(c).Select(k => k.Describe(kind))))
+                is { Length: > 0 } s ? s : "\u2014";
             bool stick = c is VitaControl.LStickUp or VitaControl.RStickUp;
-            rows.Add(Row(ControlName(c), bound, stick ? null : () => Remap(c)));
+            rows.Add(Row(ControlName(c), bound, stick ? null : () => Remap(c),
+                detail: VitaControls.IsHotkey(c) ? Loc.Get("CsHoldCombo") : null));
         }
 
         rows.Add(Divider());
@@ -137,7 +143,23 @@ public sealed class ControlsView : Screen<ControlsState>
         return rows.ToArray();
     }
 
-    /// <summary>Waits for a press on the selected controller and binds it to <paramref name="control"/>.</summary>
+    /// <summary>"Salvo" (every change is written at once) or "Alteracoes nao salvas" with a row that saves again, and
+    /// whether the controller uses a saved profile or the default mapping.</summary>
+    VisualNode?[] SaveRow(ControllerProfile profile)
+    {
+        bool saved = AppServices.InputProfiles.FindSaved(profile.Id, profile.Name) != null;
+        string detail = Loc.Get(saved ? "CsProfileSaved" : "CsProfileDefault");
+        if (!State.Save.Unsaved)
+        {
+            return [Row(detail, State.Save.Text, valueColor: Palette.Ok)];
+        }
+
+        // a tap writes the profile again
+        return [Row(detail, State.Save.Text, () => SaveProfile(_ => { }), valueColor: Palette.Danger)];
+    }
+
+    /// <summary>Records the selected controller's input for <paramref name="control"/> (a press, or for the pause hotkey
+    /// the buttons held together) and stores it.</summary>
     void Remap(VitaControl control)
     {
         if (State.Controllers.Count == 0 || MainActivity.Current is not { } activity)
@@ -146,8 +168,8 @@ public sealed class ControlsView : Screen<ControlsState>
         }
 
         ControllerEntry c = State.Controllers[State.Selected];
-        var capture = new PadCapture(c.DeviceId, c.Name, c.VendorId, c.ProductId, c.Axes);
-        activity.BeginPadCapture(capture, ControlName(control), binding => SaveProfile(p => p.Set(control, binding)));
+        var capture = new PadCapture(c.DeviceId, c.Name, c.VendorId, c.ProductId, c.Axes, control);
+        activity.BeginPadCapture(capture, ControlName(control), recorded => SaveProfile(p => BindingRecorder.Apply(p, control, recorded)));
     }
 
     void ResetMapping()
@@ -159,7 +181,7 @@ public sealed class ControlsView : Screen<ControlsState>
 
         ControllerEntry c = State.Controllers[State.Selected];
         AppServices.InputProfiles.Put(DefaultMappings.For(c.Id, c.Name, c.Kind, isGamepad: true));
-        AppServices.InputProfiles.Save();
+        State.Save.Save(AppServices.InputProfiles.Save);
         SetState(s => s.Revision++);
     }
 
@@ -178,6 +200,7 @@ public sealed class ControlsView : Screen<ControlsState>
         VitaControl.RStickUp => Loc.Get("MRightStick"),
         VitaControl.Start => "START",
         VitaControl.Select => "SELECT",
+        VitaControl.PauseEmulation => Loc.Get("CtlPauseEmulation"),
         _ => c.ToString(),
     };
 
@@ -187,7 +210,7 @@ public sealed class ControlsView : Screen<ControlsState>
             return;
         change(p);
         AppServices.InputProfiles.Put(p);
-        AppServices.InputProfiles.Save();
+        State.Save.Save(AppServices.InputProfiles.Save);
         SetState(s => s.Revision++);
     }
 
