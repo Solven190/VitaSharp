@@ -190,6 +190,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
             TopMargin = Dp(12),
             RightMargin = Dp(96)
         });
+        AddShaderCacheLoadBanner(root); // GameActivity.ShaderCacheLoad.cs
         SetContentView(root);
         // after SetContentView: Window.InsetsController needs the decor view, which does not exist before it (a
         // NullPointerException inside PhoneWindow.getInsetsController on API 30+)
@@ -363,6 +364,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
     protected override void OnDestroy()
     {
         _fpsTimer?.Dispose();
+        RemoveShaderCacheLoadBanner();
         AppServices.Gamepads.DevicesChanged -= OnGamepadsChanged;
         _inputManager?.UnregisterInputDeviceListener(this);
         _session?.Dispose();

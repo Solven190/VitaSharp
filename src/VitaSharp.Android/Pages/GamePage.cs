@@ -151,6 +151,10 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         ToggleRow(Loc.Get("FastLoading"), eff.FastLoading, v => Save(x => x.FastLoading = v == app.FastLoading ? null : v),
                             detail: Loc.Get("FastLoadingDetail")),
                         Divider(),
+                        ToggleRow(Loc.Get("LoadShaderCache"), eff.LoadShaderCacheBeforePlaying,
+                            v => Save(x => x.LoadShaderCacheBeforePlaying = v == app.LoadShaderCacheBeforePlaying ? null : v),
+                            detail: Loc.Get("LoadShaderCacheDetail")),
+                        Divider(),
                         Row(Loc.Get("SystemLanguage"), ValueText(SettingsChoices.SystemLanguages, s.SystemLanguage, SettingsChoices.LabelOf(SettingsChoices.SystemLanguages, eff.SystemLanguage)),
                             () => Pick(Loc.Get("SystemLanguage"), SettingsChoices.SystemLanguages, "", v => s.SystemLanguage = string.IsNullOrEmpty(v) ? null : v),
                             detail: Loc.Get("SystemLanguageDetail")),
@@ -165,6 +169,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
                             x.ResScale = null;
                             x.Msaa = null;
                             x.FastLoading = null;
+                            x.LoadShaderCacheBeforePlaying = null;
                             x.FrameRate = null;
                             x.SystemLanguage = null;
                         })) : null
