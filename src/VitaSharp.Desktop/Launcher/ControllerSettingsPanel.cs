@@ -122,20 +122,17 @@ public sealed class ControllerSettingsPanel : UserControl
         _saveState = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(0, 0, 10, 0) };
         _deviceInfo = new TextBlock { Foreground = LauncherTheme.Muted, TextWrapping = TextWrapping.Wrap, FontSize = 12 };
 
-        var deviceRow = new DockPanel { LastChildFill = true };
-        var deviceLabel = new TextBlock { Text = Loc.Get("CsDevice"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
-        DockPanel.SetDock(deviceLabel, Dock.Left);
-        DockPanel.SetDock(_device, Dock.Left);
-        DockPanel.SetDock(reset, Dock.Right);
-        DockPanel.SetDock(_save, Dock.Right);
-        DockPanel.SetDock(_saveState, Dock.Right);
+        // the device and its buttons go on in the next line when the window is narrow
+        var deviceRow = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 10, LineSpacing = 8 };
+        var deviceLabel = new TextBlock { Text = Loc.Get("CsDevice"), VerticalAlignment = VerticalAlignment.Center };
+        _save.Margin = default;
+        _saveState.Margin = default;
         deviceRow.Children.Add(deviceLabel);
         deviceRow.Children.Add(_device);
-        deviceRow.Children.Add(reset);
-        deviceRow.Children.Add(_save);
         deviceRow.Children.Add(_saveState);
+        deviceRow.Children.Add(_save);
+        deviceRow.Children.Add(reset);
         RefreshSaveState();
-        deviceRow.Children.Add(new Border());
 
         _layout = new VitaLayoutView { MinHeight = 300 };
         _layout.ControlClicked += OnLayoutClicked;
@@ -188,7 +185,8 @@ public sealed class ControllerSettingsPanel : UserControl
         _motionSource = new ComboBox
         {
             ItemsSource = new[] { Loc.Get("CsSourceAuto"), Loc.Get("CsSourcePad"), Loc.Get("CsSourceKeyboard"), Loc.Get("CsOff") },
-            Width = 170,
+            // at least as wide as the sliders, wider when the chosen label needs it
+            MinWidth = 170,
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = 12,
         };
@@ -216,7 +214,8 @@ public sealed class ControllerSettingsPanel : UserControl
         _mouseMode = new ComboBox
         {
             ItemsSource = new[] { Loc.Get("CsModeGyro"), Loc.Get("CsModeRight"), Loc.Get("CsModeLeft"), Loc.Get("CsOff") },
-            Width = 170,
+            // at least as wide as the sliders, wider when the chosen label needs it
+            MinWidth = 170,
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = 12,
         };
@@ -325,7 +324,7 @@ public sealed class ControllerSettingsPanel : UserControl
     static Control Row(string label, Control slider, Control value)
     {
         var p = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        p.Children.Add(new TextBlock { Text = label, Width = 80, VerticalAlignment = VerticalAlignment.Center });
+        p.Children.Add(new TextBlock { Text = label, Width = 92, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap });
         p.Children.Add(slider);
         p.Children.Add(value);
         return p;
@@ -621,13 +620,14 @@ public sealed class ControllerSettingsPanel : UserControl
                 _bindingRows.Children.Add(h);
             }
             bool listening = _listen == c;
-            var name = new TextBlock { Text = ControlNames.Label(c), Width = 140, VerticalAlignment = VerticalAlignment.Center, FontSize = 13 };
+            // long names and key lists wrap to a second line instead of being cut
+            var name = new TextBlock { Text = ControlNames.Label(c), Width = 140, VerticalAlignment = VerticalAlignment.Center, FontSize = 13, TextWrapping = TextWrapping.Wrap };
             var value = new TextBlock
             {
                 Text = listening ? ListeningText : Describe(c),
                 Foreground = listening ? new SolidColorBrush(Color.Parse("#FFB547")) : LauncherTheme.Muted,
                 VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.Wrap,
                 FontSize = 13,
             };
             var rowContent = new DockPanel();

@@ -294,7 +294,7 @@ public sealed class KernelHleTests(GuestMemoryFixture fixture)
     {
         // SCE_KERNEL_MSG_PIPE_MODE_ASAP is 0 and FULL is 1 (the PSP had them the other way round): Jak and Daxter's
         // renderer thread receives 12-byte messages with mode 0 into a 0x600-byte buffer
-        var pipe = new MsgPipe { BufferSize = 0x40 };
+        var pipe = new MsgPipe { BufferSize = 0x1000 };
         uint msg = Alloc(12), buf = Alloc(0x600), res = Alloc(4);
         Assert.Equal(0, pipe.Send(msg, 12, MsgPipe.WaitAll, new Ptr<uint>(res), default, false));
         Assert.Equal(0, pipe.Receive(buf, 0x600, 0, new Ptr<uint>(res), default, false));

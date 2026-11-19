@@ -82,6 +82,8 @@ public static class EnvVars
     public const string AsyncPipelines = "VITASHARP_ASYNC_PIPELINES";
     public const string AsyncShaders = "VITASHARP_ASYNC_SHADERS";
     public const string AudioDevice = "VITASHARP_AUDIO_DEVICE";
+    /// <summary>0|1: "compilar shaders ao carregar o programa" (VulkanRendererOptions.CompileOnProgramLoad, --compile-on-program-load).</summary>
+    public const string CompileOnProgramLoad = "VITASHARP_COMPILE_ON_PROGRAM_LOAD";
     /// <summary>Android: folder (relative to the data folder) for per-port WAVs of the guest's audio (desktop: --audio-dump).</summary>
     public const string AudioDump = "VITASHARP_AUDIO_DUMP";
     /// <summary>Fraction of the rest of a grain sceAudioOutOutput waits when a host device hands two grains back at

@@ -83,6 +83,9 @@ public sealed unsafe partial class GuestMemory : IDisposable
     private readonly Stack<AddressSpace> _idle = new();
     private AddressSpace[] _spaceSnapshot = [];
     private readonly ulong[] _sharedMapped = new ulong[(1 << 20) / 64];
+    // One bit per 4 KB page of the shared regions: set once a block was ever there (its pages may hold old data), for
+    // hosts that cannot zero shared memory without touching it (see Commit)
+    private readonly ulong[] _sharedUsed = new ulong[(1 << 20) / 64];
 
     /// <summary>An allocated range; <paramref name="Owner"/> is the process that allocated it (0 = the system),
     /// <paramref name="Space"/> the address space of a private block (null: CDRAM and kernel blocks are in all).</summary>
@@ -520,25 +523,47 @@ public sealed unsafe partial class GuestMemory : IDisposable
         }
     }
 
-    private uint Commit(AddressSpace space, uint addr, uint size, string name, MemoryRegion region)
+    /// <summary>
+    /// Makes [<paramref name="addr"/>, + <paramref name="size"/>) of <paramref name="space"/> committed and reading zero
+    /// without touching its pages: clearing by hand made every page resident at once, also the parts the guest never
+    /// uses (a game takes its whole heap at boot; a save state is mostly zero pages). Used for a new block and for the
+    /// zero pages a save state restores.
+    /// </summary>
+    private void ZeroWithoutTouching(AddressSpace space, uint addr, uint size, bool shared)
     {
-        bool shared = IsSharedRegion(region);
         byte* host = space.Base + addr; // a shared region is the same memory in every space
         if (shared && SeparateSpaces)
         {
-            // a view of shared memory: freed pages were only discarded (Free), so their old content is cleared here
+            // a view of shared memory (it cannot be decommitted through one view): the range is made to read zero without
+            // touching the pages that already do (Killzone Mercenary: all of its ~100 MB of CDRAM at boot). Windows
+            // clears only the section pages that were ever committed, Linux and Android punch the range out of the
+            // memory file; elsewhere the pages a block ever used (or that are in memory after a stray access) are
+            // cleared by hand.
+            nint memory = SharedMemoryAt(addr, out ulong offset);
+            if (!HostVirtualMemory.ZeroSharedPages(memory, offset, host, size))
+            {
+                ClearUsedSharedPages(space.Base, addr, size);
+            }
+
             HostVirtualMemory.Commit(host, size);
-            new Span<byte>(host, (int)size).Clear();
         }
         else
         {
-            // fresh zero pages without touching them: clearing a block by hand made every page of it resident at once,
-            // also the parts the game never uses (a game takes its whole heap at boot). Dropping whatever the range
-            // still holds (pages a stray access committed after a free) and committing again reads back as zeros:
-            // Windows decommits (MEM_DECOMMIT), Linux, Android and macOS map fresh anonymous pages over the range
-            // (mmap MAP_FIXED, not madvise, which does not zero on macOS) and clear the partial host pages at its edges.
+            // dropping whatever the range holds and committing again reads back as zeros: Windows decommits
+            // (MEM_DECOMMIT), Linux, Android and macOS map fresh anonymous pages over the range (mmap MAP_FIXED, not
+            // madvise, which does not zero on macOS) and clear the partial host pages at its edges.
             HostVirtualMemory.Decommit(host, size);
             HostVirtualMemory.Commit(host, size);
+        }
+    }
+
+    private uint Commit(AddressSpace space, uint addr, uint size, string name, MemoryRegion region)
+    {
+        bool shared = IsSharedRegion(region);
+        ZeroWithoutTouching(space, addr, size, shared);
+        if (shared && SeparateSpaces)
+        {
+            SetMapped(_sharedUsed, addr, size, true);
         }
 
         SetMapped(shared ? _sharedMapped : space._mappedPages, addr, size, true);
@@ -639,7 +664,8 @@ public sealed unsafe partial class GuestMemory : IDisposable
             byte* host = space.Base + b.Address;
             if (shared && SeparateSpaces)
             {
-                HostVirtualMemory.Discard(host, b.Size); // a view: its pages stay committed
+                nint memory = SharedMemoryAt(b.Address, out ulong offset);
+                HostVirtualMemory.DiscardShared(memory, offset, host, b.Size); // a view: its pages stay committed
             }
             else
             {
@@ -783,6 +809,33 @@ public sealed unsafe partial class GuestMemory : IDisposable
             else
             {
                 w &= ~(1UL << (int)(p & 63));
+            }
+        }
+    }
+
+    /// <summary>The shared memory holding <paramref name="addr"/> (CDRAM or kernel) and the offset in it.</summary>
+    private nint SharedMemoryAt(uint addr, out ulong offset)
+    {
+        if (addr - CdramStart < CdramEnd - CdramStart)
+        {
+            offset = addr - CdramStart;
+            return _cdramMemory;
+        }
+
+        offset = addr - KernelStart;
+        return _kernelMemory;
+    }
+
+    /// <summary>Clears the pages of [<paramref name="addr"/>, + <paramref name="size"/>) that a block ever used or that are
+    /// in host memory; the others still read zero.</summary>
+    private void ClearUsedSharedPages(byte* spaceBase, uint addr, uint size)
+    {
+        for (ulong p = addr / PageSize, end = ((ulong)addr + size + PageSize - 1) / PageSize; p < end; p++)
+        {
+            byte* page = spaceBase + p * PageSize;
+            if ((_sharedUsed[p >> 6] & (1UL << (int)(p & 63))) != 0 || HostVirtualMemory.IsResident(page))
+            {
+                System.Runtime.InteropServices.NativeMemory.Clear(page, PageSize);
             }
         }
     }

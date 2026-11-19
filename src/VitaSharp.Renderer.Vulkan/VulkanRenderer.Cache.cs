@@ -313,7 +313,7 @@ public sealed unsafe partial class VulkanRenderer
                 32 => 3,
                 _ => 0
             }) << 4 | ((int)gen.TileWord1 & 3) << 6);
-        BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(1), (ushort)(n | (gen.WritesMemory ? 0x8000 : 0)));
+        BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(1), (ushort)(n | (gen.WritesMemory ? 0x8000 : 0) | (gen.FetchesRawWords ? 0x4000 : 0)));
         int o = 3;
         foreach (VertexInputInfo vertexInputInfo in gen.VertexInputs)
         {
@@ -348,7 +348,8 @@ public sealed unsafe partial class VulkanRenderer
 
         int n = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(1));
         bool writesMemory = (n & 0x8000) != 0;
-        n &= 0x7FFF;
+        bool fetchesRawWords = (n & 0x4000) != 0;
+        n &= 0x3FFF;
         int spvOffset = 3 + n * InputRecordSize;
         int spvLength = data.Length - spvOffset;
         if (spvLength < 20 || (spvLength & 3) != 0 || BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(spvOffset)) != 0x07230203)
@@ -366,6 +367,7 @@ public sealed unsafe partial class VulkanRenderer
             RawColorBits = ((flags >> 4) & 3) switch { 1 => 8, 2 => 16, 3 => 32, _ => 0 },
             TileWord1 = (TileWord1Use)((flags >> 6) & 3),
             WritesMemory = writesMemory,
+            FetchesRawWords = fetchesRawWords,
         };
         for (int i = 0; i < n; i++)
         {
@@ -539,7 +541,7 @@ public sealed unsafe partial class VulkanRenderer
     private readonly ConcurrentQueue<object> _prewarmJobs = new();
     private int _prewarmPending, _statPrewarmFailed, _statPrewarmStale;
     /// <summary>Tests only (set by reflection): runs before each prewarm item, so a test can hold the prewarm and see
-    /// who waits for it (RendererPathsTests, "Precompilar shaders").</summary>
+    /// who waits for it (RendererPathsTests, "Carregar o cache de shaders antes de jogar").</summary>
     internal static Action<VulkanRenderer>? PrewarmItemHook { get; set; }
 
     private void EnqueuePrewarm(object item)
@@ -1122,7 +1124,7 @@ public sealed unsafe partial class VulkanRenderer
                 + $" built or linked there: tile-word {_statGpuPipelineKinds[0]}, fetch pass {_statGpuPipelineKinds[1]}, integer view {_statGpuPipelineKinds[2]}, MSAA {_statGpuPipelineKinds[3]}, other {_statGpuPipelineKinds[4]});"
                 + $" frames stalled >= {HitchMs} ms by shader/pipeline work: {_statHitchFrames}, >= {LongHitchMs} ms: {_statLongHitchFrames}, >= {SevereHitchMs} ms: {_statSevereHitchFrames} (worst {Ms(_statWorstFrameStallTicks):F1} ms);"
                 + $" shaderc ({_compiler.OptLevel}): {ShaderCompiler.Compiled} compiled in {Ms(ShaderCompiler.CompileTicks):F0} ms, {ShaderCompiler.DiskHits} .spv disk hits; prefetch: {_statAsyncQueued} shaders queued to {(_shaderWorkers?.Length ?? 0)} workers, {_statAsyncWaited} waited for by the GPU thread; {_statPipelinesPrefetched} pipelines prefetched, {_statPipelineWaits} waited for ({Ms(_statPipelineWaitTicks):F0} ms)"
-                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}" + PipelineLibraryReport());
+                + $"; rebuild: {_rebuildSummary ?? (_rebuildActive ? "still running" : "not needed")}" + PipelineLibraryReport() + ProgramLoadReport());
         }
 
         if (_titleId != null)

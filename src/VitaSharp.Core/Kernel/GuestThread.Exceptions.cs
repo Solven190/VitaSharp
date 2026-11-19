@@ -157,6 +157,65 @@ public sealed unsafe partial class GuestThread
         s->BankedSp[ExceptionModes.Bank(ExceptionModes.Undefined)] = _exceptionStack + ExceptionStackSize / 2;
     }
 
+    /// <summary>Save states: the privileged CPU state (<see cref="CpuState.ControlXor"/>, the banked registers and the
+    /// fault registers), the exception stacks and the fault being delivered.</summary>
+    private void WriteExceptionState(SaveState.SnapshotWriter w, CpuState* s)
+    {
+        w.Write(s->ControlXor);
+        for (int i = 0; i < 6; i++)
+        {
+            w.Write(s->BankedSp[i]);
+            w.Write(s->BankedLr[i]);
+            w.Write(s->Spsr[i]);
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            w.Write(s->BankedHigh[i]);
+        }
+
+        w.Write(s->Dfsr);
+        w.Write(s->Dfar);
+        w.Write(s->Ifsr);
+        w.Write(s->Ifar);
+        w.Write(s->Adfsr);
+        w.Write(s->Aifsr);
+        w.Write(_exceptionStack);
+        w.Write(_deliveredFault);
+        w.Write(_deliveredFaultPc);
+    }
+
+    private void ReadExceptionState(SaveState.SnapshotReader r, CpuState* s)
+    {
+        s->ControlXor = r.ReadUInt32();
+        for (int i = 0; i < 6; i++)
+        {
+            s->BankedSp[i] = r.ReadUInt32();
+            s->BankedLr[i] = r.ReadUInt32();
+            s->Spsr[i] = r.ReadUInt32();
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            s->BankedHigh[i] = r.ReadUInt32();
+        }
+
+        s->Dfsr = r.ReadUInt32();
+        s->Dfar = r.ReadUInt32();
+        s->Ifsr = r.ReadUInt32();
+        s->Ifar = r.ReadUInt32();
+        s->Adfsr = r.ReadUInt32();
+        s->Aifsr = r.ReadUInt32();
+        _exceptionStack = r.ReadUInt32();
+        _deliveredFault = r.ReadString();
+        _deliveredFaultPc = r.ReadUInt32();
+        if (_exceptionStack != 0 || _deliveredFault != null)
+        {
+            // the manager whose chain the thread entered: the kernel process's, where kernel modules register handlers
+            _exceptionManager = ExceptionManagerOf(_emu?.Vita.KernelProcess) ?? ExceptionManagerOf(_emu);
+        }
+    }
+
     /// <summary>Frees the exception stacks when the thread ends.</summary>
     private void FreeExceptionStacks()
     {

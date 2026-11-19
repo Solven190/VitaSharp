@@ -467,9 +467,11 @@ public sealed unsafe partial class VulkanRenderer
     private readonly HashSet<uint> _ssFetchLogged = new();
 
     /// <param name="tileWord1">the shader also reads the scene's tile-word attachment (a copy of it, binding 4)</param>
-    private DescriptorSet BuildFramebufferFetchSet(bool tileWord1)
+    /// <param name="rawWords">the shader reads the pixel's raw words (<see cref="Core.Gxm.Shader.GeneratedShader.FetchesRawWords"/>):
+    /// the single-sampled copy is an unsigned-integer image</param>
+    private DescriptorSet BuildFramebufferFetchSet(bool tileWord1, bool rawWords)
     {
-        DescriptorSet set = BuildFramebufferFetchSet();
+        DescriptorSet set = BuildFramebufferFetchSet(rawWords);
         if (tileWord1 && _tileWord1 != null && _renderTarget != null && !_multisampled) // (never the persistent empty set: there is a target)
         {
             EndRendering(resolve: false);
@@ -478,7 +480,7 @@ public sealed unsafe partial class VulkanRenderer
         return set;
     }
 
-    private DescriptorSet BuildFramebufferFetchSet()
+    private DescriptorSet BuildFramebufferFetchSet(bool rawWords = false)
     {
         if (_renderTarget == null)
         {
@@ -501,7 +503,18 @@ public sealed unsafe partial class VulkanRenderer
         }
 
         uint w = supersampleImage?.Width ?? _renderTarget.ImgW, h = supersampleImage?.Height ?? _renderTarget.ImgH;
-        if (_fbCopy.Handle == 0 || _fbCopyW != w || _fbCopyH != h || _fbCopyFormat != _rtAttachFormat)
+        // raw words: the copy has the integer format of the surface's raw view (same texel size, so the image copy is
+        // bit-exact) and the shader reads it with a usampler2D
+        Format copyFormat = _rtAttachFormat;
+        if (rawWords)
+        {
+            Format wordsFormat = RawAttachmentFormat(_renderTarget.Format, 32);
+            if (wordsFormat != Format.Undefined)
+            {
+                copyFormat = wordsFormat;
+            }
+        }
+        if (_fbCopy.Handle == 0 || _fbCopyW != w || _fbCopyH != h || _fbCopyFormat != copyFormat)
         {
             // games alternate between targets of different sizes: keep the copies per size/format instead of recreating
             // one (image, memory, deferred destroy closure) on every switch
@@ -520,21 +533,21 @@ public sealed unsafe partial class VulkanRenderer
                     DestroyAfterGpu(() => { _vk.DestroyImageView(_dev, ov, null); _vk.DestroyImage(_dev, oi, null); _imagePool.Free(om); });
                 }
             }
-            if (_fbCopies.Remove((w, h, _rtAttachFormat), out (Image Image, ImageView View, ImageMemoryPool.Allocation Mem) cached))
+            if (_fbCopies.Remove((w, h, copyFormat), out (Image Image, ImageView View, ImageMemoryPool.Allocation Mem) cached))
             {
                 _fbCopiesPixels -= (long)w * h;
                 (_fbCopy, _fbCopyView, _fbCopyMem) = cached; // already in GENERAL layout
                 _fbCopyW = w;
                 _fbCopyH = h;
-                _fbCopyFormat = _rtAttachFormat;
+                _fbCopyFormat = copyFormat;
             }
             else
             {
                 // with surface gamma the copy is sRGB too, so the shader reads linear values
-                (_fbCopy, _fbCopyView, _fbCopyMem) = CreateImage(MemCat.Region, w, h, _rtAttachFormat, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, ImageAspectFlags.ColorBit);
+                (_fbCopy, _fbCopyView, _fbCopyMem) = CreateImage(MemCat.Region, w, h, copyFormat, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, ImageAspectFlags.ColorBit);
                 _fbCopyW = w;
                 _fbCopyH = h;
-                _fbCopyFormat = _rtAttachFormat;
+                _fbCopyFormat = copyFormat;
                 Barrier(_fbCopy, ImageLayout.Undefined, ImageLayout.General, ImageAspectFlags.ColorBit, PipelineStageFlags.TopOfPipeBit, PipelineStageFlags.TransferBit, 0, AccessFlags.TransferWriteBit);
             }
         }

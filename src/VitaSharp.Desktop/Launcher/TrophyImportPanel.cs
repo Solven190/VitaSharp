@@ -20,7 +20,8 @@ public sealed class TrophyImportPanel : StackPanel
     public TrophyImportPanel()
     {
         Spacing = 6;
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        // the buttons go on in the next line when the card is narrow
+        var buttons = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8 };
         var folder = new Button { Content = Loc.Get("TiImportFolder") };
         folder.Click += async (_, _) => await PickAndImport();
         buttons.Children.Add(folder);

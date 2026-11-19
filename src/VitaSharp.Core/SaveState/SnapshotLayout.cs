@@ -13,6 +13,28 @@ public sealed record SnapshotField(string Name, string Signature, bool HasMissin
     {
         return Name == name || (Aliases != null && Array.IndexOf(Aliases, name) >= 0);
     }
+
+    /// <summary>
+    /// The size of a field's data when its shape always takes the same number of bytes (primitives, enums, kernel
+    /// object handles), else -1. Format 1 data has no length per field, so a field a later build dropped can be skipped
+    /// only by this size.
+    /// </summary>
+    public static int FixedSize(string signature)
+    {
+        if (signature.StartsWith("enum(", StringComparison.Ordinal) && signature.EndsWith(')'))
+        {
+            return FixedSize(signature[5..^1]);
+        }
+
+        return signature switch
+        {
+            "Boolean" or "Byte" or "SByte" => 1,
+            "Int16" or "UInt16" or "Char" => 2,
+            "Int32" or "UInt32" or "Single" or "kobj" => 4,
+            "Int64" or "UInt64" or "Double" or "IntPtr" => 8,
+            _ => -1,
+        };
+    }
 }
 
 /// <summary>
@@ -175,9 +197,10 @@ public static class SnapshotLayouts
                 return $"module {now.Owner}: the hand-written part of {now.Key} changed";
             }
 
-            if (positional && old.Fields.FirstOrDefault(f => !now.Fields.Any(n => n.Answers(f.Name))) is { } dropped)
+            if (positional && old.Fields.FirstOrDefault(f => !now.Fields.Any(n => n.Answers(f.Name)) && SnapshotField.FixedSize(f.Signature) < 0) is { } dropped)
             {
-                // format 1 has no length per field: data of a field this build dropped cannot be skipped
+                // format 1 has no length per field: data of a field this build dropped is skipped by its size, so only
+                // a shape of fixed size can be skipped
                 return $"module {now.Owner}: {now.Key}.{dropped.Name} was removed";
             }
 

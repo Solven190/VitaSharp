@@ -182,7 +182,6 @@ public sealed partial class VshBridge : HleModule
     [Hle] int vshDisplaySetInvertColors(int head, int invert) => 0;
     [Hle] int vshDisplayRegisterFrameBufCallback(int cb) => 0;
     [Hle] int _vshLedSetMode(int led, int mode, uint conf) => 0;
-    [Hle] int vshCtrlRegisterNotifyCallBack(int cb) => 0;
 
     /// <summary>(SceRtcTick *tick): the trusted clock, here the host's UTC time in microseconds since year 1.</summary>
     [Hle]

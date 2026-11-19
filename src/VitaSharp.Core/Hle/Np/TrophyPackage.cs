@@ -97,9 +97,118 @@ public sealed class TrophyPackage
         }
     }
 
-    public byte[]? GameIcon => Files.GetValueOrDefault("ICON0.PNG");
-    public byte[]? TrophyIcon(int id) => Files.GetValueOrDefault($"TROP{id:D3}.PNG");
-    public byte[]? GroupIcon(int id) => Files.GetValueOrDefault($"GR{id:D3}.PNG");
+    public byte[]? GameIcon => FileBytes("ICON0.PNG");
+    public byte[]? TrophyIcon(int id) => FileBytes($"TROP{id:D3}.PNG");
+    public byte[]? GroupIcon(int id) => FileBytes($"GR{id:D3}.PNG");
+
+    // LoadTexts: the TRP file and where each entry left on disk lies in it
+    private string? _sourcePath;
+    private readonly Dictionary<string, (long Offset, int Length)> _onDisk = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>An entry of the set: from <see cref="Files"/>, or read from the TRP when <see cref="LoadTexts"/> left
+    /// it on disk (not kept: the caller decodes it). Null when the set has no such entry or the file cannot be read.</summary>
+    public byte[]? FileBytes(string name)
+    {
+        if (Files.TryGetValue(name, out byte[]? bytes))
+        {
+            return bytes;
+        }
+
+        if (_sourcePath == null || !_onDisk.TryGetValue(name, out (long Offset, int Length) entry))
+        {
+            return null;
+        }
+
+        try
+        {
+            using FileStream stream = File.OpenRead(_sourcePath);
+            stream.Position = entry.Offset;
+            byte[] data = new byte[entry.Length];
+            stream.ReadExactly(data);
+            return data;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Warn($"Trophy: {_sourcePath}: {name}: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// A set's structure and texts only (the SFM entries), for lists that show many sets at once (the launcher's
+    /// library counts every game's trophies): the icons stay in the TRP and <see cref="FileBytes"/> reads one when it
+    /// is shown. A full <see cref="Load"/> kept every game's icons in memory (66 games: ~165 MB). Null (with a
+    /// warning) when the file is missing or malformed.
+    /// </summary>
+    public static TrophyPackage? LoadTexts(string trpPath, string commId = "", int language = -1)
+    {
+        try
+        {
+            using FileStream stream = File.OpenRead(trpPath);
+            byte[] header = new byte[0x40];
+            if (stream.Length < header.Length)
+            {
+                throw new InvalidDataException("bad TRP magic");
+            }
+
+            stream.ReadExactly(header);
+            if (BitConverter.ToUInt32(header, 0) != Magic)
+            {
+                throw new InvalidDataException("bad TRP magic");
+            }
+
+            int count = (int)BinaryHelpers.U32BE(header, 0x10), entrySize = (int)BinaryHelpers.U32BE(header, 0x14);
+            if (count < 0 || count > 4096 || entrySize < 0x30)
+            {
+                throw new InvalidDataException("bad TRP header");
+            }
+
+            byte[] table = new byte[(long)count * entrySize];
+            if (stream.ReadAtLeast(table, table.Length, throwOnEndOfStream: false) != table.Length)
+            {
+                throw new InvalidDataException("truncated TRP entry table");
+            }
+
+            var set = new TrophyPackage { CommId = commId, _sourcePath = trpPath };
+            for (int i = 0; i < count; i++)
+            {
+                int e = i * entrySize;
+                string name = Encoding.ASCII.GetString(table, e, 32).TrimEnd('\0');
+                long offset = (long)BinaryHelpers.U64BE(table, e + 0x20), length = (long)BinaryHelpers.U64BE(table, e + 0x28);
+                if (offset < 0 || length < 0 || length > int.MaxValue || offset + length > stream.Length)
+                {
+                    continue;
+                }
+
+                // the SFM entries (TROPCONF.SFM, TROP.SFM, TROP_nn.SFM) are named by the TRP format: kept; icons stay on disk
+                if (name.EndsWith(".SFM", StringComparison.OrdinalIgnoreCase))
+                {
+                    byte[] data = new byte[length];
+                    stream.Position = offset;
+                    stream.ReadExactly(data);
+                    set.Files[name] = data;
+                }
+                else
+                {
+                    set._onDisk[name] = (offset, (int)length);
+                }
+            }
+            try
+            {
+                set.ParseConf(language);
+            }
+            catch (System.Xml.XmlException e)
+            {
+                throw new InvalidDataException(e.Message, e);
+            }
+            return set;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or FormatException or OverflowException)
+        {
+            Log.Warn($"Trophy: {trpPath}: {e.Message}");
+            return null;
+        }
+    }
 
     /// <summary>The trophy sets a title ships: the folder names under app0:sce_sys/trophy (one per communication id).</summary>
     public static IEnumerable<(string CommId, string TrpPath)> FindSets(string appDir)

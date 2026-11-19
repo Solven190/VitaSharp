@@ -26,7 +26,7 @@ public sealed partial class MainWindow
 
         var page = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Margin = new Thickness(36, 28, 36, 0) };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 22) };
-        header.Children.Add(_k.VStack(2, _k.Heading(S.Trophies, 30), _k.Text(S.TrophiesSubtitle(got, total, games.Count), 13.5, color: static p => p.Muted)));
+        header.Children.Add(_k.VStack(2, _k.Heading(S.Trophies, 30), _k.Wrap(S.TrophiesSubtitle(got, total, games.Count), 13.5)));
         var counts = _k.HStack(18);
         foreach (var grade in new[] { TrophyGrade.Platinum, TrophyGrade.Gold, TrophyGrade.Silver, TrophyGrade.Bronze })
         {

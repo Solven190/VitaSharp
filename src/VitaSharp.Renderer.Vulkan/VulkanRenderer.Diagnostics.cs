@@ -484,7 +484,7 @@ public sealed unsafe partial class VulkanRenderer
     {
         // GXP program hashes (the key's Vs/Fs are shader module handles, meaningless in a log)
         Dbg($"new pipeline vs {vs.ProgramHash:X16} fs {fs.ProgramHash:X16} {topology} colour {(k.HasColor ? k.ColorFormat.ToString() : "none")} samples {k.Samples} " +
-            $"blend {(k.Blend ? $"{k.ColorFunc}/{k.ColorSrc}/{k.ColorDst} a {k.AlphaFunc}/{k.AlphaSrc}/{k.AlphaDst}" : "off")} mask 0x{k.Mask:X} polygon {k.Polygon} layout {k.VertexLayout:X16}");
+            $"blend {(k.Blend ? $"{k.ColorFunc}/{k.ColorSrc}/{k.ColorDst} a {k.AlphaFunc}/{k.AlphaSrc}/{k.AlphaDst}" : "off")} mask 0x{k.Mask:X} polygon {k.Polygon} layout {k.VertexLayout:X16} fetch pass {k.InputPass} tile word {k.TileWord1} reads colour {fs.Gen?.UsesFragColor} fs hints {fs.HintKey:X16}");
     }
 
     private void DbgRenderTarget(RenderTarget rt, Format format, List<KeyValuePair<(uint, uint, uint, uint), RenderTarget>> replaced)

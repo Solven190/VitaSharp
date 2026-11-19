@@ -314,6 +314,14 @@ public sealed unsafe partial class VulkanRenderer
             return cached;
         }
 
+        // queued when the game created the program, for hints that translate to the same shader (VulkanRenderer.ProgramLoad.cs)
+        if (!_programLoadKeys.IsEmpty && TryProgramLoadModule(program, hintKey, hints(d, colorFormat), wait: true, out ModuleEntry? loaded) && loaded != null)
+        {
+            FrameLedger.AddSince(FrameLedger.Cat.ShaderWait, t0);
+            NoteShaderTime(System.Diagnostics.Stopwatch.GetTimestamp() - t0);
+            return loaded;
+        }
+
         if (LoadPackedShader(program.Hash, hintKey, program.IsVertex) is { } packed)
         {
             Interlocked.Increment(ref _statShaderPackHits);
@@ -1038,9 +1046,11 @@ public sealed unsafe partial class VulkanRenderer
             }
         }
 
+        // a module of the program load can be published under several keys (VulkanRenderer.ProgramLoad.cs)
+        var destroyed = new HashSet<ulong>();
         foreach (ModuleEntry moduleEntry in _modules.Values)
         {
-            if (moduleEntry.Module.Handle != 0)
+            if (moduleEntry.Module.Handle != 0 && destroyed.Add(moduleEntry.Module.Handle))
             {
                 _vk.DestroyShaderModule(_dev, moduleEntry.Module, null);
             }
@@ -1304,7 +1314,7 @@ public sealed unsafe partial class VulkanRenderer
             }
         }
         DescriptorSet fbSet = inputFetch ? BuildMsaaInputFetchSet(tw1) : singleFetch ? BuildSingleInputFetchSet()
-            : fs.Gen!.UsesFragColor || tw1 ? BuildFramebufferFetchSet(tw1) : _emptyFbSet ??= BuildEmptyFbSet();
+            : fs.Gen!.UsesFragColor || tw1 ? BuildFramebufferFetchSet(tw1, fs.Gen.FetchesRawWords) : _emptyFbSet ??= BuildEmptyFbSet();
 
         ProfMark(ProfPhase.Texture);
         // ---- pipeline

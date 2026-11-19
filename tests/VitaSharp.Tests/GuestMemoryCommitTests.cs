@@ -74,6 +74,219 @@ public sealed unsafe partial class GuestMemoryCommitTests(GuestMemoryFixture fix
         }
     }
 
+    /// <summary>CDRAM and kernel memory are shared memory mapped in every address space (a section view on Windows, a
+    /// memfd/shm mapping elsewhere): a new block there takes no host RAM until the guest or the GPU writes it. The
+    /// ranges are used by no other test, so this is their first block.</summary>
+    [Theory]
+    [InlineData(0x6C00_0000u)]
+    [InlineData(0x4C00_0000u)]
+    public void ANewSharedBlockTakesNoHostMemoryUntilTouched(uint addr)
+    {
+        Assert.Equal(addr, fixture.Memory.TryAllocAt(addr, BlockSize, "untouched video memory"));
+        try
+        {
+            byte* host = fixture.Memory.Primary.Base + addr;
+            long resident = ResidentBytes(host, BlockSize);
+            if (resident < 0)
+            {
+                return; // no residency query on this host
+            }
+
+            Assert.True(resident < BlockSize / 8, $"{resident >> 10} KB of a new {BlockSize >> 20} MB shared block are resident before the guest touched it");
+            Assert.Equal(0u, GuestMemory.Read<uint>(addr));
+            Assert.Equal(0u, GuestMemory.Read<uint>(addr + BlockSize - 4));
+        }
+        finally
+        {
+            fixture.Memory.Free(addr);
+        }
+    }
+
+    [Fact]
+    public void AKernelRangeAllocatedAgainReadsZero()
+    {
+        AllocWriteFreeAndAllocAgain(0x4F00_0000, 3u << 20);
+    }
+
+    /// <summary>A CDRAM block on 4 KB but not 16/64 KB boundaries next to a live one: the new block reads zero, the
+    /// neighbour (a render target the GPU wrote, say) keeps its data on both sides.</summary>
+    [Fact]
+    public void ANewCdramBlockBetweenLiveOnesLeavesTheNeighboursIntact()
+    {
+        const uint Before = CdramBlock + 0x0040_0000, BeforeSize = 0x5000;
+        const uint Middle = Before + BeforeSize, MiddleSize = 0x3000;
+        const uint After = Middle + MiddleSize, AfterSize = 0x2000;
+        Assert.Equal(Before, fixture.Memory.TryAllocAt(Before, BeforeSize, "live before"));
+        Assert.Equal(After, fixture.Memory.TryAllocAt(After, AfterSize, "live after"));
+        try
+        {
+            GuestMemory.Write(Before + BeforeSize - 4, 0xCAFE_F00Du);
+            GuestMemory.Write(After, 0x0BAD_CAFEu);
+            AllocWriteFreeAndAllocAgain(Middle, MiddleSize);
+            Assert.Equal(0xCAFE_F00Du, GuestMemory.Read<uint>(Before + BeforeSize - 4));
+            Assert.Equal(0x0BAD_CAFEu, GuestMemory.Read<uint>(After));
+        }
+        finally
+        {
+            fixture.Memory.Free(Before);
+            fixture.Memory.Free(After);
+        }
+    }
+
+    /// <summary>The same CDRAM is seen by every process: a block written and freed by one and allocated again reads zero
+    /// through another process's view too.</summary>
+    [Fact]
+    public void ACdramRangeReusedReadsZeroInEveryAddressSpace()
+    {
+        if (!fixture.Memory.SeparateSpaces)
+        {
+            return; // one address space on this host
+        }
+
+        const uint Addr = CdramBlock + 0x0080_0000, Size = 0x0010_0000;
+        AddressSpace other = fixture.Memory.CreateSpace("second process");
+        try
+        {
+            Assert.Equal(Addr, fixture.Memory.TryAllocAt(Addr, Size, "first"));
+            for (uint offset = 0; offset < Size; offset += 0x1000)
+            {
+                GuestMemory.Write(Addr + offset, 0xDEAD_BEEFu);
+            }
+
+            Assert.Equal(0xDEAD_BEEFu, *(uint*)(other.Base + Addr)); // one memory behind both views
+            fixture.Memory.Free(Addr);
+            Assert.Equal(Addr, fixture.Memory.TryAllocAt(Addr, Size, "second"));
+            for (uint offset = 0; offset < Size; offset += 0x1000)
+            {
+                Assert.Equal(0u, *(uint*)(other.Base + Addr + offset));
+                Assert.Equal(0u, GuestMemory.Read<uint>(Addr + offset));
+            }
+            fixture.Memory.Free(Addr);
+        }
+        finally
+        {
+            fixture.Memory.ReleaseSpace(other);
+        }
+    }
+
+    /// <summary>A stray write to CDRAM no block holds (it still lands, data accesses to free pages are allowed) must
+    /// not show up in the block allocated there later.</summary>
+    [Fact]
+    public void AStrayWriteToFreeCdramDoesNotLeakIntoTheNextBlock()
+    {
+        const uint Addr = CdramBlock + 0x00C0_0000, Size = 0x4000;
+        GuestMemory.Write(Addr + 0x1000, 0xDEAD_BEEFu);
+        Assert.Equal(Addr, fixture.Memory.TryAllocAt(Addr, Size, "after a stray write"));
+        try
+        {
+            Assert.Equal(0u, GuestMemory.Read<uint>(Addr + 0x1000));
+        }
+        finally
+        {
+            fixture.Memory.Free(Addr);
+        }
+    }
+
+    /// <summary>
+    /// Loading a save state writes back each block page by page; its zero pages (most of a state's heaps) read zero
+    /// without being touched, as in a new block: clearing them by hand made the whole of every block resident. Both the
+    /// block the restore committed fresh and a block that was live with other data (a state loaded over a running game).
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RestoringAStateLeavesItsZeroPagesUntouched(bool blockWasLive)
+    {
+        Assert.Equal(UserBlock, fixture.Memory.TryAllocAt(UserBlock, BlockSize, "restored heap"));
+        try
+        {
+            GuestMemory.Write(UserBlock + 3 * GuestMemory.PageSize + 8, 0x1234_5678u);
+            GuestMemory.Write(UserBlock + 5 * GuestMemory.PageSize, 0xE7FD_DEFEu);
+            GuestMemory.Write(UserBlock + 5 * GuestMemory.PageSize + 4, 0xE7FD_DEFEu);
+            GuestMemory.Block block = fixture.Memory.FindBlock(UserBlock)!;
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            if (blockWasLive)
+            {
+                GuestMemory.Fill(UserBlock, 0xEE, BlockSize);
+            }
+            else
+            {
+                fixture.Memory.Free(UserBlock);
+                Assert.Equal(UserBlock, fixture.Memory.TryAllocAt(UserBlock, BlockSize, "restored heap"));
+                block = fixture.Memory.FindBlock(UserBlock)!;
+            }
+
+            fixture.Memory.RestoreContents(block, data, wordPages);
+            byte* host = fixture.Memory.Primary.Base + UserBlock;
+            long resident = ResidentBytes(host, BlockSize);
+            if (resident >= 0)
+            {
+                Assert.True(resident < BlockSize / 8, $"{resident >> 10} KB of a restored {BlockSize >> 20} MB block with two non-zero pages are resident");
+            }
+
+            Assert.Equal(0x1234_5678u, GuestMemory.Read<uint>(UserBlock + 3 * GuestMemory.PageSize + 8));
+            Assert.Equal(0xE7FD_DEFEu, GuestMemory.Read<uint>(UserBlock + 5 * GuestMemory.PageSize + 4));
+            Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + 5 * GuestMemory.PageSize + 8));
+            for (uint offset = 0; offset < BlockSize; offset += 0x1_0000)
+            {
+                Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + offset));
+            }
+
+            Assert.Equal(0u, GuestMemory.Read<uint>(UserBlock + BlockSize - 4));
+        }
+        finally
+        {
+            fixture.Memory.Free(UserBlock);
+        }
+    }
+
+    /// <summary>The zero pages of a restored CDRAM block (shared memory, seen by every process) read zero in every view,
+    /// and the live blocks around it keep their data.</summary>
+    [Fact]
+    public void RestoringACdramBlockZeroesItsZeroPagesAndKeepsTheNeighbours()
+    {
+        const uint Before = CdramBlock + 0x00E0_0000, BeforeSize = 0x5000;
+        const uint Middle = Before + BeforeSize, MiddleSize = 0x7000;
+        const uint After = Middle + MiddleSize, AfterSize = 0x2000;
+        Assert.Equal(Before, fixture.Memory.TryAllocAt(Before, BeforeSize, "live before"));
+        Assert.Equal(Middle, fixture.Memory.TryAllocAt(Middle, MiddleSize, "restored"));
+        Assert.Equal(After, fixture.Memory.TryAllocAt(After, AfterSize, "live after"));
+        AddressSpace? other = fixture.Memory.SeparateSpaces ? fixture.Memory.CreateSpace("second process") : null;
+        try
+        {
+            GuestMemory.Write(Before + BeforeSize - 4, 0xCAFE_F00Du);
+            GuestMemory.Write(After, 0x0BAD_CAFEu);
+            GuestMemory.Write(Middle + 2 * GuestMemory.PageSize + 0x10, 0x1357_9BDFu);
+            GuestMemory.Block block = fixture.Memory.FindBlock(Middle)!;
+            byte[] data = fixture.Memory.CopyContents(block, out bool wordPages);
+            GuestMemory.Fill(Middle, 0xEE, MiddleSize);
+            fixture.Memory.RestoreContents(block, data, wordPages);
+            for (uint offset = 0; offset < MiddleSize; offset += 4)
+            {
+                uint expected = offset == 2 * GuestMemory.PageSize + 0x10 ? 0x1357_9BDFu : 0u;
+                Assert.Equal(expected, GuestMemory.Read<uint>(Middle + offset));
+                if (other != null)
+                {
+                    Assert.Equal(expected, *(uint*)(other.Base + Middle + offset));
+                }
+            }
+
+            Assert.Equal(0xCAFE_F00Du, GuestMemory.Read<uint>(Before + BeforeSize - 4));
+            Assert.Equal(0x0BAD_CAFEu, GuestMemory.Read<uint>(After));
+        }
+        finally
+        {
+            if (other != null)
+            {
+                fixture.Memory.ReleaseSpace(other);
+            }
+
+            fixture.Memory.Free(Before);
+            fixture.Memory.Free(Middle);
+            fixture.Memory.Free(After);
+        }
+    }
+
     private void AllocWriteFreeAndAllocAgain(uint addr, uint size)
     {
         Assert.Equal(addr, fixture.Memory.TryAllocAt(addr, size, "first"));

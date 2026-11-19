@@ -37,11 +37,30 @@ public sealed partial class PluginFramework : HleModule
     const int ModuleNameLength = 27;
 
     /// <summary>One data injection: the process, where it wrote and what was there before.</summary>
-    sealed class Injection : KernelObject
+    internal sealed class Injection : KernelObject
     {
         public int Pid;
         public uint Address;
         public byte[] Saved = [];
+
+        /// <summary>Save states: the record of the kernel object table (<see cref="SaveState.KernelSnapshot"/>).</summary>
+        internal void Save(SaveState.SnapshotWriter writer)
+        {
+            writer.Write(Pid);
+            writer.Write(Address);
+            writer.Write(Saved);
+        }
+
+        internal static Injection Load(SaveState.SnapshotReader reader, string name)
+        {
+            return new Injection
+            {
+                Name = name,
+                Pid = reader.ReadInt32(),
+                Address = reader.ReadUInt32(),
+                Saved = reader.ReadBytes() ?? [],
+            };
+        }
     }
 
     readonly List<Injection> _injections = new();

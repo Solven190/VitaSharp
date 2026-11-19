@@ -15,7 +15,8 @@ internal static class KernelSnapshot
 {
     internal const string Thread = "thread", Sema = "sema", Evf = "evf", Mtx = "mutex", Cond = "cond", Pipe = "msgpipe",
         Rw = "rwlock", Cb = "callback", Timer = "timer", SEvent = "simpleevent", ThEvent = "threadevent",
-        Block = "memblock", Async = "ioasync", Process = "process", App = "app", Module = "module", Data = "kerneldata";
+        Block = "memblock", Async = "ioasync", Process = "process", App = "app", Module = "module", Data = "kerneldata",
+        PluginHook = "pluginhook", PluginInjection = "plugininject";
 
     public static SnapshotWriter Save(Emulator emu, Dictionary<GuestThread, GuestThread.SafeKind> kinds)
     {
@@ -45,6 +46,8 @@ internal static class KernelSnapshot
                 AppObject => App,
                 ModuleObject => Module,
                 KernelData => Data,
+                PluginFramework.HookPatch => PluginHook,
+                PluginFramework.Injection => PluginInjection,
                 _ => throw new SnapshotException($"kernel object {kernelObject.Name} ({kernelObject.GetType().Name}) is not supported by save states yet"),
             };
             w.Write(kind);
@@ -119,6 +122,12 @@ internal static class KernelSnapshot
                     w.Write(a.Cancelled);
                     w.Write(a.Pattern);
                     w.Write(a.UserData);
+                    break;
+                case PluginFramework.HookPatch hook:
+                    hook.Save(w);
+                    break;
+                case PluginFramework.Injection injection:
+                    injection.Save(w);
                     break;
                 case ModuleObject mo:
                     w.Write(mo.Module.Path);
@@ -292,6 +301,12 @@ internal static class KernelSnapshot
                 case Async:
                     o = new IoAsyncOp
                     { Name = name, Fd = b.ReadInt32(), Result = b.ReadInt64(), Done = true, Cancelled = b.ReadBool(), Pattern = b.ReadUInt32(), UserData = b.ReadUInt64() };
+                    break;
+                case PluginHook:
+                    o = PluginFramework.HookPatch.Load(b, name);
+                    break;
+                case PluginInjection:
+                    o = PluginFramework.Injection.Load(b, name);
                     break;
                 case Process or App:
                     o = current.FirstOrDefault(x => x.Uid == uid && (kind == Process ? x is ProcessObject : x is AppObject))

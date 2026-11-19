@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=18eb1655c69a9fa24609fb7c6e5eb1581b4039f27d7c490e2c5b76dd515aca9e -->
+<!-- pair: README.md sha256=b53415ce24305b573163ec0fc368039784dc22da38fed6169e1a23c009cff8f4 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -396,6 +396,40 @@ Os scripts shell seguem o Google Shell Style Guide e precisam passar no ShellChe
   desktop, Mesa); sem ela (MoltenVK, Dozen, drivers de celular) os pipelines são compilados inteiros de qualquer jeito.
   A linha `[shadercache] session` do log conta o que a thread da GPU compilou; ver
   [`docs/notes/pipeline-skip.md`](docs/notes/pipeline-skip.md).
+- "Carregar o cache de shaders antes de jogar" / "Load the shader cache before playing" (launcher: Configurações, ao
+  lado de "Compilar shaders em segundo plano", e a página de cada jogo; `--load-shader-cache=on|off`, ligado por padrão;
+  o nome antigo `--precompile-shaders` ainda é aceito, com um aviso): antes de o jogo começar, o cache de shaders dele
+  (os shaders e pipelines gravados nas sessões anteriores, `shadercache/titles/<ID>/`) é montado atrás de uma barra de
+  progresso na barra de status do launcher; "Cancelar" (a linha `cancel-shader-cache-load` na entrada padrão do
+  processo do jogo) começa o jogo na hora e o resto é montado em segundo plano. É um carregamento de cache, não uma
+  pré-compilação: a primeira sessão de um jogo não tem nada gravado. Nada a mais para instalar, igual no Windows, Linux
+  e macOS.
+- Compilar shaders ao carregar o programa ("compile shaders at program load"; `--compile-on-program-load=on|off`, ligado
+  por padrão; `VITASHARP_COMPILE_ON_PROGRAM_LOAD=0|1` tem prioridade, também no Android): quando o jogo cria um programa de
+  vértice ou de fragmento (sceGxmShaderPatcherCreate*, normalmente atrás da tela de carregamento), os workers de shader
+  traduzem e compilam os shaders com os hints previstos pelo programa e montam o pipeline do programa de vértice para
+  o qual ele foi feito, então o primeiro desenho da primeira sessão já os encontra prontos. Um desenho cujo formato de
+  textura ou de superfície difere do previsto mas traduz para o mesmo shader usa o mesmo módulo. As superfícies de cor
+  que o jogo inicializa e as cenas que ele começa são lembradas, e os programas que dependem da superfície (blending
+  programável, saída de cor nativa ou inteira) também são montados para cada uma delas, com os pipelines de fetch pass
+  e de integer view. A linha `[shadercache] session` da sessão termina com o que foi enfileirado e usado ("at program
+  load: ..."); `replay-gpu --compile-on-program-load=on` anuncia os programas do dump antes do primeiro comando. Nada a
+  mais para instalar, em todos os sistemas.
+- "Precompilar código ARM" / "Precompile ARM code" (launcher: Configurações, depois da opção do cache de shaders, e a
+  página de cada jogo; `--precompile-code=on|off`, ligado por padrão): antes de o jogo começar, o JIT nativo traduz o
+  código ARM dele em todos os núcleos livres, atrás de uma barra de progresso própria na barra de status do launcher
+  ("Cancelar" = a linha `cancel-code-precompile` na entrada padrão do processo do jogo; linhas de log
+  `[code-precompile] progress ...`): os blocos que as sessões anteriores executaram, na ordem em que rodaram pela
+  primeira vez (o cache de código: `codecache/<hash da imagem do módulo>.vsjc` na pasta de dados,
+  `--code-cache=<pasta>|off`; um arquivo por imagem de módulo, vale em qualquer endereço de carga, rejeitado depois de
+  uma mudança no tradutor), ou, na primeira sessão, o código que a análise estática alcança a partir das entradas dos
+  módulos (início do módulo, exportações, branches diretos e retornos de chamada). O jogo começa assim que esses ficam
+  prontos; depois, algumas threads de prioridade baixa traduzem o código perto do que o jogo executa (alguns blocos
+  além de cada bloco que ele alcança, e o resto da função dele, achada pelo índice de funções `.ARM.exidx`), no máximo
+  64 MB da arena de código. O código pré-compilado é publicado quando o jogo chega nele pela primeira vez. As linhas de
+  log `ARM code precompilation: boot step ...` e, no fim, `... % of the run blocks were precompiled` dão o tempo e a
+  cobertura. O Android faz a mesma tradução em segundo plano, sem esperar (a opção fica nos ajustes do app e nos de
+  cada jogo). Nada a mais para instalar, em todos os sistemas.
 - Perfil: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, todos os sistemas); no Windows
   também o PerfView e o WPR/WPA (Windows Performance Toolkit).
 

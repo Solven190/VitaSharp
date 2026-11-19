@@ -32,7 +32,7 @@ public sealed partial class MainWindow
         _resultsHost = new Border();
 
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto,Auto"), Margin = new Thickness(0, 0, 0, 20) };
-        header.Children.Add(_k.VStack(2, _k.Heading(S.Library, 30), _k.Text(S.LibrarySubtitle(_all.Count, _all.Count(g => g.Category == "gd")), 13.5, color: static p => p.Muted)));
+        header.Children.Add(_k.VStack(2, _k.Heading(S.Library, 30), _k.Wrap(S.LibrarySubtitle(_all.Count, _all.Count(g => g.Category == "gd")), 13.5)));
         _search = new TextBox
         {
             Text = _search?.Text ?? "",
@@ -477,7 +477,17 @@ public sealed partial class MainWindow
     {
         const string Cols = "64,*,100,110,150,100,250";
         var s = new StackPanel();
+        List<Grid> rows = new();
+        // a narrow window drops the columns that matter least instead of pushing the last ones out of the page
+        s.SizeChanged += (_, e) =>
+        {
+            foreach (Grid grid in rows)
+            {
+                FitListColumns(grid, e.NewSize.Width - grid.Margin.Left - grid.Margin.Right);
+            }
+        };
         var head = new Grid { ColumnDefinitions = new ColumnDefinitions(Cols), Margin = new Thickness(18, 0, 18, 8) };
+        rows.Add(head);
         string[] cols = ["", S.ColGame, S.ColRegion, S.ColPlayed, S.ColTrophies, S.ColSize, ""];
         for (int i = 0; i < cols.Length; i++)
         {
@@ -489,6 +499,7 @@ public sealed partial class MainWindow
         foreach (var g in games)
         {
             var r = new Grid { ColumnDefinitions = new ColumnDefinitions(Cols), Height = 62, Margin = new Thickness(18, 0) };
+            rows.Add(r);
             r.Children.Add(_k.Picture(g.IconPath, 46, 46, 12, g.Initials, 128).Also(p => p.HorizontalAlignment = HorizontalAlignment.Left));
             r.Children.Add(Kit.At(_k.VStack(2, _k.Text(g.Title, 14, FontWeight.SemiBold), _k.Text(g.TitleId + (g.Version.Length > 0 ? " \u00B7 v" + g.Version : ""), 12, color: static p => p.Muted)).Also(t => t.VerticalAlignment = VerticalAlignment.Center), col: 1));
             r.Children.Add(Kit.At(_k.Text(g.Region, 13, color: static p => p.TextSoft), col: 2));
@@ -541,13 +552,52 @@ public sealed partial class MainWindow
         return s;
     }
 
+    /// <summary>The list view's column widths (the title takes the rest) and the columns hidden first, one by one,
+    /// when the title would get less than <see cref="ListMinTitle"/>: size, trophies, region.</summary>
+    static readonly double[] ListColumnWidths = [64, 0, 100, 110, 150, 100, 250];
+    static readonly int[] ListColumnsDropOrder = [5, 4, 2];
+    const double ListMinTitle = 200;
+
+    static void FitListColumns(Grid grid, double width)
+    {
+        bool[] shown = [true, true, true, true, true, true, true];
+        double fixedWidth = ListColumnWidths.Sum();
+        foreach (int column in ListColumnsDropOrder)
+        {
+            if (width - fixedWidth >= ListMinTitle)
+            {
+                break;
+            }
+
+            shown[column] = false;
+            fixedWidth -= ListColumnWidths[column];
+        }
+
+        for (int i = 0; i < ListColumnWidths.Length; i++)
+        {
+            if (i != 1)
+            {
+                grid.ColumnDefinitions[i].Width = new GridLength(shown[i] ? ListColumnWidths[i] : 0);
+            }
+        }
+
+        foreach (Control child in grid.Children)
+        {
+            int column = Grid.GetColumn(child);
+            if (column is 2 or 4 or 5)
+            {
+                child.IsVisible = shown[column];
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ first run
 
     Control WelcomePage()
     {
         bool fw = FirmwareInstalled;
         var page = new StackPanel { Margin = new Thickness(36, 28, 36, 0) };
-        page.Children.Add(_k.VStack(2, _k.Heading(S.Welcome, 30), _k.Text(S.WelcomeSubtitle, 13.5, color: static p => p.Muted)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
+        page.Children.Add(_k.VStack(2, _k.Heading(S.Welcome, 30), _k.Wrap(S.WelcomeSubtitle, 13.5)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
         var steps = new UniformGrid { Columns = 3, Margin = new Thickness(0, 0, -16, 0) };
         steps.Children.Add(Step(1, fw ? "check" : "cpu", S.StepFirmware, fw ? S.StepFirmwareDone(FirmwareVersion) : S.StepFirmwareText,
             fw ? _k.Secondary(S.VitaSystem, "vita", () => Navigate(PageSystem), 42) : _k.Primary(S.InstallFirmware, "folder", () => Navigate(PageSystem), 42, 0), null, !fw));

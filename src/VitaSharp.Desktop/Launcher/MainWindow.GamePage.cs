@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
@@ -78,7 +78,8 @@ public sealed partial class MainWindow
         info.Children.Add(_k.Heading(g.Title, 34).Also(t => { t.TextWrapping = TextWrapping.Wrap; t.MaxHeight = 90; }));
         string installed = Directory.Exists(g.Path) ? S.InstalledOn(Directory.GetCreationTime(g.Path)) : "";
         info.Children.Add(_k.Text(string.Join("  \u00B7  ", new[] { g.TitleId, g.Version.Length > 0 ? "v" + g.Version : "", g.SizeText, installed }.Where(x => x.Length > 0)), 13.5, color: static p => p.Muted));
-        var buttons = _k.HStack(10, PlayButton(g, 50, 170), _k.Secondary(S.OpenLiveArea, "vita", () => OpenLiveArea(g), 50, tip: S.LiveAreaTip));
+        // the buttons go on in the next line when the window is narrow
+        var buttons = _k.Flow(10, PlayButton(g, 50, 170), _k.Secondary(S.OpenLiveArea, "vita", () => OpenLiveArea(g), 50, tip: S.LiveAreaTip));
         if (LatestState(g) is { } latest)
         {
             buttons.Children.Add(_k.Secondary(S.LoadLatestState, "save", () => LoadState(g, latest), 50, enabled: _running == null));
@@ -100,7 +101,6 @@ public sealed partial class MainWindow
         stats.Children.Add(Stat("save", S.SaveStatesTitle, states.Count.ToString(S.Culture)));
         page.Children.Add(stats);
 
-        var cols = new Grid { ColumnDefinitions = new ColumnDefinitions("*,24,460"), Margin = new Thickness(0, 28, 0, 0) };
         var left = new StackPanel { Spacing = 26 };
         left.Children.Add(StatesSection(g, states));
         if (total > 0)
@@ -109,8 +109,9 @@ public sealed partial class MainWindow
         }
 
         left.Children.Add(GameCapturesSection(g));
-        cols.Children.Add(left);
-        cols.Children.Add(Kit.At(GameSettingsSection(g), col: 2));
+        // the game's settings beside the states and captures, or below them in a narrow window
+        var cols = Kit.Columns(left, GameSettingsSection(g), 900, "*", "460");
+        cols.Margin = new Thickness(0, 28, 0, 0);
         page.Children.Add(cols);
 
         root.Children.Add(page);
@@ -430,7 +431,8 @@ public sealed partial class MainWindow
         var res = GameOptions.ResScales;
         var rates = GameOptions.FrameRates;
         var fast = GameOptions.FastLoadings(_settings.FastLoading);
-        var precompile = GameOptions.FastLoadings(_settings.PrecompileShaders); // (the same "default (on/off)", on, off choices)
+        var shaderCacheLoad = GameOptions.FastLoadings(_settings.LoadShaderCacheBeforePlaying); // (the same "default (on/off)", on, off choices)
+        var codePrecompile = GameOptions.FastLoadings(_settings.PrecompileCode);
         var languages = GameOptions.SystemLanguages;
         s.Children.Add(_k.Group(
             _k.Row("monitor", S.InternalResolution, S.InternalResolutionDetail,
@@ -442,13 +444,20 @@ public sealed partial class MainWindow
             _k.Row("zap", S.FastLoading, S.FastLoadingDetail,
                 _k.Dropdown(fast.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(fast, c => c.Value == opts.FastLoading)), i => { opts.FastLoading = fast[i].Value; Store(); }, 176),
                 tip: S.FastLoadingTip),
-            _k.Row("layers", S.PrecompileShaders, S.PrecompileShadersDetail,
-                _k.Dropdown(precompile.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(precompile, c => c.Value == opts.PrecompileShaders)), i =>
+            _k.Row("layers", S.LoadShaderCache, S.LoadShaderCacheDetail,
+                _k.Dropdown(shaderCacheLoad.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(shaderCacheLoad, c => c.Value == opts.LoadShaderCacheBeforePlaying)), i =>
                 {
-                    opts.PrecompileShaders = precompile[i].Value;
+                    opts.LoadShaderCacheBeforePlaying = shaderCacheLoad[i].Value;
                     Store();
                 }, 176),
-                tip: S.PrecompileShadersTip),
+                tip: S.LoadShaderCacheTip),
+            _k.Row("cpu", S.PrecompileCode, S.PrecompileCodeDetail,
+                _k.Dropdown(codePrecompile.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(codePrecompile, c => c.Value == opts.PrecompileCode)), i =>
+                {
+                    opts.PrecompileCode = codePrecompile[i].Value;
+                    Store();
+                }, 176),
+                tip: S.PrecompileCodeTip),
             _k.Row("globe", S.SystemLanguage, S.SystemLanguageDetail,
                 _k.Dropdown(languages.Select(c => c.Label).ToArray(), Math.Max(0, Array.FindIndex(languages, c => c.Value == opts.SystemLanguage)), i =>
                 {

@@ -1018,7 +1018,7 @@ public static class Program
         Console.WriteLine("  version                              print the version and commit of this build");
         Console.WriteLine("  update [--channel=builds|releases] [--feed=URL|folder] [--apply]  check the GitHub releases for a newer emulator; --apply installs it");
         Console.WriteLine("  ui-snapshot <out-dir>               render Settings > Controles driven by a simulated DualSense (use a scratch --data)");
-        Console.WriteLine("  ui-render <out-dir> [--title=ID] [--launch=ID|shell] [--install-pkg=P [--license=zRIF]]  render every launcher page to PNGs without a window (use a scratch --data)");
+        Console.WriteLine("  ui-render <out-dir> [--title=ID] [--launch=ID|shell] [--install-pkg=P [--license=zRIF]] [--mem] [--layout-check]  render every launcher page to PNGs without a window (use a scratch --data); --mem: memory after each page; --layout-check: report controls cut or pushed out sideways");
         Console.WriteLine("  toast-preview <out.png> [TITLEID] [--sound=<out.wav>]  draw the trophy notification; write the trophy sound");
         Console.WriteLine("  ime-preview <out.png> [title] [text] [--max=N] [--multiline] [--password]  draw the IME text entry overlay");
         Console.WriteLine("  msg-preview <out.png> [message] [--buttons=A,B] [--selected=N] [--progress=N]  draw the message dialog overlay");
@@ -1033,7 +1033,10 @@ public static class Program
         Console.WriteLine("               --video-decoder=auto|sw|hw|d3d11va|vaapi|videotoolbox  H.264 decoding (default auto: software; hw: the platform's hardware decoder)");
         Console.WriteLine("               --shaderc-opt=zero|size|perf  shader optimisation (default zero: fast compiles, less stutter)");
         Console.WriteLine("               --async-shaders=on|off  compile new shaders and pipelines on worker threads (default on)");
-        Console.WriteLine("               --precompile-shaders=on|off  build the shaders and pipelines recorded in earlier sessions before the game starts (default on; \"cancel-precompile\" on stdin stops the wait)");
+        Console.WriteLine("               --load-shader-cache=on|off  load the shader cache (the shaders and pipelines recorded in earlier sessions) before the game starts (default on; \"cancel-shader-cache-load\" on stdin stops the wait; --precompile-shaders is its earlier name)");
+        Console.WriteLine("               --precompile-code=on|off  translate the ARM code before the game starts: the blocks earlier sessions ran, or the code reached from the modules' entry points (default on; \"cancel-code-precompile\" on stdin stops the wait)");
+        Console.WriteLine("               --code-cache=<dir>|off  code cache folder (the ARM blocks each module ran; default <data>/codecache)");
+        Console.WriteLine("               --compile-on-program-load=on|off  compile a program's shaders and pipeline on worker threads when the game creates it (usually while loading), before its first draw (default on)");
         Console.WriteLine("               --async-pipelines=on|off  background pipelines only (default on), --shader-workers=N (default auto)");
         Console.WriteLine("               --host-prio=on|off  guest threads and GPU worker above normal host priority (default on)");
         Console.WriteLine("               --gpu-profile=adreno|mali|desktop  emulate a mobile GPU class: its missing features, limits and driver quirks");

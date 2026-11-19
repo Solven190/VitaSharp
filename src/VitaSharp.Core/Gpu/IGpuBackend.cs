@@ -38,12 +38,36 @@ public interface IGpuBackend : IDisposable
     string? TitleId => null;
 
     /// <summary>
-    /// The emulator option "Precompilar shaders": after <see cref="BeginTitle"/>, before the game starts, waits until
+    /// The emulator option "Carregar o cache de shaders antes de jogar": after <see cref="BeginTitle"/>, before the game starts, waits until
     /// the shaders and pipelines recorded in earlier sessions of the title are built (the boot rebuild after a
     /// generator change, then the pipeline prewarm), reporting <paramref name="progress"/>. Cancelling stops the wait
     /// only: what is left keeps building in the background, as without the option. False when there was nothing to wait for.
     /// </summary>
-    bool PrecompileBeforeStart(Action<ShaderPrecompileProgress>? progress, CancellationToken cancel) => false;
+    bool LoadShaderCacheBeforeStart(Action<ShaderCacheLoadProgress>? progress, CancellationToken cancel) => false;
+
+    /// <summary>The game created a vertex program object (sceGxmShaderPatcherCreateVertexProgram), on its own thread:
+    /// a backend may start compiling what the program's draws will need (games create their programs while loading).</summary>
+    void VertexProgramCreated(Gxm.GxmVertexProgram vertexProgram)
+    {
+    }
+
+    /// <summary>The game created a fragment program object (sceGxmShaderPatcherCreateFragmentProgram[ForGles]) for the
+    /// vertex program <paramref name="vertexProgram"/> (its SceGxmProgram, null when none was given), on its own thread.</summary>
+    void FragmentProgramCreated(Gxm.GxmFragmentProgram fragmentProgram, Gxm.GxmProgramInfo? vertexProgram)
+    {
+    }
+
+    /// <summary>The game created a render target with <paramref name="multisample"/> (SceGxmMultisampleMode), on its own
+    /// thread: the scenes of its downscaled colour surfaces will be multisampled.</summary>
+    void RenderTargetCreated(uint multisample)
+    {
+    }
+
+    /// <summary>The game initialised a colour surface (sceGxmColorSurfaceInit), on its own thread: a surface its scenes
+    /// may render into, so a backend may start building what the created programs need there.</summary>
+    void ColorSurfaceInitialised(uint colorFormat, bool downscale)
+    {
+    }
 
     /// <summary>Called on the submitting thread for each command before it is queued (no worker state may be touched):
     /// lets a backend start slow preparation, e.g. shader compilation, ahead of execution.</summary>

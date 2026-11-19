@@ -24,6 +24,9 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         VSync = false,
         AsyncShaders = false,
         AsyncPipelines = false,
+        // what a first session leaves to its draws is what these tests record and replay: nothing built ahead at program
+        // load (FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing covers that)
+        CompileOnProgramLoad = false,
         ShaderCacheDir = cacheDir,
         Msaa = msaa,
     });
@@ -299,18 +302,18 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
     }
 
-    /// <summary>"Precompilar shaders": with the option, the second session's recorded pipelines are all built before the
+    /// <summary>"Carregar o cache de shaders antes de jogar": with the option, the second session's recorded pipelines are all built before the
     /// game's first frame, so that frame translates no shader and builds no pipeline on the GPU thread. Without it the
     /// game starts at once and its first frame races the (below normal priority) prewarm.</summary>
     [SoftwareVulkanFact]
-    public void PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame()
+    public void ShaderCacheLoadBuildsTheRecordedPipelinesBeforeTheFirstFrame()
     {
         using IDisposable driver = SoftwareVulkan.Use();
-        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-shadercache-load-" + Guid.NewGuid().ToString("N"));
         const string Title = "PCSA00079";
         try
         {
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) Session(bool precompile)
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) Session(bool loadCache)
             {
                 VulkanRenderer r = NewRenderer(cache);
                 (bool, int, int, int, int) stats = default;
@@ -327,14 +330,14 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 }));
                 try
                 {
-                    WithRenderer("precompile", r, h =>
+                    WithRenderer("shadercache-load", r, h =>
                     {
                         r.BeginTitle(Title);
                         int reports = 0;
                         bool waited = false;
-                        if (precompile)
+                        if (loadCache)
                         {
-                            Task<bool> wait = Task.Run(() => ((IGpuBackend)r).PrecompileBeforeStart(_ =>
+                            Task<bool> wait = Task.Run(() => ((IGpuBackend)r).LoadShaderCacheBeforeStart(_ =>
                             {
                                 reports++;
                                 reported.Set();
@@ -364,11 +367,11 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 return stats;
             }
 
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) first = Session(precompile: true);
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) first = Session(loadCache: true);
             Assert.False(first.Waited, "a first session has nothing recorded to wait for");
             Assert.True(first.GpuPipelines > 0 && first.Misses > 0, $"first session: {first.GpuPipelines} pipelines, {first.Misses} shaders on the GPU thread");
 
-            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) second = Session(precompile: true);
+            (bool Waited, int Prewarmed, int Progress, int GpuPipelines, int Misses) second = Session(loadCache: true);
             Assert.True(second.Waited);
             Assert.True(second.Progress >= 1, "the wait reports its end");
             Assert.True(second.Prewarmed >= first.GpuPipelines, $"{second.Prewarmed} of {first.GpuPipelines} recorded pipelines built before the first frame");
@@ -387,7 +390,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
     }
 
     /// <summary>A programmable-blending draw of a one-sample scene renders in a fetch pass, with a pipeline made for its
-    /// render pass. That pipeline is recorded in pipelines.list like any other, so after the precompile the second
+    /// render pass. That pipeline is recorded in pipelines.list like any other, so after the shader cache load the second
     /// session builds no pipeline on the GPU thread (the replay of a dump built its 8 fetch-pass pipelines there in
     /// every session when they were left out).</summary>
     [SoftwareVulkanFact]
@@ -405,7 +408,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                 WithRenderer("fetchlist", r, h =>
                 {
                     r.BeginTitle(Title);
-                    ((IGpuBackend)r).PrecompileBeforeStart(_ => { }, CancellationToken.None);
+                    ((IGpuBackend)r).LoadShaderCacheBeforeStart(_ => { }, CancellationToken.None);
                     var w = new RendererTextureTests.Workload(h);
                     w.RunFetch();
                     w.Run(1);
@@ -435,18 +438,94 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         }
     }
 
+    /// <summary>
+    /// "Compilar shaders ao carregar o programa": a first session (nothing recorded) whose programs are created before
+    /// the draws, as a game does while loading. With the option the shaders and the pipeline are built on the shader
+    /// workers when the programs are created, so the first frame translates no shader, builds no pipeline and waits for
+    /// none on the GPU thread, also for textures whose exact format was not predicted (BC1/ETC1/P8 sample as four
+    /// unsigned bytes like the predicted U8U8U8U8: the same shader) and for the fetch pass of a programmable-blending
+    /// draw (built for the surface the game initialised). Without it the GPU thread builds them at the draw.
+    /// Draw-time prefetch is off in both sessions, so nothing else can build them first.
+    /// </summary>
     [SoftwareVulkanFact]
-    public void CancelledPrecompileLetsTheGameStartAndTheRestBuildsInTheBackground()
+    public void FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing()
     {
         using IDisposable driver = SoftwareVulkan.Use();
-        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-precompile-" + Guid.NewGuid().ToString("N"));
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) Session(bool programLoad)
+        {
+            string cache = Path.Combine(Path.GetTempPath(), "vitasharp-programload-" + Guid.NewGuid().ToString("N"));
+            (int, int, int, int, int, int) stats = default;
+            try
+            {
+                var r = new VulkanRenderer(new VulkanRendererOptions
+                {
+                    VSync = false,
+                    AsyncShaders = false,
+                    AsyncPipelines = false,
+                    CompileOnProgramLoad = programLoad,
+                    ShaderCacheDir = cache,
+                });
+                WithRenderer("programload", r, h =>
+                {
+                    r.BeginTitle("PCSA00082");
+                    var w = new RendererTextureTests.Workload(h); // creates the vertex and fragment programs
+                    Assert.True(r.WaitForBackgroundCompiles(CancellationToken.None));
+                    // 2D textures of the four-unsigned-byte class only: the predicted class (other classes are other shaders)
+                    var keep = new List<uint>();
+                    for (int i = 0; i < w.Textures.Count; i++)
+                    {
+                        if (w.TextureFormats[i] is Core.Gxm.TexBase.U8U8U8U8 or Core.Gxm.TexBase.UBC1 or Core.Gxm.TexBase.ETC1 or Core.Gxm.TexBase.P8
+                            && !w.CubeTextures.Contains(w.Textures[i]))
+                        {
+                            keep.Add(w.Textures[i]);
+                        }
+                    }
+
+                    Assert.True(keep.Count >= 4, $"{keep.Count} textures of the class");
+                    w.Textures.Clear();
+                    w.Textures.AddRange(keep);
+                    w.RunFetch(); // a programmable-blending draw: in a one-sample scene it renders in a fetch pass
+                    w.Run(keep.Count); // and one scene drawing them all
+                    h.Emu.Gpu.WaitIdle();
+                    (int Shaders, int Pipelines, int PipelinesBuilt, int Aliases) load = r.ProgramLoadStats;
+                    stats = (Stat(r, "_statGpuPipelines"), Stat(r, "_statShaderMisses"), Stat(r, "_statAsyncWaited"), Stat(r, "_statPipelineWaits"), load.Aliases, load.PipelinesBuilt);
+                    w.Terminate();
+                });
+            }
+            finally
+            {
+                try
+                {
+                    Directory.Delete(cache, true);
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+
+            return stats;
+        }
+
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) off = Session(programLoad: false);
+        Assert.True(off.GpuPipelines > 0 && off.Misses > 0, $"without the option: {off.GpuPipelines} pipelines and {off.Misses} shaders on the GPU thread");
+
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) on = Session(programLoad: true);
+        Assert.True(on.Built > 0, "no pipeline built at program load");
+        Assert.True(on.Aliases > 0, "no draw served by the module of its canonical hints");
+        Assert.Equal((0, 0, 0, 0), (on.GpuPipelines, on.Misses, on.ShaderWaits, on.PipelineWaits));
+    }
+
+    [SoftwareVulkanFact]
+    public void CancelledShaderCacheLoadLetsTheGameStartAndTheRestBuildsInTheBackground()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        string cache = Path.Combine(Path.GetTempPath(), "vitasharp-shadercache-load-" + Guid.NewGuid().ToString("N"));
         const string Title = "PCSA00080";
         try
         {
             void Session(bool cancelled)
             {
                 VulkanRenderer r = NewRenderer(cache);
-                WithRenderer("precompile-cancel", r, h =>
+                WithRenderer("shadercache-load-cancel", r, h =>
                 {
                     r.BeginTitle(Title);
                     using var cancel = new CancellationTokenSource();
@@ -455,7 +534,7 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                         cancel.Cancel();
                     }
 
-                    ((IGpuBackend)r).PrecompileBeforeStart(null, cancel.Token);
+                    ((IGpuBackend)r).LoadShaderCacheBeforeStart(null, cancel.Token);
                     var w = new RendererTextureTests.Workload(h);
                     w.Run(1);
                     h.Emu.Gpu.WaitIdle();

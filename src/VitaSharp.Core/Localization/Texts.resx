@@ -3153,22 +3153,22 @@
   <data name="FwUninstalled" xml:space="preserve">
     <value>Firmware uninstalled (removed: {0}).</value>
   </data>
-  <data name="PrecompileShaders" xml:space="preserve">
-    <value>Precompile shaders</value>
+  <data name="LoadShaderCache" xml:space="preserve">
+    <value>Load the shader cache before playing</value>
   </data>
-  <data name="PrecompileShadersDetail" xml:space="preserve">
-    <value>Before this game starts, builds the shaders and pipelines it used in earlier sessions</value>
+  <data name="LoadShaderCacheDetail" xml:space="preserve">
+    <value>Before this game starts, builds its shader cache: the shaders and pipelines it used in earlier sessions</value>
   </data>
-  <data name="PrecompileShadersGlobalDetail" xml:space="preserve">
-    <value>Before a game starts, builds the shaders and pipelines it used in earlier sessions (games can change it on their page)</value>
+  <data name="LoadShaderCacheGlobalDetail" xml:space="preserve">
+    <value>Before a game starts, builds its shader cache: the shaders and pipelines it used in earlier sessions (games can change it on their page)</value>
   </data>
-  <data name="PrecompileShadersTip" xml:space="preserve">
-    <value>On (default): when you start a game, its shaders and pipelines from earlier sessions are built first, with a progress bar (Cancel starts the game right away). Then the game does not stutter the first time it shows each effect again. The first session of a game has nothing recorded and starts at once; after a graphics driver update the wait can take a few seconds. Off: they build in the background while the game runs.</value>
+  <data name="LoadShaderCacheTip" xml:space="preserve">
+    <value>On (default): when you start a game, its shaders and pipelines from earlier sessions are built first, with a progress bar (Cancel starts the game right away). Then the game does not stutter when it shows again an effect it showed before. It is not a precompilation: the first session of a game has nothing in the cache and starts at once; after a graphics driver update the wait can take a few seconds. Off: they build in the background while the game runs.</value>
   </data>
-  <data name="PrecompileProgress" xml:space="preserve">
-    <value>Precompiling shaders: {0} of {1}</value>
+  <data name="ShaderCacheLoadStatus" xml:space="preserve">
+    <value>Loading the shader cache: {0} of {1}</value>
   </data>
-  <data name="PrecompileCancel" xml:space="preserve">
+  <data name="ShaderCacheLoadCancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="PrecompileCode" xml:space="preserve">
@@ -3180,7 +3180,10 @@
   <data name="PrecompileCodeTip" xml:space="preserve">
     <value>On (default): when you start a game, its ARM code is translated first, with a progress bar (Cancel starts the game right away): the code its earlier sessions ran (the code cache) and the code found by analysing the game&apos;s modules. Then the game compiles almost nothing while it runs, so it does not stutter the first time it reaches new code. Off: the code is compiled as the game reaches it.</value>
   </data>
-  <data name="PrecompileCodeProgress" xml:space="preserve">
+  <data name="PrecompileCodeStatus" xml:space="preserve">
     <value>Precompiling ARM code: {0} of {1}</value>
+  </data>
+  <data name="PrecompileCodeCancel" xml:space="preserve">
+    <value>Cancel</value>
   </data>
 </root>

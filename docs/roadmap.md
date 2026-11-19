@@ -164,8 +164,19 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   (não inteiro) e o retoma por 1; fila FIFO ou TH_PRIO; prazo tira da fila e o sinal vai ao próximo; delete devolve
   WAIT_DELETE_COND (WAIT_DELETE_LW_COND) sem retomar o mutex; erro na retomada vira WAIT_DELETE_MUTEX/CANCEL_MUTEX;
   SignalTo com 0 ou a própria thread é ILLEGAL_THREAD_ID antes do UID. Eram bugs, corrigidos no mesmo hash.
-  Faltam msgpipe (achado: não tem fila de espera de envio nem de recepção, quem acorda primeiro no host leva os dados;
-  estudar a fila do threadmgr e os atributos TH_PRIO de envio/recepção), eventos e callbacks.
+  Msgpipe coberto (18/11/2026, sync4, test/sync4, `MsgPipeInterleavingTests`, conferido no threadmgr 3.74: envio
+  0x81013DFC, recepção 0x8101456C, Try 0x810165E8 / 0x81016D30, cancel 0x8101738C e os tratadores de espera da
+  classe 0x81013964 / 0x81013C30): uma fila só, de remetentes ou de receptores, FIFO ou por prioridade com TH_PRIO_S
+  (0x1) / TH_PRIO_R (0x2); o envio entrega os bytes aos receptores em espera dentro da chamada, na ordem da fila (o
+  FULL fica na cabeça até completar), e põe o resto no buffer (ASAP o que cabe, FULL tudo ou nada); a recepção pega o
+  buffer e depois os bytes dos remetentes em espera, cada resto indo para o buffer, até o primeiro que fica; ninguém
+  passa na frente de um da sua espécie nem de uma cabeça parcialmente servida; a contagem é escrita a cada passo
+  (erro depois de mover parte devolve essa parte; erro antes de mover não escreve nada); prazo em tempo de guest
+  tira da fila e deixa entrar os remetentes de trás; cancel esvazia o buffer; DONT_WAIT é um waiter na prioridade de
+  quem chamou; DONT_REMOVE (0x100) espia; os Try recusam outros bits de modo (ILLEGAL_MODE); lista de buffers maior
+  que o pipe é ILLEGAL_SIZE também na recepção; a fila e o buffer entram no save state (estados antigos carregam
+  com fila vazia). Eram bugs (sem fila: quem acordava primeiro no host levava os dados), corrigidos no mesmo hash.
+  Faltam eventos e callbacks.
 - [ ] [P3][G] **Contratos do escalonador e do ritmo da CPU:** quem roda primeiro por prioridade e afinidade, quanto tempo de
   guest passa por chamada HLE e por espera, o que acorda quem; uma mudança de desempenho que altere a ordem entre
   threads quebra um teste.
@@ -250,12 +261,17 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Save states
 
-- [ ] [P1][M] Save state recusado com plugins de kernel ativos (relato do usuário, 18/11/2026): com "Ativar Plugins
-  do Kernel" ligado (ex.: nopsmdrm/kubridge no ur0:tai/config.txt), salvar dá `module kernel PluginFramework: its state
-  is not supported by save states yet` (SaveStates.cs:380). Falta o estado do PluginFramework (hooks instalados por
-  processo, plugins carregados e a ordem, o processo de kernel compartilhado, a memória e as threads dos plugins) entrar
-  no save state e voltar no load como num Vita (os hooks reinstalados nas mesmas funções), com teste de ida e volta com
-  um plugin de teste (SceModuleBuilder) que instala um hook
+- [x] (18/11/2026, fix/ss1, correção feita, ainda não confirmada no jogo do relato) [P1][M] Save state recusado com
+  plugins de kernel ativos: com "Ativar Plugins do Kernel" ligado, salvar dava `module kernel PluginFramework: its state
+  is not supported by save states yet`. Feito: o PluginFramework tem snapshot (os hooks e as injeções de dados por UID,
+  de cada processo e do processo de kernel); os registros (processo, endereço, bytes originais, thunk, trampolim,
+  registros de referência, função HLE redirecionada) entram na tabela de objetos do kernel (`pluginhook`,
+  `plugininject`); no load os stubs de importação de uma função HLE com hook voltam para o thunk (também os ligados
+  depois do load) e os de um hook feito só depois do save voltam para a função, sem recarregar plugin nenhum (módulos,
+  threads e memória dos plugins já eram do estado); o cache de código do processo de kernel também é limpo no load; a
+  thread salva dentro de um handler de exceção do SceExcpmgr guarda modo, registros banqueados, SPSR, registros de
+  falha e as pilhas de exceção. Testes: `SaveStatePluginTests` (hook de export + injeção, stub do jogo numa função HLE
+  com hook nos dois sentidos, handlers de exceção do kernel, thread em modo abort).
 - [x] Cascas dos módulos de firmware em HLE (FirmwareKernelModules, rr3c) ocupam o tamanho real do código dos módulos de
   kernel (~20 MB de memória de kernel do guest preenchidos com a armadilha 0xE7FDDEFE), que ia inteiro para cada save
   state. Feito (fix/bug6-shells, 16/11/2026): uma página que é uma só palavra de 32 bits repetida (a armadilha, um
@@ -461,6 +477,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   opostas da CPU, trocadas na segunda rodada; boot turbo de 3000 quadros): working set no fim 520/526 → 440/437 MB.
   O fps não piorou: o último trecho ficou em 181/117 fps antes e 368/329 depois, mas a máquina estava carregada e
   a variação é grande. O JIT parado por 14-65 s no boot apareceu nas duas builds (carga da máquina, não a mudança).
+  Feito no launcher (mem3, 18/11/2026; `ui-render --mem`, 63 títulos, mesma sessão, antes → depois, working set):
+  Biblioteca 368 → 171 MB (heap do .NET 176 → 22 MB, GC comprometido 232 → 36 MB), página do jogo 388 → 175 MB,
+  troféus 388 → 187 MB, jogo rodando 433 → 243 MB, depois de fechar o jogo 629 → 232 MB (GC comprometido
+  457 → 62 MB). Como: os conjuntos de troféus do launcher guardam só os textos (SFM) e leem o ícone do TRP quando a
+  página o mostra (`TrophyPackage.LoadTexts`; antes eram as TROPHY.TRP inteiras de todos os jogos, 166 MB de
+  `byte[]`); o Refresh não relê os TRP que não mudaram (`TrophyTextsCache`, por arquivo + tamanho + data); depois de
+  fechar um jogo, uma coleta compactadora agressiva devolve ao sistema o que o RetainVM guardaria (só nesse ponto; o
+  RetainVM continua no processo do jogo, que não mudou). Save state: as páginas zero de um bloco restaurado saem por
+  decommit + commit, sem ficarem residentes (`GuestMemoryCommitTests.Restoring*`); na CDRAM do Windows (visão
+  compartilhada) elas ainda são zeradas à mão, como num bloco novo.
   Ainda dá para cortar (estimativas):
   - CDRAM compartilhada (até ~50-100 MB): ela ainda é zerada à mão, porque um bloco liberado ali só é descartado
     (MEM_RESET). Com um mapa das páginas já usadas, só as reusadas seriam zeradas; o resto da seção (SEC_RESERVE) já
@@ -636,28 +662,31 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   e, se ganhar lá, subir o padrão (o Dolphin usa todos os núcleos menos 3)
 - [ ] [P2][G] Engasgos de shader na primeira vez que se joga (plano escolhido): o custo é o driver montar cada pipeline
   (~80 ms por pipeline na GTX 1650; traduzir os shaders do Vita custa no máximo ~116 ms por sessão), e na segunda
-  sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Três frentes:
-  (1) opção do emulador "Precompilar shaders", como no RPCS3: antes de iniciar o jogo, com tela de progresso, achar
-  os shaders GXP nos arquivos do jogo (na instalação ou no primeiro boot), traduzir, criar os módulos de shader e
-  pré-aquecer os pipelines conhecidos; decidir se vem ligada por padrão; (2) menos variantes de pipeline com estado
+  sessão o pré-aquecimento pela lista de pipelines já leva o Killzone de 62 para 16 quadros lentos. Frentes:
+  (1) opção do emulador "Carregar o cache de shaders antes de jogar", como o carregamento do cache no boot do RPCS3 e
+  do Ryujinx: antes de iniciar o jogo, com tela de progresso, montar o que as sessões anteriores gravaram (é o cache,
+  não uma pré-compilação: a 1ª sessão não tem nada gravado); (2) menos variantes de pipeline com estado
   dinâmico (`VK_EXT_extended_dynamic_state` 2/3, como Ryujinx e yuzu), onde o driver tiver as extensões, mantendo o
   caminho atual onde o suporte for parcial (Mali); (3) mais threads de compilação quando a CPU tiver folga (hoje 2
   workers). Pular o desenho até o pipeline ficar pronto não entra como padrão (não é 1:1 com o console).
-  Andamento da frente (1) (feat/pre1, 18/11/2026; o usuário confirma): opção "Precompilar shaders" (global, ligada
-  por padrão, e por jogo; `--precompile-shaders`): antes do boot o jogo espera a reconstrução e o prewarm do que as
+  Andamento da frente (1) (feat/pre1, 18/11/2026; o usuário confirma): opção "Carregar o cache de shaders antes de
+  jogar" (global, ligada por padrão, e por jogo; `--load-shader-cache`, o nome antigo `--precompile-shaders` ainda
+  vale com aviso; a chave antiga do launcher.json é migrada; feat/uber1): antes do boot o jogo espera a reconstrução e o prewarm do que as
   sessões anteriores gravaram (programs.pack, pipelines.list), com barra de progresso e "Cancelar" na barra de status do
-  launcher (`VulkanRenderer.Precompile.cs`, teste `RendererPathsTests.PrecompileBuildsTheRecordedPipelinesBeforeTheFirstFrame`).
-  Traduzir só os GXP achados nos arquivos do jogo não basta e ficou de fora: a varredura (`GxpScanner`) acha 2 dos 88
+  launcher (`VulkanRenderer.ShaderCacheLoad.cs`, teste
+  `RendererPathsTests.ShaderCacheLoadBuildsTheRecordedPipelinesBeforeTheFirstFrame`).
+  Pré-compilar de verdade (traduzir antes do 1º uso os GXP achados nos arquivos do jogo) não basta e ficou de fora
+  (a varredura `GxpScanner` só serve à ferramenta `shadertest`): ela acha 2 dos 88
   programas que o PCSE00269 usa e 10 dos 1.758 do Killzone (o resto está em arquivos comprimidos; 1,3 s e 4,0 s), e só
   7-13% das variantes de shader gravadas (12.826 receitas de 67 títulos) dão para prever só pelo programa: os hints
   são estado do draw (formatos de textura, formato dos atributos de vértice, cor da superfície). Falta: medir em
   gameplay (Killzone, 2ª sessão, cache do driver frio e quente) os quadros lentos com/sem e o tempo da espera; Android
-  (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --precompile-shaders=on`,
+  (opção e tela de progresso no app). Medido no replay do dump PCSA00029 (`replay-gpu --load-shader-cache=on`,
   cache do driver quente, A/B 2x): espera de 130-249 ms para 20 pipelines e o mesmo 1 quadro >= 4 ms com e sem, porque
   os 8 pipelines do passe de fetch (`InputPass`) não entram no pipelines.list e são montados no thread da GPU em toda
   sessão. Feito (feat/pre2, 18/11/2026): os pipelines do passe de fetch e do anexo tile-word entram no pipelines.list
   (bits livres do byte de flags do `PipelineRecipe`, sem trocar a versão: os registros antigos mantêm bytes e chaves)
-  e o prewarm/precompile os monta; teste `RendererPathsTests.SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread`.
+  e o prewarm/carregamento do cache os monta; teste `RendererPathsTests.SecondSessionBuildsNoFetchPassPipelineOnTheGpuThread`.
   Replay do PCSA00029, 2ª sessão: pipelines no thread da GPU 8 → 0, quadros >= 4 ms de espera 1 → 0 (20 → 28
   pipelines pré-aquecidos, 39-61 ms). Conferidas as outras famílias: clear, blit, resolve e cópias são comandos (sem
   pipeline); não há compute de conversão de textura (o único compute é o do `VITASHARP_DEBUG_NAN`). Ficam fora da
@@ -665,6 +694,54 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   shell): conjunto pequeno por formato/layout, montado na primeira vez no thread da GPU com GLSL próprio e sem entrar
   na contagem "compiled on the GPU thread"; próximo passo, se aparecerem nos quadros lentos: contá-los e montá-los no
   início da sessão
+  Frente (4), a 1ª sessão: compilar shaders ao carregar o programa (feat/uber1, 18/11/2026). Desenho, com os números
+  medidos (`docs/notes/pipeline-skip.md`): o engasgo da 1ª vez é o driver montando cada pipeline (60-90 ms na GTX
+  1650) e quase todo pipeline novo é um par de shaders novo (Injustice 115 pipelines / 105 pares, Killzone 552 / 533).
+  Por isso tornar estado dinâmico (`VK_EXT_extended_dynamic_state3` para blend/máscara, `vertex_input_dynamic_state`
+  para o layout, como Ryujinx e yuzu) só tira as variantes de um par que já existe: 5-9% dos pipelines; fica para
+  depois, onde a extensão existir (Mali/Adreno sem ela: o caminho atual). O "ubershader" do Dolphin interpreta o
+  estado do TEV, que no GameCube é o próprio shader; no Vita o equivalente é o programa USSE, então um ubershader de
+  verdade seria um interpretador de USSE em SPIR-V (banco de registradores num array, decodificação e `switch` por
+  instrução, amostragem por formato em tempo de execução): semanas de trabalho, e custo de GPU alto (vários x por
+  pixel no desktop, inviável no Mali); fica como opção futura só se a alavanca abaixo não bastar. A alavanca grande
+  é o momento: o jogo cria os programas (`sceGxmShaderPatcherCreateVertexProgram`/`CreateFragmentProgram`)
+  normalmente na tela de carregamento, muito antes do 1º draw, e essas chamadas já fixam quase tudo: formatos e
+  streams dos atributos, formato do registrador de saída, MSAA, blend e o programa de vértice do par (6º argumento de
+  `CreateFragmentProgram`). O que falta é previsto: texturas pela classe (o tradutor só lê tipo e número de
+  componentes: U8x4, BC1-3, ETC1, PVRTC e P8 dão o mesmo shader; `ShaderHints.CanonicalKey`), a superfície da última
+  cena (antes da 1ª: U8U8U8U8 sem MSAA), triângulos preenchidos. Parte 1 (feita): opção "compilar shaders ao
+  carregar o programa" (`--compile-on-program-load`, `VITASHARP_COMPILE_ON_PROGRAM_LOAD`, ligada por padrão: só
+  usa os workers durante o carregamento, e um palpite errado só monta um módulo/pipeline que ninguém usa), que na
+  criação do programa traduz, compila e monta o pipeline do par nos workers (`VulkanRenderer.ProgramLoad.cs`); um draw
+  com formatos exatos diferentes do previsto mas com o mesmo shader usa o módulo previsto (e por isso o mesmo
+  pipeline). Teste `RendererPathsTests.FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing` (1ª sessão:
+  0 shaders e 0 pipelines montados ou esperados no thread da GPU; sem a opção ele monta tudo) e
+  `CanonicalHintsTests` (formatos de mesma chave canônica traduzem igual, conferido no gerador para todos os
+  formatos). Medido no replay do dump PCSA00029 com caches frios (shader cache novo e cache do driver NVIDIA novo
+  por execução, `replay-gpu --async-shaders=on [--compile-on-program-load=on]`, 2x alternado, CPU dividida com
+  outros agentes): pipelines no thread da GPU 19 → 17 (643 ms → 292-326 ms; a 1ª execução sem a opção, 8.234 ms,
+  inclui o aquecimento), pior quadro 689 → 349-388 ms, quadros >= 4 ms de espera 1 → 1 (o 1º quadro do dump); 41
+  shaders e 33 pipelines montados na criação (23 usados), 2 draws servidos pela chave canônica; fps do replay
+  (rápido, inclui as compilações) 10,2 → 11,4 (a 1ª de cada: 2,5 e 24,0, ruído da máquina). Os 17 que sobram são
+  8 do passe de fetch e 9 de integer view: dependem da superfície em que o programa desenha (formato de 32/64 bits,
+  cena de uma amostra com blending programável), que a criação do programa não diz. Parte 2 (feita): as superfícies
+  que o jogo dá a conhecer (`sceGxmColorSurfaceInit`, os modos MSAA de `sceGxmCreateRenderTarget`, cada `BeginScene`
+  visto pelo prefetch; no replay, as cenas do dump) entram numa lista, e cada programa de fragmento que depende da
+  superfície (lê a cor: passe de fetch/input attachment; cor nativa ou saída inteira: integer view) é montado para
+  cada superfície conhecida, com essas variantes, nos workers; uma superfície nova monta as combinações com os
+  programas já criados antes dos seus draws. Replay frio do PCSA00029 (2x alternado, máquina dividida): pipelines no
+  thread da GPU 19 → 8 (440-457 ms → 15-28 ms numa máquina livre; 357 ms numa execução com a CPU cheia), pior
+  quadro 490-513 → 18-74 ms, quadros >= 50 ms 1 → 0 (0-1 com a CPU cheia), fps do replay 25,4/30,5 → 31,4/31,6.
+  Custo: 131 shaders e 189 pipelines montados na criação (173 prontos) para 19 usados, 2,2-3,4 s de workers na
+  "tela de carregamento" com o cache do driver frio. Os 8 que sobram são do passe de fetch, numa superfície F16x4 (provavelmente programas que amostram
+  o próprio G-buffer F16 como textura: classe de textura F16, não a U8x4 prevista), 2 deles com a escrita de cor
+  desligada (máscara 0); próximo passo: prever a classe das texturas pelas superfícies conhecidas (a superfície
+  como textura) para esses programas; tentado (todas as unidades na classe da superfície F16x4/F32): 264 pipelines
+  em vez de 189 e os mesmos 8, ficou de fora. Memória: pico de memória privada do processo +35-45 MB (961-964 →
+  999-1.006 MB) e working set +26-37 MB com 242 pipelines e 182 shaders montados na criação (~0,1 MB por objeto); num jogo com muitos
+  programas (Killzone: ~670 shaders) a lista de superfícies × programas pede um teto (por exemplo só as superfícies
+  dos últimos N BeginScene, e um limite de pipelines por carregamento). Próximas partes: (3) estado dinâmico EDS3/vertex input onde houver; (4) Android: medir no
+  Killzone o tempo de carregamento a mais e a queda de pipelines no thread da GPU
 - [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.
@@ -2983,6 +3060,27 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   KernelHleTests.SmallAtomicsUseTheWholeOperandRegisters); DecIfPositive8/16 com >= 0 é o que o firmware faz
   (LDREXB + CMP #0x80). Descartado com medida: lockstep contra o Unicorn (VITASHARP_LOCKSTEP=ALL, --cores=1), 0
   divergências até o Unicorn cair. Falta: o usuário confirmar o jogo até o menu/gameplay
+  Andamento (18/11/2026, ac3g; correção feita, falta a confirmação do usuário): o jogo chega ao gameplay, mas a
+  cena 3D saía com cores erradas (ciano/turquesa e amarelo saturados, com ruído; o HUD certo) e 17-22 fps. Causa
+  (replay do `gpu.vsgd` da captura de gameplay, present 5165): o G-buffer 704x576 F32F32 (0x6078C000) é escrito por
+  programas native-colour criados com HALF4 que empacotam o albedo RGBA8 em o0.x e a normal S8 em o0.y; a passada
+  de luz lê a superfície como U8U8U8U8 em +0 e S8S8S8S8 em +4. O gerador escrevia só os bytes de o0.x convertidos
+  para float (R=byte0/255, G=byte1/255; a normal perdida) e os programas de decal com framebuffer fetch liam o pixel
+  como quatro halves. Correção (genérica, superfícies de canais float de 32 bits): quando o formato do registrador
+  de saída tem o tamanho do pixel (HALF4/FLOAT2 em F32F32; UCHAR4/CHAR4/USHORT2/SHORT2/HALF2/FLOAT em F32), as
+  palavras do registrador vão cruas pela view inteira e o fetch devolve as palavras como estão; gerador v29 (testes
+  NativeColorOutputTests). Falta: os decals do chão (canteiros, manchas) ainda saem como ruído azul/verde no replay;
+  vêm do programa com framebuffer fetch fs E75AC07A68CC79A1 (zerá-lo com `--debug-fs` some com as manchas), que
+  mistura bytes do albedo lido do pixel (SOP2); suspeita: a cópia do fetch é lida por um sampler float
+  (R32G32Sfloat), que pode zerar denormais/alterar NaN das palavras empacotadas; próximo passo é ler a cópia por uma
+  view inteira (R32G32Uint, usampler) quando o programa usa as palavras cruas. Depois, o usuário confirmar as cores
+  no jogo. Desempenho (não mexido): na captura, GPU
+  ~14 ms por quadro contra ~52 ms de quadro do guest, com TaskThread1-3 e a `main` ocupadas: o gargalo é a CPU do
+  guest, não a GPU
+  Andamento (18/11/2026, ac3d, 13a350d8; correção feita, falta o usuário confirmar): as manchas dos decals vinham de
+  um cache de shader v29 gravado antes da mudança do fetch (sem novo bump): gerador v30, e o fetch de palavras cruas
+  lê a cópia por uma imagem inteira (R32G32Uint/usampler2D). O fps de 17-22 das capturas é custo do próprio F8
+  (gravador de GPU dump 36,7 ms/quadro + compressão 93,9 ms/quadro); fora da gravação a mesma cena roda a ~30 fps
 - [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
@@ -3487,6 +3585,15 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   `MsgPipeWithoutABufferSenderTimeoutLeavesNothingBehind` (falham sem a correção). Correção feita, ainda não validada
   com jogo. Fica de fora: a entrega direta a um receptor que espera num pipe COM buffer (o firmware copia para ele
   antes do buffer; aqui passa pelo buffer, sem diferença de resultado conhecida).
+  Revisto e desfeito (18/11/2026, sync4, test/sync4): o pipe de tamanho 0 não existe no console. Toda rota de criação
+  (sceKernelCreateMsgPipe 0x0A10C1C8 / WithLR 0xD7E10BB1 da SceLibKernel → syscall 0x2AAC8BFD @0x8102AC28 → 0x8102DA88;
+  ksceKernelCreateMsgPipe @0x81016200) passa por 0x81015D10, que em 0x81015DA8-0x81015DB6 calcula (size + 0xFFF) >> 12
+  e desvia para 0x81015E62 (ILLEGAL_SIZE, 0x8002000B) quando dá 0, antes de alocar; nenhum atributo ou opt muda isso
+  (conferido na disassembly). A leitura anterior pegou o "cap == 0 ||" da checagem final do envio (0x81013DFC), que
+  nunca é alcançado: a checagem por entrada do vetor já recusa qualquer entrada maior que o buffer. Agora a criação
+  com tamanho 0 (ou que estoura 4 GB) é ILLEGAL_SIZE nas duas rotas
+  (`ThreadMgrHleTests.MsgPipeOfSizeZeroIsRefusedOnEveryCreateRoute`, TestGame `msgpipe0_create_refused`); o modo sem
+  buffer sai junto com a reescrita das filas.
 - [x] MsgPipe: DONT_WAIT (0x10) nas formas bloqueantes (sceKernelSendMsgPipe/ReceiveMsgPipe e Vector) não é "falhar em
   vez de esperar" no firmware: o threadmgr copia o vetor, enfileira o pedido para os threads "SceKernelMsgPipeAsync"
   (até 0x100 pedidos por processo, depois 0x80028225) e volta na hora; o envio/recebimento acontece depois nesse thread

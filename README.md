@@ -1,4 +1,4 @@
-<!-- pair: README.pt-BR.md sha256=493f392320dc271264b18449d0d11007d23da1f89141a99e96799c36db564848 -->
+<!-- pair: README.pt-BR.md sha256=e8288c58895f953eb61c4e70df455f9dd10b271457c0b65eed01e0744506ade8 -->
 <div align="center">
 
 **English** | [Português](README.pt-BR.md)
@@ -391,24 +391,37 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   Dozen, phone drivers) pipelines are compiled whole either way. The
   `[shadercache] session` log line counts what the GPU thread compiled; see
   [`docs/notes/pipeline-skip.md`](docs/notes/pipeline-skip.md).
-- "Precompilar shaders" (launcher: Configurações, next to "Compilar shaders em segundo plano", and each game's page; `--precompile-shaders=on|off`, default on):
-  before a game starts, the shaders and pipelines recorded in its earlier sessions (`shadercache/titles/<ID>/`) are
-  built behind a progress bar in the launcher's status bar; "Cancelar" (the line `cancel-precompile` on the game
-  process's standard input) starts the game at once and the rest builds in the background. Nothing extra to install,
-  same on Windows, Linux and macOS.
-- "Precompilar código ARM" (launcher: Configurações, next to "Precompilar shaders"; `--precompile-code=on|off`,
-  default on): before a game starts, the native JIT translates, on every free core and behind the same progress bar
-  and "Cancelar", the ARM blocks its earlier sessions ran, in the order they first ran (the code cache:
-  `codecache/<module image hash>.vsjc` in the data folder, `--code-cache=<folder>|off`; one file per module image,
-  valid at any load address, rejected after a translator change), or in a first session the code the static analysis
-  reaches from the modules' entry points (module start, exports, following direct branches and call returns). The
-  game starts as soon as those are ready; then a few low-priority threads translate in the background the code near
-  what the game runs (a few blocks past every block it reaches, and the rest of its function, found through the
-  `.ARM.exidx` function index), at most 64 MB of the code arena. Precompiled code is published when the game first
-  reaches it. The log lines `ARM code precompilation: boot step ...` and, at the end, `... % of the run blocks were
-  precompiled` give the time and the coverage; `precompiled before start` in the CPU backend line is kept apart from
-  what the game compiled while it ran. Android runs the same translation entirely in the background (no wait yet).
-  Nothing extra to install.
+- "Carregar o cache de shaders antes de jogar" / "Load the shader cache before playing" (launcher: Configurações, next
+  to "Compilar shaders em segundo plano", and each game's page; `--load-shader-cache=on|off`, default on; the earlier
+  name `--precompile-shaders` is still accepted with a warning): before a game starts, its shader cache (the shaders
+  and pipelines recorded in its earlier sessions, `shadercache/titles/<ID>/`) is built behind a progress bar in the
+  launcher's status bar; "Cancelar" (the line `cancel-shader-cache-load` on the game process's standard input) starts
+  the game at once and the rest builds in the background. It is a cache load, not a precompilation: a game's first
+  session has nothing recorded. Nothing extra to install, same on Windows, Linux and macOS.
+- Compile shaders at program load ("compilar shaders ao carregar o programa"; `--compile-on-program-load=on|off`,
+  default on; `VITASHARP_COMPILE_ON_PROGRAM_LOAD=0|1` overrides it, also on Android): when a game creates a vertex or
+  fragment program (sceGxmShaderPatcherCreate*, usually behind its loading screen), the shader workers translate and
+  compile its shaders with the hints predicted from the program, and build the pipeline of the vertex program it is
+  made for, so a first session's first draw finds them ready. A draw whose texture or surface format differs from the
+  prediction but translates to the same shader uses the same module. The colour surfaces the game initialises and the
+  scenes it begins are remembered, and the programs that depend on the surface (programmable blending, native-colour
+  or integer outputs) are also built for each of them, with their fetch-pass and integer-view pipelines. The session's `[shadercache] session` line ends
+  with what was queued and used ("at program load: ..."); `replay-gpu --compile-on-program-load=on` announces the
+  dump's programs before its first command. Nothing extra to install, every OS.
+- "Precompilar código ARM" / "Precompile ARM code" (launcher: Configurações, after the shader cache option, and each
+  game's page; `--precompile-code=on|off`, default on): before a game starts, the native JIT translates its ARM code
+  on every free core, behind its own progress bar in the launcher's status bar ("Cancelar" = the line
+  `cancel-code-precompile` on the game process's standard input; log lines `[code-precompile] progress ...`): the
+  blocks its earlier sessions ran, in the order they first ran (the code cache: `codecache/<module image hash>.vsjc` in
+  the data folder, `--code-cache=<folder>|off`; one file per module image, valid at any load address, rejected after a
+  translator change), or in a first session the code the static analysis reaches from the modules' entry points
+  (module start, exports, direct branches and call returns). The game starts as soon as those are ready; then a few
+  low-priority threads translate the code near what the game runs (a few blocks past every block it reaches, and the
+  rest of its function, found through the `.ARM.exidx` function index), at most 64 MB of the code arena. Precompiled
+  code is published when the game first reaches it. The log lines `ARM code precompilation: boot step ...` and, at the
+  end, `... % of the run blocks were precompiled` give the time and the coverage. Android runs the same translation in
+  the background without waiting (the option is in the app's settings and each game's settings). Nothing extra to
+  install, every OS.
 - Profiling: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, every OS); on Windows also
   PerfView and WPR/WPA (Windows Performance Toolkit).
 

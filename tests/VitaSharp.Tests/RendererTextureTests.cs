@@ -72,9 +72,11 @@ public sealed class RendererTextureTests(GuestMemoryFixture fx)
             GuestMemory.Write(attr + 5, (byte)4); // x, y, z, w
             GuestMemory.Write(stream, (ushort)16);
             Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateVertexProgram", patcher, GuestMemory.R32(vid), attr, 1u, stream, 1u, new Ptr<uint>(vp)));
-            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(fid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fp)));
-            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(cid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fc)));
-            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(bid), 0u, 0u, 0u, GuestMemory.R32(vp), new Ptr<uint>(fb)));
+            // the vertex program argument is the SceGxmProgram the fragment program is made for (not the vertex program object)
+            uint vertexGxp = GuestMemory.R32(GuestMemory.R32(vid));
+            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(fid), 0u, 0u, 0u, vertexGxp, new Ptr<uint>(fp)));
+            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(cid), 0u, 0u, 0u, vertexGxp, new Ptr<uint>(fc)));
+            Assert.Equal(0, Call(_g, "sceGxmShaderPatcherCreateFragmentProgram", patcher, GuestMemory.R32(bid), 0u, 0u, 0u, vertexGxp, new Ptr<uint>(fb)));
             Vp = GuestMemory.R32(vp);
             Fp = GuestMemory.R32(fp);
             FpCube = GuestMemory.R32(fc);

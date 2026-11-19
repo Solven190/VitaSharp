@@ -27,10 +27,10 @@ public sealed class EmulatorOptions
     /// the system registry's /CONFIG/SYSTEM/language, for games without the system's language. The system software
     /// (programs from vs0:) keeps the system's. Null: the system's language.</summary>
     public int? SystemLanguage { get; init; }
-    /// <summary>The emulator option "Precompilar shaders": before the game starts, wait for the shaders and pipelines its
-    /// earlier sessions recorded (<see cref="Gpu.IGpuBackend.PrecompileBeforeStart"/>), with progress in the log
-    /// (<see cref="Gpu.ShaderPrecompile"/>). Off: they build in the background while the game runs.</summary>
-    public bool PrecompileShaders { get; init; }
+    /// <summary>The emulator option "Carregar o cache de shaders antes de jogar": before the game starts, wait for the
+    /// shaders and pipelines its earlier sessions recorded (its shader cache) (<see cref="Gpu.IGpuBackend.LoadShaderCacheBeforeStart"/>), with progress in the log
+    /// (<see cref="Gpu.ShaderCacheLoad"/>). Off: they build in the background while the game runs.</summary>
+    public bool LoadShaderCacheBeforeStart { get; init; }
     /// <summary>The emulator option "Precompilar código ARM": before a process starts, translate its modules' code on
     /// every free core (<see cref="CodeCache.PrecompilePending"/>): the blocks earlier sessions translated (the code
     /// cache in <see cref="CodeCacheDir"/>) and the code the static analysis finds from the modules' entry points. Off:
@@ -1080,9 +1080,9 @@ public sealed class Emulator : IDisposable
         try
         {
             Gpu.Backend?.BeginTitle(TitleId);
-            if (Options.PrecompileShaders)
+            if (Options.LoadShaderCacheBeforeStart)
             {
-                PrecompileShaders();
+                WaitForShaderCache();
             }
         }
         catch (Exception e)
@@ -1579,9 +1579,9 @@ public sealed class Emulator : IDisposable
         return GuestMemory.R32(pp + (uint)offset);
     }
 
-    /// <summary>"Precompilar shaders": waits for the title's recorded shaders and pipelines before the game starts, logging the
-    /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines for the launcher.</summary>
-    private void PrecompileShaders()
+    /// <summary>"Carregar o cache de shaders antes de jogar": waits for the title's recorded shaders and pipelines before the game starts, logging the
+    /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderCacheLoad"/> lines for the launcher.</summary>
+    private void WaitForShaderCache()
     {
         if (Gpu.Backend is not { } backend)
         {
@@ -1589,19 +1589,19 @@ public sealed class Emulator : IDisposable
         }
 
         long last = 0;
-        bool waited = backend.PrecompileBeforeStart(progress =>
+        bool waited = backend.LoadShaderCacheBeforeStart(progress =>
         {
             long now = Environment.TickCount64;
             if (progress.Finished || now - last >= 250)
             {
                 last = now;
-                Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(progress));
+                Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(progress));
             }
-        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token);
+        }, VitaSharp.Core.Gpu.ShaderCacheLoad.Token);
         // nothing to wait for, or cancelled: the launcher still gets the end of the wait
-        if (!waited || VitaSharp.Core.Gpu.ShaderPrecompile.Token.IsCancellationRequested)
+        if (!waited || VitaSharp.Core.Gpu.ShaderCacheLoad.Token.IsCancellationRequested)
         {
-            Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(0, 0, true)));
+            Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(new VitaSharp.Core.Gpu.ShaderCacheLoadProgress(0, 0, true)));
         }
     }
 
@@ -1611,7 +1611,7 @@ public sealed class Emulator : IDisposable
     /// <summary>The boot step of "Precompilar código ARM" (<see cref="EmulatorOptions.PrecompileCode"/>): before the
     /// process's first thread runs, the blocks its modules ran in earlier sessions (or, in a first session, the code the
     /// analysis reaches from their entry points) are translated, with progress in the log as
-    /// <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines of the code kind; the rest of the analysis goes on in the
+    /// <see cref="CodePrecompileLog"/> lines (its own launcher progress bar); the rest of the analysis goes on in the
     /// background. Without <see cref="EmulatorOptions.PrecompileCodeWaits"/> nothing is waited for; without the option,
     /// only the recorded blocks are translated, in the background.</summary>
     private void PrecompileCode()
@@ -1636,9 +1636,9 @@ public sealed class Emulator : IDisposable
             if (progress.Finished || now - last >= 250)
             {
                 last = now;
-                Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(progress.Done, progress.Total, progress.Finished, Code: true)));
+                Log.Info(CodePrecompileLog.Format(progress));
             }
-        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token, wait);
+        }, CodePrecompileLog.Token, wait);
         double seconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds;
         Log.Info($"ARM code precompilation: boot step {seconds:F1} s ({(wait ? "waited for " + (codeCache.CachedSeeds > 0 ? "the code cache" : "the code reached from the entry points") : "nothing waited for")}), "
             + $"{result.Translated} blocks translated of {result.Visited} visited ({codeCache.CachedSeeds} from the code cache, {result.Found} found by the static analysis)"

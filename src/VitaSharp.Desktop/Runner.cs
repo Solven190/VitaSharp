@@ -45,14 +45,29 @@ public static class Runner
         return null;
     }
 
-    /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
-    /// <summary>--precompile-shaders and --precompile-code (both default on, like the launcher); when either is on, a
-    /// background reader of standard input takes the launcher's <see cref="VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand"/>.</summary>
-    static (bool Shaders, bool Code) PrecompileOpts(string[] options)
+    /// <summary>--load-shader-cache=on|off, or its earlier name --precompile-shaders (accepted with a warning that names
+    /// the new one); null when absent.</summary>
+    internal static bool? LoadShaderCacheChoice(string[] options)
     {
-        bool shaders = OnOff(options, "--precompile-shaders") ?? true;
-        bool code = OnOff(options, "--precompile-code") ?? true;
-        if ((shaders || code) && Console.IsInputRedirected)
+        bool? choice = OnOff(options, VitaSharp.Core.Gpu.ShaderCacheLoad.Option);
+        if (choice == null && Opt(options, VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption) != null)
+        {
+            Log.Warn($"{VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption} is the earlier name of {VitaSharp.Core.Gpu.ShaderCacheLoad.Option} "
+                + "(it loads the shader cache of earlier sessions, it does not precompile): use the new name");
+            choice = OnOff(options, VitaSharp.Core.Gpu.ShaderCacheLoad.OldOption);
+        }
+
+        return choice;
+    }
+
+    /// <summary>--load-shader-cache and --precompile-code (both default on, like the launcher); when either is on, a
+    /// background reader of standard input takes the launcher's <see cref="VitaSharp.Core.Gpu.ShaderCacheLoad.CancelCommand"/>
+    /// and <see cref="VitaSharp.Core.Cpu.CodePrecompileLog.CancelCommand"/> (each stops its own wait).</summary>
+    static (bool ShaderCache, bool Code) BootWaitOpts(string[] options)
+    {
+        bool shaderCache = LoadShaderCacheChoice(options) ?? true;
+        bool code = OnOff(options, VitaSharp.Core.Cpu.CodePrecompileLog.Option) ?? true;
+        if ((shaderCache || code) && Console.IsInputRedirected)
         {
             var reader = new Thread(() =>
             {
@@ -60,9 +75,13 @@ public static class Runner
                 {
                     while (Console.In.ReadLine() is { } line)
                     {
-                        if (line.Trim() == VitaSharp.Core.Gpu.ShaderPrecompile.CancelCommand)
+                        if (line.Trim() == VitaSharp.Core.Gpu.ShaderCacheLoad.CancelCommand)
                         {
-                            VitaSharp.Core.Gpu.ShaderPrecompile.Cancel();
+                            VitaSharp.Core.Gpu.ShaderCacheLoad.Cancel();
+                        }
+                        else if (line.Trim() == VitaSharp.Core.Cpu.CodePrecompileLog.CancelCommand)
+                        {
+                            VitaSharp.Core.Cpu.CodePrecompileLog.Cancel();
                         }
                     }
                 }
@@ -72,15 +91,16 @@ public static class Runner
                 }
             })
             {
-                Name = "Precompile cancel",
+                Name = "Boot wait cancel",
                 IsBackground = true,
             };
             reader.Start();
         }
 
-        return (shaders, code);
+        return (shaderCache, code);
     }
 
+    /// <summary>--name=on|off (also 1/0, true/false, yes/no); null when absent or not recognised.</summary>
     internal static bool? OnOff(string[] options, string name)
     {
         var v = Opt(options, name);
@@ -317,7 +337,7 @@ public static class Runner
         Log.Info(VitaSharp.Core.Util.IoTiming.FastLoading ? "Storage: fast loading (no read speed limit)"
             : $"Storage: {VitaSharp.Core.Util.IoTiming.BytesPerSecond / 1e6:0.#} MB/s (the Vita memory card's speed is {VitaSharp.Core.Util.IoTiming.VitaBytesPerSecond / 1e6:0} MB/s)");
         // --cpu=native|il|interp selects the CPU backend (default: VITASHARP_CPU, else the best one the host supports)
-        (bool Shaders, bool Code) precompile = PrecompileOpts(options);
+        (bool ShaderCache, bool Code) bootWait = BootWaitOpts(options);
         using var emu = new Emulator(new EmulatorOptions
         {
             FsRoot = Program.FsRoot,
@@ -336,13 +356,15 @@ public static class Runner
             KernelPlugins = OnOff(options, "--kernel-plugins"),
             // --system-language=<0-19>: the launcher's "Idioma do sistema" per game (SceSystemParamLang the game reads)
             SystemLanguage = SystemLanguageOpt(options),
-            // --precompile-shaders=on|off: the launcher's "Precompilar shaders" (per game or the global default, on): the
-            // recorded shaders and pipelines are built before the game starts; "cancel-precompile" on standard input stops the wait
-            PrecompileShaders = precompile.Shaders,
-            // --precompile-code=on|off: the launcher's "Precompilar código ARM": the modules' code (the blocks earlier
-            // sessions translated and what the static analysis finds) is translated before the game starts
-            PrecompileCode = precompile.Code,
-            // --code-cache=<dir>|off: the code cache (the blocks each module had translated); default <data>/codecache
+            // --load-shader-cache=on|off: the launcher's "Carregar o cache de shaders antes de jogar" (per game or the global
+            // default, on): the recorded shaders and pipelines are built before the game starts; "cancel-shader-cache-load"
+            // on standard input stops the wait
+            LoadShaderCacheBeforeStart = bootWait.ShaderCache,
+            // --precompile-code=on|off: the launcher's "Precompilar código ARM": the modules' ARM code (the blocks earlier
+            // sessions ran, or the code reached from the entry points) is translated before the game starts;
+            // "cancel-code-precompile" on standard input stops the wait
+            PrecompileCode = bootWait.Code,
+            // --code-cache=<dir>|off: the code cache (the blocks each module ran); default <data>/codecache
             CodeCacheDir = Opt(options, "--code-cache") is { } codeCache ? (codeCache == "off" ? null : codeCache) : Path.Combine(Program.DataRoot, "codecache"),
         });
         var fatal = new ManualResetEventSlim();
@@ -358,6 +380,9 @@ public static class Runner
             ShaderOptimization = Opt(options, "--shaderc-opt"),
             AsyncShaders = OnOff(options, "--async-shaders") ?? true,
             AsyncPipelines = OnOff(options, "--async-pipelines") ?? true,
+            // --compile-on-program-load=on|off: shaders and pipelines compiled when the game creates its programs
+            // (VulkanRenderer.ProgramLoad.cs; default on, VITASHARP_COMPILE_ON_PROGRAM_LOAD overrides it)
+            CompileOnProgramLoad = OnOff(options, "--compile-on-program-load") ?? true,
             ShaderWorkers = int.TryParse(Opt(options, "--shader-workers"), out var shaderWorkers) && shaderWorkers > 0 ? shaderWorkers : 0,
             // --gpu-profile=adreno|mali|desktop: behave as that GPU class (test the mobile paths on a desktop GPU)
             GpuProfile = Opt(options, "--gpu-profile"),
