@@ -45,7 +45,7 @@ public sealed class TrophyPackageTextsTests : IDisposable
     public void TextsOnlyReadsTheSameSetAndKeepsNoIcons()
     {
         string trp = WriteTrp(_dir);
-        TrophyPackage full = TrophyPackage.Parse(File.ReadAllBytes(trp), "NPWR00001_00");
+        var full = TrophyPackage.Parse(File.ReadAllBytes(trp), "NPWR00001_00");
         TrophyPackage texts = TrophyPackage.LoadTexts(trp, "NPWR00001_00")!;
         Assert.Equal(full.Title, texts.Title);
         Assert.Equal(full.Detail, texts.Detail);
@@ -70,6 +70,39 @@ public sealed class TrophyPackageTextsTests : IDisposable
         File.WriteAllBytes(bad, NpLocalTests.BuildTrp(("ICON0.PNG", s_icon)));
         Assert.Null(TrophyPackage.LoadTexts(bad)); // no configuration
         Assert.Null(TrophyPackage.LoadTexts(Path.Combine(_dir, "missing.TRP")));
+    }
+
+    /// <summary>A refresh (F5, a game closed) builds every game's sets again: a TRP that did not change is not read
+    /// again, one that changed (the game was updated) is, each language is its own entry, and the recorded unlocks are
+    /// always read again (they change while a game runs).</summary>
+    [Fact]
+    public void ARefreshReadsOnlyTheTrophyFilesThatChanged()
+    {
+        string trp = WriteTrp(_dir);
+        var cache = new TrophyTextsCache();
+        TrophySetView first = Assert.Single(TrophySetView.ForGame(_dir, _dir, -1, cache));
+        Assert.Equal(0, first.UnlockedCount);
+
+        string unlocks = TrophyUnlocks.PathFor(_dir, "NPWR00001_00");
+        Directory.CreateDirectory(Path.GetDirectoryName(unlocks)!);
+        File.WriteAllText(unlocks, "{\"1\": 1234}");
+        TrophySetView again = Assert.Single(TrophySetView.ForGame(_dir, _dir, -1, cache));
+        Assert.Same(first.Package, again.Package);
+        Assert.Equal(1, again.UnlockedCount);
+
+        TrophySetView translated = Assert.Single(TrophySetView.ForGame(_dir, _dir, 17, cache));
+        Assert.Equal("Primeiro", translated.Package.Trophies[1].Name);
+        Assert.Equal("First", Assert.Single(TrophySetView.ForGame(_dir, _dir, -1, cache)).Package.Trophies[1].Name);
+
+        DateTime written = File.GetLastWriteTimeUtc(trp);
+        File.WriteAllBytes(trp, NpLocalTests.BuildTrp(("TROPCONF.SFM", NpLocalTests.Sfm("Conf", "x")), ("TROP.SFM", NpLocalTests.Sfm("Game", "Second"))));
+        File.SetLastWriteTimeUtc(trp, written.AddSeconds(10));
+        TrophySetView updated = Assert.Single(TrophySetView.ForGame(_dir, _dir, -1, cache));
+        Assert.NotSame(first.Package, updated.Package);
+        Assert.Equal("Second", updated.Package.Trophies[1].Name);
+
+        File.Delete(trp);
+        Assert.Empty(TrophySetView.ForGame(_dir, _dir, -1, cache));
     }
 
     /// <summary>What the launcher keeps per game: counts and texts, no icon bytes; the trophy page still gets them.</summary>

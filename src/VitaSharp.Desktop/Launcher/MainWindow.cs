@@ -514,14 +514,17 @@ public sealed partial class MainWindow : Window
 
     PlayRecord? PlayOf(string titleId) => _play.GetValueOrDefault(titleId);
 
-    /// <summary>Trophy sets per game folder (TROPHY.TRP + recorded unlocks), read once per refresh.</summary>
+    /// <summary>Trophy sets per game folder (TROPHY.TRP + recorded unlocks), built once per refresh; the TRP texts come
+    /// from <see cref="_trophyTexts"/> while the files are unchanged.</summary>
     readonly Dictionary<string, List<TrophySetView>> _trophies = new();
+
+    readonly TrophyTextsCache _trophyTexts = new();
 
     List<TrophySetView> TrophiesOf(GameEntry g)
     {
         if (!_trophies.TryGetValue(g.Path, out var sets))
         {
-            _trophies[g.Path] = sets = TrophySetView.ForGame(g.Path, Program.FsRoot, TrophySetView.VitaLanguage(System.Globalization.CultureInfo.CurrentUICulture));
+            _trophies[g.Path] = sets = TrophySetView.ForGame(g.Path, Program.FsRoot, TrophySetView.VitaLanguage(System.Globalization.CultureInfo.CurrentUICulture), _trophyTexts);
         }
 
         return sets;
@@ -741,6 +744,7 @@ public sealed partial class MainWindow : Window
         _shell?.SetRunning(null);
         p.Dispose();
         Refresh(); // trophies earned and time played
+        ReturnFreedMemory();
         SetStatus(code == 0 ? S.Closed(title ?? "") : S.StoppedWithCode(title ?? "", code));
         if (code != 0 && !_logPanel.IsVisible)
         {
@@ -748,6 +752,18 @@ public sealed partial class MainWindow : Window
         }
 
         EmulatorExited?.Invoke(code);
+    }
+
+    /// <summary>
+    /// After a game closed and the library was read again: one compacting collection that also gives the freed memory
+    /// back to the system. The runtime keeps freed GC memory for reuse (RetainVMGarbageCollection, for the per-frame
+    /// churn of the emulator process, which is this same executable), so the launcher, which idles in the background
+    /// for hours, kept what the refresh had used. Only here: a blocking full collection at a moment nothing is drawn.
+    /// </summary>
+    static void ReturnFreedMemory()
+    {
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
