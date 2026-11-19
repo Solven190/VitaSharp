@@ -137,12 +137,44 @@ public class NativeColorOutputTests
         // bytes: the fetch must give back o0.x/o0.y as the surface's words, not as four halves, and the blended words
         // go out raw too (the bushes/decals were blue-green noise)
         GeneratedShader gen = ShaderGenerator.Generate(Program(s_gbufferWords, GxpProgram.FlagFragColorUsed), new ShaderHints([], [], 0x11000000, false, 5));
-        string fetch = string.Join("\n", gen.Glsl.Split('\n').SkipWhile(l => !l.Contains("last_frag_tex, ivec2")).Take(6));
+        string fetch = string.Join("\n", gen.Glsl.Split('\n').SkipWhile(l => !l.Contains("last_frag_words, ivec2")).Take(6));
         Assert.DoesNotContain("packHalf2x16", fetch);
         Assert.Matches(@"o\[0\]\.x = t\d+\.x;", fetch);
         Assert.Matches(@"o\[0\]\.y = t\d+\.y;", fetch);
         Assert.Equal(32, gen.RawColorBits);
         Assert.Contains("out_raw = raw_words;", gen.Glsl);
+    }
+
+    [Theory]
+    [InlineData(0x11000000u, 5u)] // HALF4 on F32F32 (the decal programs)
+    [InlineData(0x11000000u, 7u)] // FLOAT2 on F32F32
+    [InlineData(0x10800000u, 1u)] // UCHAR4 on F32
+    [InlineData(0x10800000u, 8u)] // FLOAT on F32
+    public void FetchedRawWordsAreReadThroughAnIntegerImage(uint colorFormat, uint outputFormat)
+    {
+        // packed bytes are denormal/NaN float patterns (an RGBA8 albedo word with alpha 0 is a denormal): through the
+        // R32G32_SFLOAT copy a float texel fetch may flush or canonicalise them, and the decals of fs E75AC07A68CC79A1
+        // wrote the altered words back where their alpha test kept the pixel (blue/green noise on the ground). The
+        // single-sampled copy is an unsigned-integer image whose words become the registers' bits unchanged
+        GeneratedShader gen = ShaderGenerator.Generate(Program(s_gbufferWords, GxpProgram.FlagFragColorUsed), new ShaderHints([], [], colorFormat, false, outputFormat));
+        Assert.True(gen.FetchesRawWords);
+        Assert.Contains("layout(set = 3, binding = 0) uniform usampler2D last_frag_words;", gen.Glsl);
+        Assert.DoesNotContain("uniform sampler2D last_frag_tex;", gen.Glsl);
+        Assert.Contains("uintBitsToFloat(texelFetch(last_frag_words, ivec2(gl_FragCoord.xy), 0))", gen.Glsl);
+        Assert.Equal(32, gen.RawColorBits);
+    }
+
+    [Theory]
+    [InlineData(0x11000000u, 1u)] // UCHAR4 on F32F32: converted colour
+    [InlineData(0x00000000u, 5u)] // U8U8U8U8 surface
+    [InlineData(0x01000000u, 5u)] // F16F16F16F16 surface
+    [InlineData(0x11000000u, 0u)] // no explicit register format
+    public void ConvertedColourFetchKeepsTheFloatCopy(uint colorFormat, uint outputFormat)
+    {
+        GeneratedShader gen = ShaderGenerator.Generate(Program(s_gbufferWords, GxpProgram.FlagFragColorUsed), new ShaderHints([], [], colorFormat, false, outputFormat));
+        Assert.False(gen.FetchesRawWords);
+        Assert.Contains("layout(set = 3, binding = 0) uniform sampler2D last_frag_tex;", gen.Glsl);
+        Assert.DoesNotContain("last_frag_words", gen.Glsl);
     }
 
     [Theory]
