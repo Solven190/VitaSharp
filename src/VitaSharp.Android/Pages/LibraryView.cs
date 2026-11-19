@@ -23,6 +23,8 @@ public sealed class LibraryState
     /// <summary>"42% - 80 MB/s - 0:12 restantes" under the install bar.</summary>
     public string InstallDetail { get; set; } = "";
     public FirmwareStatus? Firmware { get; set; }
+    /// <summary>The game highlighted after another one left the list (the one that followed it), null otherwise.</summary>
+    public string? Focus { get; set; }
 }
 
 /// <summary>
@@ -36,9 +38,16 @@ public sealed class LibraryView : Screen<LibraryState>
     /// <summary>Set by another screen (Ajustes > Instalar jogo) before it switches to the library tab.</summary>
     public static bool InstallRequested;
 
+    /// <summary>A game was uninstalled (from its page): the library drops it in place, keeping where it was scrolled,
+    /// and highlights the game that followed it.</summary>
+    public static event Action<string>? Uninstalled;
+
+    public static void RaiseUninstalled(string titleId) => Uninstalled?.Invoke(titleId);
+
     protected override void OnMounted()
     {
         MainActivity.Resumed += Reload;
+        Uninstalled += OnUninstalled;
         Reload();
         base.OnMounted();
         if (InstallRequested)
@@ -51,7 +60,24 @@ public sealed class LibraryView : Screen<LibraryState>
     protected override void OnWillUnmount()
     {
         MainActivity.Resumed -= Reload;
+        Uninstalled -= OnUninstalled;
         base.OnWillUnmount();
+    }
+
+    /// <summary>The list as shown (search and filter applied).</summary>
+    IReadOnlyList<GameEntry> Shown() =>
+        GameLibrary.Query(State.Games, State.Search, State.Filter, g => AppServices.GameSettingsFor(g.TitleId));
+
+    void OnUninstalled(string titleId)
+    {
+        List<string> shownKeys = Shown().Select(g => g.TitleId).ToList();
+        (List<GameEntry> remaining, string? focus) = ListRemoval.Remove(State.Games, g => g.TitleId, shownKeys, [titleId]);
+        SetState(s =>
+        {
+            s.Games = remaining;
+            s.Trophies.Remove(titleId);
+            s.Focus = focus;
+        });
     }
 
     void Reload() => _ = Task.Run(() =>
@@ -71,7 +97,7 @@ public sealed class LibraryView : Screen<LibraryState>
 
     public override VisualNode Render()
     {
-        var shown = GameLibrary.Query(State.Games, State.Search, State.Filter, g => AppServices.GameSettingsFor(g.TitleId));
+        var shown = Shown();
         var last = State.Games.FirstOrDefault(g => g.TitleId == AppServices.Prefs.LastPlayed);
         return Grid("*", "*",
             VScrollView(
@@ -224,7 +250,7 @@ public sealed class LibraryView : Screen<LibraryState>
     {
         var t = State.Trophies.GetValueOrDefault(g.TitleId) ?? TrophyProgress.None;
         bool playable = g.Category.StartsWith("gd", StringComparison.OrdinalIgnoreCase);
-        return VStack(
+        var tile = VStack(
                 Grid("*", "*",
                     g.IconPath != null ? Image().Source(g.IconPath).Aspect(Aspect.AspectFill) : null,
                     Grid("Auto", "*,Auto",
@@ -237,7 +263,14 @@ public sealed class LibraryView : Screen<LibraryState>
                 Label(g.Title).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.TailTruncation),
                 Label(g.TitleId).FontSize(12).TextColor(Palette.Muted),
                 TrophyLine(t, Palette.Border)
-            ).Spacing(4)
+            ).Spacing(4);
+        if (g.TitleId != State.Focus)
+        {
+            return tile.OnTapped(() => OpenGame(g));
+        }
+
+        // the game that followed an uninstalled one: highlighted in its place, the list where it was scrolled
+        return Border(tile).Stroke(Palette.Accent).StrokeThickness(2).StrokeShape(new RoundRectangle().CornerRadius(14)).Padding(4)
             .OnTapped(() => OpenGame(g));
     }
 

@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using VitaSharp.Core.Package;
+using VitaSharp.Core.Util;
 using VitaSharp.Desktop.Launcher.Ui;
 using S = VitaSharp.Desktop.Launcher.Ui.Strings;
 
