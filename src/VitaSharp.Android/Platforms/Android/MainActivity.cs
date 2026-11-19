@@ -222,11 +222,8 @@ public sealed class MainActivity : MauiAppCompatActivity
             return;
         }
 
-        var kind = VitaSharp.Core.Input.ControllerClassifier.Classify(string.Empty, null);
-        string held = new VitaSharp.Core.Input.InputCombo(capture.Parts.ToArray()).Describe(kind);
-        _captureDialog.SetMessage(_captureMessage + "
-
-" + held);
+        string held = new VitaSharp.Core.Input.InputCombo(capture.Parts.ToArray()).Describe(capture.Kind);
+        _captureDialog.SetMessage(_captureMessage + "\n\n" + held);
     }
 
     public override bool DispatchKeyEvent(KeyEvent? e)

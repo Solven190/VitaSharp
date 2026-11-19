@@ -3,7 +3,9 @@ using Android.Views;
 using Android.Widget;
 using VitaSharp.Core.Gpu;
 using VitaSharp.Mobile.Core.Gpu;
+using Button = Android.Widget.Button;
 using Color = Android.Graphics.Color;
+using ProgressBar = Android.Widget.ProgressBar;
 
 namespace VitaSharp.Android.Game;
 

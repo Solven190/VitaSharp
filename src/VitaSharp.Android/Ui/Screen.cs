@@ -92,8 +92,8 @@ public abstract class Screen<TState, TProps> : Component<TState, TProps>
     }
 
     /// <summary>A row of chips that wraps to the next line on a narrow screen instead of running off it.</summary>
-    protected MauiReactor.FlexLayout ChipRow(params VisualNode?[] chips) =>
-        FlexLayout(chips.Select(c => c?.Margin(0, 0, 8, 8)).ToArray())
+    protected MauiReactor.FlexLayout ChipRow(params MauiReactor.Border[] chips) =>
+        FlexLayout(chips.Select(chip => (VisualNode)chip.Margin(0, 0, 8, 8)).ToArray())
             .Wrap(Microsoft.Maui.Layouts.FlexWrap.Wrap).Direction(Microsoft.Maui.Layouts.FlexDirection.Row);
 
     protected MauiReactor.Grid ToggleRow(string label, bool value, Action<bool> onChange, string? detail = null, bool enabled = true) =>
