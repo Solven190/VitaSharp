@@ -193,6 +193,7 @@ public sealed unsafe class CodeCacheTests(GuestMemoryFixture fixture) : IDisposa
             List<CodeCacheEntry>? recorded = CodeCacheFile.Read(_directory, 1, CodeCacheFile.ConfigurationKey);
             Assert.NotNull(recorded);
             Assert.Equal([0x00u, 0x20, 0x0C, 0x08, 0x14], recorded.Select(e => e.Offset));
+            codeCache.Stop();
         });
     }
 
@@ -279,6 +280,8 @@ public sealed unsafe class CodeCacheTests(GuestMemoryFixture fixture) : IDisposa
             Assert.True(Jit.WaitIdle(TimeSpan.FromSeconds(60)));
             Assert.Empty(Compiled(cache2));
             Assert.Equal(before, Translated(cache2));
+            codeCache1.Stop();
+            codeCache2.Stop();
 
             // another image (an updated module) finds nothing; a file of an older build is ignored
             var cache3 = new BlockCache();
@@ -291,6 +294,64 @@ public sealed unsafe class CodeCacheTests(GuestMemoryFixture fixture) : IDisposa
         });
     }
 
+    [Fact]
+    public void IndexFunctionsAreNotTranslatedWholesaleButTheFrontierFillsInWhatRuns()
+    {
+        if (!NativeHost)
+        {
+            return;
+        }
+
+        uint code = fixture.Memory.Alloc(0x1000, "codecache frontier");
+        GuestMemory.W32(code + 0x00, 0xE3A00000); // mov r0, #0
+        GuestMemory.W32(code + 0x04, 0xE1A00000); // nop (r2 = F, set by the caller: a function reached only through a register)
+        GuestMemory.W32(code + 0x08, 0xE12FFF32); // blx r2
+        GuestMemory.W32(code + 0x0C, 0xEF000002); // svc #2
+        GuestMemory.W32(code + 0x10, 0xE12FFF1E); // bx lr (never reached: ends the flow after the SVC)
+        GuestMemory.W32(code + 0x400, 0xE3500000); // F: cmp r0, #0
+        GuestMemory.W32(code + 0x404, 0x1A000001); //    bne rare
+        GuestMemory.W32(code + 0x408, 0xE2800005); //    add r0, r0, #5
+        GuestMemory.W32(code + 0x40C, 0xE12FFF1E); //    bx lr
+        GuestMemory.W32(code + 0x410, 0xE2800009); // rare: add r0, r0, #9 (never runs)
+        GuestMemory.W32(code + 0x414, 0xE12FFF1E); //    bx lr
+        GuestMemory.W32(code + 0x800, unchecked((uint)(0x400 - 0x800)) & 0x7FFFFFFF); // .ARM.exidx: F
+        GuestMemory.W32(code + 0x804, 1);
+        LoadedModule module = Module(code, 6);
+        module.Segments[0] = new SegmentInfo(code, 0x81000000, 0x1000);
+        module.SegmentFlags[0] = (5, 0x1000, 0x1000);
+        module.ExidxTop = code + 0x800;
+        module.ExidxEnd = code + 0x808;
+        WithNative(() =>
+        {
+            var cache = new BlockCache();
+            var codeCache = new CodeCache(null, cache);
+            codeCache.ModuleLoaded(module);
+            codeCache.PrecompilePending(null, CancellationToken.None, workers: 2);
+            CodePrecompiler run = Assert.Single(codeCache.Runs);
+            Assert.True(run.WaitFinished(TimeSpan.FromSeconds(60)));
+            HashSet<uint> boot = Translated(cache);
+            Assert.Contains(code, boot);
+            Assert.Contains(code + 0x0C, boot); // the return point after the call through the register
+            // the index only names F: its code is not translated before anything runs it
+            Assert.DoesNotContain(code + 0x400, boot);
+            Assert.DoesNotContain(code + 0x410, boot);
+
+            // F runs until the JIT compiles it: the frontier then translates the rest of F, the branch it never takes too
+            using var core = new CpuCore(cache);
+            core.State->R[2] = code + 0x400;
+            for (int i = 0; i < 2 * Jit.MinExecutions; i++)
+            {
+                Assert.Equal(5u, Run(core, code));
+            }
+
+            Assert.True(Jit.WaitIdle(TimeSpan.FromSeconds(60)));
+            Assert.True(run.WaitFinished(TimeSpan.FromSeconds(60)));
+            Block rare = cache.Get(code + 0x410, false);
+            Assert.True(rare.Ahead);
+            Assert.Equal(Jit.AheadPending, rare.JitState);
+            codeCache.Stop();
+        });
+    }
     [Fact]
     public void PrecompiledCodeThatTheGameRewritesIsDropped()
     {
@@ -316,6 +377,7 @@ public sealed unsafe class CodeCacheTests(GuestMemoryFixture fixture) : IDisposa
             Assert.True(func.Invalidated);
             using var core = new CpuCore(cache);
             Assert.Equal(700u, Run(core, code));
+            codeCache.Stop();
         });
     }
 

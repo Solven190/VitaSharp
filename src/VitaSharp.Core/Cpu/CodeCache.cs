@@ -158,6 +158,7 @@ public sealed class CodeCache
     private readonly List<ModuleRecord> _modules = [];
     private readonly List<(uint Pc, bool Thumb)> _pending = [];
     private readonly List<CodePrecompiler> _runs = [];
+    private CodePrecompiler[] _active = [];
     private bool _started;
     private bool _stopped;
 
@@ -178,6 +179,16 @@ public sealed class CodeCache
         _directory = directory;
         _code = code;
         _configurationKey = configurationKey ?? CodeCacheFile.ConfigurationKey;
+        code.FirstUse = OnFirstUse;
+    }
+
+    /// <summary>A block's compiled code ran for the first time: the runs widen their frontier around it.</summary>
+    private void OnFirstUse(Block block)
+    {
+        foreach (CodePrecompiler run in Volatile.Read(ref _active))
+        {
+            run.Expand(block);
+        }
     }
 
     /// <summary>Recorded blocks waiting for <see cref="PrecompilePending"/>.</summary>
@@ -313,27 +324,25 @@ public sealed class CodeCache
         }
 
         Func<uint, bool>? follow = null;
+        Func<uint, uint>? functionStart = null;
         if (Analyze && modules.Length > 0)
         {
-            foreach (LoadedModule module in modules)
+            uint[][] starts = new uint[modules.Length][];
+            for (int i = 0; i < modules.Length; i++)
             {
-                seeds.AddRange(CodePrecompiler.ModuleEntryPoints(module));
+                // the exception index only says where functions start (the frontier fills in the functions the game
+                // runs); the analysis itself starts from the module's entry points
+                seeds.AddRange(CodePrecompiler.ModuleEntryPoints(modules[i]).Where(e => e.Priority != CodePrecompiler.Priority.Index));
+                starts[i] = CodePrecompiler.FunctionStarts(modules[i]);
             }
 
-            follow = pc =>
+            follow = pc => Array.Exists(modules, module => CodePrecompiler.InCode(module, pc));
+            functionStart = pc =>
             {
-                foreach (LoadedModule module in modules)
-                {
-                    if (CodePrecompiler.InCode(module, pc))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                int i = Array.FindIndex(modules, module => CodePrecompiler.InCode(module, pc));
+                return i >= 0 ? CodePrecompiler.FunctionContaining(starts[i], pc) : 0;
             };
         }
-
         if (seeds.Count == 0)
         {
             return null;
@@ -347,11 +356,12 @@ public sealed class CodeCache
             }
         }
 
-        var run = CodePrecompiler.Run(_code, AddressSpace.Current, seeds, follow, waitFor, workers, progress, cancel);
+        var run = CodePrecompiler.Run(_code, AddressSpace.Current, seeds, follow, waitFor, workers, progress, cancel, functionStart);
         bool stopNow;
         lock (_lock)
         {
             _runs.Add(run);
+            Volatile.Write(ref _active, [.. _runs]);
             stopNow = _stopped;
         }
 
@@ -371,6 +381,12 @@ public sealed class CodeCache
         {
             _stopped = true;
             runs = [.. _runs];
+            Volatile.Write(ref _active, []);
+        }
+
+        if (_code.FirstUse == OnFirstUse)
+        {
+            _code.FirstUse = null;
         }
 
         foreach (CodePrecompiler run in runs)
@@ -494,7 +510,7 @@ public sealed class CodeCache
 
         double coverage = 100.0 * used / Math.Max(1, used + missed);
         return $"ARM code precompilation: {used} precompiled blocks ran, {missed} compiled while running ({coverage:F1}% of the run blocks were precompiled), "
-            + $"{unused} precompiled and not reached; while running: "
+            + $"{unused} precompiled and not reached, {Jit.AheadBytes / (1024.0 * 1024):F1} MB of precompiled code in the arena (budget {Jit.AheadBudget >> 20} MB); while running: "
             + string.Join(", ", byModule.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value}")) + "; samples: " + string.Join("; ", lines);
     }
 

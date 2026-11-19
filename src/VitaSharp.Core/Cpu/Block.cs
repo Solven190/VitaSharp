@@ -13,7 +13,7 @@ public sealed unsafe class Block
     /// <summary>Approximate hardware cost of the block (see <see cref="BlockBuilder.CycleCost"/>).</summary>
     public long Cycles;
     public int ExecCount;
-    public volatile int JitState; // 0 = interpreted, 1 = queued, 2 = compiled, 3 = no backend takes it
+    public volatile int JitState; // 0 = interpreted, 1 = queued, 2 = compiled, 3 = no backend takes it, 4 = translated ahead, not reached yet
     /// <summary>Index in <see cref="Jit.Chain"/> of the next backend to offer the block to.</summary>
     public int Tier;
     /// <summary>Executed instructions (ExecCount x length) at which the backend at <see cref="Tier"/> takes the block.</summary>
@@ -438,4 +438,8 @@ public sealed unsafe class BlockCache
 
     /// <summary>A snapshot of the cached blocks (<see cref="CodeCache"/> records the translated ones).</summary>
     public ICollection<Block> Blocks => _blocks.Values;
+
+    /// <summary>Called once per block when its compiled code is first used (<see cref="Jit.ActivateAhead"/>, or the JIT
+    /// compiled it because it got hot): the ARM code precompilation widens its frontier there.</summary>
+    public Action<Block>? FirstUse;
 }

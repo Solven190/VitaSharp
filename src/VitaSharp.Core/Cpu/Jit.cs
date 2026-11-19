@@ -209,18 +209,15 @@ public static unsafe class Jit
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic] sink, set per precompile worker")]
     [ThreadStatic] public static List<(uint Pc, bool Thumb)>? StaticExits;
 
-    /// <summary>Whether ahead-of-time translation may still use the native code arena: it keeps half of it for the
-    /// code the game compiles while it runs (a full arena would leave every later block interpreted).</summary>
-    public static bool ArenaHasRoomForAhead()
-    {
-        IBlockCompiler[] chain = Chain;
-        if (chain.Length == 0 || chain[0] is not (NativeX64Compiler or NativeArm64Compiler))
-        {
-            return true;
-        }
+    /// <summary>Native code bytes translated ahead of execution (<see cref="CompileAheadOne"/>).</summary>
+    public static long AheadBytes;
 
-        return Native.NativeRuntime.Instance.Code.Used < Native.ExecutableMemory.ReserveSize / 2;
-    }
+    /// <summary>The most native code the ahead-of-time translation may place in the arena (a quarter of it: the rest is
+    /// for the code the game compiles while it runs; a full arena would leave every later block interpreted).</summary>
+    public const long AheadBudget = Native.ExecutableMemory.ReserveSize / 4;
+
+    /// <summary>Whether ahead-of-time translation may still use the native code arena (<see cref="AheadBudget"/>).</summary>
+    public static bool ArenaHasRoomForAhead() => Volatile.Read(ref AheadBytes) < AheadBudget;
     /// <summary>Compiles a block that has not been queued yet with the first backend, on the calling thread; false when
     /// it is already queued or compiled, or no backend takes it.</summary>
     public static bool CompileAheadOne(Block b)
@@ -265,6 +262,7 @@ public static unsafe class Jit
         b.FirstUse = Interlocked.Increment(ref s_uses);
         b.NativeEntry = b.Code!.NativeEntry;
         Native.NativeRuntime.Instance.Publish(b);
+        b.Owner?.FirstUse?.Invoke(b);
     }
 
     /// <summary>Offers the block to the backend at its tier; on rejection it moves to the next tier.</summary>
@@ -318,6 +316,11 @@ public static unsafe class Jit
             b.Ahead = true;
             b.JitState = AheadPending;
             Interlocked.Increment(ref AheadBlocks);
+            if (cb.Tag is Backends.NativeCodeInfo info)
+            {
+                Interlocked.Add(ref AheadBytes, info.Size);
+            }
+
             return;
         }
 
@@ -329,7 +332,13 @@ public static unsafe class Jit
             return;
         }
 
-        b.FirstUse = Interlocked.Increment(ref s_uses);
+        if (b.FirstUse == 0)
+        {
+            // compiled because it got hot: it ran (a tier-up recompiles a block that already counted)
+            b.FirstUse = Interlocked.Increment(ref s_uses);
+            b.Owner?.FirstUse?.Invoke(b);
+        }
+
         Interlocked.Increment(ref backendStats.Blocks);
         Interlocked.Add(ref backendStats.Instructions, b.Insts.Length);
     }

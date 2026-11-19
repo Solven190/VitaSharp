@@ -10,26 +10,32 @@ namespace VitaSharp.Core.Cpu;
 /// reachable from them by static control flow (each block's static exits, and the return point after a call), which is
 /// how the precompilation finds code no earlier session ran (RPCS3's PPU analyser walks functions from the module's
 /// entry points the same way). Whatever the analysis misses, or reaches only through computed branches (jump tables,
-/// function pointers it was not given), the JIT compiles when the game gets there.
+/// function pointers), the JIT compiles when the game gets there.
 /// <para>
 /// Work comes in three priorities: <see cref="Priority.Cached"/> (blocks earlier sessions ran, in the order they first
-/// ran; their exits are analysis work), <see cref="Priority.Flow"/> (code reached from the modules' entry points; its
-/// exits stay at this priority) and <see cref="Priority.Index"/> (functions known only from the exception index, and
-/// what they reach). <see cref="Run"/> returns once the priorities up to the one it waits for are done; the rest goes on
-/// in the background on fewer threads, until done or <see cref="Stop"/>.
+/// ran), <see cref="Priority.Frontier"/> (code near what the game runs: the exits of executed or cached blocks and the
+/// rest of the functions they are in, a few blocks deep, <see cref="MaxFrontierDepth"/>) and <see cref="Priority.Flow"/>
+/// (everything reached from the modules' entry points). <see cref="Run"/> returns once the priorities up to the one it
+/// waits for are done; a few threads then stay in the background, translating the rest and the frontier the game opens
+/// as it runs (<see cref="Expand"/>), until <see cref="Stop"/>.
 /// </para>
 /// </summary>
 public sealed class CodePrecompiler
 {
-    /// <summary>Work priorities, most urgent first.</summary>
+    /// <summary>Work priorities, most urgent first; <see cref="Index"/> only classifies entry points (the exception
+    /// index names function starts; they are not translated wholesale).</summary>
     public enum Priority
     {
         Cached,
+        Frontier,
         Flow,
         Index,
     }
 
     private const int Levels = 3;
+
+    /// <summary>How many blocks away from executed code the frontier goes.</summary>
+    public const int MaxFrontierDepth = 6;
 
     /// <summary>Statistics so far.</summary>
     public readonly record struct Result(int Translated, int Visited, int Found, bool Cancelled, bool ArenaLimit);
@@ -37,32 +43,54 @@ public sealed class CodePrecompiler
     private readonly BlockCache _cache;
     private readonly AddressSpace? _space;
     private readonly Func<uint, bool>? _follow;
+    private readonly Func<uint, uint>? _functionStart;
     private readonly ConcurrentDictionary<ulong, byte> _seen = new();
-    private readonly ConcurrentQueue<(uint Pc, bool Thumb)>[] _queues = [new(), new(), new()];
-    private readonly int[] _outstanding = new int[Levels]; // queued or being translated, per priority
+    private readonly ConcurrentQueue<(uint Pc, bool Thumb, int Depth)>[] _queues = [new(), new(), new()];
+    private readonly ConcurrentQueue<Block> _executed = new();
+    private readonly int[] _outstanding = new int[Levels + 1]; // queued or being worked on, per priority (+ executed blocks)
+    private readonly SemaphoreSlim _work = new(0);
     private readonly CancellationTokenSource _stop = new();
     private int _known, _done, _translated, _found, _arenaLimit, _foreground;
 
     /// <summary>Background threads that keep translating after <see cref="Run"/> returns.</summary>
     public static int BackgroundWorkers => Math.Clamp(Environment.ProcessorCount / 4, 1, 3);
 
-    private CodePrecompiler(BlockCache cache, AddressSpace? space, Func<uint, bool>? follow)
+    private CodePrecompiler(BlockCache cache, AddressSpace? space, Func<uint, bool>? follow, Func<uint, uint>? functionStart)
     {
         _cache = cache;
         _space = space;
         _follow = follow;
+        _functionStart = functionStart;
     }
 
     public Result Statistics => new(Volatile.Read(ref _translated), Volatile.Read(ref _done), Volatile.Read(ref _found), _stop.IsCancellationRequested,
         Volatile.Read(ref _arenaLimit) != 0);
 
-    /// <summary>Whether every queue is empty and nothing is being translated.</summary>
-    public bool Finished => Volatile.Read(ref _outstanding[0]) + Volatile.Read(ref _outstanding[1]) + Volatile.Read(ref _outstanding[2]) == 0;
+    /// <summary>Whether every queue is empty and nothing is being worked on.</summary>
+    public bool Finished
+    {
+        get
+        {
+            for (int i = 0; i <= Levels; i++)
+            {
+                if (Volatile.Read(ref _outstanding[i]) != 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     /// <summary>Stops the background translation (process end); blocks already translated stay.</summary>
-    public void Stop() => _stop.Cancel();
+    public void Stop()
+    {
+        _stop.Cancel();
+        _work.Release(64);
+    }
 
-    private bool Add((uint Pc, bool Thumb) target, Priority priority)
+    private bool Add((uint Pc, bool Thumb) target, Priority priority, int depth = 0)
     {
         if (!_seen.TryAdd(target.Pc | (target.Thumb ? 1ul << 32 : 0), 0))
         {
@@ -71,8 +99,23 @@ public sealed class CodePrecompiler
 
         Interlocked.Increment(ref _outstanding[(int)priority]);
         Interlocked.Increment(ref _known);
-        _queues[(int)priority].Enqueue(target);
+        _queues[(int)priority].Enqueue((target.Pc, target.Thumb, depth));
+        _work.Release();
         return true;
+    }
+
+    /// <summary>The guest ran <paramref name="block"/> for the first time with compiled code (the JIT compiled it, or a
+    /// precompiled block was reached): the code around it joins the frontier.</summary>
+    public void Expand(Block block)
+    {
+        if (_follow == null || _stop.IsCancellationRequested)
+        {
+            return;
+        }
+
+        Interlocked.Increment(ref _outstanding[Levels]);
+        _executed.Enqueue(block);
+        _work.Release();
     }
 
     /// <summary>
@@ -80,16 +123,20 @@ public sealed class CodePrecompiler
     /// reachable from them whose start it accepts, in the space <paramref name="space"/>. Waits, on <paramref name="workers"/>
     /// threads (0: every core the process may use but one), until the work up to <paramref name="waitFor"/> is done (or
     /// <paramref name="cancel"/>), reporting (done, known so far) about every 100 ms on the calling thread; then
-    /// <see cref="BackgroundWorkers"/> of them keep going with the rest at a low priority (null <paramref name="waitFor"/>:
-    /// nothing is waited for). Returns the run, whose <see cref="Statistics"/> keep growing in the background.
+    /// <see cref="BackgroundWorkers"/> of them stay, at a low priority, for the rest and the frontier (null
+    /// <paramref name="waitFor"/>: nothing is waited for). <paramref name="functionStart"/> gives the start of the function
+    /// containing an address (0: unknown), for <see cref="Expand"/>.
     /// </summary>
     public static CodePrecompiler Run(BlockCache cache, AddressSpace? space, IEnumerable<((uint Pc, bool Thumb) Target, Priority Priority)> seeds,
-        Func<uint, bool>? follow, Priority? waitFor, int workers, Action<int, int>? progress, CancellationToken cancel, bool background = true)
+        Func<uint, bool>? follow, Priority? waitFor, int workers, Action<int, int>? progress, CancellationToken cancel, Func<uint, uint>? functionStart = null)
     {
-        var run = new CodePrecompiler(cache, space, follow);
+        var run = new CodePrecompiler(cache, space, follow, functionStart);
         foreach (((uint Pc, bool Thumb) target, Priority priority) in seeds)
         {
-            run.Add(target, priority);
+            if (priority != Priority.Index)
+            {
+                run.Add(target, priority);
+            }
         }
 
         if (workers <= 0)
@@ -97,9 +144,9 @@ public sealed class CodePrecompiler
             workers = Math.Max(1, Environment.ProcessorCount - 1);
         }
 
-        int keep = background ? Math.Min(workers, BackgroundWorkers) : 0;
+        int keep = Math.Min(workers, BackgroundWorkers);
         run._foreground = waitFor != null ? 1 : 0;
-        var threads = new Thread[waitFor != null ? workers : keep];
+        var threads = new Thread[waitFor != null ? Math.Max(workers, keep) : keep];
         for (int i = 0; i < threads.Length; i++)
         {
             bool stays = i < keep;
@@ -107,7 +154,7 @@ public sealed class CodePrecompiler
             {
                 IsBackground = true,
                 Name = $"JIT precompile {i}",
-                Priority = stays && waitFor == null ? ThreadPriority.BelowNormal : ThreadPriority.Normal,
+                Priority = waitFor == null ? ThreadPriority.BelowNormal : ThreadPriority.Normal,
             };
             threads[i].Start();
         }
@@ -122,11 +169,7 @@ public sealed class CodePrecompiler
             }
 
             Volatile.Write(ref run._foreground, 0);
-            if (keep == 0)
-            {
-                run.Stop();
-            }
-
+            run._work.Release(threads.Length); // the threads that do not stay notice and leave
             // the threads that stay go on at a low priority, beside the game
             for (int i = 0; i < keep; i++)
             {
@@ -136,7 +179,7 @@ public sealed class CodePrecompiler
                 }
                 catch (ThreadStateException)
                 {
-                    // it ended already (nothing left)
+                    // it ended already
                 }
             }
 
@@ -146,12 +189,12 @@ public sealed class CodePrecompiler
         return run;
     }
 
-    /// <summary>Waits until the background work is done (tests).</summary>
+    /// <summary>Waits until the queued work is done (tests).</summary>
     public bool WaitFinished(TimeSpan timeout) => SpinWait.SpinUntil(() => Finished || _stop.IsCancellationRequested, timeout);
 
     private bool DoneUpTo(Priority level)
     {
-        for (int i = 0; i <= (int)level; i++)
+        for (int i = 0; i <= (int)level && i < Levels; i++)
         {
             if (Volatile.Read(ref _outstanding[i]) != 0)
             {
@@ -162,70 +205,41 @@ public sealed class CodePrecompiler
         return true;
     }
 
-    private bool TryTake(out (uint Pc, bool Thumb) target, out int level)
-    {
-        for (level = 0; level < Levels; level++)
-        {
-            if (_queues[level].TryDequeue(out target))
-            {
-                return true;
-            }
-        }
-
-        target = default;
-        return false;
-    }
-
     private void Work(bool stays)
     {
         Util.NativeThread.Register("JIT precompile", Util.NativeThread.Role.JitWorker);
         using AddressSpace.Activation activation = AddressSpace.Use(_space);
         var exits = new List<(uint Pc, bool Thumb)>();
         Jit.StaticExits = exits;
-        var spin = new SpinWait();
-        while (!_stop.IsCancellationRequested && !Finished && (stays || Volatile.Read(ref _foreground) != 0))
+        while (!_stop.IsCancellationRequested && (stays || Volatile.Read(ref _foreground) != 0))
         {
-            if (!TryTake(out (uint Pc, bool Thumb) target, out int level))
+            if (_executed.TryDequeue(out Block? executed))
             {
-                spin.SpinOnce(sleep1Threshold: 10);
+                try
+                {
+                    ExpandNow(executed, exits);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($"[JIT] precompile frontier {executed.Start:X8}: {e.Message}");
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _outstanding[Levels]);
+                }
+
+                continue;
+            }
+
+            if (!TryTake(out (uint Pc, bool Thumb, int Depth) target, out int level))
+            {
+                _work.Wait(100);
                 continue;
             }
 
             try
             {
-                if (!Jit.ArenaHasRoomForAhead())
-                {
-                    Volatile.Write(ref _arenaLimit, 1);
-                    continue;
-                }
-
-                exits.Clear();
-                Block block = _cache.Get(target.Pc, target.Thumb);
-                if (Jit.CompileAheadOne(block))
-                {
-                    Interlocked.Increment(ref _translated);
-                }
-                else if (_follow != null)
-                {
-                    StaticExitsOf(block, exits); // compiled already (an earlier priority, or the game): its exits still count
-                }
-
-                if (_follow != null)
-                {
-                    if (block.Insts.Length > 0 && ReturnsAfter(in block.Insts[^1]))
-                    {
-                        exits.Add((block.End, block.Thumb));
-                    }
-
-                    Priority next = level == (int)Priority.Cached ? Priority.Index : (Priority)level;
-                    foreach ((uint Pc, bool Thumb) exit in exits)
-                    {
-                        if (_follow(exit.Pc) && Add(exit, next))
-                        {
-                            Interlocked.Increment(ref _found);
-                        }
-                    }
-                }
+                Translate(target, level, exits);
             }
             catch (Exception e)
             {
@@ -239,6 +253,83 @@ public sealed class CodePrecompiler
         }
 
         Jit.StaticExits = null;
+    }
+
+    private bool TryTake(out (uint Pc, bool Thumb, int Depth) target, out int level)
+    {
+        for (level = 0; level < Levels; level++)
+        {
+            if (_queues[level].TryDequeue(out target))
+            {
+                return true;
+            }
+        }
+
+        target = default;
+        return false;
+    }
+
+    private void Translate((uint Pc, bool Thumb, int Depth) target, int level, List<(uint Pc, bool Thumb)> exits)
+    {
+        if (!Jit.ArenaHasRoomForAhead())
+        {
+            Volatile.Write(ref _arenaLimit, 1);
+            return;
+        }
+
+        exits.Clear();
+        Block block = _cache.Get(target.Pc, target.Thumb);
+        if (Jit.CompileAheadOne(block))
+        {
+            Interlocked.Increment(ref _translated);
+        }
+        else if (_follow != null)
+        {
+            StaticExitsOf(block, exits); // compiled already (an earlier priority, or the game): its exits still count
+        }
+
+        if (_follow == null)
+        {
+            return;
+        }
+
+        // the flow from the entry points goes everywhere it leads; cached and frontier work only a few blocks further
+        Priority next = level == (int)Priority.Flow ? Priority.Flow : Priority.Frontier;
+        int depth = level == (int)Priority.Flow ? 0 : target.Depth + 1;
+        if (next == Priority.Frontier && depth > MaxFrontierDepth)
+        {
+            return;
+        }
+
+        Follow(block, exits, next, depth);
+    }
+
+    private void ExpandNow(Block block, List<(uint Pc, bool Thumb)> exits)
+    {
+        exits.Clear();
+        StaticExitsOf(block, exits);
+        Follow(block, exits, Priority.Frontier, 1);
+        // the rest of the function it is in (the exception index names the function starts)
+        if (_functionStart?.Invoke(block.Start) is { } start and not 0 && start != block.Start && _follow!(start))
+        {
+            Add((start, block.Thumb), Priority.Frontier, 0);
+        }
+    }
+
+    private void Follow(Block block, List<(uint Pc, bool Thumb)> exits, Priority priority, int depth)
+    {
+        if (block.Insts.Length > 0 && ReturnsAfter(in block.Insts[^1]))
+        {
+            exits.Add((block.End, block.Thumb));
+        }
+
+        foreach ((uint Pc, bool Thumb) exit in exits)
+        {
+            if (_follow!(exit.Pc) && Add(exit, priority, depth))
+            {
+                Interlocked.Increment(ref _found);
+            }
+        }
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
@@ -272,11 +363,12 @@ public sealed class CodePrecompiler
     };
 
     /// <summary>
-    /// The entry points the static analysis starts from in a loaded module, with their priority: module_start/stop/exit
-    /// and the exported functions (<see cref="Priority.Flow"/>), and the function starts of its exception index table
+    /// The entry points of a loaded module, with their priority: module_start/stop/exit and the exported functions
+    /// (<see cref="Priority.Flow"/>: the analysis starts there), and the function starts of its exception index table
     /// (.ARM.exidx: one entry per function with unwind information, which compilers emit for nearly every function;
-    /// <see cref="Priority.Index"/>). Bit 0 of an address selects Thumb; index entries carry no instruction set, so they
-    /// take the module's (the one most of its explicit entry points use).
+    /// <see cref="Priority.Index"/>: they say where functions start, for <see cref="Expand"/>, and are not translated
+    /// wholesale). Bit 0 of an address selects Thumb; index entries carry no instruction set, so they take the module's
+    /// (the one most of its explicit entry points use).
     /// </summary>
     public static List<((uint Pc, bool Thumb) Target, Priority Priority)> ModuleEntryPoints(LoadedModule module)
     {
@@ -324,6 +416,34 @@ public sealed class CodePrecompiler
         }
 
         return entries;
+    }
+
+    /// <summary>The sorted function starts of a module's exception index (<see cref="ModuleEntryPoints"/>).</summary>
+    public static uint[] FunctionStarts(LoadedModule module)
+    {
+        var starts = new List<uint>();
+        foreach (((uint Pc, bool Thumb) target, Priority priority) in ModuleEntryPoints(module))
+        {
+            if (priority == Priority.Index)
+            {
+                starts.Add(target.Pc);
+            }
+        }
+
+        starts.Sort();
+        return [.. starts];
+    }
+
+    /// <summary>The largest of the sorted <paramref name="starts"/> at or below <paramref name="address"/>, or 0.</summary>
+    public static uint FunctionContaining(uint[] starts, uint address)
+    {
+        int i = Array.BinarySearch(starts, address);
+        if (i < 0)
+        {
+            i = ~i - 1;
+        }
+
+        return i >= 0 ? starts[i] : 0;
     }
 
     /// <summary>Whether <paramref name="address"/> is in an executable segment of <paramref name="module"/>.</summary>

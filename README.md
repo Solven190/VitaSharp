@@ -402,8 +402,9 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   `codecache/<module image hash>.vsjc` in the data folder, `--code-cache=<folder>|off`; one file per module image,
   valid at any load address, rejected after a translator change), or in a first session the code the static analysis
   reaches from the modules' entry points (module start, exports, following direct branches and call returns). The
-  game starts as soon as those are ready; the rest of the analysis (the `.ARM.exidx` function index and what it
-  reaches) goes on in the background on a few low-priority threads. Precompiled code is published when the game first
+  game starts as soon as those are ready; then a few low-priority threads translate in the background the code near
+  what the game runs (a few blocks past every block it reaches, and the rest of its function, found through the
+  `.ARM.exidx` function index), at most 64 MB of the code arena. Precompiled code is published when the game first
   reaches it. The log lines `ARM code precompilation: boot step ...` and, at the end, `... % of the run blocks were
   precompiled` give the time and the coverage; `precompiled before start` in the CPU backend line is kept apart from
   what the game compiled while it ran. Android runs the same translation entirely in the background (no wait yet).
