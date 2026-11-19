@@ -403,7 +403,9 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   fragment program (sceGxmShaderPatcherCreate*, usually behind its loading screen), the shader workers translate and
   compile its shaders with the hints predicted from the program, and build the pipeline of the vertex program it is
   made for, so a first session's first draw finds them ready. A draw whose texture or surface format differs from the
-  prediction but translates to the same shader uses the same module. The session's `[shadercache] session` line ends
+  prediction but translates to the same shader uses the same module. The colour surfaces the game initialises and the
+  scenes it begins are remembered, and the programs that depend on the surface (programmable blending, native-colour
+  or integer outputs) are also built for each of them, with their fetch-pass and integer-view pipelines. The session's `[shadercache] session` line ends
   with what was queued and used ("at program load: ..."); `replay-gpu --compile-on-program-load=on` announces the
   dump's programs before its first command. Nothing extra to install, every OS.
 - Profiling: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, every OS); on Windows also

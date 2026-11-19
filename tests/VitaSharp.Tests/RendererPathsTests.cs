@@ -443,7 +443,8 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
     /// the draws, as a game does while loading. With the option the shaders and the pipeline are built on the shader
     /// workers when the programs are created, so the first frame translates no shader, builds no pipeline and waits for
     /// none on the GPU thread, also for textures whose exact format was not predicted (BC1/ETC1/P8 sample as four
-    /// unsigned bytes like the predicted U8U8U8U8: the same shader). Without it the GPU thread builds them at the draw.
+    /// unsigned bytes like the predicted U8U8U8U8: the same shader) and for the fetch pass of a programmable-blending
+    /// draw (built for the surface the game initialised). Without it the GPU thread builds them at the draw.
     /// Draw-time prefetch is off in both sessions, so nothing else can build them first.
     /// </summary>
     [SoftwareVulkanFact]
@@ -483,7 +484,8 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
                     Assert.True(keep.Count >= 4, $"{keep.Count} textures of the class");
                     w.Textures.Clear();
                     w.Textures.AddRange(keep);
-                    w.Run(keep.Count); // the game's first frame: one scene drawing them all
+                    w.RunFetch(); // a programmable-blending draw: in a one-sample scene it renders in a fetch pass
+                    w.Run(keep.Count); // and one scene drawing them all
                     h.Emu.Gpu.WaitIdle();
                     (int Shaders, int Pipelines, int PipelinesBuilt, int Aliases) load = r.ProgramLoadStats;
                     stats = (Stat(r, "_statGpuPipelines"), Stat(r, "_statShaderMisses"), Stat(r, "_statAsyncWaited"), Stat(r, "_statPipelineWaits"), load.Aliases, load.PipelinesBuilt);

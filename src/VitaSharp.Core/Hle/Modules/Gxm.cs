@@ -47,6 +47,8 @@ public sealed partial class Gxm : HleModule
     GuestThread? _displayThread;
 
     GpuQueue Gpu => Emu.Gpu;
+    /// <summary>The backend told about created programs and surfaces (null for a module without an emulator, in tests).</summary>
+    IGpuBackend? CompileAheadBackend => Emu?.Gpu?.Backend;
 
     uint AllocObj(uint size, string name)
     {
@@ -288,6 +290,7 @@ public sealed partial class Gxm : HleModule
         };
         _renderTargets[h] = rt;
         outRt.Value = h;
+        CompileAheadBackend?.RenderTargetCreated(rt.MultisampleMode);
         return 0;
     }
 
@@ -390,6 +393,7 @@ public sealed partial class Gxm : HleModule
         WriteClip(surface, 0, 0, width - 1, height - 1);
         uint texType = surfaceType switch { 0x08000000 => TexSwizzled, 0x04000000 => TexTiled, _ => TexLinear };
         InitTexture(surface + 32, data, ColorToTextureFormat(colorFormat), width, height, 1, texType);
+        CompileAheadBackend?.ColorSurfaceInitialised(colorFormat, scaleMode == 1);
         return 0;
     }
 
@@ -2564,7 +2568,7 @@ public sealed partial class Gxm : HleModule
             created = vp;
         }
         // a new object only (games re-create the same vertex program every frame and get the cached one)
-        Gpu.Backend?.VertexProgramCreated(created);
+        CompileAheadBackend?.VertexProgramCreated(created);
         return 0;
     }
 
@@ -2598,7 +2602,7 @@ public sealed partial class Gxm : HleModule
         }
         if (created != null)
         {
-            Gpu.Backend?.FragmentProgramCreated(created, GxmProgramInfo.Parsed(vertexProgram));
+            CompileAheadBackend?.FragmentProgramCreated(created, GxmProgramInfo.Parsed(vertexProgram));
         }
 
         return 0;
@@ -2664,7 +2668,7 @@ public sealed partial class Gxm : HleModule
         };
         _texcoordRemaps[handle] = remap;
         outFp.Value = handle;
-        Gpu.Backend?.FragmentProgramCreated(_fragmentPrograms[handle], GxmProgramInfo.Parsed(vertexProgram));
+        CompileAheadBackend?.FragmentProgramCreated(_fragmentPrograms[handle], GxmProgramInfo.Parsed(vertexProgram));
         return 0;
     }
 

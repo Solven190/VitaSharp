@@ -383,10 +383,18 @@ static class ReplayGpu
         var sw = Stopwatch.StartNew();
         var vertexPrograms = new HashSet<Core.Gxm.GxmVertexProgram>(ReferenceEqualityComparer.Instance);
         var fragmentPrograms = new Dictionary<Core.Gxm.GxmFragmentProgram, Core.Gxm.GxmProgramInfo>(ReferenceEqualityComparer.Instance);
+        var surfaces = new HashSet<(uint ColorFormat, uint Gamma, uint Multisample, bool Downscale)>();
         using (var scan = new GpuDumpReader(path))
         {
             while (scan.Next())
             {
+                if (scan.Command is BeginSceneCommand { Color: { } surface } scene)
+                {
+                    // the surfaces a game initialises while it loads
+                    renderer.RenderTargetCreated(scene.Multisample);
+                    surfaces.Add((surface.ColorFormat, surface.GammaMode, scene.Multisample, surface.Downscale));
+                }
+
                 if (scan.Command is not DrawCommand d || d.VertexProgram?.Info == null || d.FragmentProgram?.Info == null)
                 {
                     continue;
@@ -406,8 +414,13 @@ static class ReplayGpu
             ((Core.Gpu.IGpuBackend)renderer).FragmentProgramCreated(fragmentProgram, vertexProgram);
         }
 
+        foreach ((uint colorFormat, uint gamma, uint multisample, bool downscale) in surfaces)
+        {
+            renderer.ColorSurfaceKnown(colorFormat, gamma, multisample, downscale);
+        }
+
         renderer.WaitForBackgroundCompiles(CancellationToken.None);
-        Console.WriteLine($"program load: {vertexPrograms.Count} vertex and {fragmentPrograms.Count} fragment programs announced, compiled in {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"program load: {vertexPrograms.Count} vertex and {fragmentPrograms.Count} fragment programs and {surfaces.Count} surfaces announced, compiled in {sw.ElapsedMilliseconds} ms");
     }
 
     static int Replay(string path, GpuDumpHeader header, VulkanRendererOptions ro, Settings s, ManualResetEventSlim? closing)

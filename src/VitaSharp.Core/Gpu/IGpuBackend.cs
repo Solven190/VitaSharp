@@ -57,6 +57,18 @@ public interface IGpuBackend : IDisposable
     {
     }
 
+    /// <summary>The game created a render target with <paramref name="multisample"/> (SceGxmMultisampleMode), on its own
+    /// thread: the scenes of its downscaled colour surfaces will be multisampled.</summary>
+    void RenderTargetCreated(uint multisample)
+    {
+    }
+
+    /// <summary>The game initialised a colour surface (sceGxmColorSurfaceInit), on its own thread: a surface its scenes
+    /// may render into, so a backend may start building what the created programs need there.</summary>
+    void ColorSurfaceInitialised(uint colorFormat, bool downscale)
+    {
+    }
+
     /// <summary>Called on the submitting thread for each command before it is queued (no worker state may be touched):
     /// lets a backend start slow preparation, e.g. shader compilation, ahead of execution.</summary>
     void Prefetch(GpuCommand command)

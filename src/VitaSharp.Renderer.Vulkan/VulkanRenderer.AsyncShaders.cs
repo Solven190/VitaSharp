@@ -179,6 +179,12 @@ public sealed unsafe partial class VulkanRenderer
             {
                 case BeginSceneCommand b:
                     _prefetchColorFormat = b.Color?.ColorFormat ?? 0;
+                    if (b.Color is { } surface)
+                    {
+                        // its combinations with the programs created so far are built before its draws (VulkanRenderer.ProgramLoad.cs)
+                        ColorSurfaceKnown(surface.ColorFormat, surface.GammaMode, b.Multisample, surface.Downscale);
+                    }
+
                     if (_asyncPipelines)
                     {
                         PredictScene(b);
@@ -364,9 +370,16 @@ public sealed unsafe partial class VulkanRenderer
                 return;
             }
         }
+        Format attach = predictedScene.Attach;
         if (fsM.Gen.RawColorBits != 0 && predictedScene.HasColor)
         {
-            return; // integer views: left to the GPU thread
+            // integer views: as the draw does (Draw: RawAttachmentFormat); draw-predicted ones stay with the GPU thread
+            attach = j.ProgramLoad ? RawAttachmentFormat(predictedScene.RtFormat, fsM.Gen.RawColorBits) : Format.Undefined;
+            if (attach == Format.Undefined || !_core.SupportsUnblendedColorAttachment(attach)
+                || ms && (_core.ImageSampleCounts(attach, ImageUsageFlags.ColorAttachmentBit) & predictedScene.Samples) == 0)
+            {
+                return;
+            }
         }
 
         var vs = new VsEntry { Module = vsM.Module, Gen = vsM.Gen, ProgramHash = j.Vp.Info.Program.Hash, HintKey = j.Vk };
@@ -374,8 +387,15 @@ public sealed unsafe partial class VulkanRenderer
         var fs = new FsEntry { Module = fsM.Module, Gen = fsM.Gen, ProgramHash = j.Fs.Hash, HintKey = fsKey };
         PrimitiveTopology topology = Formats.Topology(j.PrimitiveType);
         byte mask = !j.FragEnabled || j.Fs.IsOutputUndefined ? (byte)0 : j.Blend?.ColorMask ?? 0xF; // see Draw
-        bool blendOn = j.Blend is { } bi && !fsM.Gen.UsesFragColor && !(bi.ColorFunc == 0 && bi.AlphaFunc == 0) && !(bi.ColorSrc == 1 && bi.ColorDst == 0 && bi.AlphaSrc == 1 && bi.AlphaDst == 0);
-        var key = new PipelineKey(vs.Module.Handle, fs.Module.Handle, vs.LayoutHash, predictedScene.Attach, predictedScene.HasColor,
+        bool blendOn = j.Blend is { } bi && !fsM.Gen.UsesFragColor && fsM.Gen.RawColorBits == 0 && !(bi.ColorFunc == 0 && bi.AlphaFunc == 0)
+            && !(bi.ColorSrc == 1 && bi.ColorDst == 0 && bi.AlphaSrc == 1 && bi.AlphaDst == 0);
+        // a programmable-blending program of a one-sample scene draws small pieces in a fetch pass (VulkanRenderer.SingleFetch.cs)
+        if (j.ProgramLoad && fsM.Gen.UsesFragColor && fsM.Gen.RawColorBits == 0 && !ms && predictedScene.HasColor && j.FetchHints != null)
+        {
+            BuildFetchPassPipeline(j, vs, topology, mask, attach);
+        }
+
+        var key = new PipelineKey(vs.Module.Handle, fs.Module.Handle, vs.LayoutHash, attach, predictedScene.HasColor,
             blendOn, j.Blend?.ColorFunc ?? 0, j.Blend?.AlphaFunc ?? 0, j.Blend?.ColorSrc ?? 1, j.Blend?.ColorDst ?? 0, j.Blend?.AlphaSrc ?? 1, j.Blend?.AlphaDst ?? 0,
             mask, TopologyClass(topology), Formats.Polygon(j.PolygonMode), predictedScene.Samples, j.Static);
         // (recorded in pipelines.list when the GPU thread first uses it, not here: a misprediction is never recorded)

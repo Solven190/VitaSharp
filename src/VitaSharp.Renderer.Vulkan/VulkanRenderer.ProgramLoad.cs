@@ -88,17 +88,150 @@ public sealed unsafe partial class VulkanRenderer
             return;
         }
 
-        uint colorFormat = _prefetchColorFormat;
-        ShaderHints fragmentHints = PredictedFragmentHints(fragmentProgram, colorFormat, fetchInput: false);
-        ulong fragmentKey = QueueProgramLoadShader(fragmentProgram.Info.Program, fragmentHints);
+        _loadedFragmentPrograms.TryAdd(fragmentProgram, vertexProgram);
+        // the last scene (or the default one before any), then every surface the game has made known
+        QueueForScene(fragmentProgram, vertexProgram, _prefetchScene.HasColor ? new KnownScene(_prefetchColorFormat, _prefetchScene) : DefaultKnownScene());
+        if (!DependsOnSurface(fragmentProgram.Info.Program))
+        {
+            return;
+        }
+
+        foreach (KnownScene known in _knownScenes.Keys)
+        {
+            QueueForScene(fragmentProgram, vertexProgram, known);
+        }
+    }
+
+    /// <summary>
+    /// Programs whose draws take another pipeline family on another surface: the ones that read the surface colour
+    /// (programmable blending: the fetch pass or input attachment) and the native-colour / integer outputs (raw bits
+    /// through an integer view). Only these are built for every known surface; building every program for every
+    /// surface multiplied the pipelines (23 fragment programs x 8 surfaces of one dump: 231 queued, 19 used) for the two
+    /// families that the draw itself cannot predict, while plain programs on another surface are left to the draw
+    /// prefetch as before.
+    /// </summary>
+    private static bool DependsOnSurface(GxpProgram program) =>
+        program.IsFragColorUsed || program.IsNativeColor || GxpProgram.StoreType(program.OutputParamType) is DataType.Int32 or DataType.UInt32;
+
+    /// <summary>A surface draws are predicted to render into: the raw SceGxmColorFormat (the fragment shader's hint) and
+    /// the scene state the pipeline key takes from it.</summary>
+    private readonly record struct KnownScene(uint ColorFormat, PredictedScene Scene);
+
+    /// <summary>Surfaces made known by the game (colour surfaces it initialised, scenes it began), each built for every
+    /// created fragment program.</summary>
+    private readonly ConcurrentDictionary<KnownScene, byte> _knownScenes = new();
+    /// <summary>Every fragment program created, with the vertex program it was made for.</summary>
+    private readonly ConcurrentDictionary<GxmFragmentProgram, GxmProgramInfo?> _loadedFragmentPrograms = new(ReferenceEqualityComparer.Instance);
+    /// <summary>(fragment program, scene) pairs already queued.</summary>
+    private readonly ConcurrentDictionary<(GxmFragmentProgram, KnownScene), byte> _queuedCombinations = new();
+    /// <summary>Multisample modes of the render targets created (a downscaled colour surface renders with them).</summary>
+    private int _knownMultisampleModes;
+    private int _statKnownScenes;
+
+    private KnownScene DefaultKnownScene() => new(0, DefaultScene());
+
+    /// <summary>
+    /// A surface the game will render into is known (sceGxmColorSurfaceInit, a scene it begins, the GPU dump replay's
+    /// scan): its combinations with every fragment program created so far are built in the background, before their
+    /// draws. A downscaled surface is also predicted with each multisample mode of the render targets created.
+    /// </summary>
+    public void ColorSurfaceKnown(uint colorFormat, uint gammaMode, uint multisample, bool downscale)
+    {
+        if (!ProgramLoadActive)
+        {
+            return;
+        }
+
+        AddKnownScene(new KnownScene(colorFormat, SceneFor(colorFormat, gammaMode, multisample, downscale)));
+        if (downscale && multisample == 0)
+        {
+            int modes = Volatile.Read(ref _knownMultisampleModes);
+            for (uint mode = 1; mode <= 2; mode++)
+            {
+                if ((modes & (1 << (int)mode)) != 0)
+                {
+                    AddKnownScene(new KnownScene(colorFormat, SceneFor(colorFormat, gammaMode, mode, downscale: true)));
+                }
+            }
+        }
+    }
+
+    public void ColorSurfaceInitialised(uint colorFormat, bool downscale) => ColorSurfaceKnown(colorFormat, 0, 0, downscale);
+
+    /// <summary>A render target was created with <paramref name="multisample"/> (SceGxmMultisampleMode).</summary>
+    public void RenderTargetCreated(uint multisample)
+    {
+        if (multisample is 1 or 2)
+        {
+            int bit = 1 << (int)multisample;
+            int old;
+            do
+            {
+                old = Volatile.Read(ref _knownMultisampleModes);
+            }
+            while ((old & bit) == 0 && Interlocked.CompareExchange(ref _knownMultisampleModes, old | bit, old) != old);
+        }
+    }
+
+    private void AddKnownScene(KnownScene known)
+    {
+        if (!_knownScenes.TryAdd(known, 0))
+        {
+            return;
+        }
+
+        Interlocked.Increment(ref _statKnownScenes);
+        foreach ((GxmFragmentProgram fragmentProgram, GxmProgramInfo? vertexProgram) in _loadedFragmentPrograms)
+        {
+            if (DependsOnSurface(fragmentProgram.Info.Program))
+            {
+                QueueForScene(fragmentProgram, vertexProgram, known);
+            }
+        }
+    }
+
+    /// <summary>The <see cref="PredictedScene"/> of a surface, by the rules of <see cref="PredictScene"/>.</summary>
+    private PredictedScene SceneFor(uint colorFormat, uint gammaMode, uint multisample, bool downscale)
+    {
+        Format f = RenderableFormat(SurfaceFormat(colorFormat));
+        Format srgb = Formats.Srgb(f);
+        Format attach = gammaMode != 0 && srgb != f && _core.SupportsColorAttachment(srgb) ? srgb : f;
+        SampleCountFlags samples = SampleCountFlags.Count1Bit;
+        if (multisample != 0 && downscale && _msaaSetting == MsaaEmulation.Native)
+        {
+            SampleCountFlags sampleCountFlags = GxmSamples(multisample);
+            bool ok = _msOkPrefetch.GetOrAdd(((ulong)f, (ulong)sampleCountFlags), _ =>
+                (_core.ImageSampleCounts(f, MsaaImageUsage) & sampleCountFlags) != 0 && (_core.Properties.Limits.FramebufferColorSampleCounts & sampleCountFlags) != 0);
+            if (ok)
+            {
+                samples = sampleCountFlags;
+            }
+        }
+
+        return new PredictedScene(true, f, attach, samples);
+    }
+
+    /// <summary>Queues the fragment program's shader for <paramref name="known"/> and, for each vertex program object of
+    /// the program it was made for, the pipeline (with the variants the draw may need there: the integer view of a
+    /// raw-bit program, the fetch pass of a programmable-blending one).</summary>
+    private void QueueForScene(GxmFragmentProgram fragmentProgram, GxmProgramInfo? vertexProgram, KnownScene known)
+    {
+        if (!_queuedCombinations.TryAdd((fragmentProgram, known), 0))
+        {
+            return;
+        }
+
+        uint colorFormat = known.ColorFormat;
+        PredictedScene scene = known.Scene;
+        ulong fragmentKey = QueueProgramLoadShader(fragmentProgram.Info.Program, PredictedFragmentHints(fragmentProgram, colorFormat, fetchInput: false));
         if (vertexProgram == null || !_loadedVertexPrograms.TryGetValue(vertexProgram.Program.Hash, out GxmVertexProgram[]? vertexPrograms))
         {
             return;
         }
 
-        PredictedScene scene = _prefetchScene.HasColor ? _prefetchScene : DefaultScene();
         bool multisampled = scene.Samples != SampleCountFlags.Count1Bit;
-        ShaderHints? fetchHints = multisampled ? PredictedFragmentHints(fragmentProgram, colorFormat, fetchInput: true) : null;
+        ShaderHints fetchHints = multisampled ? PredictedFragmentHints(fragmentProgram, colorFormat, fetchInput: true)
+            : PredictedFragmentHints(fragmentProgram, colorFormat, fetchInput: true) with { FetchInputSingleSample = true };
         uint varyingMask = s_varyingTrim ? ShaderGenerator.FragmentVaryingMask(fragmentProgram.Info.Program) : 0;
         foreach (GxmVertexProgram vp in vertexPrograms)
         {
@@ -109,11 +242,30 @@ public sealed unsafe partial class VulkanRenderer
                 continue;
             }
 
-            var job = new PipelineJob(vp, vertexKey, fragmentProgram.Info.Program, fragmentKey, fetchHints?.Key() ?? 0, fetchHints, scene, fragmentProgram.Blend,
+            var job = new PipelineJob(vp, vertexKey, fragmentProgram.Info.Program, fragmentKey, fetchHints.Key(), fetchHints, scene, fragmentProgram.Blend,
                 FragEnabled: true, PrimitiveType: 0, PolygonMode: 0, Static: 0, ProgramLoad: true);
             Interlocked.Increment(ref _statLoadPipelines);
             _pipelineJobs.Enqueue(job);
             _workAvailable.Release();
+        }
+    }
+
+    /// <summary>Worker: the fetch-pass pipeline of a programmable-blending program in a one-sample scene (the draw's key
+    /// with <see cref="PipelineKey.InputPass"/>, the single-sample input attachment variant of its shader, no blend).</summary>
+    private void BuildFetchPassPipeline(PipelineJob j, VsEntry vs, PrimitiveTopology topology, byte mask, Format attach)
+    {
+        ModuleEntry? fetch = ModuleFor(j.Fs, j.FetchKey, j.FetchHints);
+        if (fetch?.Gen == null || fetch.Module.Handle == 0)
+        {
+            return;
+        }
+
+        var key = new PipelineKey(vs.Module.Handle, fetch.Module.Handle, vs.LayoutHash, attach, true,
+            false, j.Blend?.ColorFunc ?? 0, j.Blend?.AlphaFunc ?? 0, j.Blend?.ColorSrc ?? 1, j.Blend?.ColorDst ?? 0, j.Blend?.AlphaSrc ?? 1, j.Blend?.AlphaDst ?? 0,
+            mask, TopologyClass(topology), Formats.Polygon(j.PolygonMode), SampleCountFlags.Count1Bit, 0, 0, InputPass: true);
+        if (BuildSharedPipeline(key, vs, fetch.Module, topology) == SharedBuild.Built)
+        {
+            Interlocked.Increment(ref _statLoadPipelinesBuilt);
         }
     }
 
@@ -225,6 +377,6 @@ public sealed unsafe partial class VulkanRenderer
     }
 
     private string ProgramLoadReport() => _compileOnProgramLoad
-        ? $"; at program load: {_statLoadShaders} shaders and {_statLoadPipelines} pipelines queued ({_statLoadPipelinesBuilt} built), {_statLoadAliases} draws served by a module of the same canonical hints"
+        ? $"; at program load: {_statLoadShaders} shaders and {_statLoadPipelines} pipelines queued for {_loadedFragmentPrograms.Count} fragment programs x {_statKnownScenes + 1} surfaces ({_statLoadPipelinesBuilt} built), {_statLoadAliases} draws served by a module of the same canonical hints"
         : "; at program load: off";
 }
