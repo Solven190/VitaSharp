@@ -431,6 +431,16 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   opostas da CPU, trocadas na segunda rodada; boot turbo de 3000 quadros): working set no fim 520/526 → 440/437 MB.
   O fps não piorou: o último trecho ficou em 181/117 fps antes e 368/329 depois, mas a máquina estava carregada e
   a variação é grande. O JIT parado por 14-65 s no boot apareceu nas duas builds (carga da máquina, não a mudança).
+  Feito no launcher (mem3, 18/11/2026; `ui-render --mem`, 63 títulos, mesma sessão, antes → depois, working set):
+  Biblioteca 368 → 171 MB (heap do .NET 176 → 22 MB, GC comprometido 232 → 36 MB), página do jogo 388 → 175 MB,
+  troféus 388 → 187 MB, jogo rodando 433 → 243 MB, depois de fechar o jogo 629 → 232 MB (GC comprometido
+  457 → 62 MB). Como: os conjuntos de troféus do launcher guardam só os textos (SFM) e leem o ícone do TRP quando a
+  página o mostra (`TrophyPackage.LoadTexts`; antes eram as TROPHY.TRP inteiras de todos os jogos, 166 MB de
+  `byte[]`); o Refresh não relê os TRP que não mudaram (`TrophyTextsCache`, por arquivo + tamanho + data); depois de
+  fechar um jogo, uma coleta compactadora agressiva devolve ao sistema o que o RetainVM guardaria (só nesse ponto; o
+  RetainVM continua no processo do jogo, que não mudou). Save state: as páginas zero de um bloco restaurado saem por
+  decommit + commit, sem ficarem residentes (`GuestMemoryCommitTests.Restoring*`); na CDRAM do Windows (visão
+  compartilhada) elas ainda são zeradas à mão, como num bloco novo.
   Ainda dá para cortar (estimativas):
   - CDRAM compartilhada (até ~50-100 MB): ela ainda é zerada à mão, porque um bloco liberado ali só é descartado
     (MEM_RESET). Com um mapa das páginas já usadas, só as reusadas seriam zeradas; o resto da seção (SEC_RESERVE) já

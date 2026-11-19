@@ -132,15 +132,27 @@ public sealed unsafe partial class GuestMemory
         }
 
         byte* p = HostOf(b);
+        AddressSpace space = b.Space ?? Primary;
+        bool shared = b.Space == null;
         long at = headerLen;
         for (uint i = 0; i < pages; i++)
         {
-            var page = new Span<byte>(p + (long)i * PageSize, (int)PageSize);
             if ((data[i >> 3] & (1 << (int)(i & 7))) == 0)
             {
-                page.Clear();
+                // a run of zero pages reads zero without being touched, as in a new block: clearing them by hand made
+                // the whole block resident (a state's heaps and video memory are mostly zero pages)
+                uint run = i + 1;
+                while (run < pages && (data[run >> 3] & (1 << (int)(run & 7))) == 0)
+                {
+                    run++;
+                }
+
+                ZeroWithoutTouching(space, b.Address + i * PageSize, (run - i) * PageSize, shared);
+                i = run - 1;
                 continue;
             }
+
+            var page = new Span<byte>(p + (long)i * PageSize, (int)PageSize);
 
             if (wordPages && (data[bitmapLen + (i >> 3)] & (1 << (int)(i & 7))) != 0)
             {

@@ -523,17 +523,22 @@ public sealed unsafe partial class GuestMemory : IDisposable
         }
     }
 
-    private uint Commit(AddressSpace space, uint addr, uint size, string name, MemoryRegion region)
+    /// <summary>
+    /// Makes [<paramref name="addr"/>, + <paramref name="size"/>) of <paramref name="space"/> committed and reading zero
+    /// without touching its pages: clearing by hand made every page resident at once, also the parts the guest never
+    /// uses (a game takes its whole heap at boot; a save state is mostly zero pages). Used for a new block and for the
+    /// zero pages a save state restores.
+    /// </summary>
+    private void ZeroWithoutTouching(AddressSpace space, uint addr, uint size, bool shared)
     {
-        bool shared = IsSharedRegion(region);
         byte* host = space.Base + addr; // a shared region is the same memory in every space
         if (shared && SeparateSpaces)
         {
             // a view of shared memory (it cannot be decommitted through one view): the range is made to read zero without
-            // touching the pages that already do, since clearing it by hand made every page of a new block resident at
-            // once (Killzone Mercenary: all of its ~100 MB of CDRAM at boot). Windows clears only the section pages that
-            // were ever committed, Linux and Android punch the range out of the memory file; elsewhere the pages a block
-            // ever used (or that are in memory after a stray access) are cleared by hand.
+            // touching the pages that already do (Killzone Mercenary: all of its ~100 MB of CDRAM at boot). Windows
+            // clears only the section pages that were ever committed, Linux and Android punch the range out of the
+            // memory file; elsewhere the pages a block ever used (or that are in memory after a stray access) are
+            // cleared by hand.
             nint memory = SharedMemoryAt(addr, out ulong offset);
             if (!HostVirtualMemory.ZeroSharedPages(memory, offset, host, size))
             {
@@ -541,17 +546,24 @@ public sealed unsafe partial class GuestMemory : IDisposable
             }
 
             HostVirtualMemory.Commit(host, size);
-            SetMapped(_sharedUsed, addr, size, true);
         }
         else
         {
-            // fresh zero pages without touching them: clearing a block by hand made every page of it resident at once,
-            // also the parts the game never uses (a game takes its whole heap at boot). Dropping whatever the range
-            // still holds (pages a stray access committed after a free) and committing again reads back as zeros:
-            // Windows decommits (MEM_DECOMMIT), Linux, Android and macOS map fresh anonymous pages over the range
-            // (mmap MAP_FIXED, not madvise, which does not zero on macOS) and clear the partial host pages at its edges.
+            // dropping whatever the range holds and committing again reads back as zeros: Windows decommits
+            // (MEM_DECOMMIT), Linux, Android and macOS map fresh anonymous pages over the range (mmap MAP_FIXED, not
+            // madvise, which does not zero on macOS) and clear the partial host pages at its edges.
             HostVirtualMemory.Decommit(host, size);
             HostVirtualMemory.Commit(host, size);
+        }
+    }
+
+    private uint Commit(AddressSpace space, uint addr, uint size, string name, MemoryRegion region)
+    {
+        bool shared = IsSharedRegion(region);
+        ZeroWithoutTouching(space, addr, size, shared);
+        if (shared && SeparateSpaces)
+        {
+            SetMapped(_sharedUsed, addr, size, true);
         }
 
         SetMapped(shared ? _sharedMapped : space._mappedPages, addr, size, true);
