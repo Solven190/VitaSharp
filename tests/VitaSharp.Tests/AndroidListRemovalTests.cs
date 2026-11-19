@@ -39,7 +39,7 @@ public sealed class AndroidListRemovalTests
     {
         // "l": Alpha, Charlie and Delta (not Bravo, which follows Alpha in the whole library)
         IReadOnlyList<GameEntry> shown = GameLibrary.Query(s_library, "l", GameLibrary.Filter.All, _ => new GameSettings());
-        List<string> shownKeys = shown.Select(g => g.TitleId).ToList();
+        var shownKeys = shown.Select(g => g.TitleId).ToList();
         Assert.DoesNotContain("PCSA00002", shownKeys);
         (List<GameEntry> remaining, string? focus) = ListRemoval.Remove(s_library, g => g.TitleId, shownKeys, ["PCSA00001"]);
         Assert.Equal("PCSA00003", focus);

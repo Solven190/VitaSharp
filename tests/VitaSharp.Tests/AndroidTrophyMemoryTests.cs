@@ -48,7 +48,7 @@ public sealed class AndroidTrophyMemoryTests : IDisposable
     {
         (GameEntry game, DataLayout data, _) = InstallGame();
         var cache = new TrophyTextsCache();
-        TrophyList list = TrophyList.Load(game, data, -1, cache);
+        var list = TrophyList.Load(game, data, -1, cache);
         Assert.NotEmpty(list.Rows);
         TrophyPackage set = list.Rows[0].Set!;
         Assert.DoesNotContain(set.Files.Keys, name => name.EndsWith(".PNG", StringComparison.OrdinalIgnoreCase));
@@ -75,7 +75,7 @@ public sealed class AndroidTrophyMemoryTests : IDisposable
         Assert.Same(held, cache.Get(trp, "NPWR00001_00", -1));
         Assert.Equal(1, cache.Count);
 
-        TrophyList list = TrophyList.Load(game, data, -1, cache);
+        var list = TrophyList.Load(game, data, -1, cache);
         Assert.Same(held, list.Rows[0].Set); // the trophy screen shares the library's texts
 
         File.SetLastWriteTimeUtc(trp, File.GetLastWriteTimeUtc(trp).AddMinutes(1));
@@ -88,7 +88,7 @@ public sealed class AndroidTrophyMemoryTests : IDisposable
     public void WithoutACacheTheLibraryStillKeepsNoIcons()
     {
         (GameEntry game, DataLayout data, _) = InstallGame();
-        TrophyList list = TrophyList.Load(game, data);
+        var list = TrophyList.Load(game, data);
         Assert.DoesNotContain(list.Rows[0].Set!.Files.Keys, name => name.EndsWith(".PNG", StringComparison.OrdinalIgnoreCase));
         Assert.True(GameLibrary.Trophies(game, data).HasTrophies);
     }
