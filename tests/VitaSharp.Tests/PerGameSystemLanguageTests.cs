@@ -14,7 +14,7 @@ namespace VitaSharp.Tests;
 /// The emulator option "Idioma do sistema" of a game (EmulatorOptions.SystemLanguage): the application reads that
 /// SceSystemParamLang through every way a game reads the system language (SceAppUtil, SceRegMgrForGame, SceRegMgr and
 /// the SceNp/trophy paths that share <see cref="AppUtil.ProcessSystemParamInt"/>), while the system software and every
-/// other system parameter keep what the system registry says. Both launchers offer the same choices.
+/// other system parameter keep what the system registry says. Both launchers offer the same choices (<see cref="ChoiceListLanguageTests"/>).
 /// </summary>
 [Collection("guest")]
 public sealed class PerGameSystemLanguageTests(GuestMemoryFixture fixture) : IDisposable
@@ -153,22 +153,5 @@ public sealed class PerGameSystemLanguageTests(GuestMemoryFixture fixture) : IDi
         Assert.Equal(Japanese, EffectiveSettings.Resolve(app, game).SystemLanguageValue);
         game.SystemLanguage = "25"; // not a firmware language (a hand-edited file): the system's
         Assert.Null(EffectiveSettings.Resolve(app, game).SystemLanguageValue);
-    }
-
-    [Fact]
-    public void BothLaunchersOfferTheSameLanguages()
-    {
-        (int? Value, string Label)[] desktop = GameOptions.SystemLanguages;
-        IReadOnlyList<Choice> android = SettingsChoices.SystemLanguages;
-        Assert.Equal(SystemLanguage.Count + 1, desktop.Length);
-        Assert.Equal(desktop.Length, android.Count);
-        for (int i = 0; i < desktop.Length; i++)
-        {
-            Assert.Equal(desktop[i].Value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "", android[i].Value);
-            Assert.Equal(desktop[i].Label, android[i].Label);
-        }
-
-        Assert.Equal("English (United States)", SystemLanguage.Names[SystemLanguage.EnglishUs]);
-        Assert.Equal("Português (Brasil)", SystemLanguage.Names[BrazilianPortuguese]);
     }
 }
