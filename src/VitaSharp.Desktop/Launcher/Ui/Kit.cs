@@ -664,7 +664,8 @@ public sealed class Kit
         {
             ItemsSource = items,
             SelectedIndex = selected,
-            Width = width,
+            // at least the given width, wider when the chosen label needs it (pt-BR), so it is never cut
+            MinWidth = width,
             MinHeight = 36,
             CornerRadius = new CornerRadius(12),
             Background = B(static p => p.Background),
@@ -913,6 +914,31 @@ public sealed class Kit
         return s;
     }
 
+    /// <summary>A row of buttons or chips that goes on in the next line when the width runs out (a narrow window).</summary>
+    public WrapPanel Flow(double spacing, params Control?[] items)
+    {
+        var panel = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = spacing, LineSpacing = spacing };
+        foreach (var c in items)
+        {
+            if (c != null)
+            {
+                panel.Children.Add(c);
+            }
+        }
+
+        return panel;
+    }
+
+    /// <summary>Two columns side by side (widths <paramref name="first"/> and <paramref name="second"/>, star or pixels)
+    /// that become one column, the second below the first, when the room is narrower than <paramref name="minWidth"/>.</summary>
+    public static ResponsiveColumns Columns(Control left, Control right, double minWidth, string first = "*", string second = "*", double gap = 24)
+    {
+        var columns = new ResponsiveColumns { MinSideBySide = minWidth, Gap = gap, First = GridLength.Parse(first), Second = GridLength.Parse(second) };
+        columns.Children.Add(left);
+        columns.Children.Add(right);
+        return columns;
+    }
+
     public StackPanel VStack(double spacing, params Control?[] items)
     {
         var s = new StackPanel { Spacing = spacing };
@@ -942,6 +968,93 @@ public sealed class Kit
         }
 
         return c;
+    }
+}
+
+/// <summary>
+/// Two children side by side with a gap (each column a star share or a fixed width, like a Grid "*,24,460"), or, when
+/// the panel gets less than <see cref="MinSideBySide"/>, one below the other at the full width (the launcher's
+/// two-column pages in a narrow window).
+/// </summary>
+public sealed class ResponsiveColumns : Panel
+{
+    public double MinSideBySide { get; set; } = 800;
+    public double Gap { get; set; } = 24;
+    public GridLength First { get; set; } = GridLength.Star;
+    public GridLength Second { get; set; } = GridLength.Star;
+
+    /// <summary>True when the last layout put the columns one below the other.</summary>
+    public bool Stacked { get; private set; }
+
+    (double First, double Second) Widths(double width)
+    {
+        double room = Math.Max(0, width - Gap);
+        if (First.IsAbsolute && Second.IsAbsolute)
+        {
+            return (First.Value, Second.Value);
+        }
+
+        if (First.IsAbsolute)
+        {
+            return (First.Value, Math.Max(0, room - First.Value));
+        }
+
+        if (Second.IsAbsolute)
+        {
+            return (Math.Max(0, room - Second.Value), Second.Value);
+        }
+
+        double total = First.Value + Second.Value;
+        return (room * First.Value / total, room * Second.Value / total);
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Control? first = Children.Count > 0 ? Children[0] : null;
+        Control? second = Children.Count > 1 ? Children[1] : null;
+        double width = availableSize.Width;
+        Stacked = double.IsFinite(width) && width < MinSideBySide;
+        if (Stacked || !double.IsFinite(width))
+        {
+            Size a = Measure(first, availableSize);
+            Size b = Measure(second, availableSize);
+            bool bothShown = a.Height > 0 && b.Height > 0;
+            return new Size(Math.Max(a.Width, b.Width), a.Height + b.Height + (bothShown ? Gap : 0));
+        }
+
+        (double firstWidth, double secondWidth) = Widths(width);
+        Size left = Measure(first, new Size(firstWidth, availableSize.Height));
+        Size right = Measure(second, new Size(secondWidth, availableSize.Height));
+        return new Size(width, Math.Max(left.Height, right.Height));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Control? first = Children.Count > 0 ? Children[0] : null;
+        Control? second = Children.Count > 1 ? Children[1] : null;
+        if (Stacked)
+        {
+            double top = first?.DesiredSize.Height ?? 0;
+            first?.Arrange(new Rect(0, 0, finalSize.Width, top));
+            second?.Arrange(new Rect(0, top > 0 ? top + Gap : 0, finalSize.Width, second.DesiredSize.Height));
+            return finalSize;
+        }
+
+        (double firstWidth, double secondWidth) = Widths(finalSize.Width);
+        first?.Arrange(new Rect(0, 0, firstWidth, finalSize.Height));
+        second?.Arrange(new Rect(finalSize.Width - secondWidth, 0, secondWidth, finalSize.Height));
+        return finalSize;
+    }
+
+    static Size Measure(Control? child, Size available)
+    {
+        if (child == null)
+        {
+            return default;
+        }
+
+        child.Measure(available);
+        return child.DesiredSize;
     }
 }
 

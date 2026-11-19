@@ -11,7 +11,8 @@ namespace VitaSharp.Desktop.Launcher;
 /// how the process ended and the play time recorded (<c>--affinity=F0</c> pins it); with <c>--focus-check</c> it runs
 /// in its window instead and "Ir para o jogo" must restore it (see <see cref="FocusCheck"/>);<c>--install-pkg=P --license=zRIF</c>
 /// installs a package through the license dialog (see <see cref="InstallPkg"/>); <c>--update-feed=&lt;folder|URL&gt;</c>
-/// renders the update dialog for the newest release of that feed. Settings are not saved.
+/// renders the update dialog for the newest release of that feed; <c>--layout-check</c> reports every control a page
+/// cuts or pushes out sideways (<see cref="LayoutAudit"/>, try a small --size and --lang=pt-BR). Settings are not saved.
 /// </summary>
 static class UiRender
 {
@@ -61,6 +62,15 @@ static class UiRender
                 if (args.Contains("--mem"))
                 {
                     PrintMemory(name);
+                }
+
+                if (args.Contains("--layout-check"))
+                {
+                    foreach (string problem in LayoutAudit.Check(main))
+                    {
+                        Console.WriteLine($"  LAYOUT {name}: {problem}");
+                        failures++;
+                    }
                 }
             }
             Shot("library");

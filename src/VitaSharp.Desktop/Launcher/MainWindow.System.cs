@@ -26,7 +26,6 @@ public sealed partial class MainWindow
         header.Children.Add(Kit.At(openFs, col: 1));
         page.Children.Add(header);
 
-        var cols = new Grid { ColumnDefinitions = new ColumnDefinitions("*,24,*") };
         var left = new StackPanel { Spacing = 10 };
         left.Children.Add(_k.GroupTitle(S.Firmware));
         // the firmware panel keeps running an installation when the page changes: reuse it
@@ -50,7 +49,6 @@ public sealed partial class MainWindow
         left.Children.Add(_k.GroupTitle(S.HleModulesTitle));
         left.Children.Add(_k.Group(
             _k.Row("box", S.HleModules, S.HleModulesDetail, _k.Field(_settings.HleModules, t => { _settings.HleModules = t.Trim(); SaveSettings(); }, 240, S.HleModulesWatermark))));
-        cols.Children.Add(left);
 
         var right = new StackPanel { Spacing = 10 };
         right.Children.Add(_k.GroupTitle(S.RecreatedHomeTitle));
@@ -78,8 +76,8 @@ public sealed partial class MainWindow
             _k.Row("volume", S.SystemSounds, S.SystemSoundsDetail, _k.Switch(_settings.SystemSounds, v => { _settings.SystemSounds = v; SaveSettings(); }, shellAssets.HasFirmware))));
         right.Children.Add(_k.GroupTitle(S.TrophyImportTitle));
         right.Children.Add(_k.Card(new TrophyImportPanel(), 18, new Thickness(18, 14)));
-        cols.Children.Add(Kit.At(right, col: 2));
-        page.Children.Add(cols);
+        // side by side when there is room, one column below the other in a narrow window
+        page.Children.Add(Kit.Columns(left, right, 900));
         return new ScrollViewer { Content = page, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
     }
 
