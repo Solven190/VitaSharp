@@ -8,7 +8,7 @@ using S = VitaSharp.Desktop.Launcher.Ui.Strings;
 
 namespace VitaSharp.Desktop.Launcher;
 
-/// <summary>"Precompilar código ARM": while the game process translates its ARM code before the game starts
+/// <summary>"Precompilar codigo ARM": while the game process translates its ARM code before the game starts
 /// (<see cref="CodePrecompileLog"/> lines in its log), the status bar shows that progress in its own bar with its own
 /// "Cancelar" (the game process reads it from its standard input and starts at once). Separate from the shader cache
 /// load's bar (<see cref="MainWindow.ShowShaderCacheLoad"/>): the two waits are different work.</summary>

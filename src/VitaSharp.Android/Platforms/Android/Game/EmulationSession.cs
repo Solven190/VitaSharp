@@ -108,7 +108,7 @@ public sealed partial class EmulationSession : IDisposable
             // "Carregar o cache de shaders antes de jogar" (global and per game): the progress and "Cancelar" are the game
             // screen's banner (GameActivity.ShaderCacheLoad.cs)
             LoadShaderCacheBeforeStart = _settings.LoadShaderCacheBeforePlaying,
-            // "Precompilar código ARM" (global and per game): on the phone all of it runs in the background (the blocks
+            // "Precompilar codigo ARM" (global and per game): on the phone all of it runs in the background (the blocks
             // earlier sessions ran first, then the code near what the game runs); the game does not wait for it
             CodeCacheDir = data.CodeCache,
             PrecompileCode = _settings.PrecompileCode,

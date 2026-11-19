@@ -37,7 +37,7 @@ public sealed class AppPreferences
     /// the game screen (Core/Gpu/ShaderCacheLoad.cs). On by default, as the desktop launcher's option of the same name
     /// (--load-shader-cache).</summary>
     public bool LoadShaderCacheBeforePlaying { get; set; } = true;
-    /// <summary>"Precompilar código ARM" of every game without its own choice: the game's ARM code is translated ahead
+    /// <summary>"Precompilar codigo ARM" of every game without its own choice: the game's ARM code is translated ahead
     /// of execution (the blocks its earlier sessions ran, then the code near what it runs; Core/Cpu/CodeCache.cs). On the
     /// phone everything runs in the background, the game does not wait. On by default, as the desktop launcher's option of
     /// the same name (--precompile-code).</summary>
@@ -120,7 +120,7 @@ public sealed class GameSettings
     public bool? FastLoading { get; set; }
     /// <summary>"Carregar o cache de shaders antes de jogar" of this game (null = <see cref="AppPreferences.LoadShaderCacheBeforePlaying"/>).</summary>
     public bool? LoadShaderCacheBeforePlaying { get; set; }
-    /// <summary>"Precompilar código ARM" of this game (null = <see cref="AppPreferences.PrecompileCode"/>).</summary>
+    /// <summary>"Precompilar codigo ARM" of this game (null = <see cref="AppPreferences.PrecompileCode"/>).</summary>
     public bool? PrecompileCode { get; set; }
     /// <summary>"Taxa de quadros": "30", "60" or "unlimited" (null = native, the game's own pacing; per game only, as the
     /// desktop launcher's --frame-rate=, Hle/Modules/Display.cs FrameRate).</summary>

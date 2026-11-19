@@ -360,7 +360,7 @@ public static class Runner
             // default, on): the recorded shaders and pipelines are built before the game starts; "cancel-shader-cache-load"
             // on standard input stops the wait
             LoadShaderCacheBeforeStart = bootWait.ShaderCache,
-            // --precompile-code=on|off: the launcher's "Precompilar código ARM": the modules' ARM code (the blocks earlier
+            // --precompile-code=on|off: the launcher's "Precompilar codigo ARM": the modules' ARM code (the blocks earlier
             // sessions ran, or the code reached from the entry points) is translated before the game starts;
             // "cancel-code-precompile" on standard input stops the wait
             PrecompileCode = bootWait.Code,

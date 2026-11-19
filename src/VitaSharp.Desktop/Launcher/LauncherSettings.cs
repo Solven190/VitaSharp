@@ -43,7 +43,7 @@ public sealed class LauncherSettings
     /// moves it to <see cref="LoadShaderCacheBeforePlaying"/>. Never written back.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public bool? PrecompileShaders { get; set; }
-    /// <summary>"Precompilar código ARM" for every game without its own choice (<see cref="GameOptions.PrecompileCode"/>):
+    /// <summary>"Precompilar codigo ARM" for every game without its own choice (<see cref="GameOptions.PrecompileCode"/>):
     /// before a game starts, its modules' ARM code is translated on every free core, behind its own progress bar with
     /// "Cancelar" (--precompile-code): the blocks its earlier sessions ran (the code cache), or in a first session the
     /// code reached from the modules' entry points; the code near what the game runs follows in the background. On by
@@ -350,7 +350,7 @@ public sealed class GameOptions
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public bool? PrecompileShaders { get; set; }
 
-    /// <summary>"Precompilar código ARM": this game's own choice, null = the global default
+    /// <summary>"Precompilar codigo ARM": this game's own choice, null = the global default
     /// (<see cref="LauncherSettings.PrecompileCode"/>).</summary>
     public bool? PrecompileCode { get; set; }
 
