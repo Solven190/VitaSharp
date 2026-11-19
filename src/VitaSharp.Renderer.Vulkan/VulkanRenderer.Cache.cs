@@ -313,7 +313,7 @@ public sealed unsafe partial class VulkanRenderer
                 32 => 3,
                 _ => 0
             }) << 4 | ((int)gen.TileWord1 & 3) << 6);
-        BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(1), (ushort)(n | (gen.WritesMemory ? 0x8000 : 0)));
+        BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(1), (ushort)(n | (gen.WritesMemory ? 0x8000 : 0) | (gen.FetchesRawWords ? 0x4000 : 0)));
         int o = 3;
         foreach (VertexInputInfo vertexInputInfo in gen.VertexInputs)
         {
@@ -348,7 +348,8 @@ public sealed unsafe partial class VulkanRenderer
 
         int n = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(1));
         bool writesMemory = (n & 0x8000) != 0;
-        n &= 0x7FFF;
+        bool fetchesRawWords = (n & 0x4000) != 0;
+        n &= 0x3FFF;
         int spvOffset = 3 + n * InputRecordSize;
         int spvLength = data.Length - spvOffset;
         if (spvLength < 20 || (spvLength & 3) != 0 || BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(spvOffset)) != 0x07230203)
@@ -366,6 +367,7 @@ public sealed unsafe partial class VulkanRenderer
             RawColorBits = ((flags >> 4) & 3) switch { 1 => 8, 2 => 16, 3 => 32, _ => 0 },
             TileWord1 = (TileWord1Use)((flags >> 6) & 3),
             WritesMemory = writesMemory,
+            FetchesRawWords = fetchesRawWords,
         };
         for (int i = 0; i < n; i++)
         {

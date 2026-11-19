@@ -1304,7 +1304,7 @@ public sealed unsafe partial class VulkanRenderer
             }
         }
         DescriptorSet fbSet = inputFetch ? BuildMsaaInputFetchSet(tw1) : singleFetch ? BuildSingleInputFetchSet()
-            : fs.Gen!.UsesFragColor || tw1 ? BuildFramebufferFetchSet(tw1) : _emptyFbSet ??= BuildEmptyFbSet();
+            : fs.Gen!.UsesFragColor || tw1 ? BuildFramebufferFetchSet(tw1, fs.Gen.FetchesRawWords) : _emptyFbSet ??= BuildEmptyFbSet();
 
         ProfMark(ProfPhase.Texture);
         // ---- pipeline

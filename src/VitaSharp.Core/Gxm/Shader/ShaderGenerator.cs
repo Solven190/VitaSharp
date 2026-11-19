@@ -172,6 +172,12 @@ public sealed class GeneratedShader
     /// <see cref="TileWord1Use"/>). In a <see cref="ShaderHints.TileWord1"/> variant, <see cref="TileWord1Use.Writes"/>
     /// also means the shader outputs the word at location 1.</summary>
     public TileWord1Use TileWord1 { get; set; }
+    /// <summary>
+    /// The framebuffer fetch reads the pixel's raw words (<see cref="ShaderGenerator.NativeRawOutputWords"/>): the
+    /// single-sampled copy of the surface at set 3 binding 0 is an unsigned-integer image (usampler2D), so the words
+    /// come back bit-exact instead of through a 32-bit float view.
+    /// </summary>
+    public bool FetchesRawWords { get; set; }
     public HashSet<string> Warnings { get; set; } = new();
     /// <summary>The program stores to memory through a mapped slot: its mapped-memory buffer is writable, and the
     /// renderer keeps what it wrote (vertex streams read later in the frame come from there).</summary>
@@ -211,7 +217,7 @@ public static class ShaderGenerator
     /// Version of the translator output. Persistent shader caches are keyed by it: bump it whenever a change to the
     /// USSE translation or to this generator alters the GLSL (or its metadata) produced for an existing program.
     /// </summary>
-    public const int GeneratorVersion = 29;
+    public const int GeneratorVersion = 30;
 
     /// <summary>Clip distances the generated vertex shaders may write (index 0 the far plane, 1-7 the GXM user clip
     /// planes 0-6): the Vulkan minimum of maxClipDistances.</summary>
@@ -948,6 +954,7 @@ float packC10(vec3 c) {
             WritesDepth = result.WritesDepth,
             RawColorBits = result.RawColorBits,
             TileWord1 = result.TileWord1,
+            FetchesRawWords = result.FetchesRawWords,
             Warnings = result.Warnings,
             WritesMemory = result.WritesMemory,
         }.CopyLists(result);
@@ -1364,6 +1371,7 @@ float packC10(vec3 c) {
             target.Num = 0;
             target.Type = FetchType(program, hints);
             string sample = PerSampleFramebufferFetch ? "gl_SampleID" : "0";
+            int rawFetchWords = NativeRawOutputWords(program, hints);
             Val src;
             if (hints.FetchInputAttachment && hints.FetchInputSingleSample)
             {
@@ -1378,6 +1386,19 @@ float packC10(vec3 c) {
                 decl.AppendLine("layout(input_attachment_index = 0, set = 3, binding = 2) uniform subpassInputMS last_frag_in;");
                 src = new Val($"subpassLoad(last_frag_in, {sample})", 'f', 4);
             }
+            else if (rawFetchWords != 0)
+            {
+                // the surface keeps the register words unconverted: the single-sampled copy is read as unsigned words
+                // (an integer image), never as 32-bit floats. Packed bytes form denormal and NaN float patterns (an
+                // RGBA8 albedo word with alpha 0 is a denormal), and a float texel fetch may flush or canonicalise
+                // them: Assassin's Creed III Liberation's ground decals (fs E75AC07A68CC79A1) wrote those altered
+                // words back where their alpha test kept the pixel, as blue/green noise. Binding 1 (real MSAA,
+                // rinfo.fb_samples > 1) keeps the float multisampled copy
+                result.FetchesRawWords = true;
+                decl.AppendLine("layout(set = 3, binding = 0) uniform usampler2D last_frag_words;");
+                decl.AppendLine("layout(set = 3, binding = 1) uniform sampler2DMS last_frag_ms;");
+                src = new Val($"(rinfo.fb_samples > 1.5 ? texelFetch(last_frag_ms, ivec2(gl_FragCoord.xy), {sample}) : uintBitsToFloat(texelFetch(last_frag_words, ivec2(gl_FragCoord.xy), 0)))", 'f', 4);
+            }
             else
             {
                 // binding 0: single-sampled copy of the target; binding 1: multisampled copy (scenes rendered with
@@ -1389,7 +1410,6 @@ float packC10(vec3 c) {
             // a surface that keeps the register words unconverted (NativeRawOutputWords) gives them back as they are:
             // its 32-bit float channels are the words' bits (Assassin's Creed III Liberation blends its packed G-buffer
             // bytes with SOP2 on the fetched words)
-            int rawFetchWords = NativeRawOutputWords(program, hints);
             int fetchMask = 0b1111;
             if (rawFetchWords != 0)
             {
