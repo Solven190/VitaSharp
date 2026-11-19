@@ -400,6 +400,52 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   sessão de ~4,5 min = 84.817 blocos, 15,4 s compilando (182 us/bloco) no meio do jogo; no celular deve ser 2-4x.
   Aceite: 1ª sessão depois da pré-compilação com quase 0 ms de compilação durante o jogo. Desktop e Android
   (ARM64), validado no PC enquanto o Android está pausado
+  - Desenho (como o RPCS3 faz: o analisador de PPU acha as funções a partir das entradas do módulo, das tabelas de
+    exportação e dos alvos de branch, compila os módulos com LLVM antes do boot e guarda os objetos por hash do
+    módulo; um módulo atualizado ou outra versão do compilador recompila):
+    - Descoberta de código (`CodePrecompiler`): sementes = module_start/stop/exit, as funções exportadas (tabela de
+      exportações do módulo) e o início de cada função do `.ARM.exidx` (índice de exceções: uma entrada por função com
+      unwind, quase todas num jogo C++); a partir delas, os workers traduzem cada bloco e seguem as saídas estáticas
+      (branches diretos, os dois lados de um condicional, BLX imm = troca ARM/Thumb pelo bit do alvo) e o ponto de
+      retorno depois de BL/BLX/SVC, só dentro dos segmentos executáveis dos módulos carregados. Não segue o que é
+      calculado (tabelas de salto TBB/TBH, ponteiros de função, vtables): isso o JIT compila quando o jogo chegar.
+      Dados no meio do código (literal pools) não são visitados, porque só se segue fluxo real; um bloco de "dados"
+      traduzido por engano só custa tempo de compilação (nunca executa errado: a tradução é dos bytes que estão lá).
+      As entradas do exidx não dizem o modo; ficam no modo da maioria das entradas explícitas do módulo (Thumb no Vita).
+    - Cache em disco (`CodeCache`, `CodeCacheFile`): um arquivo por imagem de módulo
+      (`<dados>/codecache/<xxhash64 do ELF>.vsjc`) só com os blocos que o jogo executou com código compilado, na ordem
+      do primeiro uso, como (segmento, offset do início do segmento, Thumb): vale em qualquer endereço de carga, porque
+      o bloco é decodificado da memória já relocada. Chave: hash da imagem + versão do formato + versão do tradutor
+      (regras de corte de bloco, `BlockBuilder.MaxInstructions`) + backend (`native`/`il`) + arquitetura do host;
+      arquivo de outra chave, truncado ou com o XxHash64 final errado é ignorado e regravado. Gravação: a cada 2 min, ao
+      trocar de executável, ao fim do processo e no fechamento (arquivo temporário + move).
+    - Carregamento e prioridades (`CodePrecompiler.Priority`): na carga de cada módulo (não-kernel) as entradas viram
+      endereços. Antes da 1ª thread do processo (`Emulator.Start`) a etapa traduz, em todos os núcleos livres, primeiro
+      os blocos do cache (o que as sessões anteriores executaram, na ordem de uso) e libera o jogo assim que eles estão
+      prontos; sem cache (1ª sessão) espera o código alcançado a partir das entradas/exports do módulo. Depois, em
+      poucas threads de prioridade baixa (`CodePrecompiler.BackgroundWorkers`), a "fronteira": até 3 blocos além de cada
+      bloco que o jogo executa (saídas estáticas e retorno de chamadas) e o resto da função em que ele está (o início da
+      função vem do `.ARM.exidx`, que só serve como índice de funções, não é traduzido inteiro). Um bloco pré-compilado
+      só é publicado (dispatcher, tabela de saídas indiretas, links) quando o guest chega nele pela 1ª vez
+      (`Jit.ActivateAhead`, que também alarga a fronteira); é assim que o cache sabe o que rodou. Módulos carregados com
+      o jogo rodando entram em segundo plano do mesmo jeito. Teto: 64 MiB de código pré-compilado na arena (256 MiB).      Android: o mesmo modelo, tudo em segundo plano (`PrecompileCodeWaits = false`) até a tela do jogo ter a barra.    - Invalidação: os blocos pré-compilados são blocos normais do cache do processo; escrita em código
+      (DirtyPages/`InvalidateCode`), carga/descarga de módulo e save state continuam derrubando a tradução.
+    - UI: a mesma barra do "Precompilar shaders" no launcher, com o texto "Precompilando código ARM: x de y" (linhas
+      `[precompile] progress <feito> <total> code`) e o mesmo "Cancelar"; opção "Precompilar código ARM" em
+      Configurações (`--precompile-code=on|off`, padrão ligado; `--code-cache=<pasta>|off`).
+    - Andamento (feat/aot1, 18/11/2026; Killzone `kz_idle`, 5800 quadros, headless, 4 núcleos, BelowNormal, máquina
+      sem carga): sem a opção 10,2k blocos / 825 ms compilando no jogo; 1ª sessão: etapa de 1,5 s (51,6k blocos do
+      fluxo), 1,3k blocos / 548 ms no jogo, 94,7% dos blocos executados já pré-compilados, 68k blocos pré-compilados no
+      total (20,8 MB de arena, 4,5 s de CPU, a maior parte em segundo plano); 2ª sessão: etapa de 1,5 s (27k blocos do
+      cache), 84 blocos / 12 ms no jogo, 99,7%. Falta: (a) a 1ª sessão ainda perde funções chamadas por
+      ponteiro/vtable antes de a fronteira chegar: semear ponteiros para código achados nos segmentos de dados
+      (vtables, tabelas de callbacks) e os casos das tabelas TBB/TBH; (b) os ms por bloco do JIT no jogo sobem com a
+      fronteira rodando (o encode é feito sob o lock da arena, `ExecutableMemory.Place`): reservar e codificar fora do
+      lock; (c) os 81 blocos que sobram na 2ª sessão são código fora dos módulos (rotinas HLE escritas na memória):
+      gravá-los também; (d) medir no build AOT/LLVM (sem o aquecimento do .NET), no AC3L e no celular.    - Fica para depois (parte 3): guardar os bytes de máquina traduzidos. O código nativo não é relocável hoje
+      (endereços absolutos de slots de link, stubs Epilogue/Callout, tabela de dispatch, pool de constantes, contador de
+      tier-up; superblocos e stores mortos dependem dos vizinhos já executados): precisa de uma tabela de relocações
+      nos emissores x64 (Iced e fast-encode) e ARM64. Só vale se a etapa de boot ficar longa.
 
 - [ ] [P3][M] Investigar reduções de memória do emulador (pedido do usuário, 17/11/2026): medir o uso de RAM do
   processo com um jogo pesado (dotnet-counters/dotnet-gcdump) e listar onde dá para cortar (caches de shader/textura,
