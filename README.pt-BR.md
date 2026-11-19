@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=18eb1655c69a9fa24609fb7c6e5eb1581b4039f27d7c490e2c5b76dd515aca9e -->
+<!-- pair: README.md sha256=7ad665479036b11de73b9ff0477257d5b5a6bb6ae8999b0a27068e04d57c2b68 -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -396,6 +396,14 @@ Os scripts shell seguem o Google Shell Style Guide e precisam passar no ShellChe
   desktop, Mesa); sem ela (MoltenVK, Dozen, drivers de celular) os pipelines são compilados inteiros de qualquer jeito.
   A linha `[shadercache] session` do log conta o que a thread da GPU compilou; ver
   [`docs/notes/pipeline-skip.md`](docs/notes/pipeline-skip.md).
+- "Carregar o cache de shaders antes de jogar" / "Load the shader cache before playing" (launcher: Configurações, ao
+  lado de "Compilar shaders em segundo plano", e a página de cada jogo; `--load-shader-cache=on|off`, ligado por padrão;
+  o nome antigo `--precompile-shaders` ainda é aceito, com um aviso): antes de o jogo começar, o cache de shaders dele
+  (os shaders e pipelines gravados nas sessões anteriores, `shadercache/titles/<ID>/`) é montado atrás de uma barra de
+  progresso na barra de status do launcher; "Cancelar" (a linha `cancel-shader-cache-load` na entrada padrão do
+  processo do jogo) começa o jogo na hora e o resto é montado em segundo plano. É um carregamento de cache, não uma
+  pré-compilação: a primeira sessão de um jogo não tem nada gravado. Nada a mais para instalar, igual no Windows, Linux
+  e macOS.
 - Perfil: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, todos os sistemas); no Windows
   também o PerfView e o WPR/WPA (Windows Performance Toolkit).
 

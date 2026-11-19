@@ -17,6 +17,18 @@ public partial class GenericCodeTests
     [GeneratedRegex(@"^(?:[A-Z]{4}\d{5}|NPXS\d{0,4}|PCS[A-H]\d{0,4}|NP[A-Z][A-Z]\d{0,4})$")]
     private static partial Regex TitleIdLiteral();
 
+    /// <summary>
+    /// Title-ID-shaped literals that are data the firmware itself holds as a constant, written where VitaSharp stands
+    /// for that firmware code (never compared with a program to choose what to do): file ('/' separators), literal and
+    /// where in the firmware the value is (module, version, offset). The project rule allows a name fixed by the
+    /// firmware; an entry without its source, or whose literal left the file, fails FirmwareConstantsAreJustifiedAndInUse.
+    /// </summary>
+    internal static readonly (string File, string Literal, string Reason)[] FirmwareConstants =
+    [
+        ("src/VitaSharp.Core/Hle/Modules/SystemServicesVsh.EventLog.cs", "NPXS19999",
+            "sysmem 3.74 read-only data (segment 0, offset 0x26FAC): the name copied into every event log record"),
+    ];
+
     private static string? RepoRoot([CallerFilePath] string source = "")
     {
         foreach (string start in new[] { AppContext.BaseDirectory, Path.GetDirectoryName(source) ?? "" })
@@ -148,9 +160,10 @@ public partial class GenericCodeTests
                 continue;
             }
 
+            string relSlash = rel.Replace('\\', '/');
             foreach ((int line, string? text) in StringLiterals(File.ReadAllText(f)))
             {
-                if (TitleIdLiteral().IsMatch(text))
+                if (TitleIdLiteral().IsMatch(text) && !Array.Exists(FirmwareConstants, c => c.File == relSlash && c.Literal == text))
                 {
                     bad.Add($"{rel}:{line}: \"{text}\"");
                 }
@@ -158,5 +171,22 @@ public partial class GenericCodeTests
         }
 
         Assert.True(bad.Count == 0, "title IDs compared in code (use param.sfo, the vs0: origin or app.db):\n" + string.Join("\n", bad));
+    }
+
+    /// <summary>Every firmware constant names its firmware source (module, version, offset) and is still a literal of
+    /// its file (a stale entry would let the same literal in later for another reason).</summary>
+    [Fact]
+    public void FirmwareConstantsAreJustifiedAndInUse()
+    {
+        string? root = RepoRoot();
+        Assert.NotNull(root);
+        foreach ((string file, string literal, string reason) in FirmwareConstants)
+        {
+            Assert.Matches(TitleIdLiteral(), literal);
+            Assert.Matches(@"\d\.\d{2}\b.*0x[0-9A-F]+", reason);
+            string path = Path.Combine(root!, file.Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(File.Exists(path), $"{file}: no such file");
+            Assert.Contains(StringLiterals(File.ReadAllText(path)), found => found.Text == literal);
+        }
     }
 }
