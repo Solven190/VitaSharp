@@ -274,6 +274,67 @@ public sealed class SaveStateLayoutTests
         Assert.Contains("Dropped was removed", why);
     }
 
+    /// <summary>A field of fixed size (number, flag, enum, kernel object) that a later build dropped is skipped by its
+    /// saved shape's size, at any place among the saved fields (the bridge's controller settings moved to the kernel on
+    /// 18/11 and every format 1 state was refused).</summary>
+    [Fact]
+    public void PositionalStateWithADroppedFieldOfFixedSizeLoads()
+    {
+        var w = new SnapshotWriter();
+        w.Write((byte)1); // DroppedFlag
+        w.Write(41); // Kept
+        w.Write(0x11111111); // DroppedNumber
+        w.Write(9); // OldName
+        w.Write(0x22222222); // DroppedMode
+        w.Write(0x3333333333333333L); // DroppedTick
+        w.Write(0x44444444); // DroppedObject
+        w.Write(1); // Items
+        w.Write(3);
+        w.Write(5); // Extra
+        w.Write((short)6); // DroppedShort, the last saved field
+        w.Write(5); // SaveExtra: Extra, Items.Count
+        w.Write(1);
+        string key = KeyOf<LayoutProbeAdded>();
+        var old = new SnapshotLayout(key, nameof(LayoutProbeAdded), SnapshotLayouts.Current(KeyOf<LayoutProbeV1>())!.HookSignature,
+            [
+                new SnapshotField("DroppedFlag", "Boolean"),
+                new SnapshotField("Kept", "Int32"),
+                new SnapshotField("DroppedNumber", "Int32"),
+                new SnapshotField("OldName", "Int32"),
+                new SnapshotField("DroppedMode", "enum(Int32)"),
+                new SnapshotField("DroppedTick", "Int64"),
+                new SnapshotField("DroppedObject", "kobj"),
+                new SnapshotField("Items", "list(Int32)"),
+                new SnapshotField("Extra", "Int32"),
+                new SnapshotField("DroppedShort", "Int16"),
+            ]);
+        var layouts = new Dictionary<string, SnapshotLayout> { [key] = old };
+        Assert.Null(SnapshotLayouts.Incompatibility(layouts, positional: true));
+        var loaded = new LayoutProbeAdded();
+        var reader = new SnapshotReader(w.Data.ToArray()) { Layouts = layouts, Positional = true };
+        loaded.LoadState(reader);
+        Assert.True(reader.AtEnd, $"left {reader.Remaining} bytes");
+        Assert.Equal((41, 9, 7, true, 5), (loaded.Kept, loaded.NewName, loaded.AddedNumber, loaded.AddedFlag, loaded.Extra));
+        Assert.Equal([3], loaded.Items);
+    }
+
+    [Theory]
+    [InlineData("Boolean", 1)]
+    [InlineData("Int16", 2)]
+    [InlineData("Int32", 4)]
+    [InlineData("kobj", 4)]
+    [InlineData("enum(Byte)", 1)]
+    [InlineData("UInt64", 8)]
+    [InlineData("String", -1)]
+    [InlineData("arr(Byte)", -1)]
+    [InlineData("opt(Int32)", -1)]
+    [InlineData("blit(Int32,Byte)", -1)]
+    [InlineData("(Int32,Int32)", -1)]
+    public void OnlyShapesOfFixedSizeCanBeSkipped(string signature, int size)
+    {
+        Assert.Equal(size, SnapshotField.FixedSize(signature));
+    }
+
     [Fact]
     public void NestedStatesAreMappedByTheirOwnLayout()
     {
