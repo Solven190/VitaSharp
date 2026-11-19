@@ -2973,6 +2973,10 @@ usuário. Se o teste falhar, o item volta para "Bugs em aberto".
   no jogo. Desempenho (não mexido): na captura, GPU
   ~14 ms por quadro contra ~52 ms de quadro do guest, com TaskThread1-3 e a `main` ocupadas: o gargalo é a CPU do
   guest, não a GPU
+  Andamento (18/11/2026, ac3d, 13a350d8; correção feita, falta o usuário confirmar): as manchas dos decals vinham de
+  um cache de shader v29 gravado antes da mudança do fetch (sem novo bump): gerador v30, e o fetch de palavras cruas
+  lê a cópia por uma imagem inteira (R32G32Uint/usampler2D). O fps de 17-22 das capturas é custo do próprio F8
+  (gravador de GPU dump 36,7 ms/quadro + compressão 93,9 ms/quadro); fora da gravação a mesma cena roda a ~30 fps
 - [x] (18/11/2026, usuário: corrigido; reabre se aparecer de novo) [P1][M] GTA: Vice City (port GTAVCECTY), cutscene de abertura com os personagens pretos (pedido do usuário,
   17/11/2026): na cena do restaurante o cenário aparece iluminado, mas os personagens ficam totalmente escuros, como
   silhuetas. Captura: `captures/GTAVCECTY_20261117_004955_tudo` (frames.png, gpu.vsgd para replay-gpu; 29-30 fps;
