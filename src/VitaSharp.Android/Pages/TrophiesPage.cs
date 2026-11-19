@@ -52,11 +52,11 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
                             GradeCount(TrophyGrade.Silver, p, 2), GradeCount(TrophyGrade.Bronze, p, 3))
                     ).Padding(16))
                 .StrokeShape(new RoundRectangle().CornerRadius(20)).StrokeThickness(0).BackgroundColor(Palette.Surface).Margin(20, 8, 20, 0),
-                HStack(
+                ChipRow(
                     Chip(Loc.Get("MAll"), State.Filter == TrophyList.Filter.All, () => SetState(s => s.Filter = TrophyList.Filter.All)),
                     Chip(Loc.Get("MEarned"), State.Filter == TrophyList.Filter.Earned, () => SetState(s => s.Filter = TrophyList.Filter.Earned)),
                     Chip(Loc.Get("MMissingTrophies"), State.Filter == TrophyList.Filter.Missing, () => SetState(s => s.Filter = TrophyList.Filter.Missing))
-                ).Spacing(8).Padding(20, 16, 20, 8),
+                ).Padding(20, 16, 20, 0),
                 VStack(rows.Select(TrophyRowView).ToArray()).Spacing(10).Padding(20, 0)
             ), kicker: Loc.Get("MTrophies"));
     }
@@ -83,7 +83,7 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
                         .BackgroundColor(Palette.SurfaceHigh).WidthRequest(52).HeightRequest(52),
                     VStack(
                         Grid("Auto", "*,Auto",
-                            Label(r.ShownName).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.TailTruncation),
+                            Label(r.ShownName).FontFamily(Fonts.InterSemiBold).FontSize(14).LineBreakMode(LineBreakMode.WordWrap),
                             Label(TrophyList.GradeName(r.Grade)).FontSize(11).TextColor(Color.FromArgb(TrophyList.GradeColor(r.Grade))).GridColumn(1).Margin(8, 0, 0, 0)
                         ),
                         Label(r.ShownDetail).FontSize(12).TextColor(Palette.Muted).MaxLines(3),

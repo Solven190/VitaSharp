@@ -29,8 +29,9 @@ public sealed class LibraryState
 
 /// <summary>
 /// Biblioteca (docs/android/mockups/biblioteca.html): search, filters, "Continuar jogando" with the last game, the
-/// "Sistema do Vita" entry, the grid of installed games with trophies earned/total, and "Instalar jogo" (header chip,
-/// floating button, empty-library button and Ajustes): a .vpk, or a .pkg with its work.bin/.rif/zRIF license, picked
+/// "Sistema do Vita" entry, the grid of installed games with trophies earned/total, and "Instalar jogo" (floating
+/// button, empty-library button and Ajustes; the header is the title alone): a .vpk, or a .pkg with its
+/// work.bin/.rif/zRIF license, picked
 /// with the Storage Access Framework, read in place and extracted into &lt;data&gt;/fs/ux0.
 /// </summary>
 public sealed class LibraryView : Screen<LibraryState>
@@ -102,22 +103,14 @@ public sealed class LibraryView : Screen<LibraryState>
         return Grid("*", "*",
             VScrollView(
                 VStack(
-                    Grid("Auto", "*,Auto",
-                        VStack(
-                            Label("VITASHARP").FontSize(12).TextColor(Palette.Muted).CharacterSpacing(1),
-                            Label(Loc.Get("MLibrary")).FontFamily(Fonts.SoraBold).FontSize(28)
-                        ).Spacing(2),
-                        HStack(
-                            Chip(Loc.Get("MInstallChip"), true, InstallGame),
-                            IconButton("\u2699", () => RootPage.Show(RootTab.Settings)).VCenter()
-                        ).Spacing(10).GridColumn(1).VCenter()
-                    ).Padding(20, 20, 20, 8),
+                    // the title alone: installing is the floating button (and Ajustes > Instalar jogo), Ajustes its tab
+                    Label(Loc.Get("MLibrary")).FontFamily(Fonts.SoraBold).FontSize(28).Padding(20, 20, 20, 8),
                     SearchBox(),
-                    HStack(
+                    ChipRow(
                         Chip(Loc.Format("MAllCount", State.Games.Count), State.Filter == GameLibrary.Filter.All, () => SetState(s => s.Filter = GameLibrary.Filter.All)),
                         Chip(Loc.Get("MRecent"), State.Filter == GameLibrary.Filter.Recent, () => SetState(s => s.Filter = GameLibrary.Filter.Recent)),
                         Chip(Loc.Get("MPlayable"), State.Filter == GameLibrary.Filter.Playable, () => SetState(s => s.Filter = GameLibrary.Filter.Playable))
-                    ).Spacing(8).Padding(20, 14, 20, 4),
+                    ).Padding(20, 14, 20, 0),
                     last != null && State.Search.Length == 0 ? ContinueCard(last) : null,
                     AppServices.StoragePlan.NeedsPermission ? StorageCard() : null,
                     SystemCard(),

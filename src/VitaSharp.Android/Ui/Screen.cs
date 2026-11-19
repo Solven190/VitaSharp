@@ -42,7 +42,8 @@ public abstract class Screen<TState, TProps> : Component<TState, TProps>
             back ? IconButton("\u2039", () => Navigation?.PopAsync()) : null,
             VStack(
                 kicker != null ? Label(kicker.ToUpperInvariant()).FontSize(12).TextColor(Palette.Muted).CharacterSpacing(1) : null,
-                Label(title).FontFamily(Fonts.SoraBold).FontSize(back ? 22 : 28).LineBreakMode(LineBreakMode.TailTruncation)
+                // a long title wraps on a narrow screen instead of ending in an ellipsis
+                Label(title).FontFamily(Fonts.SoraBold).FontSize(back ? 22 : 28).LineBreakMode(LineBreakMode.WordWrap)
             ).Spacing(2).VCenter()
         ).Spacing(14).Padding(20, 20, 20, 8);
 
@@ -67,20 +68,33 @@ public abstract class Screen<TState, TProps> : Component<TState, TProps>
 
     protected MauiReactor.BoxView Divider() => BoxView().HeightRequest(1).Color(Palette.Border).Margin(16, 0);
 
-    /// <summary>A setting row: label (and detail), value and a chevron when it opens something.</summary>
+    /// <summary>The screen's width in dp (the narrow-screen layout of <see cref="Row"/>).</summary>
+    protected static double ScreenWidthDp =>
+        DeviceDisplay.MainDisplayInfo is { Density: > 0 } display ? display.Width / display.Density : 0;
+
+    /// <summary>A setting row: label (and detail), value and a chevron when it opens something. The value wraps; on a
+    /// narrow screen, a value that would squeeze the label goes below it (<see cref="NarrowLayout"/>).</summary>
     protected MauiReactor.Grid Row(string label, string? value = null, Action? onTap = null, string? detail = null, Color? valueColor = null)
     {
+        bool below = NarrowLayout.ValueBelow(ScreenWidthDp, value);
         var row = Grid("Auto", "*,Auto,Auto",
             VStack(
                 Label(label).FontFamily(Fonts.InterMedium).FontSize(15),
-                detail != null ? Label(detail).FontSize(12).TextColor(Palette.Muted) : null
+                detail != null ? Label(detail).FontSize(12).TextColor(Palette.Muted) : null,
+                below ? Label(value).FontSize(14).TextColor(valueColor ?? Palette.Muted).LineBreakMode(LineBreakMode.WordWrap).Margin(0, 2, 0, 0) : null
             ).Spacing(2).VCenter(),
-            value != null ? Label(value).FontSize(14).TextColor(valueColor ?? Palette.Muted).VCenter().HEnd()
-                .LineBreakMode(LineBreakMode.TailTruncation).MaximumWidthRequest(200).GridColumn(1).Margin(8, 0, 0, 0) : null,
+            value != null && !below ? Label(value).FontSize(14).TextColor(valueColor ?? Palette.Muted).VCenter().HEnd()
+                .HorizontalTextAlignment(TextAlignment.End).LineBreakMode(LineBreakMode.WordWrap)
+                .MaximumWidthRequest(NarrowLayout.MaxValueWidthDp).GridColumn(1).Margin(8, 0, 0, 0) : null,
             onTap != null ? Label("\u203A").FontSize(20).TextColor(Palette.Faint).VCenter().GridColumn(2).Margin(10, 0, 0, 0) : null
         ).Padding(16, 14).MinimumHeightRequest(56);
         return onTap != null ? row.OnTapped(onTap) : row;
     }
+
+    /// <summary>A row of chips that wraps to the next line on a narrow screen instead of running off it.</summary>
+    protected MauiReactor.FlexLayout ChipRow(params VisualNode?[] chips) =>
+        FlexLayout(chips.Select(c => c?.Margin(0, 0, 8, 8)).ToArray())
+            .Wrap(Microsoft.Maui.Layouts.FlexWrap.Wrap).Direction(Microsoft.Maui.Layouts.FlexDirection.Row);
 
     protected MauiReactor.Grid ToggleRow(string label, bool value, Action<bool> onChange, string? detail = null, bool enabled = true) =>
         Grid("Auto", "*,Auto",

@@ -103,13 +103,13 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         IconButton("\u2039", () => Navigation?.PopAsync()),
                         Label("").GridColumn(1)
                     ).Padding(16, 16, 16, 0),
-                    HStack(
+                    Grid("Auto", "Auto,*",
                         Cover(g.TitleId, g.Initials, g.IconPath, 112, 24, 34),
                         VStack(
-                            Label(g.Title).FontFamily(Fonts.SoraBold).FontSize(24).MaxLines(3).LineBreakMode(LineBreakMode.TailTruncation),
-                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted)
-                        ).Spacing(6).VCenter().MaximumWidthRequest(230)
-                    ).Spacing(16).Padding(20, 16, 20, 0),
+                            Label(g.Title).FontFamily(Fonts.SoraBold).FontSize(24).LineBreakMode(LineBreakMode.WordWrap),
+                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted).LineBreakMode(LineBreakMode.WordWrap)
+                        ).Spacing(6).VCenter().GridColumn(1).Margin(16, 0, 0, 0)
+                    ).Padding(20, 16, 20, 0),
                     Grid("Auto", "*,Auto",
                         PrimaryButton(Loc.Get("MPlay"), () => GameActivity.Launch(MainActivity.Current!, g.TitleId)),
                         IconButton("\u22EF", More, 54).GridColumn(1).Margin(12, 0, 0, 0)
@@ -196,7 +196,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
     VisualNode Stat(string label, string value, int column) =>
         Border(VStack(
                 Label(label).FontSize(12).TextColor(Palette.Muted),
-                Label(value).FontFamily(Fonts.SoraBold).FontSize(20).LineBreakMode(LineBreakMode.TailTruncation)
+                Label(value).FontFamily(Fonts.SoraBold).FontSize(20).LineBreakMode(LineBreakMode.WordWrap)
             ).Spacing(4).Padding(14, 12))
         .StrokeShape(new RoundRectangle().CornerRadius(18)).StrokeThickness(0).BackgroundColor(Palette.Surface)
         .GridColumn(column);
