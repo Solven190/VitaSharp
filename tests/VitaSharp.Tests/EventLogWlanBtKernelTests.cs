@@ -62,6 +62,21 @@ public sealed class EventLogWlanBtKernelTests(GuestMemoryFixture fixture) : IDis
         Assert.Equal(0xAABBCCDDu, BinaryPrimitives.ReadUInt32LittleEndian(record[0x40..]));
     }
 
+    /// <summary>sysmem 3.74 copies the same 10 bytes from its read-only data into every record, whatever process puts
+    /// it: the name is not a process's title id (the process is the id at +0x18).</summary>
+    [Fact]
+    public void TheRecordNameIsTheModulesConstantForEveryProcess()
+    {
+        Assert.Equal(0, Call(Services, "ksceEventLogPut", 0x10005, 0, 1, 1, 0u, 0u, 0u));
+        Assert.Equal(0, Call(Services, "ksceEventLogPut", 0x10003, 0, 1, 1, 0u, 0u, 0u));
+        byte[] expected = [.. "NPXS19999"u8, 0];
+        Assert.Equal(expected, Services.EventLogRecordsBytes.Slice(8, 10).ToArray());
+        Assert.Equal(expected, Services.EventLogRecordsBytes.Slice(0xC0 + 8, 10).ToArray());
+        Assert.Equal(expected[..9], SystemServicesVsh.SysmemEventLogName.ToArray());
+        Assert.NotEqual(BinaryPrimitives.ReadInt32LittleEndian(Services.EventLogRecordsBytes[0x18..]),
+            BinaryPrimitives.ReadInt32LittleEndian(Services.EventLogRecordsBytes[(0xC0 + 0x18)..]));
+    }
+
     [Fact]
     public void APutChecksItsData()
     {

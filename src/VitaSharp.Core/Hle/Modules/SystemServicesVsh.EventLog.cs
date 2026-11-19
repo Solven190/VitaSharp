@@ -15,6 +15,13 @@ public sealed partial class SystemServicesVsh
     const int EventLogRecords = 16, EventLogRecordSize = 0xC0, EventLogHeadSize = 0x40, EventLogMaxData = 0x80;
     const int EventLogRecordsPerCpu = 4;
 
+    /// <summary>The 10-byte name every record carries at +0x08 (these 9 bytes and a zero; the head is cleared first): a
+    /// constant of sysmem 3.74's read-only data (segment 0, offset 0x26FAC, read in the module, study only), the same
+    /// for every process that puts a record, not the title id of a process (the process id is at +0x18). The firmware
+    /// module shells VitaSharp shows carry no firmware bytes, so the value is written here, as a firmware constant
+    /// (GenericCodeTests.FirmwareConstants lists it, with this reason).</summary>
+    internal static ReadOnlySpan<byte> SysmemEventLogName => "NPXS19999"u8;
+
     /// <summary>SceDebugForDriver: data longer than 0x80 bytes (0x80010021).</summary>
     const int EVENTLOG_ERR_TOO_LONG = unchecked((int)0x80010021);
 
@@ -75,7 +82,7 @@ public sealed partial class SystemServicesVsh
         entry[..EventLogHeadSize].Clear();
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(entry, ((uint)data.Length + 0x43) & ~3u);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(entry[4..], 10);
-        "NPXS19999"u8.CopyTo(entry[8..]);
+        SysmemEventLogName.CopyTo(entry[8..]);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(entry[0x14..], (ushort)code);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(entry[0x16..], (ushort)subcode);
         System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(entry[0x18..], pid);
