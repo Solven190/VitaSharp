@@ -174,7 +174,7 @@ public sealed partial class MainWindow
     Control InstallPage()
     {
         var page = new StackPanel { Margin = new Thickness(36, 28, 36, 32) };
-        page.Children.Add(_k.VStack(2, _k.Heading(S.InstallTitle, 30), _k.Text(S.InstallSubtitle, 13.5, color: static p => p.Muted)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
+        page.Children.Add(_k.VStack(2, _k.Heading(S.InstallTitle, 30), _k.Wrap(S.InstallSubtitle, 13.5)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
         var drop = _k.VStack(10,
             _k.IconChip("download", 52).Also(c => c.HorizontalAlignment = HorizontalAlignment.Center),
             _k.Text(S.DropHere, 15, FontWeight.SemiBold).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center),

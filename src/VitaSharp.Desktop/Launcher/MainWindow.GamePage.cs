@@ -78,7 +78,8 @@ public sealed partial class MainWindow
         info.Children.Add(_k.Heading(g.Title, 34).Also(t => { t.TextWrapping = TextWrapping.Wrap; t.MaxHeight = 90; }));
         string installed = Directory.Exists(g.Path) ? S.InstalledOn(Directory.GetCreationTime(g.Path)) : "";
         info.Children.Add(_k.Text(string.Join("  \u00B7  ", new[] { g.TitleId, g.Version.Length > 0 ? "v" + g.Version : "", g.SizeText, installed }.Where(x => x.Length > 0)), 13.5, color: static p => p.Muted));
-        var buttons = _k.HStack(10, PlayButton(g, 50, 170), _k.Secondary(S.OpenLiveArea, "vita", () => OpenLiveArea(g), 50, tip: S.LiveAreaTip));
+        // the buttons go on in the next line when the window is narrow
+        var buttons = _k.Flow(10, PlayButton(g, 50, 170), _k.Secondary(S.OpenLiveArea, "vita", () => OpenLiveArea(g), 50, tip: S.LiveAreaTip));
         if (LatestState(g) is { } latest)
         {
             buttons.Children.Add(_k.Secondary(S.LoadLatestState, "save", () => LoadState(g, latest), 50, enabled: _running == null));
@@ -100,7 +101,6 @@ public sealed partial class MainWindow
         stats.Children.Add(Stat("save", S.SaveStatesTitle, states.Count.ToString(S.Culture)));
         page.Children.Add(stats);
 
-        var cols = new Grid { ColumnDefinitions = new ColumnDefinitions("*,24,460"), Margin = new Thickness(0, 28, 0, 0) };
         var left = new StackPanel { Spacing = 26 };
         left.Children.Add(StatesSection(g, states));
         if (total > 0)
@@ -109,8 +109,9 @@ public sealed partial class MainWindow
         }
 
         left.Children.Add(GameCapturesSection(g));
-        cols.Children.Add(left);
-        cols.Children.Add(Kit.At(GameSettingsSection(g), col: 2));
+        // the game's settings beside the states and captures, or below them in a narrow window
+        var cols = Kit.Columns(left, GameSettingsSection(g), 900, "*", "460");
+        cols.Margin = new Thickness(0, 28, 0, 0);
         page.Children.Add(cols);
 
         root.Children.Add(page);

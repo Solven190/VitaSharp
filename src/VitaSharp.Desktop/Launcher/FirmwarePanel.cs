@@ -24,7 +24,10 @@ public sealed class FirmwarePanel : StackPanel
     readonly Button _vita3k = new() { Content = Loc.Get("FwUseVita3K") };
     readonly Button _cancel = new() { Content = S.Cancel, IsVisible = false };
     readonly Button _uninstall = new() { Content = Loc.Get("FwUninstall") };
-    readonly string? _vita3kRoot = FirmwareInstaller.FindVita3KFirmware();
+    readonly string? _vita3kRoot = FindVita3K();
+
+    /// <summary>Where a Vita3K installation with firmware is (the tests give one so the panel shows every button).</summary>
+    internal static Func<string?> FindVita3K { get; set; } = FirmwareInstaller.FindVita3KFirmware;
     CancellationTokenSource? _cts;
 
     /// <summary>Raised on the UI thread when an installation ends (done, failed or cancelled).</summary>
@@ -39,7 +42,8 @@ public sealed class FirmwarePanel : StackPanel
     public FirmwarePanel()
     {
         Spacing = 6;
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        // the buttons go on in the next line when the card is narrow (a small window, the longer pt-BR labels)
+        var buttons = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8 };
         buttons.Children.Add(_install);
         if (_vita3kRoot != null)
         {
