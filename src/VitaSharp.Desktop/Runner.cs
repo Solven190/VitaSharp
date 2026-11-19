@@ -367,6 +367,9 @@ public static class Runner
             ShaderOptimization = Opt(options, "--shaderc-opt"),
             AsyncShaders = OnOff(options, "--async-shaders") ?? true,
             AsyncPipelines = OnOff(options, "--async-pipelines") ?? true,
+            // --compile-on-program-load=on|off: shaders and pipelines compiled when the game creates its programs
+            // (VulkanRenderer.ProgramLoad.cs; default on, VITASHARP_COMPILE_ON_PROGRAM_LOAD overrides it)
+            CompileOnProgramLoad = OnOff(options, "--compile-on-program-load") ?? true,
             ShaderWorkers = int.TryParse(Opt(options, "--shader-workers"), out var shaderWorkers) && shaderWorkers > 0 ? shaderWorkers : 0,
             // --gpu-profile=adreno|mali|desktop: behave as that GPU class (test the mobile paths on a desktop GPU)
             GpuProfile = Opt(options, "--gpu-profile"),

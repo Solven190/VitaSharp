@@ -24,6 +24,9 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
         VSync = false,
         AsyncShaders = false,
         AsyncPipelines = false,
+        // what a first session leaves to its draws is what these tests record and replay: nothing built ahead at program
+        // load (FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing covers that)
+        CompileOnProgramLoad = false,
         ShaderCacheDir = cacheDir,
         Msaa = msaa,
     });
@@ -433,6 +436,82 @@ public sealed class RendererPathsTests(GuestMemoryFixture fx)
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>
+    /// "Compilar shaders ao carregar o programa": a first session (nothing recorded) whose programs are created before
+    /// the draws, as a game does while loading. With the option the shaders and the pipeline are built on the shader
+    /// workers when the programs are created, so the first frame translates no shader, builds no pipeline and waits for
+    /// none on the GPU thread, also for textures whose exact format was not predicted (BC1/ETC1/P8 sample as four
+    /// unsigned bytes like the predicted U8U8U8U8: the same shader) and for the fetch pass of a programmable-blending
+    /// draw (built for the surface the game initialised). Without it the GPU thread builds them at the draw.
+    /// Draw-time prefetch is off in both sessions, so nothing else can build them first.
+    /// </summary>
+    [SoftwareVulkanFact]
+    public void FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing()
+    {
+        using IDisposable driver = SoftwareVulkan.Use();
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) Session(bool programLoad)
+        {
+            string cache = Path.Combine(Path.GetTempPath(), "vitasharp-programload-" + Guid.NewGuid().ToString("N"));
+            (int, int, int, int, int, int) stats = default;
+            try
+            {
+                var r = new VulkanRenderer(new VulkanRendererOptions
+                {
+                    VSync = false,
+                    AsyncShaders = false,
+                    AsyncPipelines = false,
+                    CompileOnProgramLoad = programLoad,
+                    ShaderCacheDir = cache,
+                });
+                WithRenderer("programload", r, h =>
+                {
+                    r.BeginTitle("PCSA00082");
+                    var w = new RendererTextureTests.Workload(h); // creates the vertex and fragment programs
+                    Assert.True(r.WaitForBackgroundCompiles(CancellationToken.None));
+                    // 2D textures of the four-unsigned-byte class only: the predicted class (other classes are other shaders)
+                    var keep = new List<uint>();
+                    for (int i = 0; i < w.Textures.Count; i++)
+                    {
+                        if (w.TextureFormats[i] is Core.Gxm.TexBase.U8U8U8U8 or Core.Gxm.TexBase.UBC1 or Core.Gxm.TexBase.ETC1 or Core.Gxm.TexBase.P8
+                            && !w.CubeTextures.Contains(w.Textures[i]))
+                        {
+                            keep.Add(w.Textures[i]);
+                        }
+                    }
+
+                    Assert.True(keep.Count >= 4, $"{keep.Count} textures of the class");
+                    w.Textures.Clear();
+                    w.Textures.AddRange(keep);
+                    w.RunFetch(); // a programmable-blending draw: in a one-sample scene it renders in a fetch pass
+                    w.Run(keep.Count); // and one scene drawing them all
+                    h.Emu.Gpu.WaitIdle();
+                    (int Shaders, int Pipelines, int PipelinesBuilt, int Aliases) load = r.ProgramLoadStats;
+                    stats = (Stat(r, "_statGpuPipelines"), Stat(r, "_statShaderMisses"), Stat(r, "_statAsyncWaited"), Stat(r, "_statPipelineWaits"), load.Aliases, load.PipelinesBuilt);
+                    w.Terminate();
+                });
+            }
+            finally
+            {
+                try
+                {
+                    Directory.Delete(cache, true);
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+
+            return stats;
+        }
+
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) off = Session(programLoad: false);
+        Assert.True(off.GpuPipelines > 0 && off.Misses > 0, $"without the option: {off.GpuPipelines} pipelines and {off.Misses} shaders on the GPU thread");
+
+        (int GpuPipelines, int Misses, int ShaderWaits, int PipelineWaits, int Aliases, int Built) on = Session(programLoad: true);
+        Assert.True(on.Built > 0, "no pipeline built at program load");
+        Assert.True(on.Aliases > 0, "no draw served by the module of its canonical hints");
+        Assert.Equal((0, 0, 0, 0), (on.GpuPipelines, on.Misses, on.ShaderWaits, on.PipelineWaits));
     }
 
     [SoftwareVulkanFact]

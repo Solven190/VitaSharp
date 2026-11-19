@@ -638,6 +638,54 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
   shell): conjunto pequeno por formato/layout, montado na primeira vez no thread da GPU com GLSL próprio e sem entrar
   na contagem "compiled on the GPU thread"; próximo passo, se aparecerem nos quadros lentos: contá-los e montá-los no
   início da sessão
+  Frente (4), a 1ª sessão: compilar shaders ao carregar o programa (feat/uber1, 18/11/2026). Desenho, com os números
+  medidos (`docs/notes/pipeline-skip.md`): o engasgo da 1ª vez é o driver montando cada pipeline (60-90 ms na GTX
+  1650) e quase todo pipeline novo é um par de shaders novo (Injustice 115 pipelines / 105 pares, Killzone 552 / 533).
+  Por isso tornar estado dinâmico (`VK_EXT_extended_dynamic_state3` para blend/máscara, `vertex_input_dynamic_state`
+  para o layout, como Ryujinx e yuzu) só tira as variantes de um par que já existe: 5-9% dos pipelines; fica para
+  depois, onde a extensão existir (Mali/Adreno sem ela: o caminho atual). O "ubershader" do Dolphin interpreta o
+  estado do TEV, que no GameCube é o próprio shader; no Vita o equivalente é o programa USSE, então um ubershader de
+  verdade seria um interpretador de USSE em SPIR-V (banco de registradores num array, decodificação e `switch` por
+  instrução, amostragem por formato em tempo de execução): semanas de trabalho, e custo de GPU alto (vários x por
+  pixel no desktop, inviável no Mali); fica como opção futura só se a alavanca abaixo não bastar. A alavanca grande
+  é o momento: o jogo cria os programas (`sceGxmShaderPatcherCreateVertexProgram`/`CreateFragmentProgram`)
+  normalmente na tela de carregamento, muito antes do 1º draw, e essas chamadas já fixam quase tudo: formatos e
+  streams dos atributos, formato do registrador de saída, MSAA, blend e o programa de vértice do par (6º argumento de
+  `CreateFragmentProgram`). O que falta é previsto: texturas pela classe (o tradutor só lê tipo e número de
+  componentes: U8x4, BC1-3, ETC1, PVRTC e P8 dão o mesmo shader; `ShaderHints.CanonicalKey`), a superfície da última
+  cena (antes da 1ª: U8U8U8U8 sem MSAA), triângulos preenchidos. Parte 1 (feita): opção "compilar shaders ao
+  carregar o programa" (`--compile-on-program-load`, `VITASHARP_COMPILE_ON_PROGRAM_LOAD`, ligada por padrão: só
+  usa os workers durante o carregamento, e um palpite errado só monta um módulo/pipeline que ninguém usa), que na
+  criação do programa traduz, compila e monta o pipeline do par nos workers (`VulkanRenderer.ProgramLoad.cs`); um draw
+  com formatos exatos diferentes do previsto mas com o mesmo shader usa o módulo previsto (e por isso o mesmo
+  pipeline). Teste `RendererPathsTests.FirstSessionCompilesAtProgramLoadAndTheGpuThreadWaitsForNothing` (1ª sessão:
+  0 shaders e 0 pipelines montados ou esperados no thread da GPU; sem a opção ele monta tudo) e
+  `CanonicalHintsTests` (formatos de mesma chave canônica traduzem igual, conferido no gerador para todos os
+  formatos). Medido no replay do dump PCSA00029 com caches frios (shader cache novo e cache do driver NVIDIA novo
+  por execução, `replay-gpu --async-shaders=on [--compile-on-program-load=on]`, 2x alternado, CPU dividida com
+  outros agentes): pipelines no thread da GPU 19 → 17 (643 ms → 292-326 ms; a 1ª execução sem a opção, 8.234 ms,
+  inclui o aquecimento), pior quadro 689 → 349-388 ms, quadros >= 4 ms de espera 1 → 1 (o 1º quadro do dump); 41
+  shaders e 33 pipelines montados na criação (23 usados), 2 draws servidos pela chave canônica; fps do replay
+  (rápido, inclui as compilações) 10,2 → 11,4 (a 1ª de cada: 2,5 e 24,0, ruído da máquina). Os 17 que sobram são
+  8 do passe de fetch e 9 de integer view: dependem da superfície em que o programa desenha (formato de 32/64 bits,
+  cena de uma amostra com blending programável), que a criação do programa não diz. Parte 2 (feita): as superfícies
+  que o jogo dá a conhecer (`sceGxmColorSurfaceInit`, os modos MSAA de `sceGxmCreateRenderTarget`, cada `BeginScene`
+  visto pelo prefetch; no replay, as cenas do dump) entram numa lista, e cada programa de fragmento que depende da
+  superfície (lê a cor: passe de fetch/input attachment; cor nativa ou saída inteira: integer view) é montado para
+  cada superfície conhecida, com essas variantes, nos workers; uma superfície nova monta as combinações com os
+  programas já criados antes dos seus draws. Replay frio do PCSA00029 (2x alternado, máquina dividida): pipelines no
+  thread da GPU 19 → 8 (440-457 ms → 15-28 ms numa máquina livre; 357 ms numa execução com a CPU cheia), pior
+  quadro 490-513 → 18-74 ms, quadros >= 50 ms 1 → 0 (0-1 com a CPU cheia), fps do replay 25,4/30,5 → 31,4/31,6.
+  Custo: 131 shaders e 189 pipelines montados na criação (173 prontos) para 19 usados, 2,2-3,4 s de workers na
+  "tela de carregamento" com o cache do driver frio. Os 8 que sobram são do passe de fetch, numa superfície F16x4 (provavelmente programas que amostram
+  o próprio G-buffer F16 como textura: classe de textura F16, não a U8x4 prevista), 2 deles com a escrita de cor
+  desligada (máscara 0); próximo passo: prever a classe das texturas pelas superfícies conhecidas (a superfície
+  como textura) para esses programas; tentado (todas as unidades na classe da superfície F16x4/F32): 264 pipelines
+  em vez de 189 e os mesmos 8, ficou de fora. Memória: pico de memória privada do processo +35-45 MB (961-964 →
+  999-1.006 MB) e working set +26-37 MB com 242 pipelines e 182 shaders montados na criação (~0,1 MB por objeto); num jogo com muitos
+  programas (Killzone: ~670 shaders) a lista de superfícies × programas pede um teto (por exemplo só as superfícies
+  dos últimos N BeginScene, e um limite de pipelines por carregamento). Próximas partes: (3) estado dinâmico EDS3/vertex input onde houver; (4) Android: medir no
+  Killzone o tempo de carregamento a mais e a queda de pipelines no thread da GPU
 - [x] (16/11/2026, usuário: removido da lista; é regra de medição) [P3][P] Medidas de desempenho com a CPU saturada por outros trabalhos não valem: no Killzone (emulador quente, driver
   frio) o watchdog acusou a thread da GPU 11-31 s sem progresso, sem nada atribuído a shader/pipeline (pior 116 ms),
   e o áudio teve um buraco de 5,0 s. Repetido com a máquina livre (carga média 22%): nenhuma parada, buraco de 1,2 s.

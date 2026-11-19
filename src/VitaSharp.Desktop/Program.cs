@@ -1034,6 +1034,7 @@ public static class Program
         Console.WriteLine("               --shaderc-opt=zero|size|perf  shader optimisation (default zero: fast compiles, less stutter)");
         Console.WriteLine("               --async-shaders=on|off  compile new shaders and pipelines on worker threads (default on)");
         Console.WriteLine("               --load-shader-cache=on|off  load the shader cache (the shaders and pipelines recorded in earlier sessions) before the game starts (default on; \"cancel-shader-cache-load\" on stdin stops the wait; --precompile-shaders is its earlier name)");
+        Console.WriteLine("               --compile-on-program-load=on|off  compile a program's shaders and pipeline on worker threads when the game creates it (usually while loading), before its first draw (default on)");
         Console.WriteLine("               --async-pipelines=on|off  background pipelines only (default on), --shader-workers=N (default auto)");
         Console.WriteLine("               --host-prio=on|off  guest threads and GPU worker above normal host priority (default on)");
         Console.WriteLine("               --gpu-profile=adreno|mali|desktop  emulate a mobile GPU class: its missing features, limits and driver quirks");

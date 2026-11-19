@@ -45,6 +45,30 @@ public interface IGpuBackend : IDisposable
     /// </summary>
     bool LoadShaderCacheBeforeStart(Action<ShaderCacheLoadProgress>? progress, CancellationToken cancel) => false;
 
+    /// <summary>The game created a vertex program object (sceGxmShaderPatcherCreateVertexProgram), on its own thread:
+    /// a backend may start compiling what the program's draws will need (games create their programs while loading).</summary>
+    void VertexProgramCreated(Gxm.GxmVertexProgram vertexProgram)
+    {
+    }
+
+    /// <summary>The game created a fragment program object (sceGxmShaderPatcherCreateFragmentProgram[ForGles]) for the
+    /// vertex program <paramref name="vertexProgram"/> (its SceGxmProgram, null when none was given), on its own thread.</summary>
+    void FragmentProgramCreated(Gxm.GxmFragmentProgram fragmentProgram, Gxm.GxmProgramInfo? vertexProgram)
+    {
+    }
+
+    /// <summary>The game created a render target with <paramref name="multisample"/> (SceGxmMultisampleMode), on its own
+    /// thread: the scenes of its downscaled colour surfaces will be multisampled.</summary>
+    void RenderTargetCreated(uint multisample)
+    {
+    }
+
+    /// <summary>The game initialised a colour surface (sceGxmColorSurfaceInit), on its own thread: a surface its scenes
+    /// may render into, so a backend may start building what the created programs need there.</summary>
+    void ColorSurfaceInitialised(uint colorFormat, bool downscale)
+    {
+    }
+
     /// <summary>Called on the submitting thread for each command before it is queued (no worker state may be touched):
     /// lets a backend start slow preparation, e.g. shader compilation, ahead of execution.</summary>
     void Prefetch(GpuCommand command)

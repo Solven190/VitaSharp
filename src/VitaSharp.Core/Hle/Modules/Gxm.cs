@@ -47,6 +47,8 @@ public sealed partial class Gxm : HleModule
     GuestThread? _displayThread;
 
     GpuQueue Gpu => Emu.Gpu;
+    /// <summary>The backend told about created programs and surfaces (null for a module without an emulator, in tests).</summary>
+    IGpuBackend? CompileAheadBackend => Emu?.Gpu?.Backend;
 
     uint AllocObj(uint size, string name)
     {
@@ -288,6 +290,7 @@ public sealed partial class Gxm : HleModule
         };
         _renderTargets[h] = rt;
         outRt.Value = h;
+        CompileAheadBackend?.RenderTargetCreated(rt.MultisampleMode);
         return 0;
     }
 
@@ -390,6 +393,7 @@ public sealed partial class Gxm : HleModule
         WriteClip(surface, 0, 0, width - 1, height - 1);
         uint texType = surfaceType switch { 0x08000000 => TexSwizzled, 0x04000000 => TexTiled, _ => TexLinear };
         InitTexture(surface + 32, data, ColorToTextureFormat(colorFormat), width, height, 1, texType);
+        CompileAheadBackend?.ColorSurfaceInitialised(colorFormat, scaleMode == 1);
         return 0;
     }
 
@@ -2536,6 +2540,7 @@ public sealed partial class Gxm : HleModule
         if (attributeCount > 0) GuestMemory.Span(attributes, attrBytes).CopyTo(raw);
         if (streamCount > 0) GuestMemory.Span(streams, streamBytes).CopyTo(raw[attrBytes..]);
         var key = (program, System.IO.Hashing.XxHash64.HashToUInt64(raw));
+        GxmVertexProgram created;
         lock (sp)
         {
             if (sp.VertexCache.TryGetValue(key, out var cached) && _vertexPrograms.ContainsKey(cached.Handle))
@@ -2560,7 +2565,10 @@ public sealed partial class Gxm : HleModule
             _vertexPrograms[h] = vp;
             sp.VertexCache[key] = vp;
             outVp.Value = h;
+            created = vp;
         }
+        // a new object only (games re-create the same vertex program every frame and get the cached one)
+        CompileAheadBackend?.VertexProgramCreated(created);
         return 0;
     }
 
@@ -2572,6 +2580,7 @@ public sealed partial class Gxm : HleModule
         var blend = GxmBlendInfo.Read(blendInfo);
         ulong blendKey = blendInfo == 0 ? ulong.MaxValue : GuestMemory.R32(blendInfo);
         var key = (program, outputFormat, multisampleMode, blendKey, vertexProgram);
+        GxmFragmentProgram? created = null;
         lock (sp)
         {
             if (sp.FragmentCache.TryGetValue(key, out var cached) && _fragmentPrograms.ContainsKey(cached.Handle))
@@ -2589,7 +2598,13 @@ public sealed partial class Gxm : HleModule
             _fragmentPrograms[h] = fp;
             sp.FragmentCache[key] = fp;
             outFp.Value = h;
+            created = fp;
         }
+        if (created != null)
+        {
+            CompileAheadBackend?.FragmentProgramCreated(created, GxmProgramInfo.Parsed(vertexProgram));
+        }
+
         return 0;
     }
 
@@ -2653,6 +2668,7 @@ public sealed partial class Gxm : HleModule
         };
         _texcoordRemaps[handle] = remap;
         outFp.Value = handle;
+        CompileAheadBackend?.FragmentProgramCreated(_fragmentPrograms[handle], GxmProgramInfo.Parsed(vertexProgram));
         return 0;
     }
 
