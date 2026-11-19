@@ -11,8 +11,8 @@ namespace VitaSharp.Core.Cpu;
 public readonly record struct CodeCacheEntry(int Segment, uint Offset, bool Thumb);
 
 /// <summary>
-/// The on-disk file of <see cref="CodeCache"/>: the blocks one module had translated, for one module image and one
-/// translator configuration. Layout (little endian): magic "VSJC", format version, configuration key
+/// The on-disk file of <see cref="CodeCache"/>: the blocks one module's code ran with compiled code, in the order they
+/// first ran, for one module image and one translator configuration. Layout (little endian): magic "VSJC", format version, configuration key
 /// (<see cref="ConfigurationKey"/>), module image hash, entry count, then per entry the offset (u32), the segment (u8)
 /// and the instruction set (u8, 1 = Thumb), and last the XxHash64 of everything before it. A file of another format,
 /// configuration or image, a truncated or corrupted one, is ignored (and rewritten at the next save).
@@ -21,8 +21,8 @@ public static class CodeCacheFile
 {
     public const uint Magic = 0x434A5356; // "VSJC"
 
-    /// <summary>The file layout; bump when it changes.</summary>
-    public const int FormatVersion = 1;
+    /// <summary>The file layout and meaning; bump when either changes (2: only blocks that ran, in first-use order).</summary>
+    public const int FormatVersion = 2;
 
     /// <summary>
     /// What makes the recorded block starts valid besides the guest code itself: where the block decoder splits blocks
@@ -133,17 +133,20 @@ public static class CodeCacheFile
 public readonly record struct CodePrecompileProgress(int Done, int Total, bool Finished);
 
 /// <summary>
-/// The ARM code precompilation of a process (like RPCS3's "Compiling PPU modules"): the blocks its modules had
-/// translated in earlier sessions are recorded per module image (<see cref="CodeCacheFile"/>), and when the module is
-/// loaded again, at any address, they are translated before the process starts (<see cref="PrecompilePending"/>, on
-/// every host core the process may use) or, for a module loaded while the game runs, queued to the JIT workers at once.
-/// The game then finds its code already translated instead of compiling it while it plays.
+/// The ARM code precompilation of a process (like RPCS3's "Compiling PPU modules"). The blocks a module's code really
+/// ran in earlier sessions are recorded per module image, in the order they first ran (<see cref="CodeCacheFile"/>);
+/// when the module is loaded again, at any address, the boot step translates them first, on every core the process may
+/// use, and lets the process start as soon as they are ready (<see cref="PrecompilePending"/>). The static analysis of
+/// the modules (<see cref="CodePrecompiler"/>) then goes on in the background on a few low-priority threads; in a first
+/// session, with nothing recorded, the boot step waits for the code reached from the modules' entry points instead.
 /// <para>
+/// A precompiled block is published (made reachable from the dispatcher and from other blocks' exits) the first time
+/// the guest reaches it (<see cref="Jit.ActivateAhead"/>), which is how the cache learns which of them the game runs.
 /// Precompiled blocks are ordinary blocks of the process's <see cref="BlockCache"/>: rewriting their code invalidates
 /// them like any other translation, and the block decoder reads the module's memory as it is now (its relocations
-/// applied), so an entry only says where code starts: whatever the bytes there are, the translation is theirs. The
-/// translated machine code itself is not stored: it embeds per-process addresses (link slots, runtime stubs, the
-/// dispatch table, the constant pool) that would need a relocation table in both native emitters.
+/// applied), so an entry only says where code starts. The translated machine code itself is not stored: it embeds
+/// per-process addresses (link slots, runtime stubs, the dispatch table, the constant pool) that would need a
+/// relocation table in both native emitters.
 /// </para>
 /// </summary>
 public sealed class CodeCache
@@ -154,16 +157,20 @@ public sealed class CodeCache
     private readonly object _lock = new();
     private readonly List<ModuleRecord> _modules = [];
     private readonly List<(uint Pc, bool Thumb)> _pending = [];
+    private readonly List<CodePrecompiler> _runs = [];
     private bool _started;
+    private bool _stopped;
 
-    private sealed class ModuleRecord(LoadedModule module, HashSet<CodeCacheEntry> known)
+    /// <summary>A module's recorded blocks: the order matters (first use), the set avoids duplicates.</summary>
+    private sealed class ModuleRecord(LoadedModule module, List<CodeCacheEntry> known)
     {
         public LoadedModule Module { get; } = module;
-        public HashSet<CodeCacheEntry> Known { get; } = known;
+        public List<CodeCacheEntry> Known { get; } = known;
+        public HashSet<CodeCacheEntry> Set { get; } = [.. known];
         public int SavedCount = known.Count;
     }
 
-    /// <param name="directory">Folder of the cache files; null: no cache (only the static analysis of the boot step).</param>
+    /// <param name="directory">Folder of the cache files; null: no cache (only the static analysis).</param>
     /// <param name="code">The process's translation cache.</param>
     /// <param name="configurationKey">Key the files must carry (tests); null: <see cref="CodeCacheFile.ConfigurationKey"/>.</param>
     public CodeCache(string? directory, BlockCache code, ulong? configurationKey = null)
@@ -173,7 +180,7 @@ public sealed class CodeCache
         _configurationKey = configurationKey ?? CodeCacheFile.ConfigurationKey;
     }
 
-    /// <summary>Blocks waiting for <see cref="PrecompilePending"/>.</summary>
+    /// <summary>Recorded blocks waiting for <see cref="PrecompilePending"/>.</summary>
     public int PendingCount
     {
         get
@@ -185,11 +192,26 @@ public sealed class CodeCache
         }
     }
 
-    /// <summary>A module was loaded (its image hash set, its segments placed and relocated): its recorded blocks are queued
-    /// for the boot precompilation, or for the JIT workers once the process runs.</summary>
-    public void ModuleLoaded(LoadedModule module)
+    /// <summary>Recorded blocks the last <see cref="PrecompilePending"/> started from.</summary>
+    public int CachedSeeds { get; private set; }
+
+    /// <summary>The runs started so far (the boot step first; then one per module loaded while the process runs).</summary>
+    public IReadOnlyList<CodePrecompiler> Runs
     {
-        List<CodeCacheEntry> entries = (_directory != null ? CodeCacheFile.Read(_directory, module.ImageHash, _configurationKey) : null) ?? [];
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _runs];
+            }
+        }
+    }
+
+    /// <summary>Whether the static analysis runs (boot step and later module loads); off: only the recorded blocks.</summary>
+    public bool Analyze { get; set; } = true;
+
+    private List<(uint Pc, bool Thumb)> Targets(LoadedModule module, List<CodeCacheEntry> entries)
+    {
         var targets = new List<(uint Pc, bool Thumb)>(entries.Count);
         foreach (CodeCacheEntry entry in entries)
         {
@@ -199,10 +221,19 @@ public sealed class CodeCache
             }
         }
 
+        return targets;
+    }
+
+    /// <summary>A module was loaded (its image hash set, its segments placed and relocated): its recorded blocks wait for
+    /// the boot step or, once the process runs, are translated in the background with the module's analysis.</summary>
+    public void ModuleLoaded(LoadedModule module)
+    {
+        List<CodeCacheEntry> entries = (_directory != null ? CodeCacheFile.Read(_directory, module.ImageHash, _configurationKey) : null) ?? [];
+        List<(uint Pc, bool Thumb)> targets = Targets(module, entries);
         bool started;
         lock (_lock)
         {
-            _modules.Add(new ModuleRecord(module, [.. entries]));
+            _modules.Add(new ModuleRecord(module, entries));
             started = _started;
             if (!started)
             {
@@ -212,25 +243,11 @@ public sealed class CodeCache
 
         if (started)
         {
-            EnqueueInBackground(targets);
+            Start(targets, [module], waitFor: null, null, CancellationToken.None, 0);
         }
     }
 
-    /// <summary>The game runs: the JIT workers translate the blocks in the background (no pause), each block once.</summary>
-    private void EnqueueInBackground(IReadOnlyList<(uint Pc, bool Thumb)> targets)
-    {
-        if (!Jit.Enabled || Jit.Chain.Length == 0)
-        {
-            return;
-        }
-
-        foreach ((uint pc, bool thumb) in targets)
-        {
-            Jit.Enqueue(_code.Get(pc, thumb));
-        }
-    }
-
-    /// <summary>A module is about to be unloaded: what it translated is recorded first.</summary>
+    /// <summary>A module is about to be unloaded: what it ran is recorded first.</summary>
     public void ModuleUnloaded(LoadedModule module)
     {
         ModuleRecord? record;
@@ -251,13 +268,13 @@ public sealed class CodeCache
     }
 
     /// <summary>
-    /// The boot step: translates the queued blocks (the code cache) and, with <paramref name="analyze"/>, the code the
-    /// static analysis finds from the loaded modules' entry points (<see cref="CodePrecompiler"/>), before the process
-    /// starts, on <paramref name="workers"/> threads (0: every core the process may use but one), reporting the progress;
-    /// cancelling lets the process start at once (what is left compiles as the game reaches it). Later module loads
-    /// queue their cached blocks to the JIT workers.
+    /// The boot step. With <paramref name="wait"/>, translates the recorded blocks (in the order they first ran) before
+    /// returning, or, when nothing is recorded (a first session), the code the analysis reaches from the modules' entry
+    /// points; the rest of the analysis (<see cref="Analyze"/>) continues in the background. Without, everything runs in
+    /// the background at once (the cached blocks first). Progress is reported on the calling thread; cancelling lets the
+    /// process start at once.
     /// </summary>
-    public CodePrecompiler.Result PrecompilePending(Action<CodePrecompileProgress>? progress, CancellationToken cancel, bool analyze = true, int workers = 0)
+    public CodePrecompiler.Result PrecompilePending(Action<CodePrecompileProgress>? progress, CancellationToken cancel, bool wait = true, int workers = 0)
     {
         (uint Pc, bool Thumb)[] targets;
         LoadedModule[] modules;
@@ -274,9 +291,29 @@ public sealed class CodeCache
         }
 
         CachedSeeds = targets.Length;
-        var seeds = new List<(uint Pc, bool Thumb)>(targets);
+        CodePrecompiler.Priority? waitFor = !wait ? null : targets.Length > 0 || !Analyze ? CodePrecompiler.Priority.Cached : CodePrecompiler.Priority.Flow;
+        CodePrecompiler? run = Start(targets, modules, waitFor, progress == null ? null : (done, known) => progress(new CodePrecompileProgress(done, known, false)), cancel, workers);
+        CodePrecompiler.Result result = run?.Statistics ?? default;
+        progress?.Invoke(new CodePrecompileProgress(result.Visited, result.Visited, true));
+        return result;
+    }
+
+    private CodePrecompiler? Start(IReadOnlyList<(uint Pc, bool Thumb)> targets, LoadedModule[] modules, CodePrecompiler.Priority? waitFor,
+        Action<int, int>? progress, CancellationToken cancel, int workers)
+    {
+        if (!Jit.Enabled || Jit.Chain.Length == 0)
+        {
+            return null;
+        }
+
+        var seeds = new List<((uint Pc, bool Thumb) Target, CodePrecompiler.Priority Priority)>(targets.Count);
+        foreach ((uint Pc, bool Thumb) target in targets)
+        {
+            seeds.Add((target, CodePrecompiler.Priority.Cached));
+        }
+
         Func<uint, bool>? follow = null;
-        if (analyze && modules.Length > 0)
+        if (Analyze && modules.Length > 0)
         {
             foreach (LoadedModule module in modules)
             {
@@ -297,37 +334,53 @@ public sealed class CodeCache
             };
         }
 
-        if (seeds.Count == 0 || !Jit.Enabled || Jit.Chain.Length == 0)
+        if (seeds.Count == 0)
         {
-            progress?.Invoke(new CodePrecompileProgress(0, 0, true));
-            return default;
+            return null;
         }
 
-        CodePrecompiler.Result result = CodePrecompiler.Run(_code, AddressSpace.Current, seeds, follow, workers,
-            (done, known) => progress?.Invoke(new CodePrecompileProgress(done, known, false)), cancel);
-        progress?.Invoke(new CodePrecompileProgress(result.Visited, result.Visited, true));
-        return result;
-    }
-
-    /// <summary>Blocks the last <see cref="PrecompilePending"/> took from the code cache (the rest came from the analysis).</summary>
-    public int CachedSeeds { get; private set; }
-
-    /// <summary>The process starts without the boot step: the cached blocks queue to the JIT workers now, and those of
-    /// modules loaded later as they load.</summary>
-    public void StartInBackground()
-    {
-        (uint Pc, bool Thumb)[] targets;
         lock (_lock)
         {
-            targets = [.. _pending];
-            _pending.Clear();
-            _started = true;
+            if (_stopped)
+            {
+                return null;
+            }
         }
 
-        EnqueueInBackground(targets);
+        var run = CodePrecompiler.Run(_code, AddressSpace.Current, seeds, follow, waitFor, workers, progress, cancel);
+        bool stopNow;
+        lock (_lock)
+        {
+            _runs.Add(run);
+            stopNow = _stopped;
+        }
+
+        if (stopNow)
+        {
+            run.Stop();
+        }
+
+        return run;
     }
 
-    /// <summary>Adds the blocks translated so far to the records (before the translation cache is cleared).</summary>
+    /// <summary>The process ends: the background translation stops.</summary>
+    public void Stop()
+    {
+        CodePrecompiler[] runs;
+        lock (_lock)
+        {
+            _stopped = true;
+            runs = [.. _runs];
+        }
+
+        foreach (CodePrecompiler run in runs)
+        {
+            run.Stop();
+        }
+    }
+
+    /// <summary>Adds the blocks the process ran so far to the records, in the order they first ran (before the
+    /// translation cache is cleared, and before every save).</summary>
     public void Collect()
     {
         ModuleRecord[] records;
@@ -346,13 +399,20 @@ public sealed class CodeCache
             return;
         }
 
+        var ran = new List<Block>();
         foreach (Block block in _code.Blocks)
         {
-            if (block.JitState != 2 || block.Invalidated)
+            // compiled and run: a block compiled while running got hot; a precompiled one is published (state 2) only
+            // once the guest reaches it
+            if (block.JitState == 2 && !block.Invalidated)
             {
-                continue;
+                ran.Add(block);
             }
+        }
 
+        ran.Sort(static (a, b) => a.FirstUse.CompareTo(b.FirstUse));
+        foreach (Block block in ran)
+        {
             foreach (ModuleRecord record in records)
             {
                 foreach (KeyValuePair<int, SegmentInfo> segment in record.Module.Segments)
@@ -360,13 +420,106 @@ public sealed class CodeCache
                     uint offset = block.Start - segment.Value.Address;
                     if (block.Start >= segment.Value.Address && offset < segment.Value.Size)
                     {
+                        var entry = new CodeCacheEntry(segment.Key, offset, block.Thumb);
                         lock (record.Known)
                         {
-                            record.Known.Add(new CodeCacheEntry(segment.Key, offset, block.Thumb));
+                            if (record.Set.Add(entry))
+                            {
+                                record.Known.Add(entry);
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// What the precompilation covered (session end): of the blocks the process ran with compiled code, how many were
+    /// precompiled and how many the JIT compiled while it ran (by module, or outside every module: code the HLE placed,
+    /// heap code), with a sample of where the latter start and the instruction before them (a call or a conditional
+    /// branch means plain control flow the analysis did not reach; anything else, a computed branch target).
+    /// </summary>
+    public string? DescribeMisses(int samples = 24)
+    {
+        LoadedModule[] modules;
+        lock (_lock)
+        {
+            if (!_started)
+            {
+                return null;
+            }
+
+            modules = new LoadedModule[_modules.Count];
+            for (int i = 0; i < modules.Length; i++)
+            {
+                modules[i] = _modules[i].Module;
+            }
+        }
+
+        var byModule = new Dictionary<string, int>();
+        var lines = new List<string>();
+        int used = 0;
+        int unused = 0;
+        int missed = 0;
+        foreach (Block block in _code.Blocks)
+        {
+            if (block.JitState == Jit.AheadPending)
+            {
+                unused++;
+                continue;
+            }
+
+            if (block.JitState != 2)
+            {
+                continue;
+            }
+
+            if (block.Ahead)
+            {
+                used++;
+                continue;
+            }
+
+            missed++;
+            LoadedModule? owner = Array.Find(modules, m => CodePrecompiler.InCode(m, block.Start));
+            string name = owner?.Name ?? "(outside the modules)";
+            byModule[name] = byModule.GetValueOrDefault(name) + 1;
+            if (lines.Count < samples)
+            {
+                uint baseAddress = owner != null ? owner.Segments.Values.Where(s => block.Start >= s.Address && block.Start - s.Address < s.Size).Select(s => s.Address).FirstOrDefault() : 0;
+                lines.Add($"{name}+0x{block.Start - baseAddress:X} {(block.Thumb ? "T" : "A")} after {PreviousInstruction(block)}");
+            }
+        }
+
+        double coverage = 100.0 * used / Math.Max(1, used + missed);
+        return $"ARM code precompilation: {used} precompiled blocks ran, {missed} compiled while running ({coverage:F1}% of the run blocks were precompiled), "
+            + $"{unused} precompiled and not reached; while running: "
+            + string.Join(", ", byModule.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value}")) + "; samples: " + string.Join("; ", lines);
+    }
+
+    private static string PreviousInstruction(Block block)
+    {
+        try
+        {
+            using AddressSpace.Activation activation = AddressSpace.Use(block.Owner?.Space ?? AddressSpace.Current);
+            if (!block.Thumb)
+            {
+                return GuestMemory.IsMapped(block.Start - 4) ? Decoder.DecodeArm(GuestMemory.R32(block.Start - 4), block.Start - 4).Op.ToString() : "?";
+            }
+
+            uint at = block.Start - 4;
+            if (GuestMemory.IsMapped(at) && Decoder.IsThumb32(GuestMemory.Read<ushort>(at)))
+            {
+                uint word = ((uint)GuestMemory.Read<ushort>(at) << 16) | GuestMemory.Read<ushort>(at + 2);
+                return Decoder.DecodeThumb32(word, at, false, 14).Op + "?";
+            }
+
+            return GuestMemory.IsMapped(block.Start - 2) ? Decoder.DecodeThumb16(GuestMemory.Read<ushort>(block.Start - 2), block.Start - 2, false, 14).Op.ToString() : "?";
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return "?";
         }
     }
 

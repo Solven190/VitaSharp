@@ -22,7 +22,7 @@ namespace VitaSharp.Core.Cpu.Native;
 /// </summary>
 public sealed unsafe partial class ExecutableMemory : IDisposable
 {
-    public const int ReserveSize = 256 << 20;    // 256 MiB of address space
+    public const int ReserveSize = 512 << 20;    // 512 MiB of address space (half of it for the ARM code precompilation)
     private const int CommitGranule = 1 << 20;            // committed (made usable) in 1 MiB steps
 
     private readonly object _lock = new();

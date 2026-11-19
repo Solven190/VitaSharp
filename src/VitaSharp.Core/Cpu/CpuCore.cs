@@ -80,6 +80,11 @@ public sealed unsafe class CpuCore : IDisposable
         }
 
         b = _cache.Get(pc, thumb);
+        if (b.JitState == Jit.AheadPending)
+        {
+            Jit.ActivateAhead(b);
+        }
+
         _fast[slot] = b;
         return b;
     }
@@ -853,6 +858,10 @@ public sealed unsafe class CpuCore : IDisposable
                     if (++b.ExecCount >= Jit.MinExecutions && b.JitState == 0 && (long)b.ExecCount * b.Insts.Length >= b.HotAt)
                     {
                         Jit.Enqueue(b);
+                    }
+                    else if (b.JitState == Jit.AheadPending)
+                    {
+                        Jit.ActivateAhead(b); // translated in the background after this core last looked it up
                     }
                 }
                 BlocksExecuted++;

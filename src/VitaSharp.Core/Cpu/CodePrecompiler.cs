@@ -1,53 +1,95 @@
 using System.Collections.Concurrent;
+using VitaSharp.Core.Cpu.Native;
 using VitaSharp.Core.Loader;
 using VitaSharp.Core.Memory;
 
 namespace VitaSharp.Core.Cpu;
 
 /// <summary>
-/// Translates guest code before it runs, on several threads: the blocks given as seeds and, when a code range is
-/// given, the code reachable from them by static control flow (each translated block's static exits, and the return
-/// point after a call), which is how the precompilation finds code no earlier session ran (RPCS3's PPU analyser walks
-/// functions from the module's entry points the same way). Whatever the analysis misses, or reaches only through
-/// computed branches (jump tables, function pointers it was not given), the JIT compiles when the game gets there.
+/// Translates guest code before it runs, on several threads: the given blocks and, when a code range is given, the code
+/// reachable from them by static control flow (each block's static exits, and the return point after a call), which is
+/// how the precompilation finds code no earlier session ran (RPCS3's PPU analyser walks functions from the module's
+/// entry points the same way). Whatever the analysis misses, or reaches only through computed branches (jump tables,
+/// function pointers it was not given), the JIT compiles when the game gets there.
+/// <para>
+/// Work comes in three priorities: <see cref="Priority.Cached"/> (blocks earlier sessions ran, in the order they first
+/// ran; their exits are analysis work), <see cref="Priority.Flow"/> (code reached from the modules' entry points; its
+/// exits stay at this priority) and <see cref="Priority.Index"/> (functions known only from the exception index, and
+/// what they reach). <see cref="Run"/> returns once the priorities up to the one it waits for are done; the rest goes on
+/// in the background on fewer threads, until done or <see cref="Stop"/>.
+/// </para>
 /// </summary>
-public static class CodePrecompiler
+public sealed class CodePrecompiler
 {
-    /// <summary>Statistics of one run.</summary>
+    /// <summary>Work priorities, most urgent first.</summary>
+    public enum Priority
+    {
+        Cached,
+        Flow,
+        Index,
+    }
+
+    private const int Levels = 3;
+
+    /// <summary>Statistics so far.</summary>
     public readonly record struct Result(int Translated, int Visited, int Found, bool Cancelled, bool ArenaLimit);
 
-    /// <summary>
-    /// Translates <paramref name="seeds"/> and, with <paramref name="follow"/>, the blocks reachable from them whose start
-    /// it accepts, on <paramref name="workers"/> threads working in <paramref name="space"/> (0: every core the process may
-    /// use but one). <paramref name="progress"/> gets (done, known so far) about every 100 ms on the calling thread.
-    /// </summary>
-    public static Result Run(BlockCache cache, AddressSpace? space, IEnumerable<(uint Pc, bool Thumb)> seeds, Func<uint, bool>? follow, int workers,
-        Action<int, int>? progress, CancellationToken cancel)
-    {
-        var seen = new ConcurrentDictionary<ulong, byte>();
-        var queue = new ConcurrentQueue<(uint Pc, bool Thumb)>();
-        int known = 0;
-        int done = 0;
-        int translated = 0;
-        int found = 0;
-        int outstanding = 0; // queued or being translated
-        bool arenaLimit = false;
-        bool Add((uint Pc, bool Thumb) target)
-        {
-            if (!seen.TryAdd(target.Pc | (target.Thumb ? 1ul << 32 : 0), 0))
-            {
-                return false;
-            }
+    private readonly BlockCache _cache;
+    private readonly AddressSpace? _space;
+    private readonly Func<uint, bool>? _follow;
+    private readonly ConcurrentDictionary<ulong, byte> _seen = new();
+    private readonly ConcurrentQueue<(uint Pc, bool Thumb)>[] _queues = [new(), new(), new()];
+    private readonly int[] _outstanding = new int[Levels]; // queued or being translated, per priority
+    private readonly CancellationTokenSource _stop = new();
+    private int _known, _done, _translated, _found, _arenaLimit, _foreground;
 
-            Interlocked.Increment(ref outstanding);
-            Interlocked.Increment(ref known);
-            queue.Enqueue(target);
-            return true;
+    /// <summary>Background threads that keep translating after <see cref="Run"/> returns.</summary>
+    public static int BackgroundWorkers => Math.Clamp(Environment.ProcessorCount / 4, 1, 3);
+
+    private CodePrecompiler(BlockCache cache, AddressSpace? space, Func<uint, bool>? follow)
+    {
+        _cache = cache;
+        _space = space;
+        _follow = follow;
+    }
+
+    public Result Statistics => new(Volatile.Read(ref _translated), Volatile.Read(ref _done), Volatile.Read(ref _found), _stop.IsCancellationRequested,
+        Volatile.Read(ref _arenaLimit) != 0);
+
+    /// <summary>Whether every queue is empty and nothing is being translated.</summary>
+    public bool Finished => Volatile.Read(ref _outstanding[0]) + Volatile.Read(ref _outstanding[1]) + Volatile.Read(ref _outstanding[2]) == 0;
+
+    /// <summary>Stops the background translation (process end); blocks already translated stay.</summary>
+    public void Stop() => _stop.Cancel();
+
+    private bool Add((uint Pc, bool Thumb) target, Priority priority)
+    {
+        if (!_seen.TryAdd(target.Pc | (target.Thumb ? 1ul << 32 : 0), 0))
+        {
+            return false;
         }
 
-        foreach ((uint Pc, bool Thumb) seed in seeds)
+        Interlocked.Increment(ref _outstanding[(int)priority]);
+        Interlocked.Increment(ref _known);
+        _queues[(int)priority].Enqueue(target);
+        return true;
+    }
+
+    /// <summary>
+    /// Translates <paramref name="seeds"/> (with their priorities) and, with <paramref name="follow"/>, the blocks
+    /// reachable from them whose start it accepts, in the space <paramref name="space"/>. Waits, on <paramref name="workers"/>
+    /// threads (0: every core the process may use but one), until the work up to <paramref name="waitFor"/> is done (or
+    /// <paramref name="cancel"/>), reporting (done, known so far) about every 100 ms on the calling thread; then
+    /// <see cref="BackgroundWorkers"/> of them keep going with the rest at a low priority (null <paramref name="waitFor"/>:
+    /// nothing is waited for). Returns the run, whose <see cref="Statistics"/> keep growing in the background.
+    /// </summary>
+    public static CodePrecompiler Run(BlockCache cache, AddressSpace? space, IEnumerable<((uint Pc, bool Thumb) Target, Priority Priority)> seeds,
+        Func<uint, bool>? follow, Priority? waitFor, int workers, Action<int, int>? progress, CancellationToken cancel, bool background = true)
+    {
+        var run = new CodePrecompiler(cache, space, follow);
+        foreach (((uint Pc, bool Thumb) target, Priority priority) in seeds)
         {
-            Add(seed);
+            run.Add(target, priority);
         }
 
         if (workers <= 0)
@@ -55,85 +97,169 @@ public static class CodePrecompiler
             workers = Math.Max(1, Environment.ProcessorCount - 1);
         }
 
-        var threads = new Thread[workers];
-        for (int i = 0; i < workers; i++)
+        int keep = background ? Math.Min(workers, BackgroundWorkers) : 0;
+        run._foreground = waitFor != null ? 1 : 0;
+        var threads = new Thread[waitFor != null ? workers : keep];
+        for (int i = 0; i < threads.Length; i++)
         {
-            threads[i] = new Thread(() =>
-            {
-                Util.NativeThread.Register("JIT precompile", Util.NativeThread.Role.JitWorker);
-                using AddressSpace.Activation activation = AddressSpace.Use(space);
-                var exits = new List<(uint Pc, bool Thumb)>();
-                Jit.StaticExits = follow != null ? exits : null;
-                var spin = new SpinWait();
-                while (!cancel.IsCancellationRequested && Volatile.Read(ref outstanding) > 0)
-                {
-                    if (!queue.TryDequeue(out (uint Pc, bool Thumb) target))
-                    {
-                        spin.SpinOnce(sleep1Threshold: 10);
-                        continue;
-                    }
-
-                    try
-                    {
-                        if (!Jit.ArenaHasRoomForAhead())
-                        {
-                            Volatile.Write(ref arenaLimit, true);
-                            continue;
-                        }
-
-                        exits.Clear();
-                        Block block = cache.Get(target.Pc, target.Thumb);
-                        if (Jit.CompileAheadOne(block))
-                        {
-                            Interlocked.Increment(ref translated);
-                        }
-
-                        if (follow != null)
-                        {
-                            if (block.Insts.Length > 0 && ReturnsAfter(in block.Insts[^1]))
-                            {
-                                exits.Add((block.End, block.Thumb));
-                            }
-
-                            foreach ((uint Pc, bool Thumb) exit in exits)
-                            {
-                                if (follow(exit.Pc) && Add(exit))
-                                {
-                                    Interlocked.Increment(ref found);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Console.Error.WriteLine($"[JIT] precompile {target.Pc:X8}: {e.Message}");
-                    }
-                    finally
-                    {
-                        Interlocked.Increment(ref done);
-                        Interlocked.Decrement(ref outstanding);
-                    }
-                }
-
-                Jit.StaticExits = null;
-            })
+            bool stays = i < keep;
+            threads[i] = new Thread(() => run.Work(stays))
             {
                 IsBackground = true,
                 Name = $"JIT precompile {i}",
+                Priority = stays && waitFor == null ? ThreadPriority.BelowNormal : ThreadPriority.Normal,
             };
             threads[i].Start();
         }
 
-        foreach (Thread thread in threads)
+        if (waitFor is { } level)
         {
-            while (!thread.Join(100))
+            using CancellationTokenRegistration registration = cancel.Register(() => Volatile.Write(ref run._foreground, 0));
+            while (Volatile.Read(ref run._foreground) != 0 && !run.DoneUpTo(level))
             {
-                progress?.Invoke(Volatile.Read(ref done), Volatile.Read(ref known));
+                Thread.Sleep(100);
+                progress?.Invoke(Volatile.Read(ref run._done), Volatile.Read(ref run._known));
+            }
+
+            Volatile.Write(ref run._foreground, 0);
+            if (keep == 0)
+            {
+                run.Stop();
+            }
+
+            // the threads that stay go on at a low priority, beside the game
+            for (int i = 0; i < keep; i++)
+            {
+                try
+                {
+                    threads[i].Priority = ThreadPriority.BelowNormal;
+                }
+                catch (ThreadStateException)
+                {
+                    // it ended already (nothing left)
+                }
+            }
+
+            progress?.Invoke(Volatile.Read(ref run._done), Volatile.Read(ref run._known));
+        }
+
+        return run;
+    }
+
+    /// <summary>Waits until the background work is done (tests).</summary>
+    public bool WaitFinished(TimeSpan timeout) => SpinWait.SpinUntil(() => Finished || _stop.IsCancellationRequested, timeout);
+
+    private bool DoneUpTo(Priority level)
+    {
+        for (int i = 0; i <= (int)level; i++)
+        {
+            if (Volatile.Read(ref _outstanding[i]) != 0)
+            {
+                return false;
             }
         }
 
-        progress?.Invoke(done, known);
-        return new Result(translated, done, found, cancel.IsCancellationRequested, arenaLimit);
+        return true;
+    }
+
+    private bool TryTake(out (uint Pc, bool Thumb) target, out int level)
+    {
+        for (level = 0; level < Levels; level++)
+        {
+            if (_queues[level].TryDequeue(out target))
+            {
+                return true;
+            }
+        }
+
+        target = default;
+        return false;
+    }
+
+    private void Work(bool stays)
+    {
+        Util.NativeThread.Register("JIT precompile", Util.NativeThread.Role.JitWorker);
+        using AddressSpace.Activation activation = AddressSpace.Use(_space);
+        var exits = new List<(uint Pc, bool Thumb)>();
+        Jit.StaticExits = exits;
+        var spin = new SpinWait();
+        while (!_stop.IsCancellationRequested && !Finished && (stays || Volatile.Read(ref _foreground) != 0))
+        {
+            if (!TryTake(out (uint Pc, bool Thumb) target, out int level))
+            {
+                spin.SpinOnce(sleep1Threshold: 10);
+                continue;
+            }
+
+            try
+            {
+                if (!Jit.ArenaHasRoomForAhead())
+                {
+                    Volatile.Write(ref _arenaLimit, 1);
+                    continue;
+                }
+
+                exits.Clear();
+                Block block = _cache.Get(target.Pc, target.Thumb);
+                if (Jit.CompileAheadOne(block))
+                {
+                    Interlocked.Increment(ref _translated);
+                }
+                else if (_follow != null)
+                {
+                    StaticExitsOf(block, exits); // compiled already (an earlier priority, or the game): its exits still count
+                }
+
+                if (_follow != null)
+                {
+                    if (block.Insts.Length > 0 && ReturnsAfter(in block.Insts[^1]))
+                    {
+                        exits.Add((block.End, block.Thumb));
+                    }
+
+                    Priority next = level == (int)Priority.Cached ? Priority.Index : (Priority)level;
+                    foreach ((uint Pc, bool Thumb) exit in exits)
+                    {
+                        if (_follow(exit.Pc) && Add(exit, next))
+                        {
+                            Interlocked.Increment(ref _found);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[JIT] precompile {target.Pc:X8}: {e.Message}");
+            }
+            finally
+            {
+                Interlocked.Increment(ref _done);
+                Interlocked.Decrement(ref _outstanding[level]);
+            }
+        }
+
+        Jit.StaticExits = null;
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006", Justification = "[ThreadStatic]: t_camelCase; .editorconfig cannot select the attribute")]
+    [ThreadStatic] private static ArmFrontend? t_frontend;
+
+    /// <summary>The static exits of a block without compiling it (the frontend's translation alone).</summary>
+    private static void StaticExitsOf(Block block, List<(uint Pc, bool Thumb)> exits)
+    {
+        if (block.Insts.Length == 0)
+        {
+            return;
+        }
+
+        IrBlock ir = (t_frontend ??= Backends.NativeArm64Compiler.NewFrontend(reuseIr: true)).Translate(block);
+        foreach (IrInst x in ir.Insts)
+        {
+            if (x.Op == IrOp.ExitStatic)
+            {
+                exits.Add((x.Imm, x.Imm2 != 0));
+            }
+        }
     }
 
     /// <summary>Whether execution continues after the block's last instruction once it returns: calls (BL, BLX) and
@@ -146,14 +272,15 @@ public static class CodePrecompiler
     };
 
     /// <summary>
-    /// The entry points the static analysis starts from in a loaded module: module_start/stop/exit, the exported
-    /// functions and the function starts of its exception index table (.ARM.exidx: one entry per function with unwind
-    /// information, which compilers emit for nearly every function). Bit 0 of an address selects Thumb; index entries
-    /// carry no instruction set, so they take the module's (the one most of its explicit entry points use).
+    /// The entry points the static analysis starts from in a loaded module, with their priority: module_start/stop/exit
+    /// and the exported functions (<see cref="Priority.Flow"/>), and the function starts of its exception index table
+    /// (.ARM.exidx: one entry per function with unwind information, which compilers emit for nearly every function;
+    /// <see cref="Priority.Index"/>). Bit 0 of an address selects Thumb; index entries carry no instruction set, so they
+    /// take the module's (the one most of its explicit entry points use).
     /// </summary>
-    public static List<(uint Pc, bool Thumb)> ModuleEntryPoints(LoadedModule module)
+    public static List<((uint Pc, bool Thumb) Target, Priority Priority)> ModuleEntryPoints(LoadedModule module)
     {
-        var entries = new List<(uint Pc, bool Thumb)>();
+        var entries = new List<((uint Pc, bool Thumb), Priority)>();
         int thumbVotes = 0;
         void AddEntry(uint address)
         {
@@ -164,7 +291,7 @@ public static class CodePrecompiler
 
             bool thumb = (address & 1) != 0;
             thumbVotes += thumb ? 1 : -1;
-            entries.Add((address & ~1u, thumb));
+            entries.Add(((address & ~1u, thumb), Priority.Flow));
         }
 
         AddEntry(module.StartEntry);
@@ -192,7 +319,7 @@ public static class CodePrecompiler
                 }
 
                 uint function = at + (uint)((int)(word << 1) >> 1);
-                entries.Add((function & ~1u, (function & 1) != 0 || moduleThumb));
+                entries.Add(((function & ~1u, (function & 1) != 0 || moduleThumb), Priority.Index));
             }
         }
 

@@ -36,6 +36,10 @@ public sealed class EmulatorOptions
     /// cache in <see cref="CodeCacheDir"/>) and the code the static analysis finds from the modules' entry points. Off:
     /// the cached blocks compile in the background while the game runs and the rest when it gets hot.</summary>
     public bool PrecompileCode { get; init; }
+    /// <summary>Whether the boot step of <see cref="PrecompileCode"/> waits for the recorded blocks (or, in a first
+    /// session, the code reached from the entry points) before the process starts; false: everything is translated in
+    /// the background while the game runs (Android, until its game screen shows the progress).</summary>
+    public bool PrecompileCodeWaits { get; init; } = true;
     /// <summary>Folder of the code cache (one file per module image, <see cref="CodeCacheFile"/>); null: no cache.</summary>
     public string? CodeCacheDir { get; init; }
     /// <summary>Directory with per-title code patch files (TITLEID.txt); null = built-in patches only.</summary>
@@ -816,7 +820,7 @@ public sealed class Emulator : IDisposable
 
         long bytes = Memory.FreeOwnedBy(Pid);
         _codeCacheTimer?.Dispose();
-        SaveCodeCache();
+        SaveCodeCache(stop: true);
         Code.Clear();
         Memory.ReleaseSpace(Space);
         Log.Info($"Process {Describe()} released: {objects} kernel objects, {bytes / 1024} KB of memory");
@@ -983,7 +987,7 @@ public sealed class Emulator : IDisposable
             VitaSharp.Core.Util.AudioDiagnostics.ProcessEnded(); // the old process's ports and decoder streams are gone
         }
 
-        SaveCodeCache();
+        SaveCodeCache(stop: true);
         Code.Clear();
         if (alone)
         {
@@ -1604,10 +1608,12 @@ public sealed class Emulator : IDisposable
     private CodeCache? _codeCache;
     private Timer? _codeCacheTimer;
 
-    /// <summary>The boot step of "Precompilar código ARM" (<see cref="EmulatorOptions.PrecompileCode"/>): the process's
-    /// loaded modules are translated before its first thread runs, with progress in the log as
-    /// <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines of the code kind. Without the option, the code cache's
-    /// blocks go to the JIT workers in the background.</summary>
+    /// <summary>The boot step of "Precompilar código ARM" (<see cref="EmulatorOptions.PrecompileCode"/>): before the
+    /// process's first thread runs, the blocks its modules ran in earlier sessions (or, in a first session, the code the
+    /// analysis reaches from their entry points) are translated, with progress in the log as
+    /// <see cref="VitaSharp.Core.Gpu.ShaderPrecompile"/> lines of the code kind; the rest of the analysis goes on in the
+    /// background. Without <see cref="EmulatorOptions.PrecompileCodeWaits"/> nothing is waited for; without the option,
+    /// only the recorded blocks are translated, in the background.</summary>
     private void PrecompileCode()
     {
         if (_codeCache is not { } codeCache)
@@ -1620,15 +1626,11 @@ public sealed class Emulator : IDisposable
             _codeCacheTimer ??= new Timer(_ => SaveCodeCache(), null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
         }
 
-        if (!Options.PrecompileCode)
-        {
-            codeCache.StartInBackground();
-            return;
-        }
-
+        codeCache.Analyze = Options.PrecompileCode;
+        bool wait = Options.PrecompileCode && Options.PrecompileCodeWaits;
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         long last = 0;
-        CodePrecompiler.Result result = codeCache.PrecompilePending(progress =>
+        CodePrecompiler.Result result = codeCache.PrecompilePending(!wait ? null : progress =>
         {
             long now = Environment.TickCount64;
             if (progress.Finished || now - last >= 250)
@@ -1636,19 +1638,24 @@ public sealed class Emulator : IDisposable
                 last = now;
                 Log.Info(VitaSharp.Core.Gpu.ShaderPrecompile.Format(new VitaSharp.Core.Gpu.ShaderPrecompileProgress(progress.Done, progress.Total, progress.Finished, Code: true)));
             }
-        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token);
+        }, VitaSharp.Core.Gpu.ShaderPrecompile.Token, wait);
         double seconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds;
-        Log.Info($"ARM code precompiled in {seconds:F1} s: {result.Translated} blocks translated of {result.Visited} visited "
-            + $"({codeCache.CachedSeeds} from the code cache, {result.Found} found by the static analysis)"
-            + (result.Cancelled ? ", cancelled" : "") + (result.ArenaLimit ? ", stopped at half of the code arena" : ""));
+        Log.Info($"ARM code precompilation: boot step {seconds:F1} s ({(wait ? "waited for " + (codeCache.CachedSeeds > 0 ? "the code cache" : "the code reached from the entry points") : "nothing waited for")}), "
+            + $"{result.Translated} blocks translated of {result.Visited} visited ({codeCache.CachedSeeds} from the code cache, {result.Found} found by the static analysis)"
+            + (result.Cancelled ? ", cancelled" : "") + (result.ArenaLimit ? ", stopped at half of the code arena" : "") + (codeCache.Analyze ? "; the analysis continues in the background" : ""));
     }
 
-    /// <summary>Records the blocks this process translated in the code cache (periodically, and before its translations
-    /// go: exec, process end, shutdown).</summary>
-    private void SaveCodeCache()
+    /// <summary>Records the blocks this process ran in the code cache (periodically, and before its translations go:
+    /// exec, process end, shutdown, when <paramref name="stop"/> also ends the background translation).</summary>
+    private void SaveCodeCache(bool stop = false)
     {
         try
         {
+            if (stop)
+            {
+                _codeCache?.Stop();
+            }
+
             _codeCache?.Save();
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -1656,7 +1663,6 @@ public sealed class Emulator : IDisposable
             Log.Warn($"Code cache: save failed: {e.Message}");
         }
     }
-
     private byte[]? FindKlicensee()
     {
         foreach (string? p in new[]
@@ -2240,6 +2246,12 @@ public sealed class Emulator : IDisposable
     public void Dispose()
     {
         Stop();
+        _codeCache?.Stop();
+        if (_codeCache?.DescribeMisses() is { } misses)
+        {
+            Log.Info(misses);
+        }
+
         SaveCodeCache();
         _codeCacheTimer?.Dispose();
         if (Parent != null)

@@ -245,7 +245,26 @@ public static unsafe class Jit
             Interlocked.Decrement(ref s_inFlight);
         }
 
-        return b.JitState == 2;
+        return b.JitState is 2 or AheadPending;
+    }
+
+    /// <summary><see cref="Block.JitState"/> of a block translated ahead that the guest has not reached yet.</summary>
+    public const int AheadPending = 4;
+
+    private static long s_uses;
+
+    /// <summary>The guest reached a block translated ahead (<see cref="AheadPending"/>): its code is published (the
+    /// dispatcher runs it, exits link to it) and the order of first use recorded (<see cref="Block.FirstUse"/>).</summary>
+    public static void ActivateAhead(Block b)
+    {
+        if (b.Invalidated || Interlocked.CompareExchange(ref b.JitState, 2, AheadPending) != AheadPending)
+        {
+            return;
+        }
+
+        b.FirstUse = Interlocked.Increment(ref s_uses);
+        b.NativeEntry = b.Code!.NativeEntry;
+        Native.NativeRuntime.Instance.Publish(b);
     }
 
     /// <summary>Offers the block to the backend at its tier; on rejection it moves to the next tier.</summary>
@@ -291,13 +310,26 @@ public static unsafe class Jit
             b.JitState = b.Tier < chain.Length ? 0 : 3; // the next backend takes it once the block reaches its threshold
             return;
         }
-        Install(b, cb);
-        if (ahead)
+        if (ahead && cb.NativeEntry != 0 && cb.Managed == null)
         {
+            // published when the guest first reaches it (ActivateAhead): until then no exit links to it, and the
+            // code cache learns which precompiled blocks the game really runs, and in which order
+            b.Code = cb;
+            b.Ahead = true;
+            b.JitState = AheadPending;
             Interlocked.Increment(ref AheadBlocks);
             return;
         }
 
+        Install(b, cb);
+        if (ahead)
+        {
+            b.Ahead = true;
+            Interlocked.Increment(ref AheadBlocks);
+            return;
+        }
+
+        b.FirstUse = Interlocked.Increment(ref s_uses);
         Interlocked.Increment(ref backendStats.Blocks);
         Interlocked.Add(ref backendStats.Instructions, b.Insts.Length);
     }

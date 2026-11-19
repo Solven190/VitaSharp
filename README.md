@@ -397,13 +397,17 @@ Shell scripts follow the Google Shell Style Guide and must pass ShellCheck (CI j
   process's standard input) starts the game at once and the rest builds in the background. Nothing extra to install,
   same on Windows, Linux and macOS.
 - "Precompilar código ARM" (launcher: Configurações, next to "Precompilar shaders"; `--precompile-code=on|off`,
-  default on): before a game starts, its modules' ARM code is translated by the native JIT on every free core, behind
-  the same progress bar and "Cancelar": the blocks the static analysis finds from the modules' entry points (module
-  start, exports, `.ARM.exidx`, following direct branches and call returns) plus the code cache of earlier sessions
-  (`codecache/<module image hash>.vsjc` in the data folder, `--code-cache=<folder>|off`; one file per module image,
-  valid at any load address, rejected after a translator change). The log line `ARM code precompiled in ...` gives the
-  time and counts; `precompiled before start` in the CPU backend line is kept apart from what the game compiled while
-  it ran. Android records and loads the code cache in the background (no boot step yet). Nothing extra to install.
+  default on): before a game starts, the native JIT translates, on every free core and behind the same progress bar
+  and "Cancelar", the ARM blocks its earlier sessions ran, in the order they first ran (the code cache:
+  `codecache/<module image hash>.vsjc` in the data folder, `--code-cache=<folder>|off`; one file per module image,
+  valid at any load address, rejected after a translator change), or in a first session the code the static analysis
+  reaches from the modules' entry points (module start, exports, following direct branches and call returns). The
+  game starts as soon as those are ready; the rest of the analysis (the `.ARM.exidx` function index and what it
+  reaches) goes on in the background on a few low-priority threads. Precompiled code is published when the game first
+  reaches it. The log lines `ARM code precompilation: boot step ...` and, at the end, `... % of the run blocks were
+  precompiled` give the time and the coverage; `precompiled before start` in the CPU backend line is kept apart from
+  what the game compiled while it ran. Android runs the same translation entirely in the background (no wait yet).
+  Nothing extra to install.
 - Profiling: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, every OS); on Windows also
   PerfView and WPR/WPA (Windows Performance Toolkit).
 

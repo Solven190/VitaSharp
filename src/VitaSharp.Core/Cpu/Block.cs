@@ -26,6 +26,11 @@ public sealed unsafe class Block
     public nint NativeEntry;
     /// <summary>Set when the block was dropped from the cache (guest code rewritten): exits must not link to it.</summary>
     public volatile bool Invalidated;
+    /// <summary>Translated before it ran (<see cref="Jit.CompileAheadOne"/>), not because it got hot.</summary>
+    public bool Ahead;
+    /// <summary>When the block's compiled code was first used (a process-wide sequence number; 0: not yet): the code
+    /// cache keeps the blocks in this order, so the next boot translates what the game needs first, first.</summary>
+    public long FirstUse;
     /// <summary>Exit link slots that jump into this block's native code (cleared on invalidation).</summary>
     internal List<nint>? _linkedFrom;
     /// <summary>The cache (process) the block belongs to: its indirect-exit table is the process's.</summary>
