@@ -90,6 +90,8 @@ public sealed partial class EmulationSession : IDisposable
         CpuCore.InstructionsPerSecond = _settings.ClockHz;
         VitaSharp.Core.Util.IoTiming.FastLoading = _settings.FastLoading; // "Carregamento rapido" (else the Vita memory card's speed)
         HostThreads.Enabled = true;
+        VitaSharp.Core.Gpu.ShaderCacheLoad.Reset(); // a "Cancelar" of an earlier session in this process does not carry over
+        VitaSharp.Core.Cpu.CodePrecompileLog.Reset();
         Performance = new GamePerformance(AppServices.AppContext);
         var (psn, net, rpcn) = prefs.Network.ToOptions(rpcnPassword);
         _emu = new Emulator(new EmulatorOptions
@@ -103,10 +105,13 @@ public sealed partial class EmulationSession : IDisposable
             Rpcn = rpcn,
             KernelPlugins = prefs.KernelPlugins,
             SystemLanguage = _settings.SystemLanguageValue, // "Idioma do sistema" of this game
-            // the ARM code precompilation, all in the background (the blocks earlier sessions ran first, then the static
-            // analysis): the game does not wait for it until its screen shows the progress bar (PrecompileCodeWaits)
+            // "Carregar o cache de shaders antes de jogar" (global and per game): the progress and "Cancelar" are the game
+            // screen's banner (GameActivity.ShaderCacheLoad.cs)
+            LoadShaderCacheBeforeStart = _settings.LoadShaderCacheBeforePlaying,
+            // "Precompilar código ARM" (global and per game): on the phone all of it runs in the background (the blocks
+            // earlier sessions ran first, then the code near what the game runs); the game does not wait for it
             CodeCacheDir = data.CodeCache,
-            PrecompileCode = true,
+            PrecompileCode = _settings.PrecompileCode,
             PrecompileCodeWaits = false,
         });
         _emu.Fatal += (t, e) =>

@@ -20,6 +20,8 @@ public sealed class GameState
     /// <summary>The slots' pictures, made once per load (a new image source per render would reload them).</summary>
     public IReadOnlyList<ImageSource?> SlotPictures { get; set; } = [];
     public IReadOnlyList<GameRecording> Recordings { get; set; } = [];
+    /// <summary>The recording highlighted after another one was deleted (the one that followed it), by path.</summary>
+    public string? FocusedRecording { get; set; }
 }
 
 /// <summary>
@@ -46,7 +48,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
     {
         var data = AppServices.Data;
         var game = AppServices.FindGame(Props.TitleId);
-        var trophies = game != null ? GameLibrary.Trophies(game, data) : TrophyProgress.None;
+        var trophies = game != null ? GameLibrary.Trophies(game, data, AppServices.TrophyTexts) : TrophyProgress.None;
         var settings = GameSettings.Load(data.GameSettingsFile(Props.TitleId));
         var saves = SaveInfo(data.SaveDir(Props.TitleId));
         var slots = GameStates.Slots(data.Root, Props.TitleId);
@@ -101,13 +103,13 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         IconButton("\u2039", () => Navigation?.PopAsync()),
                         Label("").GridColumn(1)
                     ).Padding(16, 16, 16, 0),
-                    HStack(
+                    Grid("Auto", "Auto,*",
                         Cover(g.TitleId, g.Initials, g.IconPath, 112, 24, 34),
                         VStack(
-                            Label(g.Title).FontFamily(Fonts.SoraBold).FontSize(24).MaxLines(3).LineBreakMode(LineBreakMode.TailTruncation),
-                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted)
-                        ).Spacing(6).VCenter().MaximumWidthRequest(230)
-                    ).Spacing(16).Padding(20, 16, 20, 0),
+                            Label(g.Title).FontFamily(Fonts.SoraBold).FontSize(24).LineBreakMode(LineBreakMode.WordWrap),
+                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted).LineBreakMode(LineBreakMode.WordWrap)
+                        ).Spacing(6).VCenter().GridColumn(1).Margin(16, 0, 0, 0)
+                    ).Padding(20, 16, 20, 0),
                     Grid("Auto", "*,Auto",
                         PrimaryButton(Loc.Get("MPlay"), () => GameActivity.Launch(MainActivity.Current!, g.TitleId)),
                         IconButton("\u22EF", More, 54).GridColumn(1).Margin(12, 0, 0, 0)
@@ -151,6 +153,14 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         ToggleRow(Loc.Get("FastLoading"), eff.FastLoading, v => Save(x => x.FastLoading = v == app.FastLoading ? null : v),
                             detail: Loc.Get("FastLoadingDetail")),
                         Divider(),
+                        ToggleRow(Loc.Get("LoadShaderCache"), eff.LoadShaderCacheBeforePlaying,
+                            v => Save(x => x.LoadShaderCacheBeforePlaying = v == app.LoadShaderCacheBeforePlaying ? null : v),
+                            detail: Loc.Get("LoadShaderCacheDetail")),
+                        Divider(),
+                        ToggleRow(Loc.Get("PrecompileCode"), eff.PrecompileCode,
+                            v => Save(x => x.PrecompileCode = v == app.PrecompileCode ? null : v),
+                            detail: Loc.Get("PrecompileCodeDetail")),
+                        Divider(),
                         Row(Loc.Get("SystemLanguage"), ValueText(SettingsChoices.SystemLanguages, s.SystemLanguage, SettingsChoices.LabelOf(SettingsChoices.SystemLanguages, eff.SystemLanguage)),
                             () => Pick(Loc.Get("SystemLanguage"), SettingsChoices.SystemLanguages, "", v => s.SystemLanguage = string.IsNullOrEmpty(v) ? null : v),
                             detail: Loc.Get("SystemLanguageDetail")),
@@ -165,6 +175,8 @@ public sealed class GamePage : Screen<GameState, GameProps>
                             x.ResScale = null;
                             x.Msaa = null;
                             x.FastLoading = null;
+                            x.LoadShaderCacheBeforePlaying = null;
+                            x.PrecompileCode = null;
                             x.FrameRate = null;
                             x.SystemLanguage = null;
                         })) : null
@@ -189,7 +201,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
     VisualNode Stat(string label, string value, int column) =>
         Border(VStack(
                 Label(label).FontSize(12).TextColor(Palette.Muted),
-                Label(value).FontFamily(Fonts.SoraBold).FontSize(20).LineBreakMode(LineBreakMode.TailTruncation)
+                Label(value).FontFamily(Fonts.SoraBold).FontSize(20).LineBreakMode(LineBreakMode.WordWrap)
             ).Spacing(4).Padding(14, 12))
         .StrokeShape(new RoundRectangle().CornerRadius(18)).StrokeThickness(0).BackgroundColor(Palette.Surface)
         .GridColumn(column);
@@ -275,11 +287,52 @@ public sealed class GamePage : Screen<GameState, GameProps>
             }
 
             string when = recording.ModifiedUtc.ToLocalTime().ToString("g", Loc.Culture);
-            rows.Add(Row(when, Loc.Get("MShare"), () => ShareRecording(recording),
-                detail: Loc.Format("MRecordingDetail", recording.Name, recording.Bytes / (1024.0 * 1024.0))));
+            var row = Row(when, Loc.Get("MShare"), () => RecordingActions(recording),
+                detail: Loc.Format("MRecordingDetail", recording.Name, recording.Bytes / (1024.0 * 1024.0)));
+            // the recording that followed a deleted one
+            rows.Add(recording.Path == State.FocusedRecording ? row.BackgroundColor(Palette.Highlight) : row);
         }
 
         return Card(rows.ToArray());
+    }
+
+    /// <summary>A recording's row: share it, or delete it (the list stays where it was, the next one highlighted).</summary>
+    async void RecordingActions(GameRecording recording)
+    {
+        if (ContainerPage is not { } page)
+        {
+            return;
+        }
+
+        string? pick = await page.DisplayActionSheetAsync(recording.Name, Loc.Get("MCancel"), Loc.Get("MDelete"), Loc.Get("MShare"));
+        if (pick == Loc.Get("MShare"))
+        {
+            ShareRecording(recording);
+        }
+        else if (pick == Loc.Get("MDelete"))
+        {
+            DeleteRecording(recording);
+        }
+    }
+
+    async void DeleteRecording(GameRecording recording)
+    {
+        if (!await Confirm(Loc.Get("MDelete"), recording.Name, Loc.Get("MDelete")))
+        {
+            return;
+        }
+
+        await Run(Loc.Get("MDelete"), async () =>
+        {
+            await Task.Run(() => File.Delete(recording.Path));
+            List<string> shown = State.Recordings.Select(r => r.Path).ToList();
+            (List<GameRecording> remaining, string? focus) = ListRemoval.Remove(State.Recordings, r => r.Path, shown, [recording.Path]);
+            SetState(s =>
+            {
+                s.Recordings = remaining;
+                s.FocusedRecording = focus;
+            });
+        });
     }
 
     async void ShareRecording(GameRecording recording)
@@ -339,6 +392,8 @@ public sealed class GamePage : Screen<GameState, GameProps>
                 await Run(Loc.Get("MUninstall"), async () =>
                 {
                     await Task.Run(() => Directory.Delete(g.AppDir, true));
+                    // the library drops it in place and highlights the game that followed it
+                    LibraryView.RaiseUninstalled(g.TitleId);
                     await (Navigation?.PopAsync() ?? Task.CompletedTask);
                 });
                 break;

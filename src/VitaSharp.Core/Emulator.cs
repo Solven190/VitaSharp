@@ -1583,25 +1583,9 @@ public sealed class Emulator : IDisposable
     /// progress (at most every 250 ms) as <see cref="VitaSharp.Core.Gpu.ShaderCacheLoad"/> lines for the launcher.</summary>
     private void WaitForShaderCache()
     {
-        if (Gpu.Backend is not { } backend)
+        if (Gpu.Backend is { } backend)
         {
-            return;
-        }
-
-        long last = 0;
-        bool waited = backend.LoadShaderCacheBeforeStart(progress =>
-        {
-            long now = Environment.TickCount64;
-            if (progress.Finished || now - last >= 250)
-            {
-                last = now;
-                Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(progress));
-            }
-        }, VitaSharp.Core.Gpu.ShaderCacheLoad.Token);
-        // nothing to wait for, or cancelled: the launcher still gets the end of the wait
-        if (!waited || VitaSharp.Core.Gpu.ShaderCacheLoad.Token.IsCancellationRequested)
-        {
-            Log.Info(VitaSharp.Core.Gpu.ShaderCacheLoad.Format(new VitaSharp.Core.Gpu.ShaderCacheLoadProgress(0, 0, true)));
+            VitaSharp.Core.Gpu.ShaderCacheLoad.Wait(backend);
         }
     }
 

@@ -1,3 +1,5 @@
+using VitaSharp.Core.Util;
+
 namespace VitaSharp.Core.Gpu;
 
 /// <summary>Progress of <see cref="IGpuBackend.LoadShaderCacheBeforeStart"/>: recorded shaders and pipelines built so far,
@@ -34,10 +36,46 @@ public static class ShaderCacheLoad
 
     public static void Cancel() => s_cancel.Cancel();
 
-    /// <summary>A new game session (tests start several in one process).</summary>
+    /// <summary>A new game session (tests start several in one process; the Android game process plays several).</summary>
     public static void Reset()
     {
         s_cancel = new CancellationTokenSource();
+    }
+
+    /// <summary>The progress of the running wait, raised (on the thread that starts the game) for every line
+    /// <see cref="Wait"/> logs, the last one with <see cref="ShaderCacheLoadProgress.Finished"/>: the Android game screen
+    /// shows it over the game, as the desktop launcher shows the log lines.</summary>
+    public static event Action<ShaderCacheLoadProgress>? Reported;
+
+    /// <summary>Waits for <paramref name="backend"/>'s recorded shaders and pipelines (<see cref="IGpuBackend.LoadShaderCacheBeforeStart"/>),
+    /// logging the progress (at most every 250 ms, and always the end) as <see cref="ProgressPrefix"/> /
+    /// <see cref="FinishedPrefix"/> lines and raising <see cref="Reported"/> with each. Nothing to wait for or cancelled:
+    /// a finished line all the same, so whoever shows the progress always sees the end.</summary>
+    public static void Wait(IGpuBackend backend)
+    {
+        long last = 0;
+        bool finishedReported = false;
+        CancellationToken token = Token;
+        bool waited = backend.LoadShaderCacheBeforeStart(progress =>
+        {
+            long now = Environment.TickCount64;
+            if (progress.Finished || now - last >= 250)
+            {
+                last = now;
+                finishedReported |= progress.Finished;
+                Report(progress);
+            }
+        }, token);
+        if (!waited || token.IsCancellationRequested || !finishedReported)
+        {
+            Report(new ShaderCacheLoadProgress(0, 0, true));
+        }
+    }
+
+    private static void Report(ShaderCacheLoadProgress progress)
+    {
+        Log.Info(Format(progress));
+        Reported?.Invoke(progress);
     }
 
     /// <summary>Parses a <see cref="ProgressPrefix"/> or <see cref="FinishedPrefix"/> line (anywhere in a log line).</summary>

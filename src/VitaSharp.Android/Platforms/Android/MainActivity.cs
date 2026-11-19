@@ -148,25 +148,54 @@ public sealed class MainActivity : MauiAppCompatActivity
     public static event Action? Resumed;
 
     PadCapture? _capture;
-    Action<VitaSharp.Core.Input.InputBinding>? _captured;
+    Action<VitaSharp.Core.Input.RecordedInput>? _captured;
     AlertDialog? _captureDialog;
+    string _captureMessage = "";
 
     /// <summary>
-    /// Controles > Mapeamento: the next press on the controller of <paramref name="capture"/> goes to
-    /// <paramref name="captured"/> (a dialog says what to press; Cancel or the Back key stops it). The controller's keys
-    /// and motion events are taken while it waits, so they do not move the screens' focus.
+    /// Controles > Mapeamento: the recording of <paramref name="capture"/> (the core's BindingRecorder: a game control
+    /// takes the next press, the pause hotkey the whole combination held together, once released) goes to
+    /// <paramref name="captured"/>. A dialog says what to press and, for a combination, the buttons held so far; Cancel
+    /// or the Back key stops it. The controller's keys and motion events are taken while it waits, so they do not move
+    /// the screens' focus.
     /// </summary>
-    public void BeginPadCapture(PadCapture capture, string control, Action<VitaSharp.Core.Input.InputBinding> captured)
+    public void BeginPadCapture(PadCapture capture, string control, Action<VitaSharp.Core.Input.RecordedInput> captured)
     {
         EndPadCapture();
         _capture = capture;
         _captured = captured;
+        _captureMessage = VitaSharp.Core.Localization.Loc.Get(capture.RecordsCombination ? "CsHoldCombo" : "CsPressButton");
         _captureDialog = new AlertDialog.Builder(this)
             .SetTitle(control)!
-            .SetMessage(VitaSharp.Core.Localization.Loc.Get("CsPressButton"))!
+            .SetMessage(_captureMessage)!
             .SetNegativeButton(VitaSharp.Core.Localization.Loc.Get("MCancel"), (_, _) => EndPadCapture())!
             .SetOnCancelListener(new CaptureCancel(this))!
             .Show();
+        if (capture.RecordsCombination)
+        {
+            TickPadCapture(capture);
+        }
+    }
+
+    /// <summary>A combination ends once every button has been released for a moment, which no event announces: the
+    /// recording is polled every 100 ms while it runs.</summary>
+    void TickPadCapture(PadCapture capture)
+    {
+        Window?.DecorView?.PostDelayed(() =>
+        {
+            if (_capture != capture)
+            {
+                return;
+            }
+
+            if (capture.Tick() is { } recorded)
+            {
+                Captured(recorded);
+                return;
+            }
+
+            TickPadCapture(capture);
+        }, 100);
     }
 
     void EndPadCapture()
@@ -178,21 +207,39 @@ public sealed class MainActivity : MauiAppCompatActivity
         dialog?.Dismiss();
     }
 
-    void Captured(VitaSharp.Core.Input.InputBinding binding)
+    void Captured(VitaSharp.Core.Input.RecordedInput recorded)
     {
-        Action<VitaSharp.Core.Input.InputBinding>? done = _captured;
+        Action<VitaSharp.Core.Input.RecordedInput>? done = _captured;
         EndPadCapture();
-        done?.Invoke(binding);
+        done?.Invoke(recorded);
+    }
+
+    /// <summary>The buttons of the combination held so far, under the dialog's prompt.</summary>
+    void ShowCaptureParts(PadCapture capture)
+    {
+        if (!capture.RecordsCombination || _captureDialog == null || capture.Parts.Count == 0)
+        {
+            return;
+        }
+
+        string held = new VitaSharp.Core.Input.InputCombo(capture.Parts.ToArray()).Describe(capture.Kind);
+        _captureDialog.SetMessage(_captureMessage + "\n\n" + held);
     }
 
     public override bool DispatchKeyEvent(KeyEvent? e)
     {
         if (_capture is { } capture && e != null && e.DeviceId == capture.DeviceId && e.KeyCode != Keycode.Back)
         {
-            if (e.RepeatCount == 0 && e.Action is KeyEventActions.Down or KeyEventActions.Up
-                && capture.OnKey(e.DeviceId, (int)e.KeyCode, e.Action == KeyEventActions.Down) is { } binding)
+            if (e.RepeatCount == 0 && e.Action is KeyEventActions.Down or KeyEventActions.Up)
             {
-                Captured(binding);
+                if (capture.OnKey(e.DeviceId, (int)e.KeyCode, e.Action == KeyEventActions.Down) is { } recorded)
+                {
+                    Captured(recorded);
+                }
+                else
+                {
+                    ShowCaptureParts(capture);
+                }
             }
 
             return true;
@@ -205,9 +252,13 @@ public sealed class MainActivity : MauiAppCompatActivity
     {
         if (_capture is { } capture && e != null && e.DeviceId == capture.DeviceId)
         {
-            if (capture.OnMotion(e.DeviceId, axis => e.GetAxisValue((Axis)axis)) is { } binding)
+            if (capture.OnMotion(e.DeviceId, axis => e.GetAxisValue((Axis)axis)) is { } recorded)
             {
-                Captured(binding);
+                Captured(recorded);
+            }
+            else
+            {
+                ShowCaptureParts(capture);
             }
 
             return true;

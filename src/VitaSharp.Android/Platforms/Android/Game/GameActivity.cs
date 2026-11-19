@@ -190,6 +190,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
             TopMargin = Dp(12),
             RightMargin = Dp(96)
         });
+        AddShaderCacheLoadBanner(root); // GameActivity.ShaderCacheLoad.cs
         SetContentView(root);
         // after SetContentView: Window.InsetsController needs the decor view, which does not exist before it (a
         // NullPointerException inside PhoneWindow.getInsetsController on API 30+)
@@ -363,6 +364,7 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
     protected override void OnDestroy()
     {
         _fpsTimer?.Dispose();
+        RemoveShaderCacheLoadBanner();
         AppServices.Gamepads.DevicesChanged -= OnGamepadsChanged;
         _inputManager?.UnregisterInputDeviceListener(this);
         _session?.Dispose();
@@ -439,6 +441,12 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
             // the PS/Home button of a controller in a game without the shell: the pause menu, like the on-screen PS
             if (e.KeyCode == Keycode.ButtonMode && e.Action == KeyEventActions.Down && !_isSystem)
                 OnPsPressed();
+            // the pause hotkey of Controles > Mapeamento (a combination fires only with all its buttons held)
+            if (AppServices.Gamepads.PauseHotkeyPressed())
+            {
+                OpenMenu();
+            }
+
             return true;
         }
         return base.DispatchKeyEvent(e);
@@ -476,7 +484,14 @@ public sealed partial class GameActivity : Activity, ISurfaceHolderCallback, Inp
         // the pause menu: sticks and hats are left to Android, which turns them into D-pad keys that move the focus
         if (e != null && !MenuVisible && (e.Source & InputSourceType.Joystick) == InputSourceType.Joystick && e.Action == MotionEventActions.Move
             && AppServices.Gamepads.OnMotion(e.DeviceId, axis => e.GetAxisValue((Axis)axis)))
+        {
+            if (AppServices.Gamepads.PauseHotkeyPressed())
+            {
+                OpenMenu(); // a hotkey with a trigger in it
+            }
+
             return true;
+        }
         return base.OnGenericMotionEvent(e);
     }
 

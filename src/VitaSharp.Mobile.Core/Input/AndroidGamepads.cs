@@ -84,6 +84,7 @@ public sealed class AndroidGamepads
     private readonly Dictionary<int, Device> _devices = new();
     private readonly InputProfileStore? _profiles;
     private int _revision;
+    private bool _pauseHeld;
 
     public AndroidGamepads(InputProfileStore? profiles = null)
     {
@@ -267,6 +268,31 @@ public sealed class AndroidGamepads
         b[(int)PadButton.DpadDown] = d.KeyDpad[1] || d.HatY > 0.5f;
         b[(int)PadButton.DpadLeft] = d.KeyDpad[2] || d.HatX < -0.5f;
         b[(int)PadButton.DpadRight] = d.KeyDpad[3] || d.HatX > 0.5f;
+    }
+
+    /// <summary>The emulator's pause hotkey (<see cref="VitaControl.PauseEmulation"/>) went down on a controller: one of
+    /// its single bindings, or every button of one of its combinations (<see cref="InputMapper.HotkeyHeld"/>, the
+    /// desktop's rule: a combination fires only with all its buttons held). True once per press; called after each
+    /// controller event, the game screen opens the pause menu on it.</summary>
+    public bool PauseHotkeyPressed()
+    {
+        lock (_lock)
+        {
+            ReloadIfChanged();
+            bool held = false;
+            foreach (Device d in _devices.Values)
+            {
+                if (InputMapper.HotkeyHeld(d.Profile, VitaControl.PauseEmulation, d.Pad, null))
+                {
+                    held = true;
+                    break;
+                }
+            }
+
+            bool pressed = held && !_pauseHeld;
+            _pauseHeld = held;
+            return pressed;
+        }
     }
 
     /// <summary>Every connected controller mapped and combined (they all drive the one Vita).</summary>

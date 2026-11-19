@@ -980,7 +980,18 @@ jogo (`dotnet test`) para saber se uma mudança quebrou algo. Nenhuma mudança �
 
 ## Android
 
-- [ ] [P3][P] App Android, tela da biblioteca (pedido do usuário, 16/11/2026): tirar a palavra "VitaSharp" em cima do título da biblioteca, o botão de instalar e o botão de Ajustes ao lado do texto da biblioteca (redundantes: as mesmas ações já existem em outros pontos da navegação).
+- [x] App Android, tela da biblioteca: tirar a palavra "VitaSharp" em cima do título da biblioteca, o botão de instalar e o botão de Ajustes ao lado do texto da biblioteca. Feito (feat/andpar): o cabeçalho é só o título; instalar continua no botão flutuante e em Ajustes > Instalar jogo (`AndroidNarrowLayoutTests`). **Falta validar no aparelho.**
+- [ ] [P2][M] Paridade PC/Android das entregas de 17-18/11 (feat/andpar), **feito no código, falta validar no aparelho**:
+  "Carregar o cache de shaders antes de jogar" em Ajustes e na página do jogo, com o cartão de progresso e Cancelar
+  sobre o jogo (`ShaderCacheLoad.Reported`, `AndroidShaderCacheLoadTests`); o teste de paridade agora classifica toda
+  opção do `LauncherSettings`/`GameOptions` e falha com uma opção nova sem par no Android; mapeamento: gravação pelo
+  `BindingRecorder` (a linha "Pausar emulação" grava só a combinação final, que dispara no jogo só com todos os botões
+  apertados) e linha "Salvo"/"Alterações não salvas" (`PadCaptureTests`); desinstalar um jogo e apagar uma gravação
+  mantêm a rolagem e destacam o item seguinte (`ListPosition` no Core, `AndroidListRemovalTests`); biblioteca e troféus
+  guardam só os textos dos TROPHY.TRP (`TrophyTextsCache` no Core) e leem os ícones quando aparecem
+  (`AndroidTrophyMemoryTests`); tela estreita: valor da linha vai para baixo do título, textos e filtros quebram linha
+  (`NarrowLayout`). Ficam para quando existirem no PC: "Compilar shaders ao carregar o programa" (hoje só
+  `--compile-on-program-load`, sem opção no launcher) e a pré-compilação de código ARM (agente aot1).
 - [ ] [P2][M] Dead Space (port, DEADSPACE) no Android sem som e engasgando (relato do usuário, 15/11/2026, APK build-1f8c024, com "Ativar Plugins do Kernel" e kubridge + fd_fix; no PC roda com som). Logs do celular guardados pelo lead (`<scratchpad>ds_android`). Ler o log primeiro: áudio (saída aberta? grãos/s), fps e tiers da CPU, threads em espera; comparar com o PC na mesma cena.
 - [x] Paridade de opções PC/Android: toda opção do launcher do desktop também no app Android, com o mesmo nome, padrão
   e efeito (`AndroidOptionParityTests`; regra no README, "Code style"). Feito: compilação rápida de shaders e
