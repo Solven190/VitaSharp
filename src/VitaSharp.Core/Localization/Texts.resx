@@ -3186,4 +3186,13 @@
   <data name="PrecompileCodeCancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="LicenseMissing" xml:space="preserve">
+    <value>The license of this game ({0}) is not installed, so the system cannot start it (error {1}). Reinstall it with the work.bin, zRIF or .rif license from your console.</value>
+  </data>
+  <data name="LicenseMissingInstalled" xml:space="preserve">
+    <value>{0} was installed, but its license is not: the game is encrypted and will not start (error {1}) until you install the work.bin, zRIF or .rif license from your console.</value>
+  </data>
+  <data name="LicenseMissingBadge" xml:space="preserve">
+    <value>No license</value>
+  </data>
 </root>

@@ -364,6 +364,16 @@ public sealed partial class MainWindow
                 Child = _k.Badge(S.RunningBadge, static p => p.Ok, static _ => OverCoverShade),
             });
         }
+        else if (g.LicenseMissing)
+        {
+            art.Children.Add(new Border
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(10),
+                Child = _k.Badge(S.LicenseMissingBadge, static p => p.Danger, static _ => OverCoverShade),
+            });
+        }
 
         // mouse over: the two ways to start it (the main one from "Ao escolher um jogo" first)
         var actions = HoverActions(g, 40);

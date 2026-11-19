@@ -199,9 +199,10 @@ public sealed partial class ModulemgrKernel : HleModule
                 m = process.LoadModule(path);
             }
         }
-        catch (FileNotFoundException)
+        catch (Exception e) when (Emulator.IsModuleLoadFailure(e))
         {
-            return SceError.MODULEMGR_NOENT;
+            // a missing file, no SELF, an encrypted module without the title's license: the loader's error
+            return Emulator.ModuleLoadError(e);
         }
 
         m.Started = true;

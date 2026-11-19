@@ -35,6 +35,9 @@ public sealed record GameEntry(string TitleId, string Title, string Version, str
     /// <summary>What the title is (where the firmware keeps it).</summary>
     public ContentKind Kind { get; init; } = ContentKind.VitaApplication;
 
+    /// <summary>Encrypted and without its license installed: the system will not start it (the Biblioteca marks it).</summary>
+    public bool LicenseMissing { get; init; }
+
     /// <summary>"PCSC00045 - v1.12 - 3,2 GB".</summary>
     public string Subtitle => string.Join(" \u00B7 ", new[] { TitleId, Version.Length > 0 ? "v" + Version : "", SizeBytes > 0 ? SizeText : "" }.Where(s => s.Length > 0));
 }
@@ -58,7 +61,7 @@ public static class GameLibrary
     public static GameEntry? Read(string dir) => InstalledContent.ReadApplication(dir) is { } t ? From(t) : null;
 
     private static GameEntry From(LibraryTitle t) =>
-        new(t.TitleId, t.Title, t.Version, t.Category, t.Dir, t.IconPath, DirectorySize(t.Dir)) { Kind = t.Kind };
+        new(t.TitleId, t.Title, t.Version, t.Category, t.Dir, t.IconPath, DirectorySize(t.Dir)) { Kind = t.Kind, LicenseMissing = t.LicenseMissing };
 
     /// <summary>Trophy progress over every set the game ships (usually one).</summary>
     public static TrophyProgress Trophies(GameEntry game, DataLayout data, TrophyTextsCache? cache = null)

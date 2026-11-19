@@ -322,8 +322,10 @@ public static class VpkInstaller
     }
 
     /// <summary>
-    /// Makes sure encrypted content can be used: PFS-encrypted files are decrypted with the license, and an
-    /// encrypted NPDRM eboot.bin needs a license the emulator can find. Throws <see cref="VpkLicenseException"/> if none.
+    /// Makes sure encrypted content can be used: PFS-encrypted files are decrypted with the license (without one they
+    /// cannot be, <see cref="VpkLicenseException"/>). An encrypted NPDRM eboot.bin without a license still installs,
+    /// as the console's installer copies a package whose license comes later: the warning says it will not start until
+    /// its license is installed (<see cref="TitleLicense"/>), and the library marks it.
     /// </summary>
     private static void PrepareLicense(VpkContentInfo info, string dir, string ux0Root, VpkInstallOptions options)
     {
@@ -354,12 +356,9 @@ public static class VpkInstaller
         {
             string msg = $"{info.TitleId}: eboot.bin is an encrypted NPDRM executable and no license was found. " +
                          "Use a NoNpDrm dump that includes sce_sys/package/work.bin, or provide the work.bin/.rif license (--license=<file>).";
-            if (info.Kind == VpkContentKind.App)
-            {
-                throw new VpkLicenseException(msg);
-            }
-
-            options.Log?.Invoke("Warning: " + msg + " The base game's license will be used when it is installed.");
+            options.Log?.Invoke("Warning: " + msg + (info.Kind == VpkContentKind.App
+                ? " It is installed, but it will not start until its license is installed."
+                : " The base game's license will be used when it is installed."));
         }
 
         // keep a user-supplied license where the loader looks for it (app0:sce_sys/package/work.bin)

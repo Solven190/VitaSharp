@@ -4,6 +4,7 @@ using VitaSharp.Core.Firmware;
 using VitaSharp.Core.Hle;
 using VitaSharp.Core.Host;
 using VitaSharp.Core.Localization;
+using VitaSharp.Core.Package;
 using VitaSharp.Core.Util;
 using VitaSharp.Desktop.Host;
 using VitaSharp.Renderer.Vulkan;
@@ -761,6 +762,7 @@ public static class Runner
             window.Tick += () => RunScriptedHostKeys(scripted, diag, window, graphics);
         }
 
+        bool licenseMissing = false;
         window.Loaded += () =>
         {
             rendererOptions.Surface = window;
@@ -771,7 +773,20 @@ public static class Runner
             emu.Gpu.Backend = renderer;
             // state loads and LoadExec make a new renderer for this window: on this thread, like the first one
             emu.Gpu.ReplaceOn = window.RunOnWindowThread;
-            emu.LoadTitle(appPath, BootSelf(options));
+            try
+            {
+                emu.LoadTitle(appPath, BootSelf(options));
+            }
+            catch (TitleLicenseMissingException noLicense)
+            {
+                // the system refuses the launch (appmgr's missing-license error): the process never starts, the
+                // window closes and the launcher shows the message for this exit code
+                ReportLicenseMissing(noLicense);
+                licenseMissing = true;
+                window.Close();
+                return;
+            }
+
             // the system's start-up picture (the app's sce_sys/pic0.png) until the game's first frame; the system
             // software (run from vs0:) has none
             if (!emu.IsSystemProgram)
@@ -908,7 +923,15 @@ public static class Runner
         // the renderer (its swapchain and window surface) goes before the window: the window is disposed first at the
         // end of this method (declared after the emulator), and a surface must not outlive its window
         emu.Gpu.ReplaceBackend(null);
-        return 0;
+        return licenseMissing ? TitleLicense.ExitCode : 0;
+    }
+
+    /// <summary>The launched application is encrypted and its license is not installed: the localized message with
+    /// the system's error code, in the log and on the console (the launcher shows it for <see cref="TitleLicense.ExitCode"/>).</summary>
+    static void ReportLicenseMissing(TitleLicenseMissingException noLicense)
+    {
+        Log.Error($"{noLicense.UserMessage} ({noLicense.Message})");
+        Console.Error.WriteLine(noLicense.UserMessage);
     }
 
     /// <summary>"01:23": the REC badge's elapsed time.</summary>
@@ -1368,7 +1391,16 @@ public static class Runner
         }
 
         var wall = Stopwatch.StartNew();
-        emu.LoadTitle(appPath, BootSelf(options));
+        try
+        {
+            emu.LoadTitle(appPath, BootSelf(options));
+        }
+        catch (TitleLicenseMissingException noLicense)
+        {
+            ReportLicenseMissing(noLicense);
+            return TitleLicense.ExitCode;
+        }
+
         emu.Start();
         StartShellLaunch(emu, options);
         if (options.Contains("--start-paused"))

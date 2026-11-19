@@ -380,6 +380,11 @@ public sealed partial class MainWindow
                 VpkContentKind.AddCont => S.InstalledAddOn(r.TitleId),
                 _ => r.Replaced ? S.Reinstalled(r.Content.Title) : S.Installed(r.Content.Title),
             }));
+            foreach (var r in installed.Where(r => r.Content.Kind == VpkContentKind.App))
+            {
+                WarnIfLicenseMissing(job, r.InstallPath, r.TitleId);
+            }
+
             return app.TitleId;
         },
     });
@@ -393,6 +398,7 @@ public sealed partial class MainWindow
                 msg => Dispatcher.UIThread.Post(() => AppendLog(msg)), p => Report(job, p), ct), ct);
             AppendLog($"Installed {t.TitleId} \"{t.Title}\"");
             job.Detail = S.Installed(t.Title);
+            WarnIfLicenseMissing(job, t.Path, t.TitleId);
             return t.TitleId;
         },
     });
@@ -479,9 +485,24 @@ public sealed partial class MainWindow
                     CopyDirectory(dir, dest, ct);
                 }, ct);
                 job.Detail = S.Added(entry.Title);
+                WarnIfLicenseMissing(job, dest, entry.TitleId);
                 return entry.TitleId;
             },
         });
+    }
+
+    /// <summary>An application just installed that is encrypted and has no license: the warning goes to the job and
+    /// the log at once (the installation stays; the library marks the game until its license is installed).</summary>
+    void WarnIfLicenseMissing(InstallJob job, string appDir, string titleId)
+    {
+        if (VitaSharp.Core.Package.TitleLicense.InstallWarning(Program.FsRoot, appDir, titleId) is not { } warning)
+        {
+            return;
+        }
+
+        job.Detail = $"{job.Detail}  {warning}";
+        AppendLog(warning);
+        SetStatus(warning);
     }
 
     static void CopyDirectory(string src, string dst, CancellationToken ct)

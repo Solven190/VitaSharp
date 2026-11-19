@@ -7,7 +7,12 @@ namespace VitaSharp.Core.Package;
 /// <param name="Dir">its folder (ux0:app/&lt;id&gt;, ux0:psm/&lt;id&gt;...)</param>
 /// <param name="IconPath">a PNG of its icon, or null</param>
 public sealed record LibraryTitle(ContentKind Kind, string TitleId, string Title, string Version, string Category, string ContentId,
-                                  string Dir, string? IconPath);
+                                  string Dir, string? IconPath)
+{
+    /// <summary>The title is encrypted and its license is not installed: the system will not start it
+    /// (<see cref="TitleLicense"/>); the libraries mark it.</summary>
+    public bool LicenseMissing { get; init; }
+}
 
 /// <summary>
 /// The titles installed in the emulated file system, read the way the system reads them: the folders of
@@ -60,8 +65,20 @@ public static class InstalledContent
         File.Exists(Vfs.ResolveCaseInsensitive(dir, "eboot.bin")) && File.Exists(Vfs.ResolveCaseInsensitive(dir, FirmwareLayout.PsmRuntimeVersion));
 
     /// <summary>The title in <paramref name="dir"/>, a folder of <paramref name="folder"/>; null when it is not one.</summary>
-    public static LibraryTitle? Read(string fsRoot, FirmwareFolder folder, string dir, string? locale = null) =>
-        folder.Kind == ContentKind.PsmTitle ? ReadPsm(fsRoot, dir, locale) : ReadApplication(dir, folder.Kind, UpdateFolder(fsRoot, dir));
+    public static LibraryTitle? Read(string fsRoot, FirmwareFolder folder, string dir, string? locale = null)
+    {
+        if (folder.Kind == ContentKind.PsmTitle)
+        {
+            return ReadPsm(fsRoot, dir, locale);
+        }
+
+        if (ReadApplication(dir, folder.Kind, UpdateFolder(fsRoot, dir)) is not { } application)
+        {
+            return null;
+        }
+
+        return application with { LicenseMissing = TitleLicense.IsMissing(fsRoot, dir, application.TitleId) };
+    }
 
     /// <summary>The host folder of the update installed for the application in <paramref name="dir"/> (where appmgr
     /// overlays it, <see cref="FirmwareLayout.PatchFolderOf"/>), or null.</summary>

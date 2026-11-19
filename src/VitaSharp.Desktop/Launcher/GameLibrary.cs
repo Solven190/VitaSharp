@@ -24,6 +24,9 @@ public sealed record GameEntry(string TitleId, string Title, string Version, str
     /// content was published for. Empty when the title has none (homebrew).</summary>
     public string ContentId { get; init; } = "";
 
+    /// <summary>Encrypted and without its license installed: the system will not start it.</summary>
+    public bool LicenseMissing { get; init; }
+
     /// <summary>What the title is (where the firmware keeps it).</summary>
     public VitaSharp.Core.Io.ContentKind Kind { get; init; } = VitaSharp.Core.Io.ContentKind.VitaApplication;
 
@@ -61,7 +64,7 @@ public static class GameLibrary
     public static GameEntry? Read(string dir) => InstalledContent.ReadApplication(dir) is { } t ? From(t) : null;
 
     static GameEntry From(LibraryTitle t) =>
-        new(t.TitleId, t.Title, t.Version, t.Category, t.Dir, t.IconPath, DirectorySize(t.Dir)) { ContentId = t.ContentId, Kind = t.Kind };
+        new(t.TitleId, t.Title, t.Version, t.Category, t.Dir, t.IconPath, DirectorySize(t.Dir)) { ContentId = t.ContentId, Kind = t.Kind, LicenseMissing = t.LicenseMissing };
 
     static long DirectorySize(string dir)
     {

@@ -72,6 +72,8 @@ public static class Strings
     public static string Closing => T();
     public static string Closed(string title) => F(T(), title);
     public static string StoppedWithCode(string title, int code) => F(T(), title, code);
+    public static string LicenseMissingBadge => T();
+    public static string LicenseMissing(string titleId) => VitaSharp.Core.Package.TitleLicense.Message(titleId);
 
     public static string RegionUs => T();
     public static string RegionEurope => T();

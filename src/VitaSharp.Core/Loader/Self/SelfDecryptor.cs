@@ -166,7 +166,7 @@ public static class SelfDecryptor
         {
             if (selfType == SelfType.APP && (klicensee == null || IsZero(klicensee)))
             {
-                throw new InvalidOperationException("Encrypted application SELF needs a klicensee (license)");
+                throw new SelfLicenseMissingException();
             }
 
             Exception? last = null;

@@ -425,14 +425,32 @@ public sealed partial class SystemMisc : HleModule
             WarnMissingModule(path);
             return unchecked((int)0x8002D01C);
         }
+        catch (Exception e) when (Emulator.IsModuleLoadFailure(e))
+        {
+            // the loader refuses it (no SELF, encrypted without the title's license): the module manager's error
+            Log.Warn($"sceKernelLoadStartModule: {path}: {e.Message}");
+            return Emulator.ModuleLoadError(e);
+        }
     }
 
     [Hle]
     int sceKernelLoadModule(string path, uint flags, uint opt)
     {
         if (LoadedSystemModule(path) is { } loaded) return loaded.Uid;
-        try { return Emu.LoadModule(path).Uid; }
-        catch (FileNotFoundException) { WarnMissingModule(path); return unchecked((int)0x8002D01C); }
+        try
+        {
+            return Emu.LoadModule(path).Uid;
+        }
+        catch (FileNotFoundException)
+        {
+            WarnMissingModule(path);
+            return unchecked((int)0x8002D01C);
+        }
+        catch (Exception e) when (Emulator.IsModuleLoadFailure(e))
+        {
+            Log.Warn($"sceKernelLoadModule: {path}: {e.Message}");
+            return Emulator.ModuleLoadError(e);
+        }
     }
 
     [Hle]
@@ -488,8 +506,20 @@ public sealed partial class SystemMisc : HleModule
             return existing.Uid;
         }
         Loader.LoadedModule mod;
-        try { mod = Emu.LoadModule(path); }
-        catch (FileNotFoundException) { WarnMissingModule(path); return unchecked((int)0x8002D01C); }
+        try
+        {
+            mod = Emu.LoadModule(path);
+        }
+        catch (FileNotFoundException)
+        {
+            WarnMissingModule(path);
+            return unchecked((int)0x8002D01C);
+        }
+        catch (Exception e) when (Emulator.IsModuleLoadFailure(e))
+        {
+            Log.Warn($"sceKernelOpenModule: {path}: {e.Message}");
+            return Emulator.ModuleLoadError(e);
+        }
         // same as sceKernelLoadStartModule: the module stays loaded whatever module_start returns
         if (mod.StartEntry != 0) GuestThread.Current!.CallGuest(mod.StartEntry, args, argp);
         lock (_openCounts) _openCounts[mod.Uid] = 1;

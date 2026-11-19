@@ -341,9 +341,13 @@ public sealed partial class EmulationSession : IDisposable
         catch (Exception e)
         {
             Log.Error($"Could not start {_game.TitleId}: {e}");
-            Failed?.Invoke(e is DllNotFoundException
-                ? Loc.Format("MNativeLibraryMissing", e.Message)
-                : Loc.Format("MStartFailed", e.Message));
+            Failed?.Invoke(e switch
+            {
+                // the system refuses the launch: the license of this encrypted game is not installed
+                TitleLicenseMissingException noLicense => noLicense.UserMessage,
+                DllNotFoundException => Loc.Format("MNativeLibraryMissing", e.Message),
+                _ => Loc.Format("MStartFailed", e.Message),
+            });
         }
     }
 

@@ -3186,4 +3186,13 @@
   <data name="PrecompileCodeCancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>
+  <data name="LicenseMissing" xml:space="preserve">
+    <value>A licença deste jogo ({0}) não está instalada, então o sistema não consegue iniciá-lo (erro {1}). Reinstale com o work.bin, zRIF ou .rif do seu console.</value>
+  </data>
+  <data name="LicenseMissingInstalled" xml:space="preserve">
+    <value>{0} foi instalado, mas a licença não: o jogo é cifrado e não vai iniciar (erro {1}) até você instalar o work.bin, zRIF ou .rif do seu console.</value>
+  </data>
+  <data name="LicenseMissingBadge" xml:space="preserve">
+    <value>Sem licença</value>
+  </data>
 </root>

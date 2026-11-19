@@ -291,12 +291,17 @@ public sealed class VpkInstallerTests : IDisposable
     }
 
     [Fact]
-    public void EncryptedEboot_WithoutLicense_FailsWithClearError()
+    public void EncryptedEboot_WithoutLicense_InstallsWithAWarning()
     {
+        // the installation is not blocked (the license can come later); the warning says it will not start without it
         MemoryStream zip = Zip(AppEntries("", "PCSE00010", eboot: SelfHeader(encrypted: true)));
-        VpkLicenseException e = Assert.Throws<VpkLicenseException>(() => VpkInstaller.Install(zip, Ux0));
-        Assert.Contains("work.bin", e.Message);
-        Assert.False(Directory.Exists(Path.Combine(Ux0, "app", "PCSE00010")));
+        var log = new List<string>();
+        Assert.True(Assert.Single(VpkInstaller.Install(zip, Ux0, new VpkInstallOptions { Log = log.Add })).Installed);
+        string dir = Path.Combine(Ux0, "app", "PCSE00010");
+        Assert.True(Directory.Exists(dir));
+        Assert.Contains(log, m => m.Contains("work.bin") && m.Contains("will not start"));
+        Assert.True(TitleLicense.IsMissing(Path.GetDirectoryName(Ux0)!, dir));
+        Assert.NotNull(TitleLicense.InstallWarning(Path.GetDirectoryName(Ux0)!, dir, "PCSE00010"));
     }
 
     [Fact]

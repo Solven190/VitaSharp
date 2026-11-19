@@ -549,10 +549,16 @@ public sealed class Emulator : IDisposable
     /// <summary>
     /// The module manager's error for an executable or module that could not be loaded: a missing file
     /// 0x8002D01C (SCE_KERNEL_ERROR_MODULEMGR_NOENT), a file that is no SELF 0x80025002 (ILLEGAL_SELF_HEADER), anything
-    /// else the loader refuses (no licence to decrypt it, a bad ELF) 0x80025001 (ILLEGAL_ELF_HEADER).
+    /// else the loader refuses (no licence to decrypt it, a bad ELF) 0x80025001 (ILLEGAL_ELF_HEADER). An application
+    /// launched without its license: appmgr's 0x80800004 (<see cref="TitleLicense.NoLicenseError"/>).
     /// </summary>
     public static int ModuleLoadError(Exception e)
     {
+        if (e is TitleLicenseMissingException noLicense)
+        {
+            return noLicense.Error;
+        }
+
         if (e is FileNotFoundException or DirectoryNotFoundException)
         {
             return SceError.MODULEMGR_NOENT;
@@ -565,6 +571,11 @@ public sealed class Emulator : IDisposable
 
         return SceError.ILLEGAL_ELF_HEADER;
     }
+
+    /// <summary>Whether <paramref name="e"/> is the loader refusing a module (a missing file, a file that is no SELF, an
+    /// encrypted module without its license): the module manager returns <see cref="ModuleLoadError"/> for it.</summary>
+    public static bool IsModuleLoadFailure(Exception e) =>
+        e is FileNotFoundException or DirectoryNotFoundException or InvalidDataException or SelfLicenseMissingException or TitleLicenseMissingException;
 
     /// <summary>A process whose executable never ran (its load failed): it goes at once, without the end event a started
     /// application gives the shell (the shell never heard of it).</summary>
@@ -1104,7 +1115,16 @@ public sealed class Emulator : IDisposable
         {
             Access = ProgramAccess.Of(0, IsSystemProgram, retailApplication: false);
         }
-        MainModule = LoadModule("app0:" + self);
+        try
+        {
+            MainModule = LoadModule("app0:" + self);
+        }
+        catch (SelfLicenseMissingException noLicense)
+        {
+            // appmgr reads the title's license before it creates the process: without it the launch fails with its
+            // error (the shell's launch-error dialog), the process never starts
+            throw new TitleLicenseMissingException(TitleId, noLicense);
+        }
         if (IsSystemProgram)
         {
             Log.Info($"System program {MainModule.Name}, authority ID 0x{ProgramAuthorityId:X16}");
@@ -1647,20 +1667,8 @@ public sealed class Emulator : IDisposable
             Log.Warn($"Code cache: save failed: {e.Message}");
         }
     }
-    private byte[]? FindKlicensee()
-    {
-        foreach (string? p in new[]
-                 {
-                     Vfs.ResolveCaseInsensitive(AppPath, "sce_sys/package/work.bin"),
-                 }.Concat(Io.FirmwareLayout.ApplicationLicenseFiles(Options.FsRoot, Io.FirmwareLayout.PsmTitleOfOwnRuntime(Options.FsRoot, AppPath) ?? TitleId)))
-        {
-            if (File.Exists(p))
-            {
-                return PkgInstaller.ReadKlicensee(p);
-            }
-        }
-        return null;
-    }
+    private byte[]? FindKlicensee() =>
+        TitleLicense.FindFile(Options.FsRoot, AppPath, TitleId) is { } license ? PkgInstaller.ReadKlicensee(license) : null;
 
     public LoadedModule LoadModule(string vitaPath) => LoadModule(vitaPath, kernel: false);
 

@@ -107,7 +107,10 @@ public sealed class GamePage : Screen<GameState, GameProps>
                         Cover(g.TitleId, g.Initials, g.IconPath, 112, 24, 34),
                         VStack(
                             Label(g.Title).FontFamily(Fonts.SoraBold).FontSize(24).LineBreakMode(LineBreakMode.WordWrap),
-                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted).LineBreakMode(LineBreakMode.WordWrap)
+                            Label(g.Subtitle).FontSize(14).TextColor(Palette.Muted).LineBreakMode(LineBreakMode.WordWrap),
+                            g.LicenseMissing
+                                ? Label(VitaSharp.Core.Package.TitleLicense.Message(g.TitleId)).FontSize(13).TextColor(Palette.Danger).LineBreakMode(LineBreakMode.WordWrap)
+                                : null
                         ).Spacing(6).VCenter().GridColumn(1).Margin(16, 0, 0, 0)
                     ).Padding(20, 16, 20, 0),
                     Grid("Auto", "*,Auto",

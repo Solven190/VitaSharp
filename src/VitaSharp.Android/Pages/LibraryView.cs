@@ -248,7 +248,8 @@ public sealed class LibraryView : Screen<LibraryState>
                     g.IconPath != null ? Image().Source(g.IconPath).Aspect(Aspect.AspectFill) : null,
                     Grid("Auto", "*,Auto",
                         g.IconPath == null ? Label(g.Initials).FontFamily(Fonts.SoraBold).FontSize(24).TextColor(Color.FromArgb("#F1F4F9")).VEnd() : null,
-                        Border(Label(playable ? Loc.Get("MPlayableOne") : g.Category).FontFamily(Fonts.InterSemiBold).FontSize(11).TextColor(Color.FromArgb("#8FB2FF")).Center())
+                        Border(Label(g.LicenseMissing ? Loc.Get("LicenseMissingBadge") : playable ? Loc.Get("MPlayableOne") : g.Category).FontFamily(Fonts.InterSemiBold).FontSize(11)
+                                .TextColor(g.LicenseMissing ? Palette.Danger : Color.FromArgb("#8FB2FF")).Center())
                             .StrokeShape(new RoundRectangle().CornerRadius(11)).StrokeThickness(0)
                             .BackgroundColor(Color.FromArgb("#B8090C12")).Padding(8, 0).HeightRequest(22).GridColumn(1).VEnd()
                     ).Padding(12).VEnd()
@@ -371,7 +372,7 @@ public sealed class LibraryView : Screen<LibraryState>
             {
                 var t = await Task.Run(() => PkgInstaller.Install(pkg.OpenSeekable(ImportCache), license, AppServices.Data.Ux0,
                     m => Log.Info($"PKG: {m}"), ShowProgress));
-                await Alert(Loc.Get("MInstallPkg"), Loc.Format("MInstalledOne", t.TitleId, t.Title, t.Type));
+                await Alert(Loc.Get("MInstallPkg"), WithLicenseWarnings(Loc.Format("MInstalledOne", t.TitleId, t.Title, t.Type), [(t.Path, t.TitleId)]));
             }
             finally
             {
@@ -379,6 +380,22 @@ public sealed class LibraryView : Screen<LibraryState>
                 Reload();
             }
         });
+    }
+
+    /// <summary>The install message with a warning for each application just installed that is encrypted and has no
+    /// license (it stays installed; the Biblioteca marks it), as the desktop launcher does.</summary>
+    static string WithLicenseWarnings(string message, IEnumerable<(string AppDir, string TitleId)> applications)
+    {
+        foreach ((string appDir, string titleId) in applications)
+        {
+            if (TitleLicense.InstallWarning(AppServices.Data.Fs, appDir, titleId) is { } warning)
+            {
+                Log.Warn(warning);
+                message += "\n\n" + warning;
+            }
+        }
+
+        return message;
     }
 
     void ShowProgress(InstallProgress p) => SetState(s =>
@@ -408,7 +425,8 @@ public sealed class LibraryView : Screen<LibraryState>
                 });
                 var installed = results.Where(r => r.Installed).ToList();
                 await Alert(Loc.Get("MInstallVpk"), installed.Count == 0 ? Loc.Get("MNothingInstalled")
-                    : string.Join("\n", installed.Select(r => $"{r.Content.TitleId} \u00B7 {r.Content.Title} ({r.Content.Kind})")) + Loc.Get("MInstalledSuffix"));
+                    : WithLicenseWarnings(string.Join("\n", installed.Select(r => $"{r.Content.TitleId} \u00B7 {r.Content.Title} ({r.Content.Kind})")) + Loc.Get("MInstalledSuffix"),
+                        installed.Where(r => r.Content.Kind == VpkContentKind.App).Select(r => (r.InstallPath, r.TitleId))));
             }
             finally
             {

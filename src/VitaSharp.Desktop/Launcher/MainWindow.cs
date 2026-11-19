@@ -736,6 +736,7 @@ public sealed partial class MainWindow : Window
         ShowCodePrecompile(null);
         int code = p.ExitCode;
         var title = _runningTitle;
+        string? titleId = _runningId;
         if (_runningId != null)
         {
             _play = PlayHistory.Add(_runningId, _runStartUtc);
@@ -748,7 +749,18 @@ public sealed partial class MainWindow : Window
         p.Dispose();
         Refresh(); // trophies earned and time played
         ReturnFreedMemory();
-        SetStatus(code == 0 ? S.Closed(title ?? "") : S.StoppedWithCode(title ?? "", code));
+        if (code == VitaSharp.Core.Package.TitleLicense.ExitCode)
+        {
+            // the system refused to start it: its license is not installed (the game's process never started)
+            string message = S.LicenseMissing(titleId ?? title ?? "");
+            SetStatus(message);
+            AppendLog(message);
+        }
+        else
+        {
+            SetStatus(code == 0 ? S.Closed(title ?? "") : S.StoppedWithCode(title ?? "", code));
+        }
+
         if (code != 0 && !_logPanel.IsVisible)
         {
             ToggleLog();
