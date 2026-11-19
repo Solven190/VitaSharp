@@ -377,12 +377,13 @@ public sealed class SnapshotGenerator : IIncrementalGenerator
             load.AppendLine("            {");
             load.Append(cases);
             load.AppendLine("                default:");
-            load.AppendLine("                    break; // a field this build no longer has");
+            load.AppendLine($"                    r.SkipDroppedField(\"{Escape(key)}\", name); // a field this build no longer has");
+            load.AppendLine("                    break;");
             load.AppendLine("            }");
         }
         else
         {
-            load.AppendLine("            reader.FieldReader(); // a field this build no longer has");
+            load.AppendLine($"            reader.FieldReader().SkipDroppedField(\"{Escape(key)}\", name); // a field this build no longer has");
         }
 
         load.AppendLine("        }");

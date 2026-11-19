@@ -199,6 +199,34 @@ public sealed class SnapshotReader(byte[] data, int offset = 0, int length = -1)
         return Layouts != null && Layouts.TryGetValue(key, out SnapshotLayout? layout) ? layout.FieldNames : current;
     }
 
+    /// <summary>
+    /// Called by the generated LoadState for a saved field this build no longer has, with the reader
+    /// <see cref="FieldReader"/> gave: a block (format 2) was already taken whole; in positional data the field's bytes
+    /// are skipped by the size of its saved shape (<see cref="SnapshotField.FixedSize"/>, checked by
+    /// <see cref="SnapshotLayouts.Incompatibility"/> before loading).
+    /// </summary>
+    public void SkipDroppedField(string key, string name)
+    {
+        if (!Positional)
+        {
+            return;
+        }
+
+        SnapshotField? field = null;
+        if (Layouts != null && Layouts.TryGetValue(key, out SnapshotLayout? layout))
+        {
+            field = Array.Find(layout.Fields, f => f.Name == name);
+        }
+
+        int size = field == null ? -1 : SnapshotField.FixedSize(field.Signature);
+        if (size < 0)
+        {
+            throw new SnapshotException($"{key}.{name} was removed and its data cannot be skipped");
+        }
+
+        Take(size);
+    }
+
     public bool AtEnd => _pos >= _end;
     public int Remaining => _end - _pos;
 
