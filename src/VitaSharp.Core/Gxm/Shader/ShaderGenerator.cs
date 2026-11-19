@@ -211,7 +211,7 @@ public static class ShaderGenerator
     /// Version of the translator output. Persistent shader caches are keyed by it: bump it whenever a change to the
     /// USSE translation or to this generator alters the GLSL (or its metadata) produced for an existing program.
     /// </summary>
-    public const int GeneratorVersion = 28;
+    public const int GeneratorVersion = 29;
 
     /// <summary>Clip distances the generated vertex shaders may write (index 0 the far plane, 1-7 the GXM user clip
     /// planes 0-6): the Vulkan minimum of maxClipDistances.</summary>
@@ -1386,12 +1386,22 @@ float packC10(vec3 c) {
                 decl.AppendLine("layout(set = 3, binding = 1) uniform sampler2DMS last_frag_ms;");
                 src = new Val($"(rinfo.fb_samples > 1.5 ? texelFetch(last_frag_ms, ivec2(gl_FragCoord.xy), {sample}) : texelFetch(last_frag_tex, ivec2(gl_FragCoord.xy), 0))", 'f', 4);
             }
-            if (!GxpProgram.IsFloat(target.Type))
+            // a surface that keeps the register words unconverted (NativeRawOutputWords) gives them back as they are:
+            // its 32-bit float channels are the words' bits (Assassin's Creed III Liberation blends its packed G-buffer
+            // bytes with SOP2 on the fetched words)
+            int rawFetchWords = NativeRawOutputWords(program, hints);
+            int fetchMask = 0b1111;
+            if (rawFetchWords != 0)
+            {
+                target.Type = DataType.F32;
+                fetchMask = (1 << rawFetchWords) - 1;
+            }
+            else if (!GxpProgram.IsFloat(target.Type))
             {
                 src = usseTranslator.ToInt(src, target.Type, true);
             }
 
-            usseTranslator.Store(target, src, 0b1111);
+            usseTranslator.Store(target, src, fetchMask);
             if (program.IsNativeColor && target.Type is DataType.UInt8 or DataType.Int8)
             {
                 result.TileWord1 |= TileWord1Use.Reads;
@@ -1548,6 +1558,13 @@ float packC10(vec3 c) {
         }
 
         int rawBits = RawOutputBits(program, hints.ColorFormat);
+        int rawWords = program.OutputCompCount;
+        int nativeWords = NativeRawOutputWords(program, hints);
+        if (rawBits == 0 && nativeWords != 0)
+        {
+            rawBits = 32;
+            rawWords = nativeWords;
+        }
         // a float colour stored as its bits through the integer view of a 32-bit float surface (ShaderHints.FloatBitsOutput)
         bool floatBits = rawBits == 0 && hints.FloatBitsOutput && !result.UsesFragColor && FloatBitsOutputPossible(hints.ColorFormat);
         if (rawBits != 0)
@@ -1558,7 +1575,7 @@ float packC10(vec3 c) {
             words.Bank = color.Bank;
             words.Num = 0;
             words.Type = DataType.UInt32;
-            int count = program.OutputCompCount;
+            int count = rawWords;
             Val w = usseTranslator.Load(words, (1 << count) - 1, regOff);
             decl.AppendLine("layout(location = 0) out uvec4 out_raw;");
             decl.AppendLine("vec4 out_color;"); // debug overrides below assign it (re-packed as halves into out_raw)
@@ -1684,6 +1701,33 @@ float packC10(vec3 c) {
     /// (a float attachment may flush denormals; Vulkan leaves that to the implementation).
     /// </summary>
     public static bool FloatBitsOutputPossible(uint colorFormat) => (colorFormat & 0xF1800000) is 0x11000000 or 0x10800000;
+
+    /// <summary>
+    /// Words (1 or 2) of the output register that a native-colour program created with an explicit output register
+    /// format stores unconverted, or 0. A surface of 32-bit float channels (F32, F32F32) whose pixel is exactly the
+    /// size of the register format receives the register words as they are: there is no conversion from halves or
+    /// packed bytes to 32-bit floats, the tile store copies the register bits. Assassin's Creed III Liberation creates
+    /// its G-buffer programs (declared half4) with HALF4 on a 704x576 F32F32 surface, packs RGBA8 albedo into o0.x and
+    /// the S8 normal into o0.y, and samples the surface back as U8U8U8U8 at +0 and S8S8S8S8 at +4. Read as the bytes of
+    /// o0.x into the float view, the albedo became two floats and the normal was lost (saturated cyan/yellow noise over
+    /// the whole scene). Other surfaces and register sizes keep the converted colour.
+    /// </summary>
+    public static int NativeRawOutputWords(GxpProgram program, ShaderHints hints)
+    {
+        if (!program.IsNativeColor || hints.OutputRegisterFormat == 0 || !FloatBitsOutputPossible(hints.ColorFormat))
+        {
+            return 0;
+        }
+
+        int surfaceWords = (hints.ColorFormat & 0xF1800000) == 0x11000000 ? 2 : 1;
+        int registerWords = hints.OutputRegisterFormat switch
+        {
+            5 or 7 => 2,                     // HALF4, FLOAT2: 64 bits
+            1 or 2 or 3 or 4 or 6 or 8 => 1, // UCHAR4, CHAR4, USHORT2, SHORT2, HALF2, FLOAT: 32 bits
+            _ => 0,
+        };
+        return registerWords == surfaceWords ? surfaceWords : 0;
+    }
 
     public static int RawOutputBits(GxpProgram program, uint colorFormat)
     {
