@@ -1,8 +1,10 @@
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using VitaSharp.Core.Localization;
 using VitaSharp.Core.Util;
 using VitaSharp.Desktop.Launcher;
+using VitaSharp.Desktop.Launcher.Ui;
 
 namespace VitaSharp.Tests;
 
@@ -43,6 +45,37 @@ public sealed class LauncherNarrowWindowTests : IDisposable
         {
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+    }
+
+    /// <summary>A setting row with a wide control (the "Manter em HLE" text field) keeps its title and detail at least
+    /// 200 px wide: in a narrow card the control goes below the texts, and back beside them when there is room.</summary>
+    [Fact]
+    public void ASettingRowsWideControlGoesBelowItsTextsWhenNarrow()
+    {
+        LauncherApp.SetupHeadless();
+        var kit = new Kit();
+        TextBox field = kit.Field("", _ => { }, 240);
+        Control row = kit.Row("box", "Keep on HLE", "Libraries that stay on VitaSharp's implementation even when the game brings the module.", field);
+        var host = new Border { Child = row };
+        var window = new Window { Content = host, Width = 900, Height = 300 };
+        window.Show();
+        try
+        {
+            host.Width = 420;
+            Pump();
+            Assert.Equal(1, Grid.GetRow(field));
+            Assert.Empty(LayoutAudit.Check(window));
+            Assert.True(field.Bounds.Width >= 240, $"field width {field.Bounds.Width}");
+
+            host.Width = 860;
+            Pump();
+            Assert.Equal(0, Grid.GetRow(field));
+            Assert.Empty(LayoutAudit.Check(window));
+        }
+        finally
+        {
+            window.Close();
         }
     }
 

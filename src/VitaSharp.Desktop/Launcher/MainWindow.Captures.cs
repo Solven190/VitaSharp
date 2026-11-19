@@ -51,7 +51,7 @@ public sealed partial class MainWindow
         var shown = all.Where(c => (_captureKind.Length == 0 || c.Kind == _captureKind) && (_captureGame == null || c.TitleId == _captureGame)).ToList();
         var page = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*"), Margin = new Thickness(36, 28, 36, 0) };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 22) };
-        header.Children.Add(_k.VStack(2, _k.Heading(S.Captures, 30), _k.Text(S.CapturesSubtitle(all.Count, S.Size(all.Sum(c => c.Size))), 13.5, color: static p => p.Muted)));
+        header.Children.Add(_k.VStack(2, _k.Heading(S.Captures, 30), _k.Wrap(S.CapturesSubtitle(all.Count, S.Size(all.Sum(c => c.Size))), 13.5)));
         var old = all.Where(c => c.When < DateTime.Now.AddDays(-30)).ToList();
         var actions = _k.HStack(10,
             _k.Secondary(S.DeleteOld(old.Count), "trash", () => _ = DeleteCaptures(old), 44, enabled: old.Count > 0),

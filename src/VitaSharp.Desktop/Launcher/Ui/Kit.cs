@@ -836,6 +836,10 @@ public sealed class Kit
             right.Margin = new Thickness(16, 0, 0, 0);
             Grid.SetColumn(right, 2);
             g.Children.Add(right);
+            // a wide control (a text field, a dropdown) goes below the texts when it would leave them too narrow
+            g.RowDefinitions = new RowDefinitions("Auto,Auto");
+            HorizontalAlignment alignment = right.HorizontalAlignment;
+            g.SizeChanged += (_, e) => PlaceRight(g, right, alignment, e.NewSize.Width);
         }
         if (open != null)
         {
@@ -851,6 +855,29 @@ public sealed class Kit
         }
 
         return g;
+    }
+
+    /// <summary>The least width a setting row's title and detail keep before its control moves below them.</summary>
+    const double RowMinTextWidth = 200;
+
+    /// <summary>Puts a row's control beside its texts, or below them when the texts would get less than
+    /// <see cref="RowMinTextWidth"/> (a narrow window).</summary>
+    static void PlaceRight(Grid row, Control right, HorizontalAlignment alignment, double width)
+    {
+        double others = row.ColumnDefinitions[0].ActualWidth + row.ColumnDefinitions[3].ActualWidth;
+        // the control's own width (its margin depends on where it is) and the 16 px gap beside the texts
+        double control = right.DesiredSize.Width - right.Margin.Left - right.Margin.Right;
+        bool below = width - others - control - 16 < RowMinTextWidth;
+        if (below == (Grid.GetRow(right) == 1))
+        {
+            return;
+        }
+
+        Grid.SetRow(right, below ? 1 : 0);
+        Grid.SetColumnSpan(right, below ? 2 : 1);
+        Grid.SetColumn(right, below ? 1 : 2);
+        right.HorizontalAlignment = below ? HorizontalAlignment.Left : alignment;
+        right.Margin = below ? new Thickness(0, 10, 0, 0) : new Thickness(16, 0, 0, 0);
     }
 
     /// <summary>A card of rows separated by dividers (the Android grouped list).</summary>

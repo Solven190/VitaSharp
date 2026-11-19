@@ -32,7 +32,7 @@ public sealed partial class MainWindow
         _resultsHost = new Border();
 
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto,Auto"), Margin = new Thickness(0, 0, 0, 20) };
-        header.Children.Add(_k.VStack(2, _k.Heading(S.Library, 30), _k.Text(S.LibrarySubtitle(_all.Count, _all.Count(g => g.Category == "gd")), 13.5, color: static p => p.Muted)));
+        header.Children.Add(_k.VStack(2, _k.Heading(S.Library, 30), _k.Wrap(S.LibrarySubtitle(_all.Count, _all.Count(g => g.Category == "gd")), 13.5)));
         _search = new TextBox
         {
             Text = _search?.Text ?? "",
@@ -597,7 +597,7 @@ public sealed partial class MainWindow
     {
         bool fw = FirmwareInstalled;
         var page = new StackPanel { Margin = new Thickness(36, 28, 36, 0) };
-        page.Children.Add(_k.VStack(2, _k.Heading(S.Welcome, 30), _k.Text(S.WelcomeSubtitle, 13.5, color: static p => p.Muted)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
+        page.Children.Add(_k.VStack(2, _k.Heading(S.Welcome, 30), _k.Wrap(S.WelcomeSubtitle, 13.5)).Also(h => h.Margin = new Thickness(0, 0, 0, 22)));
         var steps = new UniformGrid { Columns = 3, Margin = new Thickness(0, 0, -16, 0) };
         steps.Children.Add(Step(1, fw ? "check" : "cpu", S.StepFirmware, fw ? S.StepFirmwareDone(FirmwareVersion) : S.StepFirmwareText,
             fw ? _k.Secondary(S.VitaSystem, "vita", () => Navigate(PageSystem), 42) : _k.Primary(S.InstallFirmware, "folder", () => Navigate(PageSystem), 42, 0), null, !fw));
