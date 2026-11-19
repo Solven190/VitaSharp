@@ -197,7 +197,7 @@ static class UiRender
         using var process = System.Diagnostics.Process.GetCurrentProcess();
         (int images, long imageBytes) = Ui.Kit.ImageCacheStats();
         Console.WriteLine($"  MEM {page}: working set {process.WorkingSet64 >> 20} MB, private {process.PrivateMemorySize64 >> 20} MB, " +
-                          $".NET heap {GC.GetTotalMemory(false) >> 20} MB, images {images} ({imageBytes >> 20} MB decoded)");
+                          $".NET heap {GC.GetTotalMemory(false) >> 20} MB (GC committed {GC.GetGCMemoryInfo().TotalCommittedBytes >> 20} MB), images {images} ({imageBytes >> 20} MB decoded)");
     }
 
     /// <summary>

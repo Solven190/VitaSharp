@@ -21,7 +21,7 @@ public sealed record TrophySetView(TrophyPackage Package, Dictionary<int, ulong>
         var list = new List<TrophySetView>();
         foreach (var (commId, trp) in TrophyPackage.FindSets(appDir))
         {
-            if (TrophyPackage.Load(trp, commId, language) is { } pkg)
+            if (TrophyPackage.LoadTexts(trp, commId, language) is { } pkg)
             {
                 list.Add(new TrophySetView(pkg, TrophyUnlocks.Load(TrophyUnlocks.PathFor(fsRoot, commId))));
             }
