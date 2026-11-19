@@ -161,6 +161,10 @@ public static unsafe class Jit
         s_queue.Add(b);
     }
 
+    /// <summary>Host priority of the compile workers: the guest threads' (never below it, since a guest thread
+    /// interprets a hot block until a worker compiled it; see <see cref="Util.HostThreads"/>).</summary>
+    internal static ThreadPriority WorkerPriority => Util.HostThreads.PriorityOf(Util.HostThreads.Role.JitWorker);
+
     private static void EnsureWorkers()
     {
         if (Interlocked.Exchange(ref s_workersStarted, 1) != 0)
@@ -174,6 +178,7 @@ public static unsafe class Jit
             var t = new Thread(() =>
             {
                 Util.NativeThread.Register("JIT worker", Util.NativeThread.Role.JitWorker);
+                Util.HostThreads.Apply(Util.HostThreads.Role.JitWorker);
                 foreach (Block b in s_queue.GetConsumingEnumerable())
                 {
                     try
@@ -194,7 +199,7 @@ public static unsafe class Jit
             {
                 IsBackground = true,
                 Name = $"JIT worker {i}",
-                Priority = ThreadPriority.BelowNormal
+                Priority = WorkerPriority
             };
             t.Start();
         }

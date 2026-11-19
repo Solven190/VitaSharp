@@ -4,7 +4,7 @@ using Avalonia.Threading;
 namespace VitaSharp.Desktop.Launcher;
 
 /// <summary>
-/// <c>ui-render &lt;out-dir&gt; [--size=WxH] [--title=ID] [--theme=dark|light] [--launch=ID|shell] [--seconds=N] [--install-pkg=P [--license=zRIF]]</c> (use a
+/// <c>ui-render &lt;out-dir&gt; [--size=WxH] [--title=ID] [--theme=dark|light] [--launch=ID|shell] [--seconds=N] [--install-pkg=P [--license=zRIF]] [--mem]</c> (use a
 /// scratch --data folder): the real launcher on Avalonia's headless platform (no window on screen), every page saved
 /// as a PNG in the dark and light themes, from the data folder's games, trophies, captures and save states.
 /// <c>--launch</c> also starts a game (or the Vita system) through the launcher with --headless --seconds=N and reports
@@ -58,6 +58,10 @@ static class UiRender
                 }
                 frame.Save(path);
                 Console.WriteLine($"  wrote {path}");
+                if (args.Contains("--mem"))
+                {
+                    PrintMemory(name);
+                }
             }
             Shot("library");
             settings.View = LauncherSettings.ViewList;
@@ -181,6 +185,19 @@ static class UiRender
         }
         Console.WriteLine(failures == 0 ? "PASS" : $"{failures} problem(s)");
         return failures == 0 ? 0 : 1;
+    }
+
+    /// <summary><c>--mem</c>: the launcher's memory after a page was drawn: working set, private bytes, the .NET heap
+    /// after a full collection (what stays alive) and the decoded images the launcher keeps.</summary>
+    static void PrintMemory(string page)
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        (int images, long imageBytes) = Ui.Kit.ImageCacheStats();
+        Console.WriteLine($"  MEM {page}: working set {process.WorkingSet64 >> 20} MB, private {process.PrivateMemorySize64 >> 20} MB, " +
+                          $".NET heap {GC.GetTotalMemory(false) >> 20} MB, images {images} ({imageBytes >> 20} MB decoded)");
     }
 
     /// <summary>
