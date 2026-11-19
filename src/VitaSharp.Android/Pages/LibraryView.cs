@@ -84,7 +84,7 @@ public sealed class LibraryView : Screen<LibraryState>
     {
         var data = AppServices.Data;
         var games = GameLibrary.Scan(data);
-        var trophies = games.ToDictionary(g => g.TitleId, g => GameLibrary.Trophies(g, data));
+        var trophies = games.ToDictionary(g => g.TitleId, g => GameLibrary.Trophies(g, data, AppServices.TrophyTexts));
         var fw = FirmwareStatus.Read(data.Fs);
         SetState(s =>
         {

@@ -48,7 +48,7 @@ public sealed class GamePage : Screen<GameState, GameProps>
     {
         var data = AppServices.Data;
         var game = AppServices.FindGame(Props.TitleId);
-        var trophies = game != null ? GameLibrary.Trophies(game, data) : TrophyProgress.None;
+        var trophies = game != null ? GameLibrary.Trophies(game, data, AppServices.TrophyTexts) : TrophyProgress.None;
         var settings = GameSettings.Load(data.GameSettingsFile(Props.TitleId));
         var saves = SaveInfo(data.SaveDir(Props.TitleId));
         var slots = GameStates.Slots(data.Root, Props.TitleId);

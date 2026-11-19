@@ -99,11 +99,16 @@ public sealed class TrophyPackage
 
     public byte[]? GameIcon => FileBytes("ICON0.PNG");
     public byte[]? TrophyIcon(int id) => FileBytes($"TROP{id:D3}.PNG");
+    /// <summary>The set has a picture for trophy <paramref name="id"/> (without reading it).</summary>
+    public bool HasTrophyIcon(int id) => HasFile($"TROP{id:D3}.PNG");
     public byte[]? GroupIcon(int id) => FileBytes($"GR{id:D3}.PNG");
 
     // LoadTexts: the TRP file and where each entry left on disk lies in it
     private string? _sourcePath;
     private readonly Dictionary<string, (long Offset, int Length)> _onDisk = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The set has the entry <paramref name="name"/>, kept or left on disk by <see cref="LoadTexts"/>.</summary>
+    public bool HasFile(string name) => Files.ContainsKey(name) || _onDisk.ContainsKey(name);
 
     /// <summary>An entry of the set: from <see cref="Files"/>, or read from the TRP when <see cref="LoadTexts"/> left
     /// it on disk (not kept: the caller decodes it). Null when the set has no such entry or the file cannot be read.</summary>

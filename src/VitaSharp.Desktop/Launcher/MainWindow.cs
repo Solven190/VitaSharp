@@ -518,7 +518,7 @@ public sealed partial class MainWindow : Window
     /// from <see cref="_trophyTexts"/> while the files are unchanged.</summary>
     readonly Dictionary<string, List<TrophySetView>> _trophies = new();
 
-    readonly TrophyTextsCache _trophyTexts = new();
+    readonly VitaSharp.Core.Hle.Np.TrophyTextsCache _trophyTexts = new();
 
     List<TrophySetView> TrophiesOf(GameEntry g)
     {

@@ -4,9 +4,16 @@ using VitaSharp.Mobile.Core.Storage;
 
 namespace VitaSharp.Mobile.Core.Library;
 
-/// <summary>One row of the Trofeus list. Hidden trophies keep their text secret until unlocked, as on the console.</summary>
-public sealed record TrophyRow(string CommId, int Id, TrophyGrade Grade, string Name, string Detail, bool Hidden, DateTime? UnlockedUtc, byte[]? Icon)
+/// <summary>One row of the Trofeus list. Hidden trophies keep their text secret until unlocked, as on the console. The
+/// picture stays in the TRP (<paramref name="Set"/>, texts only) and <see cref="LoadIcon"/> reads it when the row is shown.</summary>
+public sealed record TrophyRow(string CommId, int Id, TrophyGrade Grade, string Name, string Detail, bool Hidden, DateTime? UnlockedUtc, TrophyPackage? Set)
 {
+    /// <summary>The set has a picture for this trophy.</summary>
+    public bool HasIcon => Set?.HasTrophyIcon(Id) == true;
+
+    /// <summary>The trophy's PNG, read from the TRP now (not kept); null when there is none.</summary>
+    public byte[]? LoadIcon() => Set?.TrophyIcon(Id);
+
     public bool Unlocked => UnlockedUtc != null;
     public string ShownName => Hidden && !Unlocked ? Loc.Get("MHiddenTrophy") : Name;
     public string ShownDetail => Hidden && !Unlocked ? Loc.Get("MHiddenTrophyDetail") : Detail;
@@ -32,13 +39,14 @@ public sealed class TrophyList
         Progress = progress;
     }
 
-    public static TrophyList Load(GameEntry game, DataLayout data, int language = -1)
+    public static TrophyList Load(GameEntry game, DataLayout data, int language = -1, TrophyTextsCache? cache = null)
     {
         var rows = new List<TrophyRow>();
         string title = game.Title;
         foreach ((string commId, string trp) in TrophyPackage.FindSets(game.AppDir))
         {
-            if (TrophyPackage.Load(trp, commId, language) is not { } pkg)
+            TrophyPackage? package = cache != null ? cache.Get(trp, commId, language) : TrophyPackage.LoadTexts(trp, commId, language);
+            if (package is not { } pkg)
             {
                 continue;
             }
@@ -52,7 +60,7 @@ public sealed class TrophyList
             foreach (TrophyInfo trophyInfo in pkg.Trophies)
             {
                 rows.Add(new TrophyRow(commId, trophyInfo.Id, trophyInfo.Grade, trophyInfo.Name, trophyInfo.Detail, trophyInfo.Hidden,
-                    unlocked.TryGetValue(trophyInfo.Id, out ulong tick) ? TrophyUnlocks.TickToUtc(tick) : null, pkg.TrophyIcon(trophyInfo.Id)));
+                    unlocked.TryGetValue(trophyInfo.Id, out ulong tick) ? TrophyUnlocks.TickToUtc(tick) : null, pkg));
             }
         }
         return new TrophyList(title, rows, Summarize(rows));

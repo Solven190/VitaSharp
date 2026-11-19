@@ -26,7 +26,7 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
         {
             var game = AppServices.FindGame(Props.TitleId);
             // pt-BR texts when the set has them (TROP_17.SFM)
-            var list = game != null ? TrophyList.Load(game, AppServices.Data, language: 17) : null;
+            var list = game != null ? TrophyList.Load(game, AppServices.Data, language: 17, AppServices.TrophyTexts) : null;
             SetState(s => s.List = list);
         });
         base.OnMounted();
@@ -73,8 +73,9 @@ public sealed class TrophiesPage : Screen<TrophiesState, GameProps>
     VisualNode TrophyRowView(TrophyRow r)
     {
         double opacity = r.Unlocked ? 1 : 0.55;
-        var icon = r.Icon is { } bytes && (r.Unlocked || !r.Hidden)
-            ? Image().Source(ImageSource.FromStream(() => new MemoryStream(bytes))).Aspect(Aspect.AspectFill)
+        // the picture is read from the TRP when the image loads (the list keeps texts only)
+        var icon = r.HasIcon && (r.Unlocked || !r.Hidden)
+            ? Image().Source(ImageSource.FromStream(() => r.LoadIcon() is { } bytes ? new MemoryStream(bytes) : Stream.Null)).Aspect(Aspect.AspectFill)
             : (VisualNode)Label(r.Hidden ? "?" : "\U0001F3C6").FontSize(20).TextColor(Palette.Muted).Center();
         return Border(
                 Grid("Auto", "Auto,*",

@@ -61,13 +61,15 @@ public static class GameLibrary
         new(t.TitleId, t.Title, t.Version, t.Category, t.Dir, t.IconPath, DirectorySize(t.Dir)) { Kind = t.Kind };
 
     /// <summary>Trophy progress over every set the game ships (usually one).</summary>
-    public static TrophyProgress Trophies(GameEntry game, DataLayout data)
+    public static TrophyProgress Trophies(GameEntry game, DataLayout data, TrophyTextsCache? cache = null)
     {
         int earned = 0, total = 0;
         var grades = new Dictionary<TrophyGrade, (int Earned, int Total)>();
         foreach ((string commId, string trp) in TrophyPackage.FindSets(game.AppDir))
         {
-            if (TrophyPackage.Load(trp, commId) is not { } pkg)
+            // texts only (the icons stay in the TRP): the library counts every game's trophies at once
+            TrophyPackage? package = cache != null ? cache.Get(trp, commId, -1) : TrophyPackage.LoadTexts(trp, commId);
+            if (package is not { } pkg)
             {
                 continue;
             }
