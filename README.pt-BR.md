@@ -1,4 +1,4 @@
-<!-- pair: README.md sha256=7ad665479036b11de73b9ff0477257d5b5a6bb6ae8999b0a27068e04d57c2b68 -->
+<!-- pair: README.md sha256=6b28f5109ada88b865f13b236cf236e63f4472a4c01965db2242d66163a9fbfc -->
 <div align="center">
 
 [English](README.md) | **Português**
@@ -404,6 +404,17 @@ Os scripts shell seguem o Google Shell Style Guide e precisam passar no ShellChe
   processo do jogo) começa o jogo na hora e o resto é montado em segundo plano. É um carregamento de cache, não uma
   pré-compilação: a primeira sessão de um jogo não tem nada gravado. Nada a mais para instalar, igual no Windows, Linux
   e macOS.
+- Compilar shaders ao carregar o programa ("compile shaders at program load"; `--compile-on-program-load=on|off`, ligado
+  por padrão; `VITASHARP_COMPILE_ON_PROGRAM_LOAD=0|1` tem prioridade, também no Android): quando o jogo cria um programa de
+  vértice ou de fragmento (sceGxmShaderPatcherCreate*, normalmente atrás da tela de carregamento), os workers de shader
+  traduzem e compilam os shaders com os hints previstos pelo programa e montam o pipeline do programa de vértice para
+  o qual ele foi feito, então o primeiro desenho da primeira sessão já os encontra prontos. Um desenho cujo formato de
+  textura ou de superfície difere do previsto mas traduz para o mesmo shader usa o mesmo módulo. As superfícies de cor
+  que o jogo inicializa e as cenas que ele começa são lembradas, e os programas que dependem da superfície (blending
+  programável, saída de cor nativa ou inteira) também são montados para cada uma delas, com os pipelines de fetch pass
+  e de integer view. A linha `[shadercache] session` da sessão termina com o que foi enfileirado e usado ("at program
+  load: ..."); `replay-gpu --compile-on-program-load=on` anuncia os programas do dump antes do primeiro comando. Nada a
+  mais para instalar, em todos os sistemas.
 - Perfil: `dotnet-trace` / `dotnet-counters` (`dotnet tool install -g dotnet-trace`, todos os sistemas); no Windows
   também o PerfView e o WPR/WPA (Windows Performance Toolkit).
 

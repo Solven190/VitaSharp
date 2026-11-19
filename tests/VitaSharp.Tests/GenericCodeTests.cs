@@ -23,7 +23,7 @@ public partial class GenericCodeTests
     /// where in the firmware the value is (module, version, offset). The project rule allows a name fixed by the
     /// firmware; an entry without its source, or whose literal left the file, fails FirmwareConstantsAreJustifiedAndInUse.
     /// </summary>
-    internal static readonly (string File, string Literal, string Reason)[] FirmwareConstants =
+    internal static readonly (string File, string Literal, string Reason)[] s_firmwareConstants =
     [
         ("src/VitaSharp.Core/Hle/Modules/SystemServicesVsh.EventLog.cs", "NPXS19999",
             "sysmem 3.74 read-only data (segment 0, offset 0x26FAC): the name copied into every event log record"),
@@ -163,7 +163,7 @@ public partial class GenericCodeTests
             string relSlash = rel.Replace('\\', '/');
             foreach ((int line, string? text) in StringLiterals(File.ReadAllText(f)))
             {
-                if (TitleIdLiteral().IsMatch(text) && !Array.Exists(FirmwareConstants, c => c.File == relSlash && c.Literal == text))
+                if (TitleIdLiteral().IsMatch(text) && !Array.Exists(s_firmwareConstants, c => c.File == relSlash && c.Literal == text))
                 {
                     bad.Add($"{rel}:{line}: \"{text}\"");
                 }
@@ -180,7 +180,7 @@ public partial class GenericCodeTests
     {
         string? root = RepoRoot();
         Assert.NotNull(root);
-        foreach ((string file, string literal, string reason) in FirmwareConstants)
+        foreach ((string file, string literal, string reason) in s_firmwareConstants)
         {
             Assert.Matches(TitleIdLiteral(), literal);
             Assert.Matches(@"\d\.\d{2}\b.*0x[0-9A-F]+", reason);

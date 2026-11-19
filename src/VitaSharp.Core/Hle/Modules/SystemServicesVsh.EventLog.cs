@@ -19,7 +19,7 @@ public sealed partial class SystemServicesVsh
     /// constant of sysmem 3.74's read-only data (segment 0, offset 0x26FAC, read in the module, study only), the same
     /// for every process that puts a record, not the title id of a process (the process id is at +0x18). The firmware
     /// module shells VitaSharp shows carry no firmware bytes, so the value is written here, as a firmware constant
-    /// (GenericCodeTests.FirmwareConstants lists it, with this reason).</summary>
+    /// (GenericCodeTests.s_firmwareConstants lists it, with this reason).</summary>
     internal static ReadOnlySpan<byte> SysmemEventLogName => "NPXS19999"u8;
 
     /// <summary>SceDebugForDriver: data longer than 0x80 bytes (0x80010021).</summary>
