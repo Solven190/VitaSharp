@@ -30,7 +30,7 @@
       android:isGame="true"
       android:extractNativeLibs="true"
       android:appCategory="game"
-      android:supportsRtl="true">
+      android:supportsRtl="false">
     <!-- simpleperf / Perfetto CPU profiles of a release build from adb (API 29+); no debugger, no run-as -->
     <profileable android:shell="true" />
     <!-- game mode support (performance / battery), read back by GameActivity -->
